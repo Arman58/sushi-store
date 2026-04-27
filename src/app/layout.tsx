@@ -1,4 +1,6 @@
 // src/app/layout.tsx
+import "./globals.css";
+
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v13-appRouter";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";

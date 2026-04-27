@@ -11,11 +11,16 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import Image from "next/image";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
 
 import { useCartStore } from "@/features/cart";
-import { CartDrawer } from "./cart-drawer";
+
+const CartDrawer = dynamic(
+    () => import("./cart-drawer").then((m) => m.CartDrawer),
+    { ssr: false },
+);
 import { CartToast } from "./cart-toast";
 import { MobileBottomNav } from "./mobile-bottom-nav";
 import { tokens } from "./theme";
@@ -62,7 +67,10 @@ function CartHeaderButton() {
                 "&:active": { transform: "scale(0.97)" },
             }}
         >
-            <ShoppingBagOutlinedIcon sx={{ fontSize: 18 }} />
+            <ShoppingBagOutlinedIcon
+                id="cart-icon"
+                sx={{ fontSize: 18 }}
+            />
 
             {count > 0 ? (
                 <>

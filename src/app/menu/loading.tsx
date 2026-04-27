@@ -8,6 +8,7 @@ import Box from "@mui/material/Box";
 import Skeleton from "@mui/material/Skeleton";
 
 import { PageContainer } from "@/shared/ui";
+import { skeletonShimmerSx } from "@/shared/ui/theme";
 import { MenuSectionSkeleton } from "@/widgets/menu-section/menu-section-skeleton";
 
 export default function MenuLoading() {
@@ -18,11 +19,16 @@ export default function MenuLoading() {
                 <Skeleton
                     variant="rounded"
                     height={160}
-                    sx={{ borderRadius: 4, mb: 4 }}
+                    sx={{ borderRadius: 4, mb: 4, ...skeletonShimmerSx }}
                 />
 
                 {/* Section title skeleton */}
-                <Skeleton variant="text" width={120} height={40} sx={{ mb: 3 }} />
+                <Skeleton
+                    variant="text"
+                    width={120}
+                    height={40}
+                    sx={{ mb: 3, ...skeletonShimmerSx }}
+                />
 
                 {/* Menu grid skeleton */}
                 <MenuSectionSkeleton />

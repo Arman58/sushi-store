@@ -11,7 +11,7 @@ import Stack from "@mui/material/Stack";
 import { prisma } from "@/lib/prisma";
 import { HeroSection } from "@/widgets/hero";
 import { CategoryScroll } from "@/widgets/home/category-scroll";
-import { PopularSection } from "@/widgets/home/popular-section";
+import { BannerCarousel, PopularSection } from "@/widgets/home/lazy-home-widgets";
 
 export const revalidate = 60;
 
@@ -63,6 +63,14 @@ export default async function HomePage() {
                 sx={{ pt: { xs: 3.5, sm: 5 }, px: { xs: 2, sm: 3 } }}
             >
                 <CategoryScroll categories={categories} />
+            </Container>
+
+            {/* ── PROMO — premium carousel banners ── */}
+            <Container
+                maxWidth="lg"
+                sx={{ pt: { xs: 3.5, sm: 5 }, px: { xs: 2, sm: 3 } }}
+            >
+                <BannerCarousel />
             </Container>
 
             {/* ── POPULAR — high-conversion first fold ── */}

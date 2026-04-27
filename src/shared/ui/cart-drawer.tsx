@@ -83,12 +83,20 @@ export function CartDrawer() {
             anchor="right"
             open={isCartOpen}
             onClose={closeCart}
+            disableScrollLock={false}
+            ModalProps={{ keepMounted: true }}
             PaperProps={{
                 sx: {
                     width: { xs: "100vw", sm: DRAWER_WIDTH },
                     maxWidth: "100vw",
+                    height: "100%",
+                    maxHeight: "100dvh",
                     display: "flex",
                     flexDirection: "column",
+                    overflowX: "hidden",
+                    overflowY: "auto",
+                    overscrollBehaviorY: "contain",
+                    WebkitOverflowScrolling: "touch",
                     bgcolor: "#FFFFFF",
                     borderLeft: "1px solid #f0f0f0",
                     boxShadow: "none",
@@ -230,7 +238,10 @@ export function CartDrawer() {
                                 <Box
                                     sx={{
                                         flex: 1,
+                                        minHeight: 0,
                                         overflowY: "auto",
+                                        overscrollBehaviorY: "contain",
+                                        WebkitOverflowScrolling: "touch",
                                         px: 3,
                                         py: 2,
                                     }}

@@ -12,7 +12,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { memo, useEffect, useState } from "react";
 
-import { tokens } from "@/shared/ui/theme";
+import { skeletonShimmerSx, tokens } from "@/shared/ui/theme";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -46,6 +46,12 @@ const BADGE_CFG: Record<ProductBadge, { label: string; bg: string }> = {
 
 const fmt = new Intl.NumberFormat("ru-RU");
 
+const addTapTransition = {
+    type: "spring" as const,
+    stiffness: 400,
+    damping: 17,
+};
+
 // ─── Global keyframes (injected once) ────────────────────────────────────────
 
 const KEYFRAMES = `
@@ -53,12 +59,6 @@ const KEYFRAMES = `
   0%   { box-shadow: 0 0 0 0 rgba(232,93,74,0.2); }
   70%  { box-shadow: 0 0 0 8px rgba(232,93,74,0); }
   100% { box-shadow: 0 0 0 0 rgba(232,93,74,0); }
-}
-@keyframes pc-add-pop {
-  0%   { transform: scale(1);    }
-  35%  { transform: scale(0.82); }
-  65%  { transform: scale(1.22); }
-  100% { transform: scale(1);    }
 }
 @keyframes pc-shimmer {
   0%   { transform: translateX(-130%) skewX(-18deg); opacity: 0;   }
@@ -94,7 +94,6 @@ export const ProductCard = memo(function ProductCard({
     index = 0,
 }: ProductCardProps) {
     const [imgLoaded, setImgLoaded] = useState(false);
-    const [addPopped, setAddPopped] = useState(false);
 
     useEffect(() => {
         ensureKeyframes();
@@ -117,8 +116,6 @@ export const ProductCard = memo(function ProductCard({
     const handleAdd = (e: React.MouseEvent) => {
         e.stopPropagation();
         onAddToCart();
-        setAddPopped(true);
-        setTimeout(() => setAddPopped(false), 450);
     };
 
     return (
@@ -175,7 +172,7 @@ export const ProductCard = memo(function ProductCard({
                                 inset: 0,
                                 height: "100%",
                                 transform: "none",
-                                bgcolor: tokens.surfaceHi,
+                                ...skeletonShimmerSx,
                             }}
                         />
                     )}
@@ -184,7 +181,7 @@ export const ProductCard = memo(function ProductCard({
                         src={imageUrl || "/placeholder.png"}
                         alt={name}
                         fill
-                        sizes="(max-width: 600px) 50vw, (max-width: 960px) 33vw, 25vw"
+                        sizes="(max-width: 600px) 50vw, 25vw"
                         style={{
                             objectFit: "cover",
                             width: "100%",
@@ -421,54 +418,65 @@ export const ProductCard = memo(function ProductCard({
                                     {quantity}
                                 </Typography>
 
+                                <motion.div
+                                    whileTap={{ scale: 0.85 }}
+                                    transition={addTapTransition}
+                                    style={{
+                                        display: "inline-flex",
+                                        borderRadius: "50%",
+                                    }}
+                                >
+                                    <IconButton
+                                        size="small"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onIncrease?.();
+                                        }}
+                                        sx={{
+                                            width: 32,
+                                            height: 32,
+                                            backgroundColor: "#f5f5f5",
+                                            color: tokens.orange,
+                                            transition: "background 0.15s ease",
+                                            "&:hover": { bgcolor: "#ebebeb" },
+                                        }}
+                                    >
+                                        <AddIcon fontSize="small" />
+                                    </IconButton>
+                                </motion.div>
+                            </Stack>
+                        ) : (
+                            <motion.div
+                                whileTap={{ scale: 0.85 }}
+                                transition={addTapTransition}
+                                style={{
+                                    display: "inline-flex",
+                                    borderRadius: "50%",
+                                    flexShrink: 0,
+                                }}
+                            >
                                 <IconButton
                                     size="small"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onIncrease?.();
-                                    }}
+                                    onClick={handleAdd}
+                                    aria-label={`Добавить ${name}`}
                                     sx={{
-                                        width: 32,
-                                        height: 32,
-                                        backgroundColor: "#f5f5f5",
-                                        color: tokens.orange,
-                                        transition: "background 0.15s ease",
-                                        "&:hover": { bgcolor: "#ebebeb" },
-                                        "&:active": {
-                                            transform: "scale(0.85)",
+                                        width: 36,
+                                        height: 36,
+                                        bgcolor: tokens.orange,
+                                        color: "#fff",
+                                        borderRadius: "50%",
+                                        boxShadow: 2,
+                                        transition:
+                                            "background 0.18s ease, box-shadow 0.18s ease",
+                                        "&:hover": {
+                                            bgcolor: tokens.orangeHi,
+                                            boxShadow: 4,
                                         },
                                     }}
                                 >
-                                    <AddIcon fontSize="small" />
+                                    <AddIcon sx={{ fontSize: 20 }} />
                                 </IconButton>
-                            </Stack>
-                        ) : (
-                            <IconButton
-                                size="small"
-                                onClick={handleAdd}
-                                aria-label={`Добавить ${name}`}
-                                sx={{
-                                    width: 36,
-                                    height: 36,
-                                    bgcolor: tokens.orange,
-                                    color: "#fff",
-                                    borderRadius: "50%",
-                                    flexShrink: 0,
-                                    boxShadow: 2,
-                                    animation: addPopped
-                                        ? "pc-add-pop 0.45s cubic-bezier(.22,.68,0,1.2) forwards"
-                                        : "none",
-                                    transition:
-                                        "background 0.18s ease, box-shadow 0.18s ease",
-                                    "&:hover": {
-                                        bgcolor: tokens.orangeHi,
-                                        boxShadow: 4,
-                                    },
-                                    "&:active": { transform: "scale(0.85)" },
-                                }}
-                            >
-                                <AddIcon sx={{ fontSize: 20 }} />
-                            </IconButton>
+                            </motion.div>
                         )}
                     </Box>
                 </Box>
@@ -500,7 +508,7 @@ export function ProductCardSkeleton() {
                     aspectRatio: "1 / 1",
                     transform: "none",
                     borderRadius: "12px 12px 0 0",
-                    bgcolor: tokens.surfaceHi,
+                    ...skeletonShimmerSx,
                 }}
             />
             <Box
@@ -515,7 +523,7 @@ export function ProductCardSkeleton() {
                 <Skeleton
                     variant="text"
                     width="88%"
-                    sx={{ bgcolor: "rgba(0,0,0,0.08)", borderRadius: 1 }}
+                    sx={{ borderRadius: 1, ...skeletonShimmerSx }}
                 />
                 <Box
                     sx={{
@@ -529,13 +537,13 @@ export function ProductCardSkeleton() {
                     <Skeleton
                         variant="text"
                         width="40%"
-                        sx={{ bgcolor: "rgba(0,0,0,0.08)", borderRadius: 1 }}
+                        sx={{ borderRadius: 1, ...skeletonShimmerSx }}
                     />
                     <Skeleton
                         variant="circular"
                         width={36}
                         height={36}
-                        sx={{ bgcolor: tokens.surfaceHi }}
+                        sx={{ ...skeletonShimmerSx }}
                     />
                 </Box>
             </Box>

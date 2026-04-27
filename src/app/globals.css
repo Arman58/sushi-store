@@ -1,0 +1,10 @@
+/* Native-like scroll: no iOS overscroll glow; momentum on touch */
+html,
+body {
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+body {
+    position: relative;
+}

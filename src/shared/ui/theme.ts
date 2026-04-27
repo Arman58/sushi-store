@@ -41,6 +41,14 @@ export const tokens = {
     s16: 64,
 } as const;
 
+/** Premium gradient shimmer for MUI `<Skeleton />`. Requires `@keyframes shimmer` in global CSS (e.g. `background-position` sweep). */
+export const skeletonShimmerSx = {
+    background:
+        "linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)",
+    backgroundSize: "200% 100%",
+    animation: "shimmer 1.5s infinite",
+} as const;
+
 const primaryMain = tokens.orange;
 const secondaryMain = "#2DB5A0";
 

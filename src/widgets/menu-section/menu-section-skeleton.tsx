@@ -5,6 +5,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 
 import { ProductCardSkeleton } from "@/entities/product/ui/product-card";
+import { skeletonShimmerSx } from "@/shared/ui/theme";
 
 const SKELETON_COUNT = 12;
 
@@ -23,15 +24,33 @@ export function MenuSectionSkeleton() {
                         variant="rounded"
                         width={80}
                         height={36}
-                        sx={{ borderRadius: 999, flexShrink: 0 }}
+                        sx={{
+                            borderRadius: 999,
+                            flexShrink: 0,
+                            ...skeletonShimmerSx,
+                        }}
                     />
                 ))}
             </Stack>
 
             {/* Search + filter bar skeleton */}
             <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
-                <Skeleton variant="rounded" height={40} sx={{ flex: 1, maxWidth: 260, borderRadius: 2 }} />
-                <Skeleton variant="rounded" width={260} height={40} sx={{ borderRadius: 2 }} />
+                <Skeleton
+                    variant="rounded"
+                    height={40}
+                    sx={{
+                        flex: 1,
+                        maxWidth: 260,
+                        borderRadius: 2,
+                        ...skeletonShimmerSx,
+                    }}
+                />
+                <Skeleton
+                    variant="rounded"
+                    width={260}
+                    height={40}
+                    sx={{ borderRadius: 2, ...skeletonShimmerSx }}
+                />
             </Stack>
 
             {/* Grid skeleton */}

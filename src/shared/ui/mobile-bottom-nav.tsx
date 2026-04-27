@@ -37,7 +37,7 @@ export function MobileBottomNav() {
                 bottom: 0,
                 zIndex: 1200,
                 display: { xs: "block", sm: "none" },
-                pb: "env(safe-area-inset-bottom)",
+                pb: "calc(16px + env(safe-area-inset-bottom))",
             }}
         >
             {/* Blur backdrop */}
@@ -132,8 +132,9 @@ export function MobileBottomNav() {
                 >
                     <motion.div
                         key={totalItems}
-                        animate={{ scale: [1, 1.3, 1] }}
-                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        initial={{ scale: 0.6 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 15 }}
                         style={{ display: "inline-flex", lineHeight: 0 }}
                     >
                         <Badge

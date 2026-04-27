@@ -39,6 +39,12 @@ const DRAFT_STORAGE_KEY = "checkout-draft";
 const DRAFT_TTL_MS = 24 * 60 * 60 * 1_000;
 const ORDER_ID_KEY = "last-order-id";
 
+/** iOS-style tap targets (56px) and label alignment for checkout fields */
+const checkoutTextFieldSx = {
+    "& .MuiOutlinedInput-root": { borderRadius: 3, minHeight: 56 },
+    "& .MuiInputLabel-root": { transform: "translate(14px, 20px) scale(1)" },
+} as const;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const digitsOnly = (value: string) => value.replace(/\D/g, "");
@@ -343,6 +349,7 @@ export default function CheckoutPage() {
                                 <TextField
                                     label="Имя"
                                     fullWidth
+                                    sx={checkoutTextFieldSx}
                                     {...register("name")}
                                     error={Boolean(errors.name)}
                                     helperText={errors.name?.message}
@@ -364,6 +371,7 @@ export default function CheckoutPage() {
                                         <TextField
                                             label="Телефон"
                                             fullWidth
+                                            sx={checkoutTextFieldSx}
                                             value={field.value}
                                             onChange={(e) => field.onChange(formatPhone(e.target.value))}
                                             required
@@ -431,6 +439,7 @@ export default function CheckoutPage() {
                                     <TextField
                                         label="Адрес доставки"
                                         fullWidth
+                                        sx={checkoutTextFieldSx}
                                         {...register("address")}
                                         required
                                         error={Boolean(errors.address)}
@@ -451,6 +460,7 @@ export default function CheckoutPage() {
                                     fullWidth
                                     multiline
                                     minRows={2}
+                                    sx={checkoutTextFieldSx}
                                     {...register("comment")}
                                     InputProps={{
                                         startAdornment: (
