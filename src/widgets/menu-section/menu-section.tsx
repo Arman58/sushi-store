@@ -8,15 +8,14 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
+import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
-import Tab from "@mui/material/Tab";
-import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { ProductCard } from "@/entities/product/ui/product-card";
@@ -36,7 +35,7 @@ export type MenuProduct = {
     description?: string | null;
     price: number;
     weight?: number | null;
-    image?: string | null;
+    images?: any;
     category?: MenuCategory | null;
 };
 
@@ -79,7 +78,6 @@ type PriceFilter = (typeof PRICE_FILTERS)[number]["key"];
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function MenuSection({ categories, products }: MenuSectionProps) {
-    const router       = useRouter();
     const searchParams = useSearchParams();
 
     const addItem            = useCartStore((s) => s.addItem);
@@ -111,7 +109,6 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
     const categoryFromUrl = searchParams.get("category") ?? undefined;
     const activeSlug =
         categoryFromUrl && allSlugs.includes(categoryFromUrl) ? categoryFromUrl : "all";
-    const tabs = useMemo(() => [{ slug: "all", name: "Все" }, ...categories], [categories]);
 
     const filteredProducts = useMemo(() => {
         const base =
@@ -162,9 +159,6 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
         const qty = (cartItems.find((i) => i.productId === productId)?.quantity ?? 0) - 1;
         setItemQuantity(productId, qty);
     };
-    const handleTabChange = (_: React.SyntheticEvent, value: string) => {
-        router.replace(value === "all" ? "/menu" : `/menu?category=${value}`);
-    };
 
     return (
         <Box sx={{ mt: 3, display: "flex", flexDirection: "column", gap: 2 }}>
@@ -191,169 +185,143 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                     gap: 1.25,
                 }}
             >
-                {/* Category tabs */}
-                <Tabs
-                    value={activeSlug}
-                    onChange={handleTabChange}
-                    variant="scrollable"
-                    scrollButtons="auto"
+                <Paper
+                    elevation={0}
                     sx={{
-                        minHeight: 44,
-                        "& .MuiTabs-indicator": { display: "none" },
-                        "& .MuiTabs-scrollButtons": {
-                            color: tokens.textMuted,
-                            "&.Mui-disabled": { opacity: 0.2 },
-                        },
+                        p: 2,
+                        mb: 2,
+                        borderRadius: 3,
+                        bgcolor: "background.paper",
+                        border: "1px solid",
+                        borderColor: "#f0f0f0",
                     }}
                 >
-                    {tabs.map((cat) => {
-                        const isActive = activeSlug === cat.slug;
-                        return (
-                            <Tab
-                                key={cat.slug}
-                                value={cat.slug}
-                                label={cat.name}
-                                sx={{
-                                    textTransform: "none",
-                                    fontWeight: isActive ? 800 : 500,
-                                    fontSize: 13,
-                                    minHeight: 36,
-                                    py: 0.75,
-                                    px: 1.75,
-                                    mx: 0.25,
-                                    borderRadius: "12px",
-                                    color: isActive ? tokens.orange : tokens.textSecondary,
-                                    bgcolor: isActive ? tokens.orangeDim : "transparent",
-                                    border: `1px solid ${isActive ? tokens.orange + "44" : "transparent"}`,
-                                    transition: "all 0.18s ease",
-                                    "&:hover": {
-                                        bgcolor: isActive ? tokens.orangeDim : tokens.surfaceUp,
-                                        color: isActive ? tokens.orange : tokens.textPrimary,
-                                    },
-                                    "&.Mui-selected": { color: tokens.orange },
-                                }}
-                            />
-                        );
-                    })}
-                </Tabs>
-
-                {/* Search + Sort + Price filter */}
-                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center" }}>
-                    {/* Search input */}
-                    <TextField
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        size="small"
-                        placeholder="Поиск по меню..."
-                        InputProps={{
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <SearchIcon sx={{ fontSize: 18, color: tokens.textMuted }} />
-                                </InputAdornment>
-                            ),
-                        }}
-                        sx={{ flex: { xs: "1 1 100%", sm: "0 1 260px" }, minWidth: 180 }}
-                    />
-
-                    {/* Sort — fully dark-themed ToggleButtonGroup */}
-                    <ToggleButtonGroup
-                        value={sort}
-                        exclusive
-                        size="small"
-                        onChange={(_, v) => { if (v) setSort(v); }}
+                    <Box
                         sx={{
-                            "& .MuiToggleButtonGroup-grouped": {
-                                border: `1px solid ${tokens.border} !important`,
-                                borderRadius: "10px !important",
-                                mx: "2px",
-                                px: 1.5,
-                                py: 0.6,
-                                color: tokens.textSecondary,
-                                fontWeight: 600,
-                                fontSize: 12,
-                                textTransform: "none",
-                                bgcolor: tokens.surfaceUp,
-                                transition: "all 0.18s ease",
-                                "&:hover": {
-                                    bgcolor: tokens.surfaceHi,
-                                    color: tokens.textPrimary,
-                                    border: `1px solid ${tokens.borderHi} !important`,
-                                },
-                                "&.Mui-selected": {
-                                    bgcolor: `${tokens.orangeDim} !important`,
-                                    color: `${tokens.orange} !important`,
-                                    border: `1px solid ${tokens.orange}44 !important`,
-                                    fontWeight: 700,
-                                },
-                            },
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 1,
+                            alignItems: "center",
                         }}
                     >
-                        <ToggleButton value="name">По алфавиту</ToggleButton>
-                        <ToggleButton value="price_asc">Цена ↑</ToggleButton>
-                        <ToggleButton value="price_desc">Цена ↓</ToggleButton>
-                    </ToggleButtonGroup>
+                        <TextField
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            size="small"
+                            placeholder="Поиск по меню..."
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon
+                                            sx={{ fontSize: 18, color: tokens.textMuted }}
+                                        />
+                                    </InputAdornment>
+                                ),
+                            }}
+                            sx={{
+                                flex: { xs: "1 1 100%", sm: "0 1 260px" },
+                                minWidth: 180,
+                                "& .MuiOutlinedInput-root": { borderRadius: 2 },
+                            }}
+                        />
 
-                    {/* Price filter — native buttons (fully controlled, no MUI Chip color confusion) */}
-                    <Stack direction="row" flexWrap="wrap" sx={{ gap: 0.75 }}>
-                        {PRICE_FILTERS.map(({ key, label }) => {
-                            const active = priceFilter === key;
-                            return (
-                                <Box
-                                    key={key}
-                                    component="button"
-                                    onClick={() => setPriceFilter(key)}
+                        <ToggleButtonGroup
+                            value={sort}
+                            exclusive
+                            size="small"
+                            onChange={(_, v) => {
+                                if (v) setSort(v);
+                            }}
+                            sx={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: 0.75,
+                                "& .MuiToggleButtonGroup-grouped": {
+                                    border: "1px solid #f0f0f0 !important",
+                                    borderRadius: "8px !important",
+                                    m: 0,
+                                    textTransform: "none",
+                                    fontSize: 12,
+                                    fontWeight: 500,
+                                    px: 1.5,
+                                    py: 0.5,
+                                    "&:not(.Mui-selected)": {
+                                        color: "text.secondary",
+                                        bgcolor: "background.paper",
+                                    },
+                                    "&.Mui-selected": {
+                                        bgcolor: "primary.main",
+                                        color: "primary.contrastText",
+                                        borderColor: "primary.main !important",
+                                        fontWeight: 600,
+                                    },
+                                },
+                            }}
+                        >
+                            <ToggleButton value="name" color="primary">
+                                По алфавиту
+                            </ToggleButton>
+                            <ToggleButton value="price_asc" color="primary">
+                                Цена ↑
+                            </ToggleButton>
+                            <ToggleButton value="price_desc" color="primary">
+                                Цена ↓
+                            </ToggleButton>
+                        </ToggleButtonGroup>
+
+                        <Stack direction="row" flexWrap="wrap" sx={{ gap: 0.75, alignItems: "center" }}>
+                            {PRICE_FILTERS.map(({ key, label }) => {
+                                const active = priceFilter === key;
+                                return (
+                                    <Button
+                                        key={key}
+                                        onClick={() => setPriceFilter(key)}
+                                        size="small"
+                                        disableElevation
+                                        variant={active ? "contained" : "outlined"}
+                                        color={active ? "primary" : "inherit"}
+                                        sx={{
+                                            borderRadius: 2,
+                                            textTransform: "none",
+                                            fontSize: 12,
+                                            fontWeight: active ? 600 : 500,
+                                            px: 1.5,
+                                            minWidth: 0,
+                                            ...(!active
+                                                ? { borderColor: "#f0f0f0", color: "text.secondary" }
+                                                : {}),
+                                        }}
+                                    >
+                                        {label}
+                                    </Button>
+                                );
+                            })}
+
+                            {(search || priceFilter !== "all" || sort !== "name") && (
+                                <Button
+                                    onClick={() => {
+                                        setSearch("");
+                                        setSort("name");
+                                        setPriceFilter("all");
+                                    }}
+                                    size="small"
+                                    variant="outlined"
+                                    color="inherit"
+                                    disableElevation
                                     sx={{
-                                        px: 1.4,
-                                        py: "5px",
-                                        borderRadius: "10px",
-                                        border: `1px solid ${active ? tokens.orange + "55" : tokens.border}`,
-                                        bgcolor: active ? tokens.orangeDim : tokens.surfaceUp,
-                                        color: active ? tokens.orange : tokens.textSecondary,
-                                        fontWeight: active ? 700 : 500,
+                                        borderRadius: 2,
+                                        textTransform: "none",
                                         fontSize: 12,
-                                        cursor: "pointer",
-                                        transition: "all 0.18s ease",
-                                        fontFamily: "inherit",
-                                        lineHeight: 1.5,
-                                        "&:hover": {
-                                            bgcolor: active ? tokens.orangeDim : tokens.surfaceHi,
-                                            color: active ? tokens.orange : tokens.textPrimary,
-                                        },
+                                        borderColor: "#f0f0f0",
+                                        color: "text.secondary",
                                     }}
                                 >
-                                    {label}
-                                </Box>
-                            );
-                        })}
-
-                        {(search || priceFilter !== "all" || sort !== "name") && (
-                            <Box
-                                component="button"
-                                onClick={() => { setSearch(""); setSort("name"); setPriceFilter("all"); }}
-                                sx={{
-                                    px: 1.4,
-                                    py: "5px",
-                                    borderRadius: "10px",
-                                    border: `1px solid ${tokens.border}`,
-                                    bgcolor: "transparent",
-                                    color: tokens.textMuted,
-                                    fontWeight: 500,
-                                    fontSize: 12,
-                                    cursor: "pointer",
-                                    fontFamily: "inherit",
-                                    lineHeight: 1.5,
-                                    transition: "all 0.18s ease",
-                                    "&:hover": {
-                                        color: tokens.red,
-                                        borderColor: tokens.red + "55",
-                                    },
-                                }}
-                            >
-                                Сбросить ✕
-                            </Box>
-                        )}
-                    </Stack>
-                </Box>
+                                    Сбросить ✕
+                                </Button>
+                            )}
+                        </Stack>
+                    </Box>
+                </Paper>
             </Box>
 
             {/* ══════════════════════════════════════════════════════
@@ -401,7 +369,7 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                                 description={product.description}
                                 price={product.price}
                                 weight={product.weight ?? undefined}
-                                image={product.image ?? undefined}
+                                images={product.images}
                                 onAddToCart={() => handleAddToCart(product)}
                                 quantity={qty}
                                 onIncrease={() => handleIncrease(product.id)}

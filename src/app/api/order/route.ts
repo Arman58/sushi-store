@@ -79,8 +79,19 @@ function validateOrderPayload(input: unknown): ValidationResult {
         return { ok: false, message: "Укажите имя" };
     }
 
-    if (!body.phone || typeof body.phone !== "string" || body.phone.trim().length < 6) {
-        return { ok: false, message: "Укажите корректный телефон" };
+    if (typeof body.phone !== "string") {
+        return {
+            ok: false,
+            message: "Введите корректный номер (например, XX XX XX XX)",
+        };
+    }
+
+    const phoneDigitCount = (body.phone.match(/\d/g) ?? []).length;
+    if (phoneDigitCount < 8) {
+        return {
+            ok: false,
+            message: "Введите корректный номер (например, XX XX XX XX)",
+        };
     }
 
     if (
@@ -218,14 +229,6 @@ export async function POST(request: Request) {
         );
     }
 
-    if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-        console.error("Telegram env is not configured");
-        return NextResponse.json(
-            { error: "Telegram is not configured" },
-            { status: 500 },
-        );
-    }
-
     let json: unknown;
 
     try {
@@ -273,75 +276,7 @@ export async function POST(request: Request) {
         );
     }
 
-    // 1) Собираем текст для Telegram
-    const lines: string[] = [];
-
-    lines.push("🍣 *Новый заказ East West*");
-    lines.push("");
-    lines.push(`👤 Имя: *${name}*`);
-    lines.push(`📞 Телефон: \`${phone}\``);
-
-    if (delivery === "delivery") {
-        lines.push(`📍 Доставка: *${address || "адрес не указан"}*`);
-    } else {
-        lines.push("📍 Самовывоз");
-    }
-
-    lines.push(`💳 Оплата: *${payment === "cash" ? "Наличными" : "Картой"}*`);
-
-    if (comment) {
-        lines.push("");
-        lines.push(`💬 Комментарий: _${comment}_`);
-    }
-
-    lines.push("");
-    lines.push("🧾 Позиции:");
-
-    for (const item of verifiedItems) {
-        lines.push(
-            `• ${item.name} × ${item.quantity} — *${(
-                item.price * item.quantity
-            ).toLocaleString("ru-RU")} ֏*`,
-        );
-    }
-
-    lines.push("");
-    lines.push(`💰 *Итого: ${verifiedTotal.toLocaleString("ru-RU")} ֏*`);
-
-    const text = lines.join("\n");
-
-    // 2) Шлём сообщение в Telegram
-    const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-
-    try {
-        const telegramResponse = await fetch(telegramUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                chat_id: TELEGRAM_CHAT_ID,
-                text,
-                parse_mode: "Markdown",
-            }),
-        });
-
-        if (!telegramResponse.ok) {
-            const errorText = await telegramResponse.text().catch(() => "");
-            console.error("Telegram error:", telegramResponse.status, errorText);
-
-            return NextResponse.json(
-                { error: "Failed to send Telegram message" },
-                { status: 502 },
-            );
-        }
-    } catch (error) {
-        console.error("Telegram request failed:", error);
-        return NextResponse.json(
-            { error: "Failed to send Telegram message" },
-            { status: 502 },
-        );
-    }
-
-    // 3) Сохраняем заказ в БД через Prisma
+    // 1) Сначала сохраняем заказ в БД
     let createdOrderId: number;
     try {
         const created = await prisma.order.create({
@@ -378,6 +313,70 @@ export async function POST(request: Request) {
         );
     }
 
-    // Return the order ID so the client can show it on the success page
-    return NextResponse.json({ ok: true, orderId: createdOrderId });
+    // 2) Только после успешного создания — уведомление в Telegram (сбой не ломает ответ клиенту)
+    if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+        const lines: string[] = [];
+
+        lines.push("🍣 *Новый заказ East West*");
+        lines.push(`📋 Заказ №${createdOrderId}`);
+        lines.push("");
+        lines.push(`👤 Имя: *${name}*`);
+        lines.push(`📞 Телефон: \`${phone}\``);
+
+        if (delivery === "delivery") {
+            lines.push(`📍 Доставка: *${address || "адрес не указан"}*`);
+        } else {
+            lines.push("📍 Самовывоз");
+        }
+
+        lines.push(`💳 Оплата: *${payment === "cash" ? "Наличными" : "Картой"}*`);
+
+        if (comment) {
+            lines.push("");
+            lines.push(`💬 Комментарий: _${comment}_`);
+        }
+
+        lines.push("");
+        lines.push("🧾 Позиции:");
+
+        for (const item of verifiedItems) {
+            lines.push(
+                `• ${item.name} × ${item.quantity} — *${(
+                    item.price * item.quantity
+                ).toLocaleString("ru-RU")} ֏*`,
+            );
+        }
+
+        lines.push("");
+        lines.push(`💰 *Итого: ${verifiedTotal.toLocaleString("ru-RU")} ֏*`);
+
+        const text = lines.join("\n");
+        const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+        try {
+            const telegramResponse = await fetch(telegramUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    chat_id: TELEGRAM_CHAT_ID,
+                    text,
+                    parse_mode: "Markdown",
+                }),
+            });
+
+            if (!telegramResponse.ok) {
+                const errorText = await telegramResponse.text().catch(() => "");
+                console.error("Telegram error:", telegramResponse.status, errorText);
+            }
+        } catch (error) {
+            console.error("Telegram request failed:", error);
+        }
+    } else {
+        console.error("Telegram env is not configured");
+    }
+
+    return NextResponse.json(
+        { ok: true, orderId: createdOrderId },
+        { status: 201 },
+    );
 }

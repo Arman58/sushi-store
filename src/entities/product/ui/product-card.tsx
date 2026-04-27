@@ -3,6 +3,7 @@
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
@@ -19,10 +20,12 @@ export type ProductBadge = "hit" | "new" | "spicy" | "discount";
 export type ProductCardProps = {
   name: string;
   description?: string | null;
+  categoryName?: string;
+  composition?: string;
   price: number;
   originalPrice?: number | null;
   weight?: number | null;
-  image?: string | null;
+  images?: any;
   badges?: ProductBadge[];
   onAddToCart: () => void;
   quantity?: number;
@@ -45,9 +48,9 @@ const fmt = new Intl.NumberFormat("ru-RU");
 
 const KEYFRAMES = `
 @keyframes pc-cart-pulse {
-  0%   { box-shadow: 0 0 0 0    ${tokens.orange}55, 0 12px 32px ${tokens.orangeGlow}; }
-  70%  { box-shadow: 0 0 0 10px ${tokens.orange}00, 0 12px 32px ${tokens.orangeGlow}; }
-  100% { box-shadow: 0 0 0 0    ${tokens.orange}00, 0 12px 32px ${tokens.orangeGlow}; }
+  0%   { box-shadow: 0 0 0 0 rgba(232,93,74,0.2); }
+  70%  { box-shadow: 0 0 0 8px rgba(232,93,74,0); }
+  100% { box-shadow: 0 0 0 0 rgba(232,93,74,0); }
 }
 @keyframes pc-add-pop {
   0%   { transform: scale(1);    }
@@ -75,11 +78,12 @@ function ensureKeyframes() {
 
 export const ProductCard = memo(function ProductCard({
   name,
-  description,
+  categoryName,
+  composition,
   price,
   originalPrice,
   weight,
-  image,
+  images,
   badges = [],
   onAddToCart,
   quantity = 0,
@@ -90,6 +94,8 @@ export const ProductCard = memo(function ProductCard({
   const [addPopped, setAddPopped] = useState(false);
 
   useEffect(() => { ensureKeyframes(); }, []);
+
+  const imageUrl = Array.isArray(images) ? images[0] : null;
 
   const hasInCart   = quantity > 0;
   const hasDiscount = typeof originalPrice === "number" && originalPrice > price;
@@ -113,28 +119,28 @@ export const ProductCard = memo(function ProductCard({
     <Box
       sx={{
         position: "relative",
-        borderRadius: "20px",
+        borderRadius: "14px",
         overflow: "hidden",
         // ── PORTRAIT 4:5 — image is the product ──
         aspectRatio: "4 / 5",
         cursor: "pointer",
-        bgcolor: tokens.surfaceHi,
-        border: `1px solid ${hasInCart ? tokens.orange + "55" : tokens.border}`,
+        bgcolor: tokens.surface,
+        border: `1px solid ${hasInCart ? tokens.orange : "#f0f0f0"}`,
         transition:
           "transform 0.28s cubic-bezier(.22,.68,0,1.2), box-shadow 0.28s ease, border-color 0.2s ease",
         animation: hasInCart ? "pc-cart-pulse 2.4s ease-in-out infinite" : "none",
 
         "&:hover": {
-          transform: "translateY(-6px) scale(1.015)",
-          boxShadow: `0 32px 64px rgba(0,0,0,0.8), 0 0 0 1px ${tokens.borderHi}`,
-          "& .pc-img":     { transform: "scale(1.08)" },
+          transform: "translateY(-4px) scale(1.01)",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+          "& .pc-img":     { transform: "scale(1.06)" },
           "& .pc-shimmer": { animation: "pc-shimmer 0.75s ease-out forwards" },
-          "& .pc-name":    { color: "#FFFFFF" },
+          "& .pc-name":    { color: tokens.textPrimary },
         },
 
         ...(hasInCart && {
-          borderColor: tokens.orange + "66",
-          boxShadow: `0 0 0 1px ${tokens.orange}44, 0 12px 32px ${tokens.orangeGlow}`,
+          borderColor: tokens.orange,
+          boxShadow: "0 2px 12px rgba(232,93,74,0.18)",
         }),
       }}
     >
@@ -147,7 +153,7 @@ export const ProductCard = memo(function ProductCard({
           bgcolor: tokens.surfaceHi,
         }}
       >
-        {!imgLoaded && image && (
+        {!imgLoaded && (
           <Skeleton
             variant="rectangular"
             sx={{
@@ -160,54 +166,19 @@ export const ProductCard = memo(function ProductCard({
           />
         )}
 
-        {image ? (
-          <Image
-            className="pc-img"
-            src={image}
-            alt={name}
-            fill
-            sizes="(max-width: 600px) 50vw, (max-width: 960px) 33vw, 25vw"
-            style={{
-              objectFit: "cover",
-              transition: "transform 0.5s cubic-bezier(.22,.68,0,1.2)",
-            }}
-            loading="lazy"
-            onLoad={() => setImgLoaded(true)}
-          />
-        ) : (
-          /* ── Fallback — premium gradient tile with large emoji ── */
-          <Box
-            sx={{
-              width: "100%",
-              height: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              // Richer gradient — more visual depth even without a photo
-              background: `
-                radial-gradient(ellipse 80% 60% at 50% 35%, ${tokens.orange}18 0%, transparent 65%),
-                linear-gradient(160deg, ${tokens.surfaceHi} 0%, ${tokens.surfaceUp} 50%, #1A1A1A 100%)
-              `,
-              userSelect: "none",
-              // Subtle inner glow
-              boxShadow: `inset 0 0 60px rgba(255,107,0,0.06)`,
-            }}
-          >
-            {/* Large emoji — the only visual when no photo */}
-            <Typography
-              sx={{
-                fontSize: { xs: 68, sm: 80 },
-                lineHeight: 1,
-                filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.5))",
-                transform: "translateY(-8%)",
-                transition: "transform 0.45s cubic-bezier(.22,.68,0,1.2)",
-                ".pc-img-wrap:hover &": { transform: "translateY(-14%) scale(1.08)" },
-              }}
-            >
-              🍱
-            </Typography>
-          </Box>
-        )}
+        <Image
+          className="pc-img"
+          src={imageUrl || "/placeholder.png"}
+          alt={name}
+          fill
+          sizes="(max-width: 600px) 50vw, (max-width: 960px) 33vw, 25vw"
+          style={{
+            objectFit: "cover",
+            transition: "transform 0.5s cubic-bezier(.22,.68,0,1.2)",
+          }}
+          loading="lazy"
+          onLoad={() => setImgLoaded(true)}
+        />
 
         {/* Hover shimmer sweep */}
         <Box
@@ -216,7 +187,7 @@ export const ProductCard = memo(function ProductCard({
             position: "absolute",
             inset: 0,
             background:
-              "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%)",
+              "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 50%, transparent 100%)",
             transform: "translateX(-130%) skewX(-18deg)",
             pointerEvents: "none",
             zIndex: 3,
@@ -225,22 +196,15 @@ export const ProductCard = memo(function ProductCard({
       </Box>
 
       {/* ── Bottom cinematic scrim ─────────────────────────────────── */}
-      {/*
-        This scrim MUST be opaque enough to guarantee white text legibility
-        regardless of whether the card has a real photo or the emoji fallback.
-        Even on a dark (#141414) background, a hard scrim at bottom gives
-        clear visual separation between the image zone and the text zone.
-      */}
       <Box
         sx={{
           position: "absolute",
           bottom: 0,
           left: 0,
           right: 0,
-          // Taller scrim — text area is always well-covered
-          height: "72%",
+          height: "68%",
           background:
-            "linear-gradient(to top, rgba(5,5,5,1) 0%, rgba(5,5,5,0.92) 22%, rgba(5,5,5,0.72) 42%, rgba(5,5,5,0.35) 62%, rgba(5,5,5,0.08) 80%, transparent 100%)",
+            "linear-gradient(to top, rgba(255,255,255,0.97) 0%, rgba(255,255,255,0.88) 28%, rgba(255,255,255,0.55) 48%, rgba(255,255,255,0.2) 72%, transparent 100%)",
           zIndex: 2,
           pointerEvents: "none",
         }}
@@ -268,7 +232,7 @@ export const ProductCard = memo(function ProductCard({
                   fontWeight: 900,
                   letterSpacing: 0.9,
                   lineHeight: 1.6,
-                  boxShadow: "0 2px 10px rgba(0,0,0,0.45)",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
                 }}
               >
                 {badge === "discount" && discountPct > 0
@@ -299,7 +263,7 @@ export const ProductCard = memo(function ProductCard({
             justifyContent: "center",
             fontSize: 11,
             fontWeight: 900,
-            boxShadow: `0 2px 12px ${tokens.orangeGlow}`,
+            boxShadow: "0 1px 4px rgba(232,93,74,0.35)",
           }}
         >
           {quantity}
@@ -343,7 +307,7 @@ export const ProductCard = memo(function ProductCard({
           sx={{
             lineHeight: 1.2,
             fontSize: { xs: 13, sm: 14 },
-            color: "rgba(255,255,255,0.88)",
+            color: tokens.textPrimary,
             display: "-webkit-box",
             WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical",
@@ -352,6 +316,29 @@ export const ProductCard = memo(function ProductCard({
           }}
         >
           {name}
+        </Typography>
+
+        {categoryName ? (
+          <Chip
+            size="small"
+            label={categoryName}
+            color="secondary"
+            sx={{ height: 20, fontSize: "12px", mb: 0.5, alignSelf: "flex-start" }}
+          />
+        ) : null}
+
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            lineHeight: 1.35,
+          }}
+        >
+          {composition || ""}
         </Typography>
 
         {/* Price + CTA row */}
@@ -375,7 +362,6 @@ export const ProductCard = memo(function ProductCard({
                 lineHeight: 1,
                 color: tokens.orange,
                 letterSpacing: -0.5,
-                textShadow: `0 0 20px ${tokens.orangeGlow}`,
               }}
             >
               {fmt.format(price)}&thinsp;֏
@@ -405,13 +391,14 @@ export const ProductCard = memo(function ProductCard({
               alignItems="center"
               spacing={0.4}
               sx={{
-                bgcolor: "rgba(0,0,0,0.75)",
-                backdropFilter: "blur(16px)",
-                WebkitBackdropFilter: "blur(16px)",
+                bgcolor: tokens.surface,
+                backdropFilter: "blur(8px)",
+                WebkitBackdropFilter: "blur(8px)",
                 borderRadius: 999,
                 px: 0.5,
                 py: 0.4,
-                border: `1px solid ${tokens.orange}55`,
+                border: "1px solid #f0f0f0",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
                 flexShrink: 0,
               }}
             >
@@ -422,8 +409,8 @@ export const ProductCard = memo(function ProductCard({
                   width: 28,
                   height: 28,
                   color: tokens.textSecondary,
-                  transition: "color 0.15s ease",
-                  "&:hover": { color: "#fff", bgcolor: "rgba(255,255,255,0.07)" },
+                  transition: "color 0.15s ease, background-color 0.15s ease",
+                  "&:hover": { color: tokens.orange, bgcolor: tokens.surfaceHi },
                   "&:active": { transform: "scale(0.85)" },
                 }}
               >
@@ -435,7 +422,7 @@ export const ProductCard = memo(function ProductCard({
                 sx={{
                   minWidth: 20,
                   textAlign: "center",
-                  color: "#fff",
+                  color: tokens.textPrimary,
                   fontSize: 14,
                   lineHeight: 1,
                 }}
@@ -476,11 +463,11 @@ export const ProductCard = memo(function ProductCard({
                 animation: addPopped
                   ? "pc-add-pop 0.45s cubic-bezier(.22,.68,0,1.2) forwards"
                   : "none",
-                boxShadow: `0 4px 20px ${tokens.orangeGlow}`,
+                boxShadow: "0 2px 8px rgba(232,93,74,0.35)",
                 transition: "background 0.18s ease, box-shadow 0.18s ease",
                 "&:hover": {
                   bgcolor: tokens.orangeHi,
-                  boxShadow: `0 6px 28px ${tokens.orangeGlow}`,
+                  boxShadow: "0 3px 12px rgba(232,93,74,0.4)",
                 },
                 "&:active": { transform: "scale(0.85)" },
               }}
@@ -500,11 +487,11 @@ export function ProductCardSkeleton() {
   return (
     <Box
       sx={{
-        borderRadius: "20px",
+        borderRadius: "14px",
         overflow: "hidden",
         aspectRatio: "4 / 5",
         bgcolor: tokens.surface,
-        border: `1px solid ${tokens.border}`,
+        border: "1px solid #f0f0f0",
         position: "relative",
       }}
     >
@@ -526,7 +513,7 @@ export function ProductCardSkeleton() {
           right: 0,
           height: "45%",
           background:
-            "linear-gradient(to top, rgba(8,8,8,0.9) 0%, transparent 100%)",
+            "linear-gradient(to top, rgba(255,255,255,0.95) 0%, transparent 100%)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "flex-end",
@@ -538,12 +525,12 @@ export function ProductCardSkeleton() {
         <Skeleton
           variant="text"
           width="72%"
-          sx={{ bgcolor: "rgba(255,255,255,0.07)", borderRadius: 1 }}
+          sx={{ bgcolor: "rgba(0,0,0,0.08)", borderRadius: 1 }}
         />
         <Skeleton
           variant="text"
           width="40%"
-          sx={{ bgcolor: "rgba(255,255,255,0.05)", borderRadius: 1 }}
+          sx={{ bgcolor: "rgba(0,0,0,0.06)", borderRadius: 1 }}
         />
       </Box>
     </Box>

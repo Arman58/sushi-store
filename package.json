@@ -10,7 +10,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\" --write",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "ts-node --transpile-only prisma/seed.ts"
+    "prisma:seed": "ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"node\"}' prisma/seed.ts"
   },
   "prisma": {
     "seed": "npm run prisma:seed"

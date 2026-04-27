@@ -47,14 +47,17 @@ function CartHeaderButton() {
                 px: { xs: 1.5, sm: 2 },
                 py: 1,
                 borderRadius: 2,
-                bgcolor: count > 0 ? tokens.orange : tokens.surfaceUp,
-                border: `1px solid ${count > 0 ? tokens.orange : tokens.border}`,
+                bgcolor: count > 0 ? tokens.orange : tokens.surface,
+                border: `1px solid ${count > 0 ? tokens.orange : "#f0f0f0"}`,
                 color: count > 0 ? "#fff" : tokens.textSecondary,
                 transition: "all 0.18s ease",
                 "&:hover": {
                     bgcolor: count > 0 ? tokens.orangeHi : tokens.surfaceHi,
                     transform: "translateY(-1px)",
-                    boxShadow: count > 0 ? `0 8px 20px ${tokens.orangeGlow}` : "none",
+                    boxShadow:
+                        count > 0
+                            ? "0 1px 4px rgba(0,0,0,0.08)"
+                            : "0 1px 3px rgba(0,0,0,0.06)",
                 },
                 "&:active": { transform: "scale(0.97)" },
             }}
@@ -117,7 +120,12 @@ export function LayoutShell({ children }: LayoutShellProps) {
     return (
         <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
             {/* ── Sticky header ── */}
-            <AppBar position="sticky" elevation={0}>
+            <AppBar
+                position="sticky"
+                elevation={0}
+                color="transparent"
+                sx={{ color: tokens.textPrimary }}
+            >
                 <Toolbar disableGutters sx={{ minHeight: { xs: 60, sm: 64 } }}>
                     <Container
                         maxWidth="lg"
@@ -147,7 +155,8 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                     height: 36,
                                     borderRadius: 1.5,
                                     overflow: "hidden",
-                                    bgcolor: tokens.surfaceUp,
+                                    bgcolor: tokens.surface,
+                                    border: "1px solid #f0f0f0",
                                     flexShrink: 0,
                                     position: "relative",
                                 }}
@@ -190,8 +199,8 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                 px: 2,
                                 py: 0.75,
                                 borderRadius: 999,
-                                bgcolor: tokens.surfaceUp,
-                                border: `1px solid ${tokens.border}`,
+                                bgcolor: tokens.surface,
+                                border: "1px solid #f0f0f0",
                             }}
                         >
                             <LocationOnOutlinedIcon
@@ -227,8 +236,11 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                             color: tokens.textSecondary,
                                             fontSize: 14,
                                             fontWeight: 600,
-                                            transition: "color 0.15s",
-                                            "&:hover": { color: tokens.textPrimary },
+                                            transition: "background-color 0.15s, color 0.15s",
+                                            "&:hover": {
+                                                color: tokens.textPrimary,
+                                                bgcolor: tokens.surfaceHi,
+                                            },
                                         }}
                                     >
                                         {label}

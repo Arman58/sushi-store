@@ -19,11 +19,17 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, type Resolver } from "react-hook-form";
 
 import { ApiError, placeOrder } from "@/shared/api";
-import { checkoutSchema, type CheckoutFormValues, type DeliveryType, type PaymentMethod } from "@/shared/lib/schemas";
+import {
+    checkoutSchema,
+    type CheckoutFormValues,
+    type DeliveryType,
+    type PaymentMethod,
+} from "@/shared/lib/schemas";
 import { PageContainer, SectionTitle } from "@/shared/ui";
+import { tokens } from "@/shared/ui/theme";
 import { useCartStore } from "@/features/cart";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -97,24 +103,18 @@ function PaymentCard({ value, selected, onSelect, icon, label, sublabel }: Payme
                 flex: 1,
                 p: 2,
                 cursor: "pointer",
-                border: selected
-                    ? "2px solid"
-                    : "2px solid transparent",
-                borderColor: selected ? "primary.main" : "transparent",
-                outline: selected
-                    ? "none"
-                    : "1px solid rgba(15,23,42,0.1)",
-                borderRadius: 3,
-                bgcolor: selected ? "rgba(35,79,74,0.06)" : "background.paper",
+                border: "1px solid",
+                borderColor: selected ? "primary.main" : "#f0f0f0",
+                borderRadius: 2,
+                bgcolor: selected ? tokens.orangeDim : "#FFFFFF",
+                boxShadow: "none",
                 transition: "all 0.15s ease",
                 display: "flex",
                 alignItems: "center",
                 gap: 1.5,
                 "&:hover": {
-                    outline: selected ? "none" : "1px solid rgba(35,79,74,0.3)",
-                    bgcolor: selected
-                        ? "rgba(35,79,74,0.08)"
-                        : "rgba(15,23,42,0.02)",
+                    borderColor: selected ? "primary.main" : tokens.borderHi,
+                    bgcolor: selected ? tokens.orangeDim : tokens.surfaceHi,
                 },
                 userSelect: "none",
             }}
@@ -127,9 +127,7 @@ function PaymentCard({ value, selected, onSelect, icon, label, sublabel }: Payme
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    bgcolor: selected
-                        ? "primary.main"
-                        : "rgba(15,23,42,0.06)",
+                    bgcolor: selected ? "primary.main" : tokens.surfaceHi,
                     color: selected ? "white" : "text.secondary",
                     transition: "all 0.15s ease",
                     flexShrink: 0,
@@ -178,7 +176,7 @@ export default function CheckoutPage() {
         setValue,
         formState: { errors, isSubmitting },
     } = useForm<CheckoutFormValues>({
-        resolver: zodResolver(checkoutSchema),
+        resolver: zodResolver(checkoutSchema) as Resolver<CheckoutFormValues>,
         defaultValues: {
             name: draft?.name ?? "",
             phone: draft?.phone ?? "",
@@ -235,11 +233,10 @@ export default function CheckoutPage() {
             });
 
             if (result.ok) {
-                clearCart();
+                useCartStore.getState().clear();
                 try {
                     localStorage.removeItem(DRAFT_STORAGE_KEY);
-                    // Store order ID so the success page can display it and link to tracking
-                    sessionStorage.setItem("last-order-id", String(result.orderId));
+                    sessionStorage.setItem(ORDER_ID_KEY, String(result.orderId));
                 } catch { /* ignore */ }
                 router.push("/order-success");
             }
@@ -266,10 +263,10 @@ export default function CheckoutPage() {
                     sx={{
                         p: { xs: 2, md: 3 },
                         mb: 3,
-                        borderRadius: 3,
-                        border: "1px solid rgba(148,163,184,0.25)",
-                        background:
-                            "linear-gradient(135deg, rgba(248,250,252,0.9), rgba(241,245,249,0.96))",
+                        borderRadius: 2,
+                        border: "1px solid #f0f0f0",
+                        bgcolor: "#FFFFFF",
+                        boxShadow: "none",
                     }}
                 >
                     <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "flex-start", sm: "center" }}>
@@ -323,9 +320,10 @@ export default function CheckoutPage() {
                                 elevation={0}
                                 sx={{
                                     p: { xs: 2, md: 3 },
-                                    borderRadius: 3,
-                                    border: "1px solid rgba(148,163,184,0.18)",
-                                    boxShadow: "0 10px 30px rgba(15,23,42,0.06)",
+                                    borderRadius: 2,
+                                    border: "1px solid #f0f0f0",
+                                    bgcolor: "#FFFFFF",
+                                    boxShadow: "none",
                                     display: "flex",
                                     flexDirection: "column",
                                     gap: 2.5,
@@ -406,15 +404,18 @@ export default function CheckoutPage() {
                                                     flex: 1,
                                                     p: 1.5,
                                                     cursor: "pointer",
-                                                    border: delivery === type ? "2px solid" : "2px solid transparent",
-                                                    borderColor: delivery === type ? "primary.main" : "transparent",
-                                                    outline: delivery === type ? "none" : "1px solid rgba(15,23,42,0.1)",
-                                                    borderRadius: 2.5,
-                                                    bgcolor: delivery === type ? "rgba(35,79,74,0.06)" : "background.paper",
+                                                    border: "1px solid",
+                                                    borderColor: delivery === type ? "primary.main" : "#f0f0f0",
+                                                    borderRadius: 2,
+                                                    bgcolor: delivery === type ? tokens.orangeDim : "#FFFFFF",
+                                                    boxShadow: "none",
                                                     transition: "all 0.15s ease",
                                                     textAlign: "center",
                                                     userSelect: "none",
-                                                    "&:hover": { bgcolor: "rgba(35,79,74,0.04)" },
+                                                    "&:hover": {
+                                                        bgcolor: delivery === type ? tokens.orangeDim : tokens.surfaceHi,
+                                                        borderColor: delivery === type ? "primary.main" : tokens.borderHi,
+                                                    },
                                                 }}
                                             >
                                                 <Typography variant="body2" fontWeight={delivery === type ? 700 : 500}>
@@ -488,10 +489,21 @@ export default function CheckoutPage() {
                                 <Button
                                     type="submit"
                                     variant="contained"
+                                    color="primary"
                                     size="large"
                                     fullWidth
                                     disabled={!hasItems || isSubmitting}
-                                    sx={{ mt: 1 }}
+                                    sx={{
+                                        mt: 1,
+                                        py: 1.25,
+                                        fontWeight: 700,
+                                        bgcolor: "primary.main",
+                                        boxShadow: "none",
+                                        "&:hover": {
+                                            bgcolor: "primary.dark",
+                                            boxShadow: "0 1px 4px rgba(232,93,74,0.35)",
+                                        },
+                                    }}
                                 >
                                     {isSubmitting ? "Отправка…" : `Подтвердить заказ — ${totalPrice.toLocaleString("ru-RU")} ֏`}
                                 </Button>
@@ -503,13 +515,13 @@ export default function CheckoutPage() {
                             flex={1}
                             sx={{
                                 p: 3,
-                                borderRadius: 3,
-                                border: "1px solid rgba(15,23,42,0.08)",
-                                bgcolor: "background.paper",
+                                borderRadius: 2,
+                                border: "1px solid #f0f0f0",
+                                bgcolor: "#FFFFFF",
                                 minWidth: { xs: "100%", md: 280 },
                                 position: { md: "sticky" },
                                 top: { md: 80 },
-                                boxShadow: "0 12px 28px rgba(15,23,42,0.04)",
+                                boxShadow: "none",
                             }}
                         >
                             <Typography variant="h6" sx={{ mb: 2 }}>
@@ -529,7 +541,7 @@ export default function CheckoutPage() {
                                 ))}
                             </Stack>
 
-                            <Divider sx={{ my: 2 }} />
+                            <Divider sx={{ my: 2, borderColor: "#f0f0f0" }} />
 
                             <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
                                 <Typography variant="body2" color="text.secondary">

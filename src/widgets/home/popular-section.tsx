@@ -6,8 +6,8 @@ import ButtonBase from "@mui/material/ButtonBase";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
-import { ProductCard } from "@/entities/product/ui/product-card";
 import type { ProductBadge } from "@/entities/product/ui/product-card";
+import { ProductCard } from "@/entities/product/ui/product-card";
 import { useCartStore } from "@/features/cart";
 import { tokens } from "@/shared/ui/theme";
 
@@ -19,7 +19,9 @@ export type PopularProduct = {
   description?: string | null;
   price: number;
   weight?: number | null;
-  image?: string | null;
+  images?: any;
+  category?: { name: string } | null;
+  composition?: string | null;
 };
 
 type Props = {
@@ -123,7 +125,11 @@ export function PopularSection({
   const cartItems  = useCartStore((s) => s.items);
 
   const handleAdd = (p: PopularProduct) => {
-    addItem({ productId: p.id, name: p.name, price: p.price, image: p.image });
+    const thumb =
+      Array.isArray(p.images) && typeof p.images[0] === "string"
+        ? p.images[0]
+        : undefined;
+    addItem({ productId: p.id, name: p.name, price: p.price, image: thumb });
   };
 
   if (products.length === 0) return null;
@@ -152,9 +158,11 @@ export function PopularSection({
               key={product.id}
               name={product.name}
               description={product.description}
+              categoryName={product.category?.name}
+              composition={product.composition ?? undefined}
               price={product.price}
               weight={product.weight}
-              image={product.image}
+              images={product.images}
               badges={badge ? [badge] : []}
               quantity={qty}
               onAddToCart={() => handleAdd(product)}

@@ -39,6 +39,17 @@ export default async function HomePage() {
         .filter((c) => c.products.length > 0)
         .slice(0, 3);
 
+    const toPopular = (p: (typeof allProducts)[number]) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        price: p.price,
+        weight: p.weight,
+        images: p.images,
+        category: p.category ? { name: p.category.name } : null,
+        composition: p.composition ?? undefined,
+    });
+
     return (
         <main>
             {/* ── HERO — full-bleed cinematic block ── */}
@@ -60,7 +71,7 @@ export default async function HomePage() {
                 sx={{ pt: { xs: 4.5, sm: 6 }, px: { xs: 2, sm: 3 } }}
             >
                 <PopularSection
-                    products={popular}
+                    products={popular.map(toPopular)}
                     title="🔥 Популярное"
                     badge="hit"
                     seeAllHref="/menu"
@@ -74,7 +85,7 @@ export default async function HomePage() {
                     sx={{ pt: { xs: 5, sm: 7 }, px: { xs: 2, sm: 3 } }}
                 >
                     <PopularSection
-                        products={newItems}
+                        products={newItems.map(toPopular)}
                         title="✨ Новинки"
                         badge="new"
                         seeAllHref="/menu"
@@ -92,7 +103,7 @@ export default async function HomePage() {
                         {byCat.map((cat) => (
                             <PopularSection
                                 key={cat.id}
-                                products={cat.products}
+                                products={cat.products.map(toPopular)}
                                 title={cat.name}
                                 seeAllHref={`/menu?category=${cat.slug}`}
                             />

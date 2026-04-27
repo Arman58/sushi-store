@@ -31,11 +31,13 @@ function isAuthorized(request: Request): boolean {
 
 export async function POST(
     request: Request,
-    { params }: { params: { id: string } },
+    context: { params: Promise<{ id: string }> },
 ) {
     if (!isAuthorized(request)) {
         return new NextResponse("Unauthorized", { status: 401 });
     }
+
+    const params = await context.params;
 
     const extractId = () => {
         const direct = Number(params?.id);

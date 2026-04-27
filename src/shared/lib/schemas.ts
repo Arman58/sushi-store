@@ -5,18 +5,25 @@
 
 import { z } from "zod";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const digitsOnly = (value: string) => value.replace(/\D/g, "");
-
 // ─── Phone ────────────────────────────────────────────────────────────────────
+
+/** Digits only, then national 8 digits (strip leading 374 from +374… input). */
+function normalizeArmenianPhoneDigits(value: string): string {
+    const digits = value.replace(/\D/g, "");
+    return digits.startsWith("374") ? digits.slice(3) : digits;
+}
 
 export const phoneSchema = z
     .string()
     .min(1, "Укажите телефон")
-    .refine(
-        (value) => digitsOnly(value).length >= 8,
-        "Укажите номер полностью",
+    .transform((val) => normalizeArmenianPhoneDigits(val))
+    .pipe(
+        z
+            .string()
+            .length(
+                8,
+                "Введите корректный номер (например, XX XX XX XX)",
+            ),
     );
 
 // ─── Checkout ─────────────────────────────────────────────────────────────────

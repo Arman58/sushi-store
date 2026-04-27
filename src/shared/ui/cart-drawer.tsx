@@ -88,12 +88,13 @@ export function CartDrawer() {
                     maxWidth: "100vw",
                     display: "flex",
                     flexDirection: "column",
-                    bgcolor: tokens.surface,
-                    borderLeft: `1px solid ${tokens.border}`,
+                    bgcolor: "#FFFFFF",
+                    borderLeft: "1px solid #f0f0f0",
+                    boxShadow: "none",
                 },
             }}
             slotProps={{
-                backdrop: { sx: { backdropFilter: "blur(4px)", bgcolor: "rgba(0,0,0,0.7)" } },
+                backdrop: { sx: { backdropFilter: "blur(6px)", bgcolor: "rgba(0,0,0,0.35)" } },
             }}
         >
             {/* ── Header ── */}
@@ -104,8 +105,9 @@ export function CartDrawer() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    borderBottom: `1px solid ${tokens.border}`,
+                    borderBottom: "1px solid #f0f0f0",
                     flexShrink: 0,
+                    bgcolor: "#FFFFFF",
                 }}
             >
                 <Stack direction="row" spacing={1.5} alignItems="center">
@@ -134,8 +136,13 @@ export function CartDrawer() {
                     size="small"
                     sx={{
                         color: tokens.textSecondary,
-                        bgcolor: tokens.surfaceUp,
-                        "&:hover": { bgcolor: tokens.surfaceHi, color: tokens.textPrimary },
+                        bgcolor: "#FFFFFF",
+                        border: "1px solid #f0f0f0",
+                        "&:hover": {
+                            bgcolor: tokens.surfaceHi,
+                            color: tokens.textPrimary,
+                            borderColor: tokens.borderHi,
+                        },
                     }}
                 >
                     <CloseIcon fontSize="small" />
@@ -188,8 +195,9 @@ export function CartDrawer() {
                                         gap: 2,
                                         p: 1.5,
                                         borderRadius: 2,
-                                        bgcolor: tokens.surfaceUp,
-                                        border: `1px solid ${tokens.border}`,
+                                        bgcolor: "#FAFAF8",
+                                        border: "1px solid #f0f0f0",
+                                        boxShadow: "none",
                                         transition: "border-color 0.15s",
                                         "&:hover": { borderColor: tokens.borderHi },
                                     }}
@@ -263,10 +271,16 @@ export function CartDrawer() {
                                                     sx={{
                                                         width: 26,
                                                         height: 26,
-                                                        border: `1px solid ${tokens.border}`,
+                                                        bgcolor: "#FFFFFF",
+                                                        border: "1px solid #f0f0f0",
                                                         borderRadius: "50%",
                                                         color: tokens.textSecondary,
-                                                        "&:hover": { borderColor: tokens.orange, color: tokens.orange },
+                                                        boxShadow: "none",
+                                                        "&:hover": {
+                                                            borderColor: tokens.orange,
+                                                            color: tokens.orange,
+                                                            bgcolor: tokens.orangeDim,
+                                                        },
                                                     }}
                                                 >
                                                     <RemoveIcon sx={{ fontSize: 12 }} />
@@ -289,7 +303,11 @@ export function CartDrawer() {
                                                         bgcolor: tokens.orange,
                                                         borderRadius: "50%",
                                                         color: "#fff",
-                                                        "&:hover": { bgcolor: tokens.orangeHi },
+                                                        boxShadow: "none",
+                                                        "&:hover": {
+                                                            bgcolor: tokens.orangeHi,
+                                                            boxShadow: "0 1px 4px rgba(232,93,74,0.35)",
+                                                        },
                                                     }}
                                                 >
                                                     <AddIcon sx={{ fontSize: 12 }} />
@@ -308,8 +326,18 @@ export function CartDrawer() {
                                                     size="small"
                                                     onClick={() => removeItem(item.productId)}
                                                     sx={{
-                                                        color: tokens.textMuted,
-                                                        "&:hover": { color: tokens.red },
+                                                        width: 30,
+                                                        height: 30,
+                                                        bgcolor: "#FFFFFF",
+                                                        border: "1px solid #f0f0f0",
+                                                        borderRadius: "50%",
+                                                        color: tokens.textSecondary,
+                                                        boxShadow: "none",
+                                                        "&:hover": {
+                                                            color: tokens.red,
+                                                            borderColor: `${tokens.red}55`,
+                                                            bgcolor: tokens.redDim,
+                                                        },
                                                     }}
                                                 >
                                                     <DeleteOutlineIcon sx={{ fontSize: 16 }} />
@@ -327,8 +355,9 @@ export function CartDrawer() {
                                 mt: 3,
                                 p: 2,
                                 borderRadius: 2,
-                                bgcolor: tokens.surfaceUp,
-                                border: `1px solid ${tokens.orange}22`,
+                                bgcolor: "#FAFAF8",
+                                border: "1px solid #f0f0f0",
+                                boxShadow: "none",
                             }}
                         >
                             <Typography
@@ -413,9 +442,10 @@ export function CartDrawer() {
                             px: 3,
                             pt: 2,
                             pb: 3,
-                            borderTop: `1px solid ${tokens.border}`,
+                            borderTop: "1px solid #f0f0f0",
                             flexShrink: 0,
-                            bgcolor: tokens.surface,
+                            bgcolor: "#FFFFFF",
+                            boxShadow: "none",
                         }}
                     >
                         {/* Breakdown */}
@@ -448,7 +478,7 @@ export function CartDrawer() {
                             </Stack>
                         </Stack>
 
-                        <Divider sx={{ mb: 2 }} />
+                        <Divider sx={{ mb: 2, borderColor: "#f0f0f0" }} />
 
                         {/* Total */}
                         <Stack direction="row" justifyContent="space-between" sx={{ mb: 2 }}>

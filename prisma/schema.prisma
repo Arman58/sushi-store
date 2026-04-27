@@ -30,9 +30,10 @@ model Product {
   name        String
   slug        String    @unique
   description String?
+  composition String?
   price       Int
   weight      Int?
-  image       String?
+  images      Json      @default("[]")
   isActive    Boolean   @default(true)
   category    Category? @relation(fields: [categoryId], references: [id])
   categoryId  Int?

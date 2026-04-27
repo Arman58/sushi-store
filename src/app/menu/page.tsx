@@ -1,14 +1,14 @@
 // src/app/menu/page.tsx
-import { cache } from "react";
-
-import { prisma } from "@/lib/prisma";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { cache } from "react";
 
+import { prisma } from "@/lib/prisma";
 import { PageContainer, SectionTitle } from "@/shared/ui";
+import { CategoryScroll } from "@/widgets/home/category-scroll";
 import { MenuSection } from "@/widgets/menu-section";
 
 // Страница теперь может кешироваться и пересобирается раз в 60 секунд.
@@ -28,8 +28,17 @@ const getMenuData = cache(async () => {
     return { categories, products };
 });
 
-export default async function MenuPage() {
+type MenuPageProps = {
+    searchParams: Promise<{ category?: string }>;
+};
+
+export default async function MenuPage({ searchParams }: MenuPageProps) {
+    const sp = await searchParams;
     const { categories, products } = await getMenuData();
+    const validSlugs = new Set(["all", ...categories.map((c) => c.slug)]);
+    const rawCategory = sp.category;
+    const categoryActiveSlug =
+        rawCategory && validSlugs.has(rawCategory) ? rawCategory : "all";
 
     return (
         <main>
@@ -127,46 +136,12 @@ export default async function MenuPage() {
                         </Stack>
                     </Stack>
 
-                    <Stack
-                        direction="row"
-                        spacing={1}
-                        flexWrap="wrap"
-                        sx={{ mt: 2.5, position: "relative" }}
-                    >
-                        <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{ mr: 0.5, fontWeight: 600 }}
-                        >
-                            Быстрый старт:
-                        </Typography>
-                        {categories.slice(0, 6).map((cat) => (
-                            <Chip
-                                key={cat.slug}
-                                label={cat.name}
-                                component="a"
-                                href={`/menu?category=${cat.slug}`}
-                                clickable
-                                size="small"
-                                sx={{
-                                    borderRadius: 999,
-                                    bgcolor: "rgba(15,23,42,0.05)",
-                                    "&:hover": {
-                                        bgcolor: "rgba(249,115,22,0.14)",
-                                        color: "warning.dark",
-                                    },
-                                }}
-                            />
-                        ))}
-                        <Chip
-                            label="Все позиции"
-                            component="a"
-                            href="/menu"
-                            clickable
-                            size="small"
-                            sx={{ borderRadius: 999 }}
+                    <Box sx={{ mt: 2.5, position: "relative" }}>
+                        <CategoryScroll
+                            categories={categories}
+                            activeSlug={categoryActiveSlug}
                         />
-                    </Stack>
+                    </Box>
                 </Box>
 
                 <SectionTitle>Меню</SectionTitle>
