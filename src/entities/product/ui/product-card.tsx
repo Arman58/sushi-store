@@ -3,14 +3,13 @@
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import Box from "@mui/material/Box";
-import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { memo, useEffect, useState } from "react";
+import { memo, useState } from "react";
 
 import { skeletonShimmerSx, tokens } from "@/shared/ui/theme";
 
@@ -35,15 +34,6 @@ export type ProductCardProps = {
     index?: number;
 };
 
-// ─── Badge config ─────────────────────────────────────────────────────────────
-
-const BADGE_CFG: Record<ProductBadge, { label: string; bg: string }> = {
-    hit: { label: "ХИТ", bg: tokens.orange },
-    new: { label: "НОВИНКА", bg: "#3B82F6" },
-    spicy: { label: "🌶 ОСТРОЕ", bg: tokens.red },
-    discount: { label: "", bg: tokens.green },
-};
-
 const fmt = new Intl.NumberFormat("ru-RU");
 
 const addTapTransition = {
@@ -52,41 +42,12 @@ const addTapTransition = {
     damping: 17,
 };
 
-// ─── Global keyframes (injected once) ────────────────────────────────────────
-
-const KEYFRAMES = `
-@keyframes pc-cart-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(232,93,74,0.2); }
-  70%  { box-shadow: 0 0 0 8px rgba(232,93,74,0); }
-  100% { box-shadow: 0 0 0 0 rgba(232,93,74,0); }
-}
-@keyframes pc-shimmer {
-  0%   { transform: translateX(-130%) skewX(-18deg); opacity: 0;   }
-  20%  { opacity: 1;                                                }
-  100% { transform: translateX(230%)  skewX(-18deg); opacity: 0.4; }
-}
-`;
-
-function ensureKeyframes() {
-    if (typeof document === "undefined") return;
-    if (document.getElementById("pc-kf-v2")) return;
-    const s = document.createElement("style");
-    s.id = "pc-kf-v2";
-    s.textContent = KEYFRAMES;
-    document.head.appendChild(s);
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const ProductCard = memo(function ProductCard({
     name,
-    categoryName,
-    composition,
     price,
-    originalPrice,
-    weight,
     images,
-    badges = [],
     onAddToCart,
     quantity = 0,
     onIncrease,
@@ -94,23 +55,9 @@ export const ProductCard = memo(function ProductCard({
 }: ProductCardProps) {
     const [imgLoaded, setImgLoaded] = useState(false);
 
-    useEffect(() => {
-        ensureKeyframes();
-    }, []);
-
     const imageUrl = Array.isArray(images) ? images[0] : null;
 
     const hasInCart = quantity > 0;
-    const hasDiscount =
-        typeof originalPrice === "number" && originalPrice > price;
-    const discountPct = hasDiscount
-        ? Math.round(((originalPrice! - price) / originalPrice!) * 100)
-        : 0;
-
-    const allBadges: ProductBadge[] =
-        hasDiscount && !badges.includes("discount")
-            ? ["discount", ...badges]
-            : badges;
 
     const handleAdd = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -125,35 +72,23 @@ export const ProductCard = memo(function ProductCard({
                     height: "100%",
                     borderRadius: 3,
                     overflow: "hidden",
-                    bgcolor: "background.paper",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                    bgcolor: "#fff",
+                    boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
                     display: "flex",
                     flexDirection: "column",
                     cursor: "pointer",
-                    transition:
-                        "transform 0.28s cubic-bezier(.22,.68,0,1.2), box-shadow 0.28s ease",
-                    animation: hasInCart
-                        ? "pc-cart-pulse 2.4s ease-in-out infinite"
-                        : "none",
-
+                    transition: "box-shadow 0.28s ease",
                     "&:hover": {
-                        transform: "translateY(-2px)",
-                        boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+                        boxShadow: "0 4px 16px rgba(0,0,0,0.07)",
                     },
-
-                    ...(hasInCart && {
-                        boxShadow: "0 2px 12px rgba(232,93,74,0.22)",
-                    }),
                 }}
             >
-                {/* ── Square image + badges (food-delivery layout) ───────────── */}
                 <Box
                     sx={{
                         position: "relative",
                         width: "100%",
                         aspectRatio: "1 / 1",
                         overflow: "hidden",
-                        borderRadius: "12px 12px 0 0",
                         bgcolor: tokens.surfaceHi,
                     }}
                 >
@@ -183,76 +118,8 @@ export const ProductCard = memo(function ProductCard({
                         loading="lazy"
                         onLoad={() => setImgLoaded(true)}
                     />
-
-                    {allBadges.length > 0 && (
-                        <Stack
-                            direction="row"
-                            spacing={0.5}
-                            sx={{
-                                position: "absolute",
-                                top: 8,
-                                left: 8,
-                                zIndex: 5,
-                            }}
-                        >
-                            {allBadges.slice(0, 2).map((badge) => {
-                                const cfg = BADGE_CFG[badge];
-                                return (
-                                    <Box
-                                        key={badge}
-                                        sx={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            px: 0.75,
-                                            height: 20,
-                                            borderRadius: "6px",
-                                            bgcolor: cfg.bg,
-                                            color: "#fff",
-                                            fontSize: 10,
-                                            fontWeight: 800,
-                                            letterSpacing: 0.5,
-                                            lineHeight: 1,
-                                            boxShadow:
-                                                "0 1px 3px rgba(0,0,0,0.12)",
-                                        }}
-                                    >
-                                        {badge === "discount" && discountPct > 0
-                                            ? `-${discountPct}%`
-                                            : cfg.label}
-                                    </Box>
-                                );
-                            })}
-                        </Stack>
-                    )}
-
-                    {hasInCart && (
-                        <Box
-                            sx={{
-                                position: "absolute",
-                                top: 8,
-                                right: 8,
-                                zIndex: 5,
-                                minWidth: 26,
-                                height: 26,
-                                px: 0.75,
-                                borderRadius: 999,
-                                bgcolor: tokens.orange,
-                                color: "#fff",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                fontSize: 11,
-                                fontWeight: 900,
-                                boxShadow: "0 1px 4px rgba(232,93,74,0.35)",
-                            }}
-                        >
-                            {quantity}
-                        </Box>
-                    )}
                 </Box>
 
-                {/* ── Text block ─────────────────────────────────────────────── */}
                 <Box
                     sx={{
                         flex: 1,
@@ -262,64 +129,19 @@ export const ProductCard = memo(function ProductCard({
                         minHeight: 0,
                     }}
                 >
-                    {weight && weight > 0 && (
-                        <Typography
-                            sx={{
-                                color: tokens.textMuted,
-                                fontSize: 10,
-                                fontWeight: 600,
-                                letterSpacing: 0.4,
-                                lineHeight: 1,
-                                mb: 0.5,
-                            }}
-                        >
-                            {weight}&thinsp;г
-                        </Typography>
-                    )}
-
                     <Typography
                         sx={{
                             fontWeight: 700,
-                            fontSize: "0.875rem",
+                            fontSize: "0.9rem",
                             whiteSpace: "nowrap",
                             overflow: "hidden",
                             textOverflow: "ellipsis",
-                            color: tokens.textPrimary,
+                            color: "text.primary",
                             lineHeight: 1.25,
+                            mb: 1,
                         }}
                     >
                         {name}
-                    </Typography>
-
-                    {categoryName ? (
-                        <Chip
-                            size="small"
-                            label={categoryName}
-                            color="secondary"
-                            sx={{
-                                display: { xs: "none", sm: "flex" },
-                                height: 20,
-                                fontSize: "12px",
-                                mt: 0.75,
-                                mb: 0,
-                                alignSelf: "flex-start",
-                            }}
-                        />
-                    ) : null}
-
-                    <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{
-                            display: { xs: "none", sm: "-webkit-box" },
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: "vertical",
-                            overflow: "hidden",
-                            lineHeight: 1.35,
-                            mt: categoryName ? 0.5 : 0.75,
-                        }}
-                    >
-                        {composition || ""}
                     </Typography>
 
                     <Box
@@ -328,43 +150,24 @@ export const ProductCard = memo(function ProductCard({
                             justifyContent: "space-between",
                             alignItems: "center",
                             mt: "auto",
-                            pt: 1,
                             gap: 1,
                             minWidth: 0,
                         }}
                     >
-                        <Box sx={{ minWidth: 0, flex: "1 1 auto", pr: 1 }}>
-                            <Typography
-                                component="span"
-                                sx={{
-                                    display: "block",
-                                    fontWeight: 800,
-                                    whiteSpace: "nowrap",
-                                    fontSize: { xs: "1rem", sm: "1.05rem" },
-                                    lineHeight: 1,
-                                    color: tokens.orange,
-                                    letterSpacing: -0.5,
-                                }}
-                            >
-                                {fmt.format(price)}&thinsp;֏
-                            </Typography>
-                            {hasDiscount && (
-                                <Typography
-                                    component="span"
-                                    sx={{
-                                        display: "block",
-                                        fontSize: 10,
-                                        fontWeight: 500,
-                                        color: tokens.textMuted,
-                                        textDecoration: "line-through",
-                                        lineHeight: 1.4,
-                                        mt: 0.15,
-                                    }}
-                                >
-                                    {fmt.format(originalPrice!)}&thinsp;֏
-                                </Typography>
-                            )}
-                        </Box>
+                        <Typography
+                            component="span"
+                            sx={{
+                                fontWeight: 800,
+                                fontSize: { xs: "0.85rem", sm: "1rem" },
+                                whiteSpace: "nowrap",
+                                lineHeight: 1,
+                                color: "text.primary",
+                                letterSpacing: -0.02,
+                                minWidth: 0,
+                            }}
+                        >
+                            {fmt.format(price)}&thinsp;֏
+                        </Typography>
 
                         {hasInCart ? (
                             <Stack
@@ -380,31 +183,30 @@ export const ProductCard = memo(function ProductCard({
                                         onDecrease?.();
                                     }}
                                     sx={{
-                                        width: 32,
-                                        height: 32,
-                                        backgroundColor: "#f5f5f5",
-                                        color: tokens.textSecondary,
+                                        width: 36,
+                                        height: 36,
+                                        backgroundColor: "action.hover",
+                                        color: "text.secondary",
                                         transition:
                                             "color 0.15s ease, background-color 0.15s ease",
                                         "&:hover": {
-                                            color: tokens.orange,
-                                            bgcolor: "#ebebeb",
+                                            bgcolor: "action.selected",
                                         },
                                         "&:active": {
-                                            transform: "scale(0.85)",
+                                            transform: "scale(0.92)",
                                         },
                                     }}
                                 >
-                                    <RemoveIcon fontSize="small" />
+                                    <RemoveIcon sx={{ fontSize: 20 }} />
                                 </IconButton>
 
                                 <Typography
                                     sx={{
                                         fontSize: "0.9rem",
-                                        fontWeight: 600,
-                                        minWidth: 20,
+                                        fontWeight: 700,
+                                        minWidth: 22,
                                         textAlign: "center",
-                                        color: tokens.textPrimary,
+                                        color: "text.primary",
                                         lineHeight: 1,
                                     }}
                                 >
@@ -412,7 +214,7 @@ export const ProductCard = memo(function ProductCard({
                                 </Typography>
 
                                 <motion.div
-                                    whileTap={{ scale: 0.85 }}
+                                    whileTap={{ scale: 0.92 }}
                                     transition={addTapTransition}
                                     style={{
                                         display: "inline-flex",
@@ -425,22 +227,27 @@ export const ProductCard = memo(function ProductCard({
                                             e.stopPropagation();
                                             onIncrease?.();
                                         }}
+                                        aria-label="Добавить ещё"
                                         sx={{
-                                            width: 32,
-                                            height: 32,
-                                            backgroundColor: "#f5f5f5",
-                                            color: tokens.orange,
-                                            transition: "background 0.15s ease",
-                                            "&:hover": { bgcolor: "#ebebeb" },
+                                            width: 36,
+                                            height: 36,
+                                            bgcolor: "primary.main",
+                                            color: "#fff",
+                                            borderRadius: "50%",
+                                            transition:
+                                                "background-color 0.18s ease",
+                                            "&:hover": {
+                                                bgcolor: "primary.dark",
+                                            },
                                         }}
                                     >
-                                        <AddIcon fontSize="small" />
+                                        <AddIcon sx={{ fontSize: 22, color: "#fff" }} />
                                     </IconButton>
                                 </motion.div>
                             </Stack>
                         ) : (
                             <motion.div
-                                whileTap={{ scale: 0.85 }}
+                                whileTap={{ scale: 0.92 }}
                                 transition={addTapTransition}
                                 style={{
                                     display: "inline-flex",
@@ -455,19 +262,17 @@ export const ProductCard = memo(function ProductCard({
                                     sx={{
                                         width: 36,
                                         height: 36,
-                                        bgcolor: tokens.orange,
+                                        bgcolor: "primary.main",
                                         color: "#fff",
                                         borderRadius: "50%",
-                                        boxShadow: 2,
                                         transition:
-                                            "background 0.18s ease, box-shadow 0.18s ease",
+                                            "background-color 0.18s ease",
                                         "&:hover": {
-                                            bgcolor: tokens.orangeHi,
-                                            boxShadow: 4,
+                                            bgcolor: "primary.dark",
                                         },
                                     }}
                                 >
-                                    <AddIcon sx={{ fontSize: 20 }} />
+                                    <AddIcon sx={{ fontSize: 22, color: "#fff" }} />
                                 </IconButton>
                             </motion.div>
                         )}
@@ -488,8 +293,8 @@ export function ProductCardSkeleton() {
                 height: "100%",
                 borderRadius: 3,
                 overflow: "hidden",
-                bgcolor: "background.paper",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                bgcolor: "#fff",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
                 display: "flex",
                 flexDirection: "column",
             }}
@@ -500,7 +305,6 @@ export function ProductCardSkeleton() {
                     width: "100%",
                     aspectRatio: "1 / 1",
                     transform: "none",
-                    borderRadius: "12px 12px 0 0",
                     ...skeletonShimmerSx,
                 }}
             />
@@ -521,7 +325,6 @@ export function ProductCardSkeleton() {
                 <Box
                     sx={{
                         mt: "auto",
-                        pt: 1,
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",

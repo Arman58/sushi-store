@@ -14,6 +14,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
+import CountUp from "react-countup";
 
 import { useCartStore } from "@/features/cart";
 
@@ -27,8 +28,6 @@ const MobileBottomNav = dynamic(
 );
 import { CartToast } from "./cart-toast";
 import { tokens } from "./theme";
-
-const fmt = new Intl.NumberFormat("ru-RU");
 
 // ─── Cart button ──────────────────────────────────────────────────────────────
 
@@ -100,7 +99,13 @@ function CartHeaderButton() {
                             display: { xs: "none", sm: "block" },
                         }}
                     >
-                        {fmt.format(total)} ֏
+                        <CountUp
+                            end={total}
+                            duration={0.5}
+                            separator=" "
+                            decimals={0}
+                        />{" "}
+                        ֏
                     </Typography>
                     {/* Mobile: just show count */}
                     <Typography
@@ -193,11 +198,17 @@ export function LayoutShell({ children }: LayoutShellProps) {
                             <Box sx={{ display: { xs: "none", sm: "block" } }}>
                                 <Typography
                                     variant="subtitle1"
-                                    fontWeight={800}
                                     sx={{
+                                        fontWeight: 900,
+                                        fontSize: "1.4rem",
                                         lineHeight: 1,
-                                        color: tokens.textPrimary,
                                         letterSpacing: -0.3,
+                                        background:
+                                            "linear-gradient(135deg, #E85D4A 0%, #FF8A65 100%)",
+                                        backgroundClip: "text",
+                                        WebkitBackgroundClip: "text",
+                                        color: "transparent",
+                                        WebkitTextFillColor: "transparent",
                                     }}
                                 >
                                     East West

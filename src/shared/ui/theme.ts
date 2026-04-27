@@ -152,14 +152,13 @@ const theme = createTheme({
 
         // ── Button ──
         MuiButton: {
-            defaultProps: { disableElevation: true },
             styleOverrides: {
                 root: {
                     borderRadius: 12,
                     paddingInline: 20,
                     paddingBlock: 11,
                     fontSize: "0.875rem",
-                    transition: "all 0.18s ease",
+                    transition: "all 0.2s ease-in-out",
                     "&:active": { transform: "scale(0.97)" },
                 },
                 contained: {
@@ -167,6 +166,14 @@ const theme = createTheme({
                     boxShadow: "none",
                     "&:hover": {
                         boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                        background: tokens.orangeHi,
+                    },
+                },
+                containedPrimary: {
+                    boxShadow: "0 4px 14px 0 rgba(232, 93, 74, 0.35)",
+                    "&:hover": {
+                        boxShadow: "0 6px 20px 0 rgba(232, 93, 74, 0.45)",
+                        transform: "translateY(-1px)",
                         background: tokens.orangeHi,
                     },
                 },

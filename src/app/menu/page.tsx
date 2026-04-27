@@ -46,7 +46,6 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
                 <Box
                     sx={{
                         mb: 4,
-                        p: { xs: 2.5, md: 3 },
                         borderRadius: 4,
                         overflow: "hidden",
                         position: "relative",
@@ -66,50 +65,47 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
                         }}
                     />
 
-                    <Stack
-                        direction={{ xs: "column", md: "row" }}
-                        spacing={2}
-                        alignItems={{ xs: "flex-start", md: "center" }}
-                        justifyContent="space-between"
-                        sx={{ position: "relative", mb: 3 }}
-                    >
-                        <Box sx={{ maxWidth: 640 }}>
-                            <Chip
-                                label="Пик сезона — доставляем без задержек"
-                                size="small"
-                                sx={{
-                                    mb: 1.5,
-                                    borderRadius: 999,
-                                    bgcolor: "rgba(15,23,42,0.06)",
-                                    fontWeight: 600,
-                                }}
-                            />
-                            <Typography
-                                component="p"
-                                sx={{
-                                    fontWeight: 700,
-                                    letterSpacing: -0.2,
-                                    lineHeight: 1.35,
-                                    mb: 1,
-                                    fontSize: "1.25rem",
-                                    color: "text.secondary",
-                                }}
-                            >
-                                Выбирайте блюдо, пока мы греем печи и разогреваем вок.
-                            </Typography>
-                            <Typography
-                                variant="body1"
-                                color="text.secondary"
-                                sx={{ maxWidth: 560 }}
-                            >
-                                Собрали популярное: роллы, пицца, шаурма, салаты и десерты.
-                                Отсортируйте по цене, категории или начните с популярных
-                                направлений.
-                            </Typography>
-                        </Box>
-
-                        <Stack spacing={1} direction={{ xs: "column", sm: "row" }}>
+                    <Box sx={{ px: 2, pt: 3, pb: 4, position: "relative" }}>
+                        <Chip
+                            label="Пик сезона — доставляем без задержек"
+                            size="small"
+                            sx={{
+                                mb: 1.5,
+                                borderRadius: 999,
+                                bgcolor: "rgba(15,23,42,0.06)",
+                                fontWeight: 600,
+                            }}
+                        />
+                        <Typography
+                            component="h1"
+                            variant="h5"
+                            sx={{
+                                typography: { xs: "h4", sm: "h5" },
+                                fontWeight: 800,
+                                lineHeight: 1.2,
+                                color: "text.primary",
+                                maxWidth: 640,
+                            }}
+                        >
+                            Выбирайте блюдо, пока мы греем печи и разогреваем вок.
+                        </Typography>
+                        <Typography
+                            variant="body1"
+                            color="text.secondary"
+                            sx={{ mt: 0.5, maxWidth: 560 }}
+                        >
+                            Собрали популярное: роллы, пицца, шаурма, салаты и десерты.
+                            Отсортируйте по цене, категории или начните с популярных
+                            направлений.
+                        </Typography>
+                        <Stack
+                            direction={{ xs: "column", sm: "row" }}
+                            spacing={1.5}
+                            sx={{ mt: 3 }}
+                            alignItems={{ xs: "stretch", sm: "center" }}
+                        >
                             <Button
+                                color="secondary"
                                 variant="outlined"
                                 href="/order-status"
                                 sx={{
@@ -118,11 +114,13 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
                                     textTransform: "none",
                                     px: 3,
                                     py: 1.2,
+                                    color: "text.primary",
                                 }}
                             >
                                 Проверить заказ
                             </Button>
                             <Button
+                                color="secondary"
                                 variant="outlined"
                                 href="tel:+37400000000"
                                 sx={{
@@ -131,14 +129,15 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
                                     textTransform: "none",
                                     px: 3,
                                     py: 1.2,
+                                    color: "text.primary",
                                 }}
                             >
                                 Позвонить оператору
                             </Button>
                         </Stack>
-                    </Stack>
+                    </Box>
 
-                    <Box sx={{ mt: 2.5, position: "relative" }}>
+                    <Box sx={{ px: 2, pb: 2.5, pt: 0, position: "relative" }}>
                         <CategoryScroll
                             categories={categories}
                             activeSlug={categoryActiveSlug}

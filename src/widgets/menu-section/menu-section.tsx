@@ -18,6 +18,7 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import CountUp from "react-countup";
 
 import { ProductCard } from "@/entities/product/ui/product-card";
 import { useCartStore } from "@/features/cart";
@@ -45,8 +46,6 @@ type MenuSectionProps = {
     categories: MenuCategory[];
     products: MenuProduct[];
 };
-
-const fmt = new Intl.NumberFormat("ru-RU");
 
 // ─── Keyframe (cart bar slide-up) ────────────────────────────────────────────
 
@@ -193,6 +192,7 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
             <Box
                 sx={{
                     position: "sticky",
+                    mb: 2,
                     top: {
                         xs: "calc(56px + env(safe-area-inset-top))",
                         sm: 64,
@@ -216,14 +216,15 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                     sx={{
                         p: 2,
                         mb: 2,
+                        mx: 2,
                         borderRadius: 4,
                         bgcolor: "background.paper",
-                        border: "1px solid",
-                        borderColor: "#f0f0f0",
+                        boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
                     }}
                 >
                     <TextField
                         fullWidth
+                        variant="outlined"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         size="small"
@@ -246,6 +247,16 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                                 borderRadius: 50,
                                 bgcolor: "#f5f5f5",
                                 "& fieldset": { border: "none" },
+                                "&:hover fieldset": { border: "none" },
+                                "&.Mui-focused": {
+                                    bgcolor: "#fff",
+                                },
+                                "&.Mui-focused fieldset": {
+                                    border: "none",
+                                    bgcolor: "#fff",
+                                    boxShadow:
+                                        "0 0 0 2px rgba(232, 93, 74, 0.2)",
+                                },
                             },
                         }}
                     />
@@ -459,7 +470,8 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                     sx={{
                         display: "grid",
                         gap: { xs: 1.5, sm: 2, md: 2.5 },
-                        mt: 1,
+                        pt: 2,
+                        pb: "100px",
                         gridTemplateColumns:
                             "repeat(auto-fill, minmax(160px, 1fr))",
                     }}
@@ -585,7 +597,13 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                                                 color: "primary.main",
                                             }}
                                         >
-                                            {fmt.format(totalPrice)}&thinsp;֏
+                                            <CountUp
+                                                end={totalPrice}
+                                                duration={0.5}
+                                                separator=" "
+                                                decimals={0}
+                                            />
+                                            &thinsp;֏
                                         </Typography>
                                     </Box>
                                     <Typography

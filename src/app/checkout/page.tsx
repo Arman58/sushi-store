@@ -39,10 +39,11 @@ const DRAFT_STORAGE_KEY = "checkout-draft";
 const DRAFT_TTL_MS = 24 * 60 * 60 * 1_000;
 const ORDER_ID_KEY = "last-order-id";
 
-/** iOS-style tap targets (56px) and label alignment for checkout fields */
-const checkoutTextFieldSx = {
-    "& .MuiOutlinedInput-root": { borderRadius: 3, minHeight: 56 },
-    "& .MuiInputLabel-root": { transform: "translate(14px, 20px) scale(1)" },
+/** Имя / телефон: только скругление; отступы и размер — дефолт MUI + fontSize на input через inputProps (iOS без зума). */
+const checkoutNamePhoneFieldSx = {
+    "& .MuiOutlinedInput-root": {
+        borderRadius: 3,
+    },
 } as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -349,14 +350,15 @@ export default function CheckoutPage() {
                                 <TextField
                                     label="Имя"
                                     fullWidth
-                                    sx={checkoutTextFieldSx}
+                                    sx={checkoutNamePhoneFieldSx}
+                                    inputProps={{ style: { fontSize: 16 } }}
                                     {...register("name")}
                                     error={Boolean(errors.name)}
                                     helperText={errors.name?.message}
                                     InputProps={{
                                         startAdornment: (
                                             <InputAdornment position="start">
-                                                <PersonOutlineOutlinedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                                                <PersonOutlineOutlinedIcon sx={{ color: "action.active" }} />
                                             </InputAdornment>
                                         ),
                                     }}
@@ -371,18 +373,18 @@ export default function CheckoutPage() {
                                         <TextField
                                             label="Телефон"
                                             fullWidth
-                                            sx={checkoutTextFieldSx}
+                                            sx={checkoutNamePhoneFieldSx}
                                             value={field.value}
                                             onChange={(e) => field.onChange(formatPhone(e.target.value))}
                                             required
                                             placeholder={PHONE_TEMPLATE}
-                                            inputProps={{ inputMode: "tel" }}
+                                            inputProps={{ style: { fontSize: 16 }, inputMode: "tel" }}
                                             error={Boolean(errors.phone)}
                                             helperText={errors.phone?.message ?? "Пример: +374 (xx) xx-xx-xx"}
                                             InputProps={{
                                                 startAdornment: (
                                                     <InputAdornment position="start">
-                                                        <PhoneOutlinedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                                                        <PhoneOutlinedIcon sx={{ color: "action.active" }} />
                                                     </InputAdornment>
                                                 ),
                                             }}
@@ -439,7 +441,8 @@ export default function CheckoutPage() {
                                     <TextField
                                         label="Адрес доставки"
                                         fullWidth
-                                        sx={checkoutTextFieldSx}
+                                        sx={checkoutNamePhoneFieldSx}
+                                        inputProps={{ style: { fontSize: 16 } }}
                                         {...register("address")}
                                         required
                                         error={Boolean(errors.address)}
@@ -460,9 +463,10 @@ export default function CheckoutPage() {
                                     fullWidth
                                     multiline
                                     minRows={2}
-                                    sx={checkoutTextFieldSx}
+                                    sx={checkoutNamePhoneFieldSx}
                                     {...register("comment")}
                                     InputProps={{
+                                        style: { fontSize: 16 },
                                         startAdornment: (
                                             <InputAdornment position="start">
                                                 <NotesIcon sx={{ fontSize: 18, color: "text.secondary" }} />

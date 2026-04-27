@@ -20,6 +20,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import CountUp from "react-countup";
 
 import { useCartStore } from "@/features/cart";
 import { tokens } from "./theme";
@@ -701,7 +702,13 @@ export function CartDrawer() {
                                                 fontSize: "1.1rem",
                                             }}
                                         >
-                                            {fmt.format(total)} ֏
+                                            <CountUp
+                                                end={total}
+                                                duration={0.5}
+                                                separator=" "
+                                                decimals={0}
+                                            />{" "}
+                                            ֏
                                         </Typography>
                                     </Stack>
 
