@@ -1,16 +1,14 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
-
+import { v2 } from "cloudinary";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
-
-function safeBasename(name: string): string {
-    const base = path.basename(name).replace(/[^a-zA-Z0-9._-]/g, "_");
-    return base.length > 0 ? base : "file";
-}
+v2.config({
+    cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true,
+});
 
 export async function POST(request: Request) {
     let formData: FormData;
@@ -35,24 +33,30 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Empty file" }, { status: 400 });
     }
 
-    const originalName = safeBasename(file.name);
-    const filename = `${Date.now()}-${originalName}`;
-    const destPath = path.join(UPLOAD_DIR, filename);
-
     try {
-        await mkdir(UPLOAD_DIR, { recursive: true });
-    } catch (err) {
-        console.error("upload mkdir", err);
-        return NextResponse.json({ error: "Failed to create upload directory" }, { status: 500 });
-    }
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
 
-    try {
-        const buffer = Buffer.from(await file.arrayBuffer());
-        await writeFile(destPath, buffer);
-    } catch (err) {
-        console.error("upload writeFile", err);
-        return NextResponse.json({ error: "Failed to save file" }, { status: 500 });
-    }
+        const result = await new Promise<{ secure_url: string }>((resolve, reject) => {
+            v2.uploader
+                .upload_stream({ folder: "east-west-products" }, (error, uploadResult) => {
+                    if (error) {
+                        reject(error);
+                    } else if (uploadResult?.secure_url) {
+                        resolve({ secure_url: uploadResult.secure_url });
+                    } else {
+                        reject(new Error("No URL from Cloudinary"));
+                    }
+                })
+                .end(buffer);
+        });
 
-    return NextResponse.json({ url: `/uploads/${filename}` });
+        return NextResponse.json({ url: result.secure_url });
+    } catch (err) {
+        console.error("cloudinary upload", err);
+        return NextResponse.json(
+            { error: err instanceof Error ? err.message : "Upload failed" },
+            { status: 500 },
+        );
+    }
 }
