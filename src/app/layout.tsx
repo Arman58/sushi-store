@@ -11,6 +11,7 @@ export const metadata: Metadata = {
     title: "East West | Sushi, Pizza and More",
     description:
         "East West — суши, пицца, шаурма, лахмаджо, стрипсы, фри и многое другое с доставкой.",
+    icons: { icon: "/east-west-logo.png" },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
