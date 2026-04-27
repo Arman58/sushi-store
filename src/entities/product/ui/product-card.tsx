@@ -8,6 +8,7 @@ import IconButton from "@mui/material/IconButton";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { motion } from "framer-motion";
 import Image from "next/image";
 import { memo, useEffect, useState } from "react";
 
@@ -18,28 +19,29 @@ import { tokens } from "@/shared/ui/theme";
 export type ProductBadge = "hit" | "new" | "spicy" | "discount";
 
 export type ProductCardProps = {
-  name: string;
-  description?: string | null;
-  categoryName?: string;
-  composition?: string;
-  price: number;
-  originalPrice?: number | null;
-  weight?: number | null;
-  images?: any;
-  badges?: ProductBadge[];
-  onAddToCart: () => void;
-  quantity?: number;
-  onIncrease?: () => void;
-  onDecrease?: () => void;
+    name: string;
+    description?: string | null;
+    categoryName?: string;
+    composition?: string;
+    price: number;
+    originalPrice?: number | null;
+    weight?: number | null;
+    images?: any;
+    badges?: ProductBadge[];
+    onAddToCart: () => void;
+    quantity?: number;
+    onIncrease?: () => void;
+    onDecrease?: () => void;
+    index?: number;
 };
 
 // ─── Badge config ─────────────────────────────────────────────────────────────
 
 const BADGE_CFG: Record<ProductBadge, { label: string; bg: string }> = {
-  hit:      { label: "ХИТ",      bg: tokens.orange },
-  new:      { label: "НОВИНКА",  bg: "#3B82F6"     },
-  spicy:    { label: "🌶 ОСТРОЕ", bg: tokens.red   },
-  discount: { label: "",         bg: tokens.green  },
+    hit: { label: "ХИТ", bg: tokens.orange },
+    new: { label: "НОВИНКА", bg: "#3B82F6" },
+    spicy: { label: "🌶 ОСТРОЕ", bg: tokens.red },
+    discount: { label: "", bg: tokens.green },
 };
 
 const fmt = new Intl.NumberFormat("ru-RU");
@@ -66,473 +68,477 @@ const KEYFRAMES = `
 `;
 
 function ensureKeyframes() {
-  if (typeof document === "undefined") return;
-  if (document.getElementById("pc-kf-v2")) return;
-  const s = document.createElement("style");
-  s.id = "pc-kf-v2";
-  s.textContent = KEYFRAMES;
-  document.head.appendChild(s);
+    if (typeof document === "undefined") return;
+    if (document.getElementById("pc-kf-v2")) return;
+    const s = document.createElement("style");
+    s.id = "pc-kf-v2";
+    s.textContent = KEYFRAMES;
+    document.head.appendChild(s);
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const ProductCard = memo(function ProductCard({
-  name,
-  categoryName,
-  composition,
-  price,
-  originalPrice,
-  weight,
-  images,
-  badges = [],
-  onAddToCart,
-  quantity = 0,
-  onIncrease,
-  onDecrease,
+    name,
+    categoryName,
+    composition,
+    price,
+    originalPrice,
+    weight,
+    images,
+    badges = [],
+    onAddToCart,
+    quantity = 0,
+    onIncrease,
+    onDecrease,
+    index = 0,
 }: ProductCardProps) {
-  const [imgLoaded, setImgLoaded] = useState(false);
-  const [addPopped, setAddPopped] = useState(false);
+    const [imgLoaded, setImgLoaded] = useState(false);
+    const [addPopped, setAddPopped] = useState(false);
 
-  useEffect(() => { ensureKeyframes(); }, []);
+    useEffect(() => {
+        ensureKeyframes();
+    }, []);
 
-  const imageUrl = Array.isArray(images) ? images[0] : null;
+    const imageUrl = Array.isArray(images) ? images[0] : null;
 
-  const hasInCart   = quantity > 0;
-  const hasDiscount = typeof originalPrice === "number" && originalPrice > price;
-  const discountPct = hasDiscount
-    ? Math.round(((originalPrice! - price) / originalPrice!) * 100)
-    : 0;
+    const hasInCart = quantity > 0;
+    const hasDiscount =
+        typeof originalPrice === "number" && originalPrice > price;
+    const discountPct = hasDiscount
+        ? Math.round(((originalPrice! - price) / originalPrice!) * 100)
+        : 0;
 
-  const allBadges: ProductBadge[] =
-    hasDiscount && !badges.includes("discount")
-      ? ["discount", ...badges]
-      : badges;
+    const allBadges: ProductBadge[] =
+        hasDiscount && !badges.includes("discount")
+            ? ["discount", ...badges]
+            : badges;
 
-  const handleAdd = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onAddToCart();
-    setAddPopped(true);
-    setTimeout(() => setAddPopped(false), 450);
-  };
+    const handleAdd = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onAddToCart();
+        setAddPopped(true);
+        setTimeout(() => setAddPopped(false), 450);
+    };
 
-  return (
-    <Box
-      sx={{
-        position: "relative",
-        borderRadius: "14px",
-        overflow: "hidden",
-        // ── PORTRAIT 4:5 — image is the product ──
-        aspectRatio: "4 / 5",
-        cursor: "pointer",
-        bgcolor: tokens.surface,
-        border: `1px solid ${hasInCart ? tokens.orange : "#f0f0f0"}`,
-        transition:
-          "transform 0.28s cubic-bezier(.22,.68,0,1.2), box-shadow 0.28s ease, border-color 0.2s ease",
-        animation: hasInCart ? "pc-cart-pulse 2.4s ease-in-out infinite" : "none",
-
-        "&:hover": {
-          transform: "translateY(-4px) scale(1.01)",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
-          "& .pc-img":     { transform: "scale(1.06)" },
-          "& .pc-shimmer": { animation: "pc-shimmer 0.75s ease-out forwards" },
-          "& .pc-name":    { color: tokens.textPrimary },
-        },
-
-        ...(hasInCart && {
-          borderColor: tokens.orange,
-          boxShadow: "0 2px 12px rgba(232,93,74,0.18)",
-        }),
-      }}
-    >
-      {/* ── Full-bleed image ───────────────────────────────────────── */}
-      <Box
-        sx={{
-          position: "absolute",
-          inset: 0,
-          overflow: "hidden",
-          bgcolor: tokens.surfaceHi,
-        }}
-      >
-        {!imgLoaded && (
-          <Skeleton
-            variant="rectangular"
-            sx={{
-              position: "absolute",
-              inset: 0,
-              height: "100%",
-              transform: "none",
-              bgcolor: tokens.surfaceHi,
-            }}
-          />
-        )}
-
-        <Image
-          className="pc-img"
-          src={imageUrl || "/placeholder.png"}
-          alt={name}
-          fill
-          sizes="(max-width: 600px) 50vw, (max-width: 960px) 33vw, 25vw"
-          style={{
-            objectFit: "cover",
-            transition: "transform 0.5s cubic-bezier(.22,.68,0,1.2)",
-          }}
-          loading="lazy"
-          onLoad={() => setImgLoaded(true)}
-        />
-
-        {/* Hover shimmer sweep */}
-        <Box
-          className="pc-shimmer"
-          sx={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 50%, transparent 100%)",
-            transform: "translateX(-130%) skewX(-18deg)",
-            pointerEvents: "none",
-            zIndex: 3,
-          }}
-        />
-      </Box>
-
-      {/* ── Bottom cinematic scrim ─────────────────────────────────── */}
-      <Box
-        sx={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: "68%",
-          background:
-            "linear-gradient(to top, rgba(255,255,255,0.97) 0%, rgba(255,255,255,0.88) 28%, rgba(255,255,255,0.55) 48%, rgba(255,255,255,0.2) 72%, transparent 100%)",
-          zIndex: 2,
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* ── TOP-LEFT: badge pills ──────────────────────────────────── */}
-      {allBadges.length > 0 && (
-        <Stack
-          direction="row"
-          spacing={0.5}
-          sx={{ position: "absolute", top: 12, left: 12, zIndex: 5 }}
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
+            style={{ width: "100%", height: "100%" }}
         >
-          {allBadges.slice(0, 2).map((badge) => {
-            const cfg = BADGE_CFG[badge];
-            return (
-              <Box
-                key={badge}
+            <Box
                 sx={{
-                  px: 1.1,
-                  py: 0.4,
-                  borderRadius: "8px",
-                  bgcolor: cfg.bg,
-                  color: "#fff",
-                  fontSize: 9,
-                  fontWeight: 900,
-                  letterSpacing: 0.9,
-                  lineHeight: 1.6,
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: 3,
+                    overflow: "hidden",
+                    bgcolor: "background.paper",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                    display: "flex",
+                    flexDirection: "column",
+                    cursor: "pointer",
+                    transition:
+                        "transform 0.28s cubic-bezier(.22,.68,0,1.2), box-shadow 0.28s ease",
+                    animation: hasInCart
+                        ? "pc-cart-pulse 2.4s ease-in-out infinite"
+                        : "none",
+
+                    "&:hover": {
+                        transform: "translateY(-2px)",
+                        boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+                    },
+
+                    ...(hasInCart && {
+                        boxShadow: "0 2px 12px rgba(232,93,74,0.22)",
+                    }),
                 }}
-              >
-                {badge === "discount" && discountPct > 0
-                  ? `-${discountPct}%`
-                  : cfg.label}
-              </Box>
-            );
-          })}
-        </Stack>
-      )}
-
-      {/* ── TOP-RIGHT: quantity bubble ─────────────────────────────── */}
-      {hasInCart && (
-        <Box
-          sx={{
-            position: "absolute",
-            top: 12,
-            right: 12,
-            zIndex: 5,
-            minWidth: 26,
-            height: 26,
-            px: 0.75,
-            borderRadius: 999,
-            bgcolor: tokens.orange,
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 11,
-            fontWeight: 900,
-            boxShadow: "0 1px 4px rgba(232,93,74,0.35)",
-          }}
-        >
-          {quantity}
-        </Box>
-      )}
-
-      {/* ── BOTTOM OVERLAY: name + price + CTA ───────────────────── */}
-      <Box
-        sx={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 4,
-          px: { xs: 1.5, sm: 1.75 },
-          pb: { xs: 1.5, sm: 1.75 },
-          display: "flex",
-          flexDirection: "column",
-          gap: 0.6,
-        }}
-      >
-        {/* Weight micro-label */}
-        {weight && weight > 0 && (
-          <Typography
-            sx={{
-              color: tokens.textMuted,
-              fontSize: 10,
-              fontWeight: 600,
-              letterSpacing: 0.4,
-              lineHeight: 1,
-            }}
-          >
-            {weight}&thinsp;г
-          </Typography>
-        )}
-
-        {/* Product name — bold, overlaid */}
-        <Typography
-          className="pc-name"
-          fontWeight={800}
-          sx={{
-            lineHeight: 1.2,
-            fontSize: { xs: 13, sm: 14 },
-            color: tokens.textPrimary,
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-            transition: "color 0.2s ease",
-          }}
-        >
-          {name}
-        </Typography>
-
-        {categoryName ? (
-          <Chip
-            size="small"
-            label={categoryName}
-            color="secondary"
-            sx={{ height: 20, fontSize: "12px", mb: 0.5, alignSelf: "flex-start" }}
-          />
-        ) : null}
-
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-            lineHeight: 1.35,
-          }}
-        >
-          {composition || ""}
-        </Typography>
-
-        {/* Price + CTA row */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "flex-end",
-            justifyContent: "space-between",
-            gap: 1,
-            mt: 0.4,
-          }}
-        >
-          {/* ── Price ── */}
-          <Box>
-            <Typography
-              component="span"
-              sx={{
-                display: "block",
-                fontWeight: 900,
-                fontSize: { xs: "1.2rem", sm: "1.35rem" },
-                lineHeight: 1,
-                color: tokens.orange,
-                letterSpacing: -0.5,
-              }}
             >
-              {fmt.format(price)}&thinsp;֏
-            </Typography>
-            {hasDiscount && (
-              <Typography
-                component="span"
-                sx={{
-                  display: "block",
-                  fontSize: 10,
-                  fontWeight: 500,
-                  color: tokens.textMuted,
-                  textDecoration: "line-through",
-                  lineHeight: 1.4,
-                  mt: 0.15,
-                }}
-              >
-                {fmt.format(originalPrice!)}&thinsp;֏
-              </Typography>
-            )}
-          </Box>
+                {/* ── Square image + badges (food-delivery layout) ───────────── */}
+                <Box
+                    sx={{
+                        position: "relative",
+                        width: "100%",
+                        aspectRatio: "1 / 1",
+                        overflow: "hidden",
+                        borderRadius: "12px 12px 0 0",
+                        bgcolor: tokens.surfaceHi,
+                    }}
+                >
+                    {!imgLoaded && (
+                        <Skeleton
+                            variant="rectangular"
+                            sx={{
+                                position: "absolute",
+                                inset: 0,
+                                height: "100%",
+                                transform: "none",
+                                bgcolor: tokens.surfaceHi,
+                            }}
+                        />
+                    )}
 
-          {/* ── CTA: Add or Stepper ── */}
-          {hasInCart ? (
-            <Stack
-              direction="row"
-              alignItems="center"
-              spacing={0.4}
-              sx={{
-                bgcolor: tokens.surface,
-                backdropFilter: "blur(8px)",
-                WebkitBackdropFilter: "blur(8px)",
-                borderRadius: 999,
-                px: 0.5,
-                py: 0.4,
-                border: "1px solid #f0f0f0",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                flexShrink: 0,
-              }}
-            >
-              <IconButton
-                size="small"
-                onClick={(e) => { e.stopPropagation(); onDecrease?.(); }}
-                sx={{
-                  width: 28,
-                  height: 28,
-                  color: tokens.textSecondary,
-                  transition: "color 0.15s ease, background-color 0.15s ease",
-                  "&:hover": { color: tokens.orange, bgcolor: tokens.surfaceHi },
-                  "&:active": { transform: "scale(0.85)" },
-                }}
-              >
-                <RemoveIcon sx={{ fontSize: 14 }} />
-              </IconButton>
+                    <Image
+                        src={imageUrl || "/placeholder.png"}
+                        alt={name}
+                        fill
+                        sizes="(max-width: 600px) 50vw, (max-width: 960px) 33vw, 25vw"
+                        style={{
+                            objectFit: "cover",
+                            width: "100%",
+                            height: "100%",
+                        }}
+                        loading="lazy"
+                        onLoad={() => setImgLoaded(true)}
+                    />
 
-              <Typography
-                fontWeight={900}
-                sx={{
-                  minWidth: 20,
-                  textAlign: "center",
-                  color: tokens.textPrimary,
-                  fontSize: 14,
-                  lineHeight: 1,
-                }}
-              >
-                {quantity}
-              </Typography>
+                    {allBadges.length > 0 && (
+                        <Stack
+                            direction="row"
+                            spacing={0.5}
+                            sx={{
+                                position: "absolute",
+                                top: 8,
+                                left: 8,
+                                zIndex: 5,
+                            }}
+                        >
+                            {allBadges.slice(0, 2).map((badge) => {
+                                const cfg = BADGE_CFG[badge];
+                                return (
+                                    <Box
+                                        key={badge}
+                                        sx={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            px: 0.75,
+                                            height: 20,
+                                            borderRadius: "6px",
+                                            bgcolor: cfg.bg,
+                                            color: "#fff",
+                                            fontSize: 10,
+                                            fontWeight: 800,
+                                            letterSpacing: 0.5,
+                                            lineHeight: 1,
+                                            boxShadow:
+                                                "0 1px 3px rgba(0,0,0,0.12)",
+                                        }}
+                                    >
+                                        {badge === "discount" && discountPct > 0
+                                            ? `-${discountPct}%`
+                                            : cfg.label}
+                                    </Box>
+                                );
+                            })}
+                        </Stack>
+                    )}
 
-              <IconButton
-                size="small"
-                onClick={(e) => { e.stopPropagation(); onIncrease?.(); }}
-                sx={{
-                  width: 28,
-                  height: 28,
-                  bgcolor: tokens.orange,
-                  color: "#fff",
-                  borderRadius: "50%",
-                  flexShrink: 0,
-                  transition: "background 0.15s ease",
-                  "&:hover": { bgcolor: tokens.orangeHi },
-                  "&:active": { transform: "scale(0.85)" },
-                }}
-              >
-                <AddIcon sx={{ fontSize: 14 }} />
-              </IconButton>
-            </Stack>
-          ) : (
-            <IconButton
-              size="small"
-              onClick={handleAdd}
-              aria-label={`Добавить ${name}`}
-              sx={{
-                width: 42,
-                height: 42,
-                bgcolor: tokens.orange,
-                color: "#fff",
-                borderRadius: "50%",
-                flexShrink: 0,
-                animation: addPopped
-                  ? "pc-add-pop 0.45s cubic-bezier(.22,.68,0,1.2) forwards"
-                  : "none",
-                boxShadow: "0 2px 8px rgba(232,93,74,0.35)",
-                transition: "background 0.18s ease, box-shadow 0.18s ease",
-                "&:hover": {
-                  bgcolor: tokens.orangeHi,
-                  boxShadow: "0 3px 12px rgba(232,93,74,0.4)",
-                },
-                "&:active": { transform: "scale(0.85)" },
-              }}
-            >
-              <AddIcon sx={{ fontSize: 22 }} />
-            </IconButton>
-          )}
-        </Box>
-      </Box>
-    </Box>
-  );
+                    {hasInCart && (
+                        <Box
+                            sx={{
+                                position: "absolute",
+                                top: 8,
+                                right: 8,
+                                zIndex: 5,
+                                minWidth: 26,
+                                height: 26,
+                                px: 0.75,
+                                borderRadius: 999,
+                                bgcolor: tokens.orange,
+                                color: "#fff",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: 11,
+                                fontWeight: 900,
+                                boxShadow: "0 1px 4px rgba(232,93,74,0.35)",
+                            }}
+                        >
+                            {quantity}
+                        </Box>
+                    )}
+                </Box>
+
+                {/* ── Text block ─────────────────────────────────────────────── */}
+                <Box
+                    sx={{
+                        flex: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                        p: 1.5,
+                        minHeight: 0,
+                    }}
+                >
+                    {weight && weight > 0 && (
+                        <Typography
+                            sx={{
+                                color: tokens.textMuted,
+                                fontSize: 10,
+                                fontWeight: 600,
+                                letterSpacing: 0.4,
+                                lineHeight: 1,
+                                mb: 0.5,
+                            }}
+                        >
+                            {weight}&thinsp;г
+                        </Typography>
+                    )}
+
+                    <Typography
+                        sx={{
+                            fontWeight: 700,
+                            fontSize: "0.875rem",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            color: tokens.textPrimary,
+                            lineHeight: 1.25,
+                        }}
+                    >
+                        {name}
+                    </Typography>
+
+                    {categoryName ? (
+                        <Chip
+                            size="small"
+                            label={categoryName}
+                            color="secondary"
+                            sx={{
+                                display: { xs: "none", sm: "flex" },
+                                height: 20,
+                                fontSize: "12px",
+                                mt: 0.75,
+                                mb: 0,
+                                alignSelf: "flex-start",
+                            }}
+                        />
+                    ) : null}
+
+                    <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{
+                            display: { xs: "none", sm: "-webkit-box" },
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                            lineHeight: 1.35,
+                            mt: categoryName ? 0.5 : 0.75,
+                        }}
+                    >
+                        {composition || ""}
+                    </Typography>
+
+                    <Box
+                        sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            mt: "auto",
+                            pt: 1,
+                            gap: 1,
+                            minWidth: 0,
+                        }}
+                    >
+                        <Box sx={{ minWidth: 0, flex: "1 1 auto", pr: 1 }}>
+                            <Typography
+                                component="span"
+                                sx={{
+                                    display: "block",
+                                    fontWeight: 800,
+                                    whiteSpace: "nowrap",
+                                    fontSize: { xs: "1rem", sm: "1.05rem" },
+                                    lineHeight: 1,
+                                    color: tokens.orange,
+                                    letterSpacing: -0.5,
+                                }}
+                            >
+                                {fmt.format(price)}&thinsp;֏
+                            </Typography>
+                            {hasDiscount && (
+                                <Typography
+                                    component="span"
+                                    sx={{
+                                        display: "block",
+                                        fontSize: 10,
+                                        fontWeight: 500,
+                                        color: tokens.textMuted,
+                                        textDecoration: "line-through",
+                                        lineHeight: 1.4,
+                                        mt: 0.15,
+                                    }}
+                                >
+                                    {fmt.format(originalPrice!)}&thinsp;֏
+                                </Typography>
+                            )}
+                        </Box>
+
+                        {hasInCart ? (
+                            <Stack
+                                direction="row"
+                                alignItems="center"
+                                spacing={0.5}
+                                sx={{ flexShrink: 0, ml: "auto" }}
+                            >
+                                <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDecrease?.();
+                                    }}
+                                    sx={{
+                                        width: 32,
+                                        height: 32,
+                                        backgroundColor: "#f5f5f5",
+                                        color: tokens.textSecondary,
+                                        transition:
+                                            "color 0.15s ease, background-color 0.15s ease",
+                                        "&:hover": {
+                                            color: tokens.orange,
+                                            bgcolor: "#ebebeb",
+                                        },
+                                        "&:active": {
+                                            transform: "scale(0.85)",
+                                        },
+                                    }}
+                                >
+                                    <RemoveIcon fontSize="small" />
+                                </IconButton>
+
+                                <Typography
+                                    sx={{
+                                        fontSize: "0.9rem",
+                                        fontWeight: 600,
+                                        minWidth: 20,
+                                        textAlign: "center",
+                                        color: tokens.textPrimary,
+                                        lineHeight: 1,
+                                    }}
+                                >
+                                    {quantity}
+                                </Typography>
+
+                                <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onIncrease?.();
+                                    }}
+                                    sx={{
+                                        width: 32,
+                                        height: 32,
+                                        backgroundColor: "#f5f5f5",
+                                        color: tokens.orange,
+                                        transition: "background 0.15s ease",
+                                        "&:hover": { bgcolor: "#ebebeb" },
+                                        "&:active": {
+                                            transform: "scale(0.85)",
+                                        },
+                                    }}
+                                >
+                                    <AddIcon fontSize="small" />
+                                </IconButton>
+                            </Stack>
+                        ) : (
+                            <IconButton
+                                size="small"
+                                onClick={handleAdd}
+                                aria-label={`Добавить ${name}`}
+                                sx={{
+                                    width: 36,
+                                    height: 36,
+                                    bgcolor: tokens.orange,
+                                    color: "#fff",
+                                    borderRadius: "50%",
+                                    flexShrink: 0,
+                                    boxShadow: 2,
+                                    animation: addPopped
+                                        ? "pc-add-pop 0.45s cubic-bezier(.22,.68,0,1.2) forwards"
+                                        : "none",
+                                    transition:
+                                        "background 0.18s ease, box-shadow 0.18s ease",
+                                    "&:hover": {
+                                        bgcolor: tokens.orangeHi,
+                                        boxShadow: 4,
+                                    },
+                                    "&:active": { transform: "scale(0.85)" },
+                                }}
+                            >
+                                <AddIcon sx={{ fontSize: 20 }} />
+                            </IconButton>
+                        )}
+                    </Box>
+                </Box>
+            </Box>
+        </motion.div>
+    );
 });
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
 export function ProductCardSkeleton() {
-  return (
-    <Box
-      sx={{
-        borderRadius: "14px",
-        overflow: "hidden",
-        aspectRatio: "4 / 5",
-        bgcolor: tokens.surface,
-        border: "1px solid #f0f0f0",
-        position: "relative",
-      }}
-    >
-      <Skeleton
-        variant="rectangular"
-        sx={{
-          position: "absolute",
-          inset: 0,
-          height: "100%",
-          transform: "none",
-          bgcolor: tokens.surfaceHi,
-        }}
-      />
-      <Box
-        sx={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: "45%",
-          background:
-            "linear-gradient(to top, rgba(255,255,255,0.95) 0%, transparent 100%)",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "flex-end",
-          px: 1.75,
-          pb: 1.75,
-          gap: 0.75,
-        }}
-      >
-        <Skeleton
-          variant="text"
-          width="72%"
-          sx={{ bgcolor: "rgba(0,0,0,0.08)", borderRadius: 1 }}
-        />
-        <Skeleton
-          variant="text"
-          width="40%"
-          sx={{ bgcolor: "rgba(0,0,0,0.06)", borderRadius: 1 }}
-        />
-      </Box>
-    </Box>
-  );
+    return (
+        <Box
+            sx={{
+                width: "100%",
+                height: "100%",
+                borderRadius: 3,
+                overflow: "hidden",
+                bgcolor: "background.paper",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                display: "flex",
+                flexDirection: "column",
+            }}
+        >
+            <Skeleton
+                variant="rectangular"
+                sx={{
+                    width: "100%",
+                    aspectRatio: "1 / 1",
+                    transform: "none",
+                    borderRadius: "12px 12px 0 0",
+                    bgcolor: tokens.surfaceHi,
+                }}
+            />
+            <Box
+                sx={{
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    p: 1.5,
+                    minHeight: 0,
+                }}
+            >
+                <Skeleton
+                    variant="text"
+                    width="88%"
+                    sx={{ bgcolor: "rgba(0,0,0,0.08)", borderRadius: 1 }}
+                />
+                <Box
+                    sx={{
+                        mt: "auto",
+                        pt: 1,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                    }}
+                >
+                    <Skeleton
+                        variant="text"
+                        width="40%"
+                        sx={{ bgcolor: "rgba(0,0,0,0.08)", borderRadius: 1 }}
+                    />
+                    <Skeleton
+                        variant="circular"
+                        width={36}
+                        height={36}
+                        sx={{ bgcolor: tokens.surfaceHi }}
+                    />
+                </Box>
+            </Box>
+        </Box>
+    );
 }

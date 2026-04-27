@@ -8,6 +8,7 @@ import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -21,7 +22,7 @@ export function MobileBottomNav() {
     const openCart  = useCartStore((s) => s.openCart);
     const items     = useCartStore((s) => s.items);
 
-    const cartCount = items.reduce((s, i) => s + i.quantity, 0);
+    const totalItems = items.reduce((s, i) => s + i.quantity, 0);
     const cartTotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
 
     const activeKey =
@@ -60,6 +61,7 @@ export function MobileBottomNav() {
                         flexDirection: "column",
                         alignItems: "center",
                         gap: 0.3,
+                        minHeight: 48,
                         py: 1,
                         borderRadius: 2,
                         color: activeKey === "home" ? tokens.orange : tokens.textMuted,
@@ -68,7 +70,14 @@ export function MobileBottomNav() {
                     }}
                 >
                     <HomeRoundedIcon fontSize="small" />
-                    <Typography variant="caption" sx={{ fontSize: 9, fontWeight: activeKey === "home" ? 700 : 500, lineHeight: 1 }}>
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            fontSize: { xs: 10, sm: 11 },
+                            fontWeight: activeKey === "home" ? 700 : 500,
+                            lineHeight: 1,
+                        }}
+                    >
                         Главная
                     </Typography>
                 </ButtonBase>
@@ -82,6 +91,7 @@ export function MobileBottomNav() {
                         flexDirection: "column",
                         alignItems: "center",
                         gap: 0.3,
+                        minHeight: 48,
                         py: 1,
                         borderRadius: 2,
                         color: activeKey === "menu" ? tokens.orange : tokens.textMuted,
@@ -90,7 +100,14 @@ export function MobileBottomNav() {
                     }}
                 >
                     <RestaurantMenuRoundedIcon fontSize="small" />
-                    <Typography variant="caption" sx={{ fontSize: 9, fontWeight: activeKey === "menu" ? 700 : 500, lineHeight: 1 }}>
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            fontSize: { xs: 10, sm: 11 },
+                            fontWeight: activeKey === "menu" ? 700 : 500,
+                            lineHeight: 1,
+                        }}
+                    >
                         Меню
                     </Typography>
                 </ButtonBase>
@@ -103,37 +120,45 @@ export function MobileBottomNav() {
                         flexDirection: "column",
                         alignItems: "center",
                         gap: 0.3,
+                        minHeight: 48,
                         py: 1,
                         borderRadius: 2,
-                        bgcolor: cartCount > 0 ? tokens.orange : "transparent",
-                        color: cartCount > 0 ? "#fff" : tokens.textMuted,
+                        bgcolor: totalItems > 0 ? tokens.orange : "transparent",
+                        color: totalItems > 0 ? "#fff" : tokens.textMuted,
                         transition: "all 0.18s ease",
-                        "&:hover": { bgcolor: cartCount > 0 ? tokens.orangeHi : tokens.surfaceUp },
+                        "&:hover": { bgcolor: totalItems > 0 ? tokens.orangeHi : tokens.surfaceUp },
                         "&:active": { transform: "scale(0.92)" },
                     }}
                 >
-                    <Badge
-                        badgeContent={cartCount}
-                        invisible={cartCount === 0}
-                        sx={{
-                            "& .MuiBadge-badge": {
-                                bgcolor: "#fff",
-                                color: tokens.orange,
-                                fontWeight: 800,
-                                fontSize: 9,
-                                minWidth: 16,
-                                height: 16,
-                                padding: "0 3px",
-                            },
-                        }}
+                    <motion.div
+                        key={totalItems}
+                        animate={{ scale: [1, 1.3, 1] }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        style={{ display: "inline-flex", lineHeight: 0 }}
                     >
-                        <ShoppingBagRoundedIcon fontSize="small" />
-                    </Badge>
+                        <Badge
+                            badgeContent={totalItems}
+                            invisible={totalItems === 0}
+                            sx={{
+                                "& .MuiBadge-badge": {
+                                    bgcolor: "#fff",
+                                    color: tokens.orange,
+                                    fontWeight: 800,
+                                    fontSize: 9,
+                                    minWidth: 16,
+                                    height: 16,
+                                    padding: "0 3px",
+                                },
+                            }}
+                        >
+                            <ShoppingBagRoundedIcon fontSize="small" />
+                        </Badge>
+                    </motion.div>
                     <Typography
                         variant="caption"
                         noWrap
                         sx={{
-                            fontSize: 9,
+                            fontSize: { xs: 10, sm: 11 },
                             fontWeight: 700,
                             lineHeight: 1,
                             maxWidth: 72,
@@ -141,7 +166,7 @@ export function MobileBottomNav() {
                             textOverflow: "ellipsis",
                         }}
                     >
-                        {cartCount > 0 ? `${fmt.format(cartTotal)} ֏` : "Корзина"}
+                        {totalItems > 0 ? `${fmt.format(cartTotal)} ֏` : "Корзина"}
                     </Typography>
                 </ButtonBase>
             </Stack>

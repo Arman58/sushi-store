@@ -71,7 +71,7 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
                         spacing={2}
                         alignItems={{ xs: "flex-start", md: "center" }}
                         justifyContent="space-between"
-                        sx={{ position: "relative" }}
+                        sx={{ position: "relative", mb: 3 }}
                     >
                         <Box sx={{ maxWidth: 640 }}>
                             <Chip
@@ -85,13 +85,14 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
                                 }}
                             />
                             <Typography
-                                variant="h4"
+                                component="p"
                                 sx={{
-                                    fontWeight: 800,
-                                    letterSpacing: -0.6,
-                                    lineHeight: 1.1,
+                                    fontWeight: 700,
+                                    letterSpacing: -0.2,
+                                    lineHeight: 1.35,
                                     mb: 1,
-                                    fontSize: { xs: 28, md: 32 },
+                                    fontSize: "1.25rem",
+                                    color: "text.secondary",
                                 }}
                             >
                                 Выбирайте блюдо, пока мы греем печи и разогреваем вок.
@@ -109,14 +110,14 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
 
                         <Stack spacing={1} direction={{ xs: "column", sm: "row" }}>
                             <Button
-                                variant="contained"
+                                variant="outlined"
                                 href="/order-status"
                                 sx={{
-                                    borderRadius: 12,
+                                    borderRadius: 3,
+                                    borderColor: "#e0e0e0",
                                     textTransform: "none",
-                                    px: 2.4,
-                                    boxShadow:
-                                        "0 12px 26px rgba(249,115,22,0.28), inset 0 1px 0 rgba(255,255,255,0.35)",
+                                    px: 3,
+                                    py: 1.2,
                                 }}
                             >
                                 Проверить заказ
@@ -125,10 +126,11 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
                                 variant="outlined"
                                 href="tel:+37400000000"
                                 sx={{
-                                    borderRadius: 12,
+                                    borderRadius: 3,
+                                    borderColor: "#e0e0e0",
                                     textTransform: "none",
-                                    px: 2.4,
-                                    borderColor: "rgba(15,23,42,0.14)",
+                                    px: 3,
+                                    py: 1.2,
                                 }}
                             >
                                 Позвонить оператору

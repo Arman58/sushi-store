@@ -2,6 +2,7 @@
 "use client";
 
 import CloseIcon from "@mui/icons-material/Close";
+import RestaurantMenuOutlined from "@mui/icons-material/RestaurantMenuOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import Box from "@mui/material/Box";
@@ -33,6 +34,7 @@ export type MenuProduct = {
     name: string;
     slug: string;
     description?: string | null;
+    composition?: string | null;
     price: number;
     weight?: number | null;
     images?: any;
@@ -80,22 +82,26 @@ type PriceFilter = (typeof PRICE_FILTERS)[number]["key"];
 export function MenuSection({ categories, products }: MenuSectionProps) {
     const searchParams = useSearchParams();
 
-    const addItem            = useCartStore((s) => s.addItem);
-    const setItemQuantity    = useCartStore((s) => s.setItemQuantity);
-    const cartItems          = useCartStore((s) => s.items);
-    const hasPriceMismatch   = useCartStore((s) => s.hasPriceMismatch);
+    const addItem = useCartStore((s) => s.addItem);
+    const setItemQuantity = useCartStore((s) => s.setItemQuantity);
+    const cartItems = useCartStore((s) => s.items);
+    const hasPriceMismatch = useCartStore((s) => s.hasPriceMismatch);
     const resetPriceMismatch = useCartStore((s) => s.resetPriceMismatch);
-    const clearCart          = useCartStore((s) => s.clear);
+    const clearCart = useCartStore((s) => s.clear);
 
-    const [barVisible,   setBarVisible]   = useState<boolean>(() => {
+    const [barVisible, setBarVisible] = useState<boolean>(() => {
         if (typeof window === "undefined") return true;
         return sessionStorage.getItem("menuCartBarHidden") !== "1";
     });
-    const [search,       setSearch]       = useState("");
-    const [sort,         setSort]         = useState<"name" | "price_asc" | "price_desc">("name");
-    const [priceFilter,  setPriceFilter]  = useState<PriceFilter>("all");
+    const [search, setSearch] = useState("");
+    const [sort, setSort] = useState<"name" | "price_asc" | "price_desc">(
+        "name",
+    );
+    const [priceFilter, setPriceFilter] = useState<PriceFilter>("all");
 
-    useEffect(() => { ensureCartBarKf(); }, []);
+    useEffect(() => {
+        ensureCartBarKf();
+    }, []);
 
     // Re-show bar when cart empties
     useEffect(() => {
@@ -105,10 +111,15 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
         }
     }, [cartItems.length, barVisible]);
 
-    const allSlugs = useMemo(() => ["all", ...categories.map((c) => c.slug)], [categories]);
+    const allSlugs = useMemo(
+        () => ["all", ...categories.map((c) => c.slug)],
+        [categories],
+    );
     const categoryFromUrl = searchParams.get("category") ?? undefined;
     const activeSlug =
-        categoryFromUrl && allSlugs.includes(categoryFromUrl) ? categoryFromUrl : "all";
+        categoryFromUrl && allSlugs.includes(categoryFromUrl)
+            ? categoryFromUrl
+            : "all";
 
     const filteredProducts = useMemo(() => {
         const base =
@@ -134,11 +145,20 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                   );
 
         return [...withSearch].sort((a, b) => {
-            if (sort === "price_asc")  return a.price - b.price;
+            if (sort === "price_asc") return a.price - b.price;
             if (sort === "price_desc") return b.price - a.price;
             return a.name.localeCompare(b.name, "ru");
         });
     }, [activeSlug, priceFilter, products, search, sort]);
+
+    const productsInActiveCategory = useMemo(() => {
+        if (activeSlug === "all") return products;
+        return products.filter((p) => p.category?.slug === activeSlug);
+    }, [activeSlug, products]);
+
+    /** Категория выбрана, но в ней ещё нет ни одного товара (не «ничего не нашлось» по поиску). */
+    const isEmptyCategoryShelf =
+        activeSlug !== "all" && productsInActiveCategory.length === 0;
 
     const { totalCount, totalPrice } = useMemo(
         () => ({
@@ -152,17 +172,20 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
         addItem({ productId: p.id, name: p.name, price: p.price });
     };
     const handleIncrease = (productId: number) => {
-        const qty = (cartItems.find((i) => i.productId === productId)?.quantity ?? 0) + 1;
+        const qty =
+            (cartItems.find((i) => i.productId === productId)?.quantity ?? 0) +
+            1;
         setItemQuantity(productId, qty);
     };
     const handleDecrease = (productId: number) => {
-        const qty = (cartItems.find((i) => i.productId === productId)?.quantity ?? 0) - 1;
+        const qty =
+            (cartItems.find((i) => i.productId === productId)?.quantity ?? 0) -
+            1;
         setItemQuantity(productId, qty);
     };
 
     return (
         <Box sx={{ mt: 3, display: "flex", flexDirection: "column", gap: 2 }}>
-
             {/* ══════════════════════════════════════════════════════
                 STICKY FILTER HEADER
                 Dark frosted glass — always above content on scroll
@@ -170,7 +193,10 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
             <Box
                 sx={{
                     position: "sticky",
-                    top: 56,
+                    top: {
+                        xs: "calc(56px + env(safe-area-inset-top))",
+                        sm: 64,
+                    },
                     zIndex: 9,
                     bgcolor: `${tokens.bg}EE`,
                     backdropFilter: "blur(24px)",
@@ -190,41 +216,49 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                     sx={{
                         p: 2,
                         mb: 2,
-                        borderRadius: 3,
+                        borderRadius: 4,
                         bgcolor: "background.paper",
                         border: "1px solid",
                         borderColor: "#f0f0f0",
                     }}
                 >
+                    <TextField
+                        fullWidth
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        size="small"
+                        placeholder="Поиск по меню..."
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchIcon
+                                        sx={{
+                                            fontSize: 18,
+                                            color: tokens.textMuted,
+                                        }}
+                                    />
+                                </InputAdornment>
+                            ),
+                        }}
+                        sx={{
+                            maxWidth: { sm: 420 },
+                            "& .MuiOutlinedInput-root": {
+                                borderRadius: 50,
+                                bgcolor: "#f5f5f5",
+                                "& fieldset": { border: "none" },
+                            },
+                        }}
+                    />
+
                     <Box
                         sx={{
+                            mt: 2,
                             display: "flex",
                             flexWrap: "wrap",
                             gap: 1,
                             alignItems: "center",
                         }}
                     >
-                        <TextField
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            size="small"
-                            placeholder="Поиск по меню..."
-                            InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <SearchIcon
-                                            sx={{ fontSize: 18, color: tokens.textMuted }}
-                                        />
-                                    </InputAdornment>
-                                ),
-                            }}
-                            sx={{
-                                flex: { xs: "1 1 100%", sm: "0 1 260px" },
-                                minWidth: 180,
-                                "& .MuiOutlinedInput-root": { borderRadius: 2 },
-                            }}
-                        />
-
                         <ToggleButtonGroup
                             value={sort}
                             exclusive
@@ -237,22 +271,23 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                                 flexWrap: "wrap",
                                 gap: 0.75,
                                 "& .MuiToggleButtonGroup-grouped": {
-                                    border: "1px solid #f0f0f0 !important",
-                                    borderRadius: "8px !important",
+                                    borderRadius: 3,
                                     m: 0,
-                                    textTransform: "none",
                                     fontSize: 12,
                                     fontWeight: 500,
-                                    px: 1.5,
-                                    py: 0.5,
+                                    textTransform: "none",
+                                    px: 2,
+                                    py: 1,
+                                    border: "1px solid #e0e0e0 !important",
+                                    bgcolor: "transparent",
                                     "&:not(.Mui-selected)": {
                                         color: "text.secondary",
-                                        bgcolor: "background.paper",
                                     },
                                     "&.Mui-selected": {
                                         bgcolor: "primary.main",
-                                        color: "primary.contrastText",
-                                        borderColor: "primary.main !important",
+                                        color: "#fff",
+                                        border: "none !important",
+                                        boxShadow: 2,
                                         fontWeight: 600,
                                     },
                                 },
@@ -269,7 +304,11 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                             </ToggleButton>
                         </ToggleButtonGroup>
 
-                        <Stack direction="row" flexWrap="wrap" sx={{ gap: 0.75, alignItems: "center" }}>
+                        <Stack
+                            direction="row"
+                            flexWrap="wrap"
+                            sx={{ gap: 0.75, alignItems: "center" }}
+                        >
                             {PRICE_FILTERS.map(({ key, label }) => {
                                 const active = priceFilter === key;
                                 return (
@@ -278,18 +317,36 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                                         onClick={() => setPriceFilter(key)}
                                         size="small"
                                         disableElevation
-                                        variant={active ? "contained" : "outlined"}
+                                        variant={
+                                            active ? "contained" : "outlined"
+                                        }
                                         color={active ? "primary" : "inherit"}
                                         sx={{
-                                            borderRadius: 2,
+                                            borderRadius: 3,
                                             textTransform: "none",
                                             fontSize: 12,
                                             fontWeight: active ? 600 : 500,
-                                            px: 1.5,
+                                            px: 2,
+                                            py: 1,
                                             minWidth: 0,
-                                            ...(!active
-                                                ? { borderColor: "#f0f0f0", color: "text.secondary" }
-                                                : {}),
+                                            border: active
+                                                ? "none"
+                                                : "1px solid #e0e0e0",
+                                            bgcolor: active
+                                                ? "primary.main"
+                                                : "transparent",
+                                            color: active
+                                                ? "#fff"
+                                                : "text.secondary",
+                                            boxShadow: active ? 2 : "none",
+                                            "&:hover": {
+                                                bgcolor: active
+                                                    ? "primary.dark"
+                                                    : "action.hover",
+                                                borderColor: active
+                                                    ? undefined
+                                                    : "#e0e0e0",
+                                            },
                                         }}
                                     >
                                         {label}
@@ -297,7 +354,9 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                                 );
                             })}
 
-                            {(search || priceFilter !== "all" || sort !== "name") && (
+                            {(search ||
+                                priceFilter !== "all" ||
+                                sort !== "name") && (
                                 <Button
                                     onClick={() => {
                                         setSearch("");
@@ -309,10 +368,13 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                                     color="inherit"
                                     disableElevation
                                     sx={{
-                                        borderRadius: 2,
+                                        borderRadius: 3,
                                         textTransform: "none",
                                         fontSize: 12,
-                                        borderColor: "#f0f0f0",
+                                        px: 2,
+                                        py: 1,
+                                        border: "1px solid #e0e0e0",
+                                        bgcolor: "transparent",
                                         color: "text.secondary",
                                     }}
                                 >
@@ -328,45 +390,94 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                 PRODUCT GRID
             ══════════════════════════════════════════════════════ */}
             {filteredProducts.length === 0 ? (
-                <Box
-                    sx={{
-                        py: 12,
-                        textAlign: "center",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 1.5,
-                    }}
-                >
-                    <Typography sx={{ fontSize: 52, lineHeight: 1 }}>🍽</Typography>
-                    <Typography variant="h6" fontWeight={700}>
-                        Ничего не нашлось
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: tokens.textSecondary }}>
-                        Попробуйте другой запрос или сбросьте фильтры
-                    </Typography>
-                </Box>
+                isEmptyCategoryShelf ? (
+                    <Box
+                        sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            py: 10,
+                            textAlign: "center",
+                        }}
+                    >
+                        <RestaurantMenuOutlined
+                            sx={{ fontSize: 80, color: "grey.300", mb: 2 }}
+                        />
+                        <Typography
+                            variant="h6"
+                            color="text.secondary"
+                            fontWeight={600}
+                        >
+                            Здесь пока пусто
+                        </Typography>
+                        <Typography
+                            variant="body2"
+                            color="text.disabled"
+                            sx={{ mt: 1, maxWidth: 250 }}
+                        >
+                            Мы уже готовим блюда для этой категории. Скоро они
+                            появятся!
+                        </Typography>
+                        <Button
+                            component={Link}
+                            href="/menu"
+                            variant="outlined"
+                            color="primary"
+                            sx={{ mt: 3, borderRadius: 3 }}
+                        >
+                            Посмотреть другие блюда
+                        </Button>
+                    </Box>
+                ) : (
+                    <Box
+                        sx={{
+                            py: 12,
+                            textAlign: "center",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 1.5,
+                        }}
+                    >
+                        <Typography sx={{ fontSize: 52, lineHeight: 1 }}>
+                            🍽
+                        </Typography>
+                        <Typography variant="h6" fontWeight={700}>
+                            Ничего не нашлось
+                        </Typography>
+                        <Typography
+                            variant="body2"
+                            sx={{ color: tokens.textSecondary }}
+                        >
+                            Попробуйте другой запрос или сбросьте фильтры
+                        </Typography>
+                    </Box>
+                )
             ) : (
                 <Box
                     sx={{
                         display: "grid",
                         gap: { xs: 1.5, sm: 2, md: 2.5 },
                         mt: 1,
-                        gridTemplateColumns: {
-                            xs: "1fr 1fr",
-                            sm: "repeat(3, minmax(0, 1fr))",
-                            md: "repeat(4, minmax(0, 1fr))",
-                        },
+                        gridTemplateColumns:
+                            "repeat(auto-fill, minmax(160px, 1fr))",
                     }}
                 >
-                    {filteredProducts.map((product) => {
+                    {filteredProducts.map((product, index) => {
                         const qty =
-                            cartItems.find((i) => i.productId === product.id)?.quantity ?? 0;
+                            cartItems.find((i) => i.productId === product.id)
+                                ?.quantity ?? 0;
                         return (
                             <ProductCard
                                 key={product.id}
+                                index={index}
                                 name={product.name}
-                                description={product.description}
+                                composition={
+                                    product.composition ||
+                                    product.description ||
+                                    ""
+                                }
                                 price={product.price}
                                 weight={product.weight ?? undefined}
                                 images={product.images}
@@ -381,10 +492,7 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
             )}
 
             {/* ══════════════════════════════════════════════════════
-                FLOATING CART BAR
-                ─ DARK glassmorphism — design system compliant ─
-                NEVER use white backgrounds here.
-                Text tokens are white — white on white = broken.
+                FLOATING CART BAR — Paper CTA strip (compact checkout focus)
             ══════════════════════════════════════════════════════ */}
             {totalCount > 0 && barVisible && (
                 <Box
@@ -399,178 +507,179 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                         display: "flex",
                         justifyContent: "center",
                         zIndex: 50,
-                        px: { xs: 2, sm: 0 },
+                        px: { xs: 0, sm: 2 },
                         pointerEvents: "none",
                     }}
                 >
-                    <Box
+                    <Paper
+                        elevation={8}
                         sx={{
                             pointerEvents: "auto",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: { xs: 1.5, sm: 2 },
-                            px: { xs: 1.75, sm: 2.25 },
-                            py: { xs: 1.25, sm: 1.5 },
-                            borderRadius: "20px",
-                            // ─── DARK system colors ───
-                            bgcolor: tokens.surfaceHi,
-                            backdropFilter: "blur(28px)",
-                            WebkitBackdropFilter: "blur(28px)",
-                            border: `1px solid ${tokens.orange}55`,
-                            boxShadow: [
-                                "0 8px 40px rgba(0,0,0,0.75)",
-                                `0 0 0 1px ${tokens.border}`,
-                                `0 0 60px ${tokens.orangeGlow}`,
-                            ].join(", "),
+                            borderRadius: "20px 20px 0 0",
+                            p: 2,
+                            border: "none",
+                            pb: "calc(8px + env(safe-area-inset-bottom, 0px))",
                             width: { xs: "100%", sm: "auto" },
                             maxWidth: { xs: "100%", sm: 580 },
-                            animation: "cartBarSlideUp 0.22s cubic-bezier(.22,.68,0,1.2) both",
+                            animation:
+                                "cartBarSlideUp 0.22s cubic-bezier(.22,.68,0,1.2) both",
                         }}
                     >
-                        {/* Orange icon badge */}
-                        <Box
-                            sx={{
-                                width: 42,
-                                height: 42,
-                                borderRadius: "14px",
-                                bgcolor: tokens.orangeDim,
-                                border: `1px solid ${tokens.orange}44`,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                flexShrink: 0,
-                            }}
-                        >
-                            <ShoppingBagOutlinedIcon sx={{ fontSize: 20, color: tokens.orange }} />
-                        </Box>
-
-                        {/* Text block */}
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography
-                                variant="subtitle2"
-                                fontWeight={800}
-                                noWrap
+                        <Stack spacing={1.5}>
+                            <Box
                                 sx={{
-                                    // Explicit white — never inherit light bg
-                                    color: tokens.textPrimary,
-                                    lineHeight: 1.2,
-                                    fontSize: 14,
+                                    display: "flex",
+                                    alignItems: "flex-start",
+                                    gap: 1.25,
                                 }}
                             >
-                                {totalCount}&thinsp;
-                                {totalCount === 1
-                                    ? "позиция"
-                                    : totalCount < 5
-                                      ? "позиции"
-                                      : "позиций"}
-                            </Typography>
-                            <Typography
-                                variant="caption"
-                                noWrap
-                                sx={{
-                                    color: tokens.orange,
-                                    fontWeight: 700,
-                                    fontSize: 13,
-                                    lineHeight: 1.3,
-                                    display: "block",
-                                }}
-                            >
-                                {fmt.format(totalPrice)}&thinsp;֏
-                            </Typography>
-                        </Box>
-
-                        {/* CTA buttons */}
-                        <Stack direction="row" spacing={0.75} alignItems="center" flexShrink={0}>
-                            {hasPriceMismatch && (
-                                <Button
-                                    size="small"
-                                    onClick={() => { clearCart(); resetPriceMismatch(); }}
+                                <Box
                                     sx={{
-                                        borderRadius: "12px",
-                                        textTransform: "none",
-                                        px: 1.5,
-                                        fontSize: 11,
-                                        fontWeight: 600,
-                                        color: tokens.textSecondary,
-                                        border: `1px solid ${tokens.border}`,
+                                        width: 42,
+                                        height: 42,
+                                        borderRadius: "14px",
+                                        bgcolor: "action.hover",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        flexShrink: 0,
+                                    }}
+                                >
+                                    <ShoppingBagOutlinedIcon
+                                        sx={{
+                                            fontSize: 20,
+                                            color: "primary.main",
+                                        }}
+                                    />
+                                </Box>
+
+                                <Box sx={{ flex: 1, minWidth: 0, pt: 0.25 }}>
+                                    <Box
+                                        sx={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            alignItems: "baseline",
+                                            gap: 1,
+                                        }}
+                                    >
+                                        <Typography
+                                            component={Link}
+                                            href="/cart"
+                                            fontWeight={800}
+                                            sx={{
+                                                fontSize: 16,
+                                                color: "text.primary",
+                                                textDecoration: "none",
+                                                "&:hover": {
+                                                    textDecoration: "underline",
+                                                },
+                                            }}
+                                        >
+                                            Корзина
+                                        </Typography>
+                                        <Typography
+                                            fontWeight={800}
+                                            noWrap
+                                            sx={{
+                                                fontSize: 17,
+                                                color: "primary.main",
+                                            }}
+                                        >
+                                            {fmt.format(totalPrice)}&thinsp;֏
+                                        </Typography>
+                                    </Box>
+                                    <Typography
+                                        variant="caption"
+                                        sx={{
+                                            display: "block",
+                                            mt: 0.25,
+                                            color: "text.secondary",
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        {totalCount}&thinsp;
+                                        {totalCount === 1
+                                            ? "позиция"
+                                            : totalCount < 5
+                                              ? "позиции"
+                                              : "позиций"}
+                                    </Typography>
+                                </Box>
+
+                                <IconButton
+                                    size="small"
+                                    onClick={() => {
+                                        sessionStorage.setItem(
+                                            "menuCartBarHidden",
+                                            "1",
+                                        );
+                                        setBarVisible(false);
+                                    }}
+                                    sx={{
+                                        width: 32,
+                                        height: 32,
+                                        mt: -0.25,
+                                        color: "text.secondary",
+                                        flexShrink: 0,
                                         "&:hover": {
-                                            color: tokens.orange,
-                                            borderColor: tokens.orange + "55",
-                                            bgcolor: tokens.orangeDim,
+                                            color: "error.main",
+                                            bgcolor: "action.hover",
                                         },
                                     }}
                                 >
-                                    Обновить
+                                    <CloseIcon sx={{ fontSize: 16 }} />
+                                </IconButton>
+                            </Box>
+
+                            {hasPriceMismatch && (
+                                <Button
+                                    fullWidth
+                                    size="small"
+                                    onClick={() => {
+                                        clearCart();
+                                        resetPriceMismatch();
+                                    }}
+                                    sx={{
+                                        borderRadius: 2,
+                                        textTransform: "none",
+                                        py: 0.75,
+                                        fontWeight: 600,
+                                        border: "1px solid",
+                                        borderColor: "divider",
+                                    }}
+                                >
+                                    Обновить корзину
                                 </Button>
                             )}
 
                             <Button
                                 component={Link}
-                                href="/cart"
-                                size="small"
+                                href="/checkout"
+                                variant="contained"
+                                disableElevation
+                                fullWidth
                                 sx={{
-                                    borderRadius: "12px",
+                                    borderRadius: 50,
+                                    flex: 1,
+                                    minHeight: 50,
+                                    height: 50,
+                                    py: 0,
+                                    boxShadow: 4,
                                     textTransform: "none",
-                                    px: 1.75,
-                                    fontSize: 12,
-                                    fontWeight: 700,
-                                    // ─── Explicit dark-on-dark, not light ───
-                                    color: tokens.textSecondary,
-                                    bgcolor: tokens.surfaceUp,
-                                    border: `1px solid ${tokens.border}`,
+                                    fontSize: 15,
+                                    fontWeight: 800,
+                                    color: "#fff",
+                                    bgcolor: "primary.main",
                                     "&:hover": {
-                                        bgcolor: tokens.surface,
-                                        color: tokens.textPrimary,
-                                        borderColor: tokens.borderHi,
+                                        bgcolor: "primary.dark",
+                                        boxShadow: 6,
                                     },
                                 }}
                             >
-                                Корзина
-                            </Button>
-
-                            <Button
-                                component={Link}
-                                href="/checkout"
-                                variant="contained"
-                                size="small"
-                                sx={{
-                                    borderRadius: "12px",
-                                    textTransform: "none",
-                                    px: 2,
-                                    fontSize: 12,
-                                    fontWeight: 800,
-                                    letterSpacing: 0.2,
-                                }}
-                            >
-                                Оформить →
+                                Оформить&nbsp;→
                             </Button>
                         </Stack>
-
-                        {/* Close X */}
-                        <IconButton
-                            size="small"
-                            onClick={() => {
-                                sessionStorage.setItem("menuCartBarHidden", "1");
-                                setBarVisible(false);
-                            }}
-                            sx={{
-                                width: 28,
-                                height: 28,
-                                bgcolor: tokens.surfaceUp,
-                                border: `1px solid ${tokens.border}`,
-                                color: tokens.textMuted,
-                                flexShrink: 0,
-                                transition: "all 0.18s ease",
-                                "&:hover": {
-                                    color: tokens.red,
-                                    borderColor: tokens.red + "44",
-                                    bgcolor: tokens.redDim,
-                                },
-                            }}
-                        >
-                            <CloseIcon sx={{ fontSize: 13 }} />
-                        </IconButton>
-                    </Box>
+                    </Paper>
                 </Box>
             )}
         </Box>

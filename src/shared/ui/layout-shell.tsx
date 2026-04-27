@@ -126,7 +126,17 @@ export function LayoutShell({ children }: LayoutShellProps) {
                 color="transparent"
                 sx={{ color: tokens.textPrimary }}
             >
-                <Toolbar disableGutters sx={{ minHeight: { xs: 60, sm: 64 } }}>
+                <Toolbar
+                    disableGutters
+                    sx={{
+                        minHeight: { xs: 56, sm: 64 },
+                        pt: "env(safe-area-inset-top)",
+                        height: {
+                            xs: "calc(56px + env(safe-area-inset-top))",
+                            sm: 64,
+                        },
+                    }}
+                >
                     <Container
                         maxWidth="lg"
                         sx={{
