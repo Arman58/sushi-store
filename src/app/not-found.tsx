@@ -24,9 +24,15 @@ export default function NotFound() {
                 <Typography variant="body1" color="text.secondary">
                     Похоже, этот ролл или пицца уже съедены, а страница исчезла.
                 </Typography>
-                <Button variant="contained" color="primary" component={Link} href="/">
-                    Вернуться в меню
-                </Button>
+                <Link href="/" style={{ textDecoration: "none" }}>
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        sx={{ borderRadius: 3, mt: 4, px: 6, textTransform: "none" }}
+                    >
+                        Вернуться в меню
+                    </Button>
+                </Link>
             </Stack>
         </Box>
     );
