@@ -21,8 +21,11 @@ const CartDrawer = dynamic(
     () => import("./cart-drawer").then((m) => m.CartDrawer),
     { ssr: false },
 );
+const MobileBottomNav = dynamic(
+    () => import("./mobile-bottom-nav").then((m) => m.MobileBottomNav),
+    { ssr: false },
+);
 import { CartToast } from "./cart-toast";
-import { MobileBottomNav } from "./mobile-bottom-nav";
 import { tokens } from "./theme";
 
 const fmt = new Intl.NumberFormat("ru-RU");

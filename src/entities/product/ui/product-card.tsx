@@ -91,7 +91,6 @@ export const ProductCard = memo(function ProductCard({
     quantity = 0,
     onIncrease,
     onDecrease,
-    index = 0,
 }: ProductCardProps) {
     const [imgLoaded, setImgLoaded] = useState(false);
 
@@ -119,13 +118,7 @@ export const ProductCard = memo(function ProductCard({
     };
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.3, delay: index * 0.05 }}
-            style={{ width: "100%", height: "100%" }}
-        >
+        <Box sx={{ width: "100%", height: "100%" }}>
             <Box
                 sx={{
                     width: "100%",
@@ -481,7 +474,7 @@ export const ProductCard = memo(function ProductCard({
                     </Box>
                 </Box>
             </Box>
-        </motion.div>
+        </Box>
     );
 });
 
