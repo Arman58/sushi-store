@@ -1,0 +1,87 @@
+// generator client {
+//   provider = "prisma-client-js"
+// }
+//
+// datasource db {
+//   provider = "postgresql"   // для Supabase — это правильно
+//   url      = env("DATABASE_URL")
+// }
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String
+  slug      String   @unique
+  products  Product[]
+  createdAt DateTime @default(now())
+}
+
+model Product {
+  id          Int       @id @default(autoincrement())
+  name        String
+  slug        String    @unique
+  description String?
+  price       Int
+  weight      Int?
+  image       String?
+  isActive    Boolean   @default(true)
+  category    Category? @relation(fields: [categoryId], references: [id])
+  categoryId  Int?
+  createdAt   DateTime  @default(now())
+}
+
+
+enum PaymentMethod {
+  CASH
+  CARD
+}
+
+enum DeliveryType {
+  DELIVERY
+  PICKUP
+}
+
+enum OrderStatus {
+  NEW
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+model Order {
+  id         Int           @id @default(autoincrement())
+  createdAt  DateTime      @default(now())
+  name       String
+  phone      String
+  address    String?
+  comment    String?
+  payment    PaymentMethod
+  delivery   DeliveryType
+  status     OrderStatus   @default(NEW)
+  totalPrice Int
+
+  items      OrderItem[]
+}
+
+model OrderItem {
+  id        Int   @id @default(autoincrement())
+  order     Order @relation(fields: [orderId], references: [id])
+  orderId   Int
+
+  // просто храним id продукта, без relation и без модели Product
+  productId Int?
+
+  name      String
+  price     Int
+  quantity  Int
+}
+
