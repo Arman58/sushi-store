@@ -7,10 +7,10 @@ import IconButton from "@mui/material/IconButton";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { motion } from "framer-motion";
 import Image from "next/image";
 import { memo, useState } from "react";
 
+import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { skeletonShimmerSx, tokens } from "@/shared/ui/theme";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -25,37 +25,37 @@ export type ProductCardProps = {
     price: number;
     originalPrice?: number | null;
     weight?: number | null;
-    images?: any;
+    images?: unknown;
+    mainImage?: string | null;
     badges?: ProductBadge[];
     onAddToCart: () => void;
     quantity?: number;
     onIncrease?: () => void;
     onDecrease?: () => void;
     index?: number;
+    /** Prefer preloading this card image — use once per viewport for LCP (e.g. first tile on home). */
+    imagePriority?: boolean;
 };
 
 const fmt = new Intl.NumberFormat("ru-RU");
-
-const addTapTransition = {
-    type: "spring" as const,
-    stiffness: 400,
-    damping: 17,
-};
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const ProductCard = memo(function ProductCard({
     name,
+    composition,
     price,
     images,
+    mainImage,
     onAddToCart,
     quantity = 0,
     onIncrease,
     onDecrease,
+    imagePriority = false,
 }: ProductCardProps) {
     const [imgLoaded, setImgLoaded] = useState(false);
 
-    const imageUrl = Array.isArray(images) ? images[0] : null;
+    const imageUrl = getProductCoverUrl({ images, mainImage });
 
     const hasInCart = quantity > 0;
 
@@ -115,7 +115,9 @@ export const ProductCard = memo(function ProductCard({
                             width: "100%",
                             height: "100%",
                         }}
-                        loading="lazy"
+                        {...(imagePriority
+                            ? { priority: true, fetchPriority: "high" as const }
+                            : { loading: "lazy" })}
                         onLoad={() => setImgLoaded(true)}
                     />
                 </Box>
@@ -125,7 +127,9 @@ export const ProductCard = memo(function ProductCard({
                         flex: 1,
                         display: "flex",
                         flexDirection: "column",
-                        p: 1.5,
+                        pt: 1.5,
+                        px: 1.5,
+                        pb: 1.5,
                         minHeight: 0,
                     }}
                 >
@@ -138,11 +142,28 @@ export const ProductCard = memo(function ProductCard({
                             textOverflow: "ellipsis",
                             color: "text.primary",
                             lineHeight: 1.25,
-                            mb: 1,
+                            mb: composition?.trim() ? 0 : 1,
                         }}
                     >
                         {name}
                     </Typography>
+
+                    {composition?.trim() ? (
+                        <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{
+                                mt: 0.5,
+                                mb: 1,
+                                display: "-webkit-box",
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                            }}
+                        >
+                            {composition.trim()}
+                        </Typography>
+                    ) : null}
 
                     <Box
                         sx={{
@@ -213,10 +234,8 @@ export const ProductCard = memo(function ProductCard({
                                     {quantity}
                                 </Typography>
 
-                                <motion.div
-                                    whileTap={{ scale: 0.92 }}
-                                    transition={addTapTransition}
-                                    style={{
+                                <Box
+                                    sx={{
                                         display: "inline-flex",
                                         borderRadius: "50%",
                                     }}
@@ -231,25 +250,26 @@ export const ProductCard = memo(function ProductCard({
                                         sx={{
                                             width: 36,
                                             height: 36,
-                                            bgcolor: "primary.main",
-                                            color: "#fff",
+                                            backgroundColor: "action.hover",
+                                            color: "text.secondary",
                                             borderRadius: "50%",
                                             transition:
-                                                "background-color 0.18s ease",
+                                                "color 0.15s ease, background-color 0.15s ease",
                                             "&:hover": {
-                                                bgcolor: "primary.dark",
+                                                bgcolor: "action.selected",
+                                            },
+                                            "&:active": {
+                                                transform: "scale(0.92)",
                                             },
                                         }}
                                     >
-                                        <AddIcon sx={{ fontSize: 22, color: "#fff" }} />
+                                        <AddIcon sx={{ fontSize: 20 }} />
                                     </IconButton>
-                                </motion.div>
+                                </Box>
                             </Stack>
                         ) : (
-                            <motion.div
-                                whileTap={{ scale: 0.92 }}
-                                transition={addTapTransition}
-                                style={{
+                            <Box
+                                sx={{
                                     display: "inline-flex",
                                     borderRadius: "50%",
                                     flexShrink: 0,
@@ -260,21 +280,26 @@ export const ProductCard = memo(function ProductCard({
                                     onClick={handleAdd}
                                     aria-label={`Добавить ${name}`}
                                     sx={{
-                                        width: 36,
-                                        height: 36,
-                                        bgcolor: "primary.main",
+                                        width: 40,
+                                        height: 40,
+                                        backgroundColor: "primary.main",
                                         color: "#fff",
                                         borderRadius: "50%",
+                                        boxShadow:
+                                            "0 2px 8px rgba(232, 93, 74, 0.35)",
                                         transition:
-                                            "background-color 0.18s ease",
+                                            "background-color 0.18s ease, box-shadow 0.18s ease",
                                         "&:hover": {
-                                            bgcolor: "primary.dark",
+                                            backgroundColor: "primary.dark",
+                                        },
+                                        "&:active": {
+                                            transform: "scale(0.92)",
                                         },
                                     }}
                                 >
                                     <AddIcon sx={{ fontSize: 22, color: "#fff" }} />
                                 </IconButton>
-                            </motion.div>
+                            </Box>
                         )}
                     </Box>
                 </Box>
@@ -313,7 +338,9 @@ export function ProductCardSkeleton() {
                     flex: 1,
                     display: "flex",
                     flexDirection: "column",
-                    p: 1.5,
+                    pt: 1.5,
+                    px: 1.5,
+                    pb: 1.5,
                     minHeight: 0,
                 }}
             >
@@ -337,8 +364,8 @@ export function ProductCardSkeleton() {
                     />
                     <Skeleton
                         variant="circular"
-                        width={36}
-                        height={36}
+                        width={40}
+                        height={40}
                         sx={{ ...skeletonShimmerSx }}
                     />
                 </Box>

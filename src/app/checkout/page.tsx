@@ -19,18 +19,17 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Controller, useForm, type Resolver } from "react-hook-form";
+import { Controller, type Resolver,useForm } from "react-hook-form";
 
+import { useCartStore } from "@/features/cart";
 import { ApiError, placeOrder } from "@/shared/api";
 import {
-    checkoutSchema,
     type CheckoutFormValues,
+    checkoutSchema,
     type DeliveryType,
-    type PaymentMethod,
 } from "@/shared/lib/schemas";
 import { PageContainer, SectionTitle } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
-import { useCartStore } from "@/features/cart";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -87,7 +86,6 @@ function loadDraft(): Partial<CheckoutFormValues> | null {
 // ─── Payment option card ──────────────────────────────────────────────────────
 
 type PaymentCardProps = {
-    value: PaymentMethod;
     selected: boolean;
     onSelect: () => void;
     icon: React.ReactNode;
@@ -95,7 +93,7 @@ type PaymentCardProps = {
     sublabel: string;
 };
 
-function PaymentCard({ value, selected, onSelect, icon, label, sublabel }: PaymentCardProps) {
+function PaymentCard({ selected, onSelect, icon, label, sublabel }: PaymentCardProps) {
     return (
         <Paper
             onClick={onSelect}
@@ -172,6 +170,9 @@ export default function CheckoutPage() {
     );
 
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [missingItemError, setMissingItemError] = useState<string | null>(null);
+    const [apiError, setApiError] = useState(false);
+    const [isSubmittingLocal, setIsSubmittingLocal] = useState(false);
 
     const draft = useMemo(() => loadDraft(), []);
 
@@ -218,7 +219,10 @@ export default function CheckoutPage() {
 
     const onSubmit = async (data: CheckoutFormValues) => {
         if (!hasItems) return;
+        setIsSubmittingLocal(true);
         setErrorMessage(null);
+        setMissingItemError(null);
+        setApiError(false);
         resetPriceMismatch();
 
         try {
@@ -245,17 +249,35 @@ export default function CheckoutPage() {
                     localStorage.removeItem(DRAFT_STORAGE_KEY);
                     sessionStorage.setItem(ORDER_ID_KEY, String(result.orderId));
                 } catch { /* ignore */ }
-                router.push("/order-success");
+                if (typeof result.orderId === "number" && result.orderId > 0) {
+                    router.push(`/order/${result.orderId}`);
+                } else {
+                    router.push("/order-success");
+                }
             }
         } catch (error) {
-            if (error instanceof ApiError && error.status === 409) {
-                markPriceMismatch();
+            if (error instanceof ApiError) {
+                const isPriceConflict =
+                    error.status === 409 &&
+                    error.message.includes("Цены на некоторые позиции");
+                if (isPriceConflict) {
+                    markPriceMismatch();
+                    setErrorMessage(error.message);
+                } else if (error.status === 409 && !isPriceConflict) {
+                    setMissingItemError(error.message);
+                } else if (error.status >= 500) {
+                    setApiError(true);
+                } else {
+                    setErrorMessage(
+                        error.message ||
+                            "Не удалось отправить заказ. Попробуйте ещё раз.",
+                    );
+                }
+            } else {
+                setErrorMessage("Не удалось отправить заказ. Попробуйте ещё раз.");
             }
-            setErrorMessage(
-                error instanceof ApiError
-                    ? error.message
-                    : "Не удалось отправить заказ. Попробуйте ещё раз.",
-            );
+        } finally {
+            setTimeout(() => setIsSubmittingLocal(false), 1500);
         }
     };
 
@@ -295,9 +317,19 @@ export default function CheckoutPage() {
                     </Typography>
                 )}
 
-                {errorMessage && (
+                {errorMessage && !apiError && (
                     <Alert severity="error" sx={{ mb: 3 }}>
                         {errorMessage}
+                    </Alert>
+                )}
+
+                {missingItemError && (
+                    <Alert severity="error" sx={{ mb: 3 }}>
+                        Возможно, обновились цены или товар недоступен:{" "}
+                        <strong>
+                            {missingItemError || "товар временно отсутствует"}
+                        </strong>
+                        . Уберите позицию из корзины и попробуйте снова.
                     </Alert>
                 )}
 
@@ -320,6 +352,12 @@ export default function CheckoutPage() {
 
                         {/* ── Form ── */}
                         <Box flex={2}>
+                            {apiError && (
+                                <Alert severity="error" sx={{ mt: 2 }}>
+                                    Не удалось оформить заказ — на сервере произошла ошибка.
+                                    Попробуйте чуть позже или обновите страницу.
+                                </Alert>
+                            )}
                             <Paper
                                 component="form"
                                 noValidate
@@ -434,6 +472,14 @@ export default function CheckoutPage() {
                                             </Paper>
                                         ))}
                                     </Stack>
+                                    <Typography
+                                        variant="caption"
+                                        color="text.secondary"
+                                        sx={{ display: "block", mt: 1.5, lineHeight: 1.45 }}
+                                    >
+                                        Оплата только наличными или картой курьеру при получении заказа.
+                                        Онлайн-оплата на сайте отсутствует.
+                                    </Typography>
                                 </Box>
 
                                 {/* Address (shown only for delivery) */}
@@ -482,7 +528,6 @@ export default function CheckoutPage() {
                                     </Typography>
                                     <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                                         <PaymentCard
-                                            value="cash"
                                             selected={payment === "cash"}
                                             onSelect={() => setValue("payment", "cash", { shouldValidate: true })}
                                             icon={<LocalAtmOutlinedIcon fontSize="small" />}
@@ -490,12 +535,11 @@ export default function CheckoutPage() {
                                             sublabel="Курьеру при доставке"
                                         />
                                         <PaymentCard
-                                            value="card"
                                             selected={payment === "card"}
                                             onSelect={() => setValue("payment", "card", { shouldValidate: true })}
                                             icon={<CreditCardOutlinedIcon fontSize="small" />}
                                             label="Картой курьеру"
-                                            sublabel="Visa, Mastercard, Mir"
+                                            sublabel="Терминал при получении, не на сайте"
                                         />
                                     </Stack>
                                 </Box>
@@ -506,7 +550,7 @@ export default function CheckoutPage() {
                                     color="primary"
                                     size="large"
                                     fullWidth
-                                    disabled={!hasItems || isSubmitting}
+                                    disabled={!hasItems || isSubmitting || isSubmittingLocal}
                                     sx={{
                                         mt: 1,
                                         py: 1.25,
@@ -519,7 +563,7 @@ export default function CheckoutPage() {
                                         },
                                     }}
                                 >
-                                    {isSubmitting ? "Отправка…" : `Подтвердить заказ — ${totalPrice.toLocaleString("ru-RU")} ֏`}
+                                    {isSubmitting || isSubmittingLocal ? "Отправка…" : `Подтвердить заказ — ${totalPrice.toLocaleString("ru-RU")} ֏`}
                                 </Button>
                             </Paper>
                         </Box>

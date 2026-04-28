@@ -31,6 +31,10 @@ export default function OrderSuccessPage() {
                     Мы получили ваш заказ и уже передали его на кухню. Ожидайте звонка от
                     оператора для подтверждения.
                 </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 2, maxWidth: 420 }}>
+                    Обычно после оформления открывается страница отслеживания заказа. Если вы
+                    здесь по ошибке, воспользуйтесь разделом «Статус заказа» или напишите нам.
+                </Typography>
                 <Link href="/" style={{ textDecoration: "none" }}>
                     <Button
                         variant="contained"

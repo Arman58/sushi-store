@@ -96,8 +96,10 @@ function mapStatusLabel(status: string): string {
     switch (status) {
         case "NEW":
             return "Новый";
-        case "IN_PROGRESS":
-            return "В работе";
+        case "PREPARING":
+            return "Готовится";
+        case "DELIVERING":
+            return "В пути";
         case "DONE":
             return "Выполнен";
         case "CANCELLED":
@@ -171,7 +173,7 @@ export async function GET(request: Request) {
     if (statusFilter === "new") {
         where.status = "NEW";
     } else if (statusFilter === "in_progress") {
-        where.status = "IN_PROGRESS";
+        where.status = { in: ["PREPARING", "DELIVERING"] };
     } else if (statusFilter === "done") {
         where.status = "DONE";
     } else if (statusFilter === "cancelled") {

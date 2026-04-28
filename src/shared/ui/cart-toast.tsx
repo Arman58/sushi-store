@@ -23,8 +23,14 @@ export function CartToast() {
             open={open}
             autoHideDuration={2_000}
             onClose={() => setDismissedAt(lastAddedAt)}
-            anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-            sx={{ bottom: { xs: 76, sm: 24 } }}
+            anchorOrigin={{ vertical: "top", horizontal: "right" }}
+            sx={{
+                top: {
+                    xs: "calc(64px + env(safe-area-inset-top, 0px))",
+                    sm: 72,
+                },
+                right: 16,
+            }}
         >
             <Box
                 sx={{

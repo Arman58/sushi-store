@@ -29,8 +29,15 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Invalid file: expected a file upload" }, { status: 400 });
     }
     const file = entry as File;
-    if (file.size === 0) {
+    if (!file.size || file.size === 0) {
         return NextResponse.json({ error: "Empty file" }, { status: 400 });
+    }
+    const maxBytes = 5 * 1024 * 1024;
+    if (file.size > maxBytes) {
+        return NextResponse.json(
+            { error: "Файл слишком большой (макс 5 МБ)" },
+            { status: 413 },
+        );
     }
 
     try {

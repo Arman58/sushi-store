@@ -9,6 +9,7 @@ import Link from "next/link";
 import type { ProductBadge } from "@/entities/product/ui/product-card";
 import { ProductCard } from "@/entities/product/ui/product-card";
 import { useCartStore } from "@/features/cart";
+import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { tokens } from "@/shared/ui/theme";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -19,7 +20,8 @@ export type PopularProduct = {
     description?: string | null;
     price: number;
     weight?: number | null;
-    images?: any;
+    images?: unknown;
+    mainImage?: string | null;
     category?: { name: string } | null;
     composition?: string | null;
 };
@@ -29,6 +31,8 @@ type Props = {
     title?: string;
     badge?: ProductBadge;
     seeAllHref?: string;
+    /** First product tile image optimized for LCP (home hero row). */
+    prioritizeFirstImage?: boolean;
 };
 
 // ─── Cinematic section header ─────────────────────────────────────────────────
@@ -123,16 +127,14 @@ export function PopularSection({
     title = "Популярное",
     badge,
     seeAllHref = "/menu",
+    prioritizeFirstImage = false,
 }: Props) {
     const addItem = useCartStore((s) => s.addItem);
     const setItemQty = useCartStore((s) => s.setItemQuantity);
     const cartItems = useCartStore((s) => s.items);
 
     const handleAdd = (p: PopularProduct) => {
-        const thumb =
-            Array.isArray(p.images) && typeof p.images[0] === "string"
-                ? p.images[0]
-                : undefined;
+        const thumb = getProductCoverUrl({ images: p.images, mainImage: p.mainImage });
         addItem({
             productId: p.id,
             name: p.name,
@@ -167,6 +169,7 @@ export function PopularSection({
                         <ProductCard
                             key={product.id}
                             index={index}
+                            imagePriority={prioritizeFirstImage && index === 0}
                             name={product.name}
                             description={product.description}
                             categoryName={product.category?.name}
@@ -174,6 +177,7 @@ export function PopularSection({
                             price={product.price}
                             weight={product.weight}
                             images={product.images}
+                            mainImage={product.mainImage}
                             badges={badge ? [badge] : []}
                             quantity={qty}
                             onAddToCart={() => handleAdd(product)}

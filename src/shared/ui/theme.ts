@@ -52,6 +52,14 @@ export const skeletonShimmerSx = {
 const primaryMain = tokens.orange;
 const secondaryMain = "#2DB5A0";
 
+/** Keyboard focus ring: white inner + brand outer (replaces default browser outline). */
+const focusVisibleRing = {
+    "&:focus-visible": {
+        outline: "none",
+        boxShadow: "0 0 0 2px #fff, 0 0 0 4px rgba(232, 93, 74, 0.5)",
+    },
+} as const;
+
 // ─── Theme ────────────────────────────────────────────────────────────────────
 
 const theme = createTheme({
@@ -97,7 +105,7 @@ const theme = createTheme({
 
     typography: {
         fontFamily:
-            "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+            "var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         // Scale: tight letterSpacing on large, loose on small
         h1: { fontWeight: 900, letterSpacing: -1.5, lineHeight: 1.05 },
         h2: { fontWeight: 800, letterSpacing: -1,   lineHeight: 1.1  },
@@ -132,7 +140,6 @@ const theme = createTheme({
         MuiCssBaseline: {
             styleOverrides: {
                 "*, *::before, *::after": { boxSizing: "border-box" },
-                html: { scrollBehavior: "smooth" },
                 body: {
                     backgroundColor: tokens.bg,
                     color: tokens.textPrimary,
@@ -147,6 +154,15 @@ const theme = createTheme({
                     borderRadius: 999,
                 },
                 "::-webkit-scrollbar-thumb:hover": { background: alpha(tokens.textPrimary, 0.25) },
+            },
+        },
+
+        // ── ButtonBase — keyboard focus for Button, IconButton, ToggleButton, clickable Chip ──
+        MuiButtonBase: {
+            styleOverrides: {
+                root: {
+                    ...focusVisibleRing,
+                },
             },
         },
 
@@ -353,7 +369,11 @@ const theme = createTheme({
         // ── Snackbar ──
         MuiSnackbar: {
             styleOverrides: {
-                root: { bottom: 80 }, // above mobile nav
+                root: {
+                    // Global `bottom` breaks top-anchored toasts (they drift to mid-screen).
+                    "&.MuiSnackbar-anchorOriginBottomCenter, &.MuiSnackbar-anchorOriginBottomLeft, &.MuiSnackbar-anchorOriginBottomRight":
+                        { bottom: 80 },
+                },
             },
         },
 

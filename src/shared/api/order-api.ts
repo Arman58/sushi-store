@@ -28,7 +28,7 @@ export type PlaceOrderRequest = {
 
 export type PlaceOrderResponse = { ok: true; orderId: number };
 
-export type OrderStatus = "NEW" | "IN_PROGRESS" | "DONE" | "CANCELLED";
+export type OrderStatus = "NEW" | "PREPARING" | "DELIVERING" | "DONE" | "CANCELLED";
 
 export type OrderStatusResponse = {
     id: number;

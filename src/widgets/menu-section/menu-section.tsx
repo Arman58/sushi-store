@@ -1,27 +1,24 @@
 // src/widgets/menu-section/menu-section.tsx
 "use client";
 
-import CloseIcon from "@mui/icons-material/Close";
 import RestaurantMenuOutlined from "@mui/icons-material/RestaurantMenuOutlined";
-import SearchIcon from "@mui/icons-material/Search";
-import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import IconButton from "@mui/material/IconButton";
-import InputAdornment from "@mui/material/InputAdornment";
+import FormControl from "@mui/material/FormControl";
+import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
+import type { SelectChangeEvent } from "@mui/material/Select";
+import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import CountUp from "react-countup";
+import { useMemo, useState } from "react";
 
 import { ProductCard } from "@/entities/product/ui/product-card";
 import { useCartStore } from "@/features/cart";
+import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { tokens } from "@/shared/ui/theme";
 
 export type MenuCategory = {
@@ -38,7 +35,8 @@ export type MenuProduct = {
     composition?: string | null;
     price: number;
     weight?: number | null;
-    images?: any;
+    images?: unknown;
+    mainImage?: string | null;
     category?: MenuCategory | null;
 };
 
@@ -47,34 +45,62 @@ type MenuSectionProps = {
     products: MenuProduct[];
 };
 
-// ─── Keyframe (cart bar slide-up) ────────────────────────────────────────────
-
-const CART_BAR_KF = `
-@keyframes cartBarSlideUp {
-  from { opacity: 0; transform: translateY(20px) scale(0.96); }
-  to   { opacity: 1; transform: translateY(0)    scale(1);    }
-}
-`;
-
-function ensureCartBarKf() {
-    if (typeof document === "undefined") return;
-    if (document.getElementById("cart-bar-kf")) return;
-    const s = document.createElement("style");
-    s.id = "cart-bar-kf";
-    s.textContent = CART_BAR_KF;
-    document.head.appendChild(s);
-}
-
 // ─── Price filter config ──────────────────────────────────────────────────────
 
-const PRICE_FILTERS = [
-    { key: "all", label: "Все цены" },
-    { key: "lt3", label: "< 3 000 ֏" },
-    { key: "lt5", label: "< 5 000 ֏" },
-    { key: "gt5", label: "> 5 000 ֏" },
-] as const;
+type PriceFilter = "all" | "lt3" | "lt5" | "gt5";
 
-type PriceFilter = (typeof PRICE_FILTERS)[number]["key"];
+type SortBy = "name" | "price_asc";
+
+const filterSelectMenuProps = {
+    PaperProps: {
+        sx: {
+            borderRadius: 2,
+            boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
+            mt: 0.5,
+            border: "1px solid rgba(0,0,0,0.05)",
+        },
+    },
+} as const;
+
+const filterMenuItemSx = {
+    color: "text.primary",
+    fontSize: "0.85rem",
+    py: 0.8,
+    borderRadius: 1,
+    mx: 0.5,
+    "&:hover": { backgroundColor: "#f5f5f5" },
+} as const;
+
+const filterSelectSx = {
+    borderRadius: 50,
+    px: 2.5,
+    py: 1.2,
+    height: 40,
+    fontSize: "0.85rem",
+    textTransform: "none" as const,
+    backgroundColor: "#f7f7f8",
+    "& .MuiOutlinedInput-notchedOutline": { border: "none" },
+    "& .MuiSvgIcon-root": { color: "text.secondary" },
+    "&:hover": { backgroundColor: "#efefef" },
+    "&.Mui-focused": {
+        boxShadow: "0 0 0 2px rgba(0,0,0,0.1)",
+    },
+    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+        border: "none",
+    },
+} as const;
+
+const SORT_LABELS: Record<SortBy, string> = {
+    name: "По алфавиту",
+    price_asc: "Цена ↑",
+};
+
+const PRICE_LABELS: Record<PriceFilter, string> = {
+    all: "Все цены",
+    lt3: "< 3000֏",
+    lt5: "< 5000֏",
+    gt5: "> 5000֏",
+};
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -84,31 +110,9 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
     const addItem = useCartStore((s) => s.addItem);
     const setItemQuantity = useCartStore((s) => s.setItemQuantity);
     const cartItems = useCartStore((s) => s.items);
-    const hasPriceMismatch = useCartStore((s) => s.hasPriceMismatch);
-    const resetPriceMismatch = useCartStore((s) => s.resetPriceMismatch);
-    const clearCart = useCartStore((s) => s.clear);
-
-    const [barVisible, setBarVisible] = useState<boolean>(() => {
-        if (typeof window === "undefined") return true;
-        return sessionStorage.getItem("menuCartBarHidden") !== "1";
-    });
     const [search, setSearch] = useState("");
-    const [sort, setSort] = useState<"name" | "price_asc" | "price_desc">(
-        "name",
-    );
+    const [sort, setSort] = useState<SortBy>("name");
     const [priceFilter, setPriceFilter] = useState<PriceFilter>("all");
-
-    useEffect(() => {
-        ensureCartBarKf();
-    }, []);
-
-    // Re-show bar when cart empties
-    useEffect(() => {
-        if (cartItems.length === 0 && !barVisible) {
-            sessionStorage.removeItem("menuCartBarHidden");
-            setBarVisible(true);
-        }
-    }, [cartItems.length, barVisible]);
 
     const allSlugs = useMemo(
         () => ["all", ...categories.map((c) => c.slug)],
@@ -145,7 +149,6 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
 
         return [...withSearch].sort((a, b) => {
             if (sort === "price_asc") return a.price - b.price;
-            if (sort === "price_desc") return b.price - a.price;
             return a.name.localeCompare(b.name, "ru");
         });
     }, [activeSlug, priceFilter, products, search, sort]);
@@ -168,7 +171,12 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
     );
 
     const handleAddToCart = (p: MenuProduct) => {
-        addItem({ productId: p.id, name: p.name, price: p.price });
+        addItem({
+            productId: p.id,
+            name: p.name,
+            price: p.price,
+            image: getProductCoverUrl({ images: p.images, mainImage: p.mainImage }) || "",
+        });
     };
     const handleIncrease = (productId: number) => {
         const qty =
@@ -183,219 +191,128 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
         setItemQuantity(productId, qty);
     };
 
+    const selectedPrice = priceFilter;
+
+    const handleSortChange = (e: SelectChangeEvent<SortBy>) => {
+        setSort(e.target.value as SortBy);
+    };
+
+    const handlePriceFilterChange = (e: SelectChangeEvent<PriceFilter>) => {
+        setPriceFilter(e.target.value as PriceFilter);
+    };
+
     return (
         <Box sx={{ mt: 3, display: "flex", flexDirection: "column", gap: 2 }}>
             {/* ══════════════════════════════════════════════════════
                 STICKY FILTER HEADER
-                Dark frosted glass — always above content on scroll
             ══════════════════════════════════════════════════════ */}
-            <Box
+            <Paper
+                elevation={0}
                 sx={{
                     position: "sticky",
+                    top: { xs: 56, sm: 64 },
+                    zIndex: 10,
+                    px: { xs: 2, md: 3 },
+                    py: 2,
                     mb: 2,
-                    top: {
-                        xs: "calc(56px + env(safe-area-inset-top))",
-                        sm: 64,
-                    },
-                    zIndex: 9,
-                    bgcolor: `${tokens.bg}EE`,
-                    backdropFilter: "blur(24px)",
-                    WebkitBackdropFilter: "blur(24px)",
-                    borderBottom: `1px solid ${tokens.border}`,
-                    mx: { xs: -2, sm: -3, md: 0 },
-                    px: { xs: 2, sm: 3, md: 0 },
-                    pb: 1.5,
-                    pt: 0.75,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 1.25,
+                    bgcolor: "#ffffff",
+                    borderBottom: "1px solid #e0e0e0",
                 }}
             >
-                <Paper
-                    elevation={0}
-                    sx={{
-                        p: 2,
-                        mb: 2,
-                        mx: 2,
-                        borderRadius: 4,
-                        bgcolor: "background.paper",
-                        boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
-                    }}
+                <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    spacing={{ xs: 1.5, sm: 2 }}
+                    alignItems="center"
+                    justifyContent="space-between"
                 >
                     <TextField
                         fullWidth
                         variant="outlined"
+                        size="small"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        size="small"
-                        placeholder="Поиск по меню..."
-                        InputProps={{
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <SearchIcon
-                                        sx={{
-                                            fontSize: 18,
-                                            color: tokens.textMuted,
-                                        }}
-                                    />
-                                </InputAdornment>
-                            ),
-                        }}
+                        placeholder="Поиск..."
                         sx={{
-                            maxWidth: { sm: 420 },
-                            "& .MuiOutlinedInput-root": {
-                                borderRadius: 50,
-                                bgcolor: "#f5f5f5",
-                                "& fieldset": { border: "none" },
-                                "&:hover fieldset": { border: "none" },
-                                "&.Mui-focused": {
-                                    bgcolor: "#fff",
-                                },
-                                "&.Mui-focused fieldset": {
-                                    border: "none",
-                                    bgcolor: "#fff",
-                                    boxShadow:
-                                        "0 0 0 2px rgba(232, 93, 74, 0.2)",
-                                },
-                            },
+                            flex: { xs: 1, sm: "unset" },
+                            minWidth: { sm: 220 },
+                            "& .MuiOutlinedInput-root": { borderRadius: 2 },
                         }}
                     />
 
-                    <Box
-                        sx={{
-                            mt: 2,
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: 1,
-                            alignItems: "center",
-                        }}
+                    <Stack
+                        direction={{ xs: "column", sm: "row" }}
+                        spacing={{ xs: 1.5, sm: 2 }}
+                        alignItems="stretch"
+                        sx={{ width: { xs: "100%", sm: "auto" } }}
                     >
-                        <ToggleButtonGroup
-                            value={sort}
-                            exclusive
+                        <FormControl
                             size="small"
-                            onChange={(_, v) => {
-                                if (v) setSort(v);
-                            }}
-                            sx={{
-                                display: "flex",
-                                flexWrap: "wrap",
-                                gap: 0.75,
-                                "& .MuiToggleButtonGroup-grouped": {
-                                    borderRadius: 3,
-                                    m: 0,
-                                    fontSize: 12,
-                                    fontWeight: 500,
-                                    textTransform: "none",
-                                    px: 2,
-                                    py: 1,
-                                    border: "1px solid #e0e0e0 !important",
-                                    bgcolor: "transparent",
-                                    "&:not(.Mui-selected)": {
-                                        color: "text.secondary",
-                                    },
-                                    "&.Mui-selected": {
-                                        bgcolor: "primary.main",
-                                        color: "#fff",
-                                        border: "none !important",
-                                        boxShadow: 2,
-                                        fontWeight: 600,
-                                    },
-                                },
-                            }}
+                            sx={{ minWidth: 150 }}
+                            variant="outlined"
                         >
-                            <ToggleButton value="name" color="primary">
-                                По алфавиту
-                            </ToggleButton>
-                            <ToggleButton value="price_asc" color="primary">
-                                Цена ↑
-                            </ToggleButton>
-                            <ToggleButton value="price_desc" color="primary">
-                                Цена ↓
-                            </ToggleButton>
-                        </ToggleButtonGroup>
+                            <Select<SortBy>
+                                displayEmpty
+                                value={sort}
+                                onChange={handleSortChange}
+                                variant="outlined"
+                                inputProps={{
+                                    "aria-label": "Сортировка",
+                                }}
+                                renderValue={(value) =>
+                                    (value &&
+                                        SORT_LABELS[value as SortBy]) ||
+                                    "Сортировка"
+                                }
+                                MenuProps={filterSelectMenuProps}
+                                sx={filterSelectSx}
+                            >
+                                <MenuItem value="name" sx={filterMenuItemSx}>
+                                    По алфавиту
+                                </MenuItem>
+                                <MenuItem value="price_asc" sx={filterMenuItemSx}>
+                                    Цена ↑
+                                </MenuItem>
+                            </Select>
+                        </FormControl>
 
-                        <Stack
-                            direction="row"
-                            flexWrap="wrap"
-                            sx={{ gap: 0.75, alignItems: "center" }}
+                        <FormControl
+                            size="small"
+                            sx={{ minWidth: 150 }}
+                            variant="outlined"
                         >
-                            {PRICE_FILTERS.map(({ key, label }) => {
-                                const active = priceFilter === key;
-                                return (
-                                    <Button
-                                        key={key}
-                                        onClick={() => setPriceFilter(key)}
-                                        size="small"
-                                        disableElevation
-                                        variant={
-                                            active ? "contained" : "outlined"
-                                        }
-                                        color={active ? "primary" : "inherit"}
-                                        sx={{
-                                            borderRadius: 3,
-                                            textTransform: "none",
-                                            fontSize: 12,
-                                            fontWeight: active ? 600 : 500,
-                                            px: 2,
-                                            py: 1,
-                                            minWidth: 0,
-                                            border: active
-                                                ? "none"
-                                                : "1px solid #e0e0e0",
-                                            bgcolor: active
-                                                ? "primary.main"
-                                                : "transparent",
-                                            color: active
-                                                ? "#fff"
-                                                : "text.secondary",
-                                            boxShadow: active ? 2 : "none",
-                                            "&:hover": {
-                                                bgcolor: active
-                                                    ? "primary.dark"
-                                                    : "action.hover",
-                                                borderColor: active
-                                                    ? undefined
-                                                    : "#e0e0e0",
-                                            },
-                                        }}
-                                    >
-                                        {label}
-                                    </Button>
-                                );
-                            })}
-
-                            {(search ||
-                                priceFilter !== "all" ||
-                                sort !== "name") && (
-                                <Button
-                                    onClick={() => {
-                                        setSearch("");
-                                        setSort("name");
-                                        setPriceFilter("all");
-                                    }}
-                                    size="small"
-                                    variant="outlined"
-                                    color="inherit"
-                                    disableElevation
-                                    sx={{
-                                        borderRadius: 3,
-                                        textTransform: "none",
-                                        fontSize: 12,
-                                        px: 2,
-                                        py: 1,
-                                        border: "1px solid #e0e0e0",
-                                        bgcolor: "transparent",
-                                        color: "text.secondary",
-                                    }}
-                                >
-                                    Сбросить ✕
-                                </Button>
-                            )}
-                        </Stack>
-                    </Box>
-                </Paper>
-            </Box>
+                            <Select<PriceFilter>
+                                displayEmpty
+                                value={selectedPrice}
+                                onChange={handlePriceFilterChange}
+                                variant="outlined"
+                                inputProps={{
+                                    "aria-label": "Цена",
+                                }}
+                                renderValue={(value) =>
+                                    (value &&
+                                        PRICE_LABELS[value as PriceFilter]) ||
+                                    "Цена"
+                                }
+                                MenuProps={filterSelectMenuProps}
+                                sx={filterSelectSx}
+                            >
+                                <MenuItem value="all" sx={filterMenuItemSx}>
+                                    Все цены
+                                </MenuItem>
+                                <MenuItem value="lt3" sx={filterMenuItemSx}>
+                                    &lt; 3000֏
+                                </MenuItem>
+                                <MenuItem value="lt5" sx={filterMenuItemSx}>
+                                    &lt; 5000֏
+                                </MenuItem>
+                                <MenuItem value="gt5" sx={filterMenuItemSx}>
+                                    &gt; 5000֏
+                                </MenuItem>
+                            </Select>
+                        </FormControl>
+                    </Stack>
+                </Stack>
+            </Paper>
 
             {/* ══════════════════════════════════════════════════════
                 PRODUCT GRID
@@ -472,8 +389,11 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                         gap: { xs: 1.5, sm: 2, md: 2.5 },
                         pt: 2,
                         pb: "100px",
-                        gridTemplateColumns:
-                            "repeat(auto-fill, minmax(160px, 1fr))",
+                        gridTemplateColumns: {
+                            xs: "repeat(2, 1fr)",
+                            sm: "repeat(3, 1fr)",
+                            lg: "repeat(4, 1fr)",
+                        },
                     }}
                 >
                     {filteredProducts.map((product, index) => {
@@ -493,6 +413,7 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                                 price={product.price}
                                 weight={product.weight ?? undefined}
                                 images={product.images}
+                                mainImage={product.mainImage}
                                 onAddToCart={() => handleAddToCart(product)}
                                 quantity={qty}
                                 onIncrease={() => handleIncrease(product.id)}
@@ -504,200 +425,71 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
             )}
 
             {/* ══════════════════════════════════════════════════════
-                FLOATING CART BAR — Paper CTA strip (compact checkout focus)
+                FLOATING CART BAR
             ══════════════════════════════════════════════════════ */}
-            {totalCount > 0 && barVisible && (
+            {totalCount > 0 && (
                 <Box
                     sx={{
+                        display: { xs: "flex", md: "none" },
                         position: "fixed",
+                        bottom: 0,
                         left: 0,
                         right: 0,
-                        bottom: {
-                            xs: "calc(72px + env(safe-area-inset-bottom, 0px))",
-                            sm: 24,
-                        },
-                        display: "flex",
-                        justifyContent: "center",
-                        zIndex: 50,
-                        px: { xs: 0, sm: 2 },
-                        pointerEvents: "none",
+                        zIndex: 1100,
+                        px: 1.5,
+                        pb: "calc(16px + env(safe-area-inset-bottom))",
+                        bgcolor: "#ffffff",
+                        boxShadow: "0 -2px 10px rgba(0,0,0,0.05)",
                     }}
                 >
-                    <Paper
-                        elevation={8}
+                    <Button
+                        fullWidth
+                        component={Link}
+                        href="/checkout"
                         sx={{
-                            pointerEvents: "auto",
-                            borderRadius: "20px 20px 0 0",
-                            p: 2,
-                            border: "none",
-                            pb: "calc(8px + env(safe-area-inset-bottom, 0px))",
-                            width: { xs: "100%", sm: "auto" },
-                            maxWidth: { xs: "100%", sm: 580 },
-                            animation:
-                                "cartBarSlideUp 0.22s cubic-bezier(.22,.68,0,1.2) both",
+                            height: 56,
+                            borderRadius: 3,
+                            bgcolor: "#fff",
+                            color: "text.primary",
+                            justifyContent: "space-between",
+                            px: 2,
+                            textTransform: "none",
+                            "&:hover": { bgcolor: "#fafafa" },
                         }}
                     >
-                        <Stack spacing={1.5}>
-                            <Box
-                                sx={{
-                                    display: "flex",
-                                    alignItems: "flex-start",
-                                    gap: 1.25,
-                                }}
+                        <Box
+                            sx={{
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "flex-start",
+                                gap: 0.25,
+                            }}
+                        >
+                            <Typography
+                                sx={{ fontWeight: 600, fontSize: "0.9rem" }}
                             >
-                                <Box
-                                    sx={{
-                                        width: 42,
-                                        height: 42,
-                                        borderRadius: "14px",
-                                        bgcolor: "action.hover",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        flexShrink: 0,
-                                    }}
-                                >
-                                    <ShoppingBagOutlinedIcon
-                                        sx={{
-                                            fontSize: 20,
-                                            color: "primary.main",
-                                        }}
-                                    />
-                                </Box>
-
-                                <Box sx={{ flex: 1, minWidth: 0, pt: 0.25 }}>
-                                    <Box
-                                        sx={{
-                                            display: "flex",
-                                            justifyContent: "space-between",
-                                            alignItems: "baseline",
-                                            gap: 1,
-                                        }}
-                                    >
-                                        <Typography
-                                            component={Link}
-                                            href="/cart"
-                                            fontWeight={800}
-                                            sx={{
-                                                fontSize: 16,
-                                                color: "text.primary",
-                                                textDecoration: "none",
-                                                "&:hover": {
-                                                    textDecoration: "underline",
-                                                },
-                                            }}
-                                        >
-                                            Корзина
-                                        </Typography>
-                                        <Typography
-                                            fontWeight={800}
-                                            noWrap
-                                            sx={{
-                                                fontSize: 17,
-                                                color: "primary.main",
-                                            }}
-                                        >
-                                            <CountUp
-                                                end={totalPrice}
-                                                duration={0.5}
-                                                separator=" "
-                                                decimals={0}
-                                            />
-                                            &thinsp;֏
-                                        </Typography>
-                                    </Box>
-                                    <Typography
-                                        variant="caption"
-                                        sx={{
-                                            display: "block",
-                                            mt: 0.25,
-                                            color: "text.secondary",
-                                            fontWeight: 600,
-                                        }}
-                                    >
-                                        {totalCount}&thinsp;
-                                        {totalCount === 1
-                                            ? "позиция"
-                                            : totalCount < 5
-                                              ? "позиции"
-                                              : "позиций"}
-                                    </Typography>
-                                </Box>
-
-                                <IconButton
-                                    size="small"
-                                    onClick={() => {
-                                        sessionStorage.setItem(
-                                            "menuCartBarHidden",
-                                            "1",
-                                        );
-                                        setBarVisible(false);
-                                    }}
-                                    sx={{
-                                        width: 32,
-                                        height: 32,
-                                        mt: -0.25,
-                                        color: "text.secondary",
-                                        flexShrink: 0,
-                                        "&:hover": {
-                                            color: "error.main",
-                                            bgcolor: "action.hover",
-                                        },
-                                    }}
-                                >
-                                    <CloseIcon sx={{ fontSize: 16 }} />
-                                </IconButton>
-                            </Box>
-
-                            {hasPriceMismatch && (
-                                <Button
-                                    fullWidth
-                                    size="small"
-                                    onClick={() => {
-                                        clearCart();
-                                        resetPriceMismatch();
-                                    }}
-                                    sx={{
-                                        borderRadius: 2,
-                                        textTransform: "none",
-                                        py: 0.75,
-                                        fontWeight: 600,
-                                        border: "1px solid",
-                                        borderColor: "divider",
-                                    }}
-                                >
-                                    Обновить корзину
-                                </Button>
-                            )}
-
-                            <Button
-                                component={Link}
-                                href="/checkout"
-                                variant="contained"
-                                disableElevation
-                                fullWidth
+                                Корзина: {totalCount} шт
+                            </Typography>
+                            <Typography
                                 sx={{
-                                    borderRadius: 50,
-                                    flex: 1,
-                                    minHeight: 50,
-                                    height: 50,
-                                    py: 0,
-                                    boxShadow: 4,
-                                    textTransform: "none",
-                                    fontSize: 15,
                                     fontWeight: 800,
-                                    color: "#fff",
-                                    bgcolor: "primary.main",
-                                    "&:hover": {
-                                        bgcolor: "primary.dark",
-                                        boxShadow: 6,
-                                    },
+                                    fontSize: "1rem",
+                                    color: "primary.main",
                                 }}
                             >
-                                Оформить&nbsp;→
-                            </Button>
-                        </Stack>
-                    </Paper>
+                                {totalPrice.toLocaleString("ru-RU")} ֏
+                            </Typography>
+                        </Box>
+                        <Typography
+                            sx={{
+                                color: "primary.main",
+                                fontWeight: 800,
+                                fontSize: "1.2rem",
+                            }}
+                        >
+                            →
+                        </Typography>
+                    </Button>
                 </Box>
             )}
         </Box>

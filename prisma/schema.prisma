@@ -34,6 +34,8 @@ model Product {
   price       Int
   weight      Int?
   images      Json      @default("[]")
+  /** Обложка на витрине; должна совпадать с одним из URL в `images`, иначе игнорируется при сохранении. */
+  mainImage   String?
   isActive    Boolean   @default(true)
   category    Category? @relation(fields: [categoryId], references: [id])
   categoryId  Int?
@@ -53,7 +55,8 @@ enum DeliveryType {
 
 enum OrderStatus {
   NEW
-  IN_PROGRESS
+  PREPARING
+  DELIVERING
   DONE
   CANCELLED
 }

@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 
 import { LayoutShell } from "@/shared/ui";
 
+import { interFont } from "./fonts";
 import { AppProviders } from "./providers";
 
 export const metadata: Metadata = {
@@ -34,8 +35,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
     return (
-        <html lang="ru">
-        <body suppressHydrationWarning>
+        <html lang="ru" className={interFont.variable}>
+        <body
+            suppressHydrationWarning
+            className={interFont.className}
+        >
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
             <AppProviders>
                 <LayoutShell>{children}</LayoutShell>

@@ -5,6 +5,9 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 import type { AddToCartPayload, CartItem } from "./types";
 
+/** Throttle rapid duplicate add-to-cart (double-clicks); 500 ms window; not persisted. */
+let lastAddItemActionAt = 0;
+
 type CartState = {
     // ── Data ────────────────────────────────────────────────────────
     items: CartItem[];
@@ -14,9 +17,12 @@ type CartState = {
 
     // ── UI state (not persisted) ────────────────────────────────────
     isCartOpen: boolean;
+    /** Monotonic trigger; header toasts re-render when this changes. */
+    addToast: number;
     openCart: () => void;
     closeCart: () => void;
     toggleCart: () => void;
+    setAddToast: (id: number) => void;
 
     // ── Actions ─────────────────────────────────────────────────────
     addItem: (payload: AddToCartPayload) => void;
@@ -39,16 +45,24 @@ export const useCartStore = create<CartState>()(
 
             // ── Initial UI state ────────────────────────────────────
             isCartOpen: false,
+            addToast: 0,
+            setAddToast: (id) => set({ addToast: id }),
             openCart:   () => set({ isCartOpen: true }),
             closeCart:  () => set({ isCartOpen: false }),
             toggleCart: () => set((s) => ({ isCartOpen: !s.isCartOpen })),
 
             // ── Actions ─────────────────────────────────────────────
-            addItem: (payload) =>
+            addItem: (payload) => {
+                const now = Date.now();
+                if (now - lastAddItemActionAt < 500) return;
+                lastAddItemActionAt = now;
+
                 set((state) => {
                     const existing = state.items.find(
                         (item) => item.productId === payload.productId,
                     );
+
+                    const toastId = Date.now();
 
                     if (existing) {
                         return {
@@ -58,8 +72,9 @@ export const useCartStore = create<CartState>()(
                                     : item,
                             ),
                             lastAddedTitle: payload.name,
-                            lastAddedAt: Date.now(),
+                            lastAddedAt: toastId,
                             hasPriceMismatch: false,
+                            addToast: toastId,
                         };
                     }
 
@@ -76,9 +91,11 @@ export const useCartStore = create<CartState>()(
                         ],
                         hasPriceMismatch: false,
                         lastAddedTitle: payload.name,
-                        lastAddedAt: Date.now(),
+                        lastAddedAt: toastId,
+                        addToast: toastId,
                     };
-                }),
+                });
+            },
 
             removeItem: (productId) =>
                 set((state) => ({

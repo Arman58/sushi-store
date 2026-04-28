@@ -51,7 +51,7 @@ export function PromoBannerCarousel() {
                             color="rgba(255,255,255,0.9)"
                             variant="body1"
                         >
-                            При заказе от 5000₽
+                            При заказе от 5000֏
                         </Typography>
                     </Box>
                 </Box>

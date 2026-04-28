@@ -86,6 +86,7 @@ export async function POST(request: Request) {
         composition?: unknown;
         weight?: unknown;
         images?: unknown;
+        mainImage?: unknown;
         isActive?: unknown;
         slug?: unknown;
     };
@@ -116,12 +117,34 @@ export async function POST(request: Request) {
     }
 
     let images: Prisma.InputJsonValue;
+    let imageUrls: string[];
     if (b.images === undefined || b.images === null) {
         images = [];
+        imageUrls = [];
     } else if (Array.isArray(b.images)) {
         images = b.images as Prisma.InputJsonValue;
+        imageUrls = (b.images as unknown[]).filter(
+            (x): x is string => typeof x === "string" && x.trim() !== "",
+        );
     } else {
         return NextResponse.json({ error: "Invalid images" }, { status: 400 });
+    }
+
+    let mainImage: string | null = null;
+    if (b.mainImage !== undefined && b.mainImage !== null) {
+        if (typeof b.mainImage !== "string") {
+            return NextResponse.json({ error: "Invalid mainImage" }, { status: 400 });
+        }
+        const t = b.mainImage.trim();
+        if (t !== "") {
+            if (!imageUrls.includes(t)) {
+                return NextResponse.json(
+                    { error: "mainImage must be one of product images" },
+                    { status: 400 },
+                );
+            }
+            mainImage = t;
+        }
     }
 
     try {
@@ -135,6 +158,7 @@ export async function POST(request: Request) {
                 composition: typeof b.composition === "string" ? b.composition : null,
                 weight: typeof b.weight === "number" && Number.isInteger(b.weight) ? b.weight : null,
                 images,
+                mainImage,
                 isActive: typeof b.isActive === "boolean" ? b.isActive : true,
             },
             include: { category: true },

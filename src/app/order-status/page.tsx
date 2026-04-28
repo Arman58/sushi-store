@@ -24,16 +24,18 @@ import { PageContainer, SectionTitle } from "@/shared/ui";
 // ─── Status config ─────────────────────────────────────────────────────────────
 
 const STEPS = [
-    { key: "NEW",         label: "Принят",    icon: <ReceiptLongIcon fontSize="small" /> },
-    { key: "IN_PROGRESS", label: "Готовится", icon: <TaskAltIcon fontSize="small" /> },
-    { key: "DONE",        label: "Доставлен", icon: <AccessTimeIcon fontSize="small" /> },
+    { key: "NEW", label: "Принят", icon: <ReceiptLongIcon fontSize="small" /> },
+    { key: "PREPARING", label: "Готовится", icon: <TaskAltIcon fontSize="small" /> },
+    { key: "DELIVERING", label: "В пути", icon: <LocalShippingIcon fontSize="small" /> },
+    { key: "DONE", label: "Доставлен", icon: <AccessTimeIcon fontSize="small" /> },
 ] as const;
 
 const STATUS_LABEL: Record<OrderStatusResponse["status"], string> = {
-    NEW:         "Принят",
-    IN_PROGRESS: "Готовится",
-    DONE:        "Доставлен",
-    CANCELLED:   "Отменён",
+    NEW: "Принят",
+    PREPARING: "Готовится",
+    DELIVERING: "В пути",
+    DONE: "Доставлен",
+    CANCELLED: "Отменён",
 };
 
 const DELIVERY_LABEL: Record<OrderStatusResponse["delivery"], string> = {
@@ -142,7 +144,7 @@ export default function OrderStatusPage() {
                         onSubmit={handleSubmit(onSubmit)}
                         direction={{ xs: "column", md: "row" }}
                         spacing={1.5}
-                        alignItems={{ xs: "stretch", md: "flex-end" }}
+                        alignItems={{ xs: "stretch", md: "flex-start" }}
                     >
                         <Controller
                             control={control}
@@ -153,9 +155,14 @@ export default function OrderStatusPage() {
                                     label="Номер заказа"
                                     type="number"
                                     error={Boolean(errors.id)}
-                                    helperText={errors.id?.message}
+                                    helperText={errors.id?.message ?? "\u00A0"}
                                     fullWidth
                                     InputProps={{ inputProps: { min: 1 } }}
+                                    slotProps={{
+                                        formHelperText: {
+                                            sx: { minHeight: "1.25em" },
+                                        },
+                                    }}
                                 />
                             )}
                         />
@@ -167,9 +174,14 @@ export default function OrderStatusPage() {
                                     {...field}
                                     label="Телефон"
                                     error={Boolean(errors.phone)}
-                                    helperText={errors.phone?.message}
+                                    helperText={errors.phone?.message ?? "\u00A0"}
                                     fullWidth
                                     inputProps={{ inputMode: "tel" }}
+                                    slotProps={{
+                                        formHelperText: {
+                                            sx: { minHeight: "1.25em" },
+                                        },
+                                    }}
                                 />
                             )}
                         />
@@ -178,7 +190,14 @@ export default function OrderStatusPage() {
                             variant="contained"
                             size="large"
                             disabled={isSubmitting}
-                            sx={{ minWidth: 180, borderRadius: 2, px: 2.8 }}
+                            sx={{
+                                minWidth: 180,
+                                borderRadius: 2,
+                                px: 2.8,
+                                alignSelf: { xs: "stretch", md: "auto" },
+                                /* Выровнять с середины поля ввода (не по низу helperText при flex-end) */
+                                mt: { xs: 0, md: 2 },
+                            }}
                         >
                             {isSubmitting ? "Поиск…" : "Проверить"}
                         </Button>

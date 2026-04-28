@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import type { OrderStatus } from "@prisma/client";
+
 import { prisma } from "@/lib/prisma";
 
 const ADMIN_USER = process.env.ADMIN_USER;
@@ -68,26 +70,33 @@ export async function POST(
         return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    const status = (body as { status?: string }).status;
-    if (
-        status !== "NEW" &&
-        status !== "IN_PROGRESS" &&
-        status !== "DONE" &&
-        status !== "CANCELLED"
-    ) {
+    const rawStatus = (body as { status?: unknown }).status;
+    if (typeof rawStatus !== "string") {
+        return NextResponse.json({ error: "status must be a string" }, { status: 400 });
+    }
+
+    const allowedStatuses: OrderStatus[] = [
+        "NEW",
+        "PREPARING",
+        "DELIVERING",
+        "DONE",
+        "CANCELLED",
+    ];
+    if (!(allowedStatuses as readonly string[]).includes(rawStatus)) {
         return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
     try {
         const updated = await prisma.order.update({
             where: { id: orderId },
-            data: { status },
+            data: { status: rawStatus as OrderStatus },
             select: { id: true, status: true },
         });
 
         return NextResponse.json({ ok: true, status: updated.status });
     } catch (error) {
         console.error("Update status error", error);
-        return NextResponse.json({ error: "Failed to update status" }, { status: 500 });
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

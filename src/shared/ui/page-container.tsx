@@ -12,7 +12,11 @@ export function PageContainer({ children }: PageContainerProps) {
         <Container
             maxWidth="lg"
             sx={{
-                py: { xs: 3, md: 6 }, // мобильный — компактнее, десктоп — просторнее
+                width: "100%",
+                maxWidth: (theme) => theme.breakpoints.values.lg,
+                mx: "auto",
+                px: { xs: 2, sm: 4 },
+                py: { xs: 3, md: 6 },
             }}
         >
             {children}

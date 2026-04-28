@@ -5,12 +5,14 @@ import CloseIcon from "@mui/icons-material/Close";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import ImageIcon from "@mui/icons-material/Image";
 import {
     Alert,
     Autocomplete,
     Avatar,
     Box,
     Button,
+    Chip,
     Container,
     Dialog,
     DialogActions,
@@ -23,6 +25,7 @@ import {
     Skeleton,
     Snackbar,
     Stack,
+    Switch,
     Table,
     TableBody,
     TableCell,
@@ -34,6 +37,7 @@ import {
 import Image from "next/image";
 import { type SetStateAction, useCallback, useEffect, useRef, useState } from "react";
 
+import { getProductCoverUrl, getProductImageUrls } from "@/shared/lib/product-cover";
 import { PageContainer, SectionTitle } from "@/shared/ui";
 
 type ProductRow = {
@@ -44,6 +48,7 @@ type ProductRow = {
     price: number;
     weight: number | null;
     images?: unknown;
+    mainImage?: string | null;
     isActive: boolean;
     categoryId: number | null;
     category: { name: string } | null;
@@ -119,6 +124,43 @@ function TableSkeleton() {
     );
 }
 
+function AvailabilityToggle(props: {
+    product: ProductRow;
+    disabled: boolean;
+    onChange: (nextActive: boolean) => void;
+}) {
+    const { product, disabled, onChange } = props;
+    return (
+        <Box
+            sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                justifyContent: "flex-end",
+            }}
+        >
+            {!product.isActive ? (
+                <Chip
+                    label="Скрыто"
+                    size="small"
+                    color="error"
+                    variant="outlined"
+                    sx={{ height: 20, fontSize: "11px" }}
+                />
+            ) : null}
+            <Switch
+                checked={product.isActive}
+                onChange={(e) => onChange(e.target.checked)}
+                disabled={disabled}
+                size="small"
+                inputProps={{
+                    "aria-label": product.isActive ? "Скрыть товар" : "Показать товар",
+                }}
+            />
+        </Box>
+    );
+}
+
 export default function AdminProductsPage() {
     const [products, setProducts] = useState<ProductRow[]>([]);
     const [loading, setLoading] = useState(true);
@@ -131,6 +173,9 @@ export default function AdminProductsPage() {
     const [saveLoading, setSaveLoading] = useState(false);
     const [saveSuccessOpen, setSaveSuccessOpen] = useState(false);
     const [saveSuccessIsEdit, setSaveSuccessIsEdit] = useState(false);
+    const [hideUndoOpen, setHideUndoOpen] = useState(false);
+    const [hideUndoProductId, setHideUndoProductId] = useState<number | null>(null);
+    const [rotatingMainId, setRotatingMainId] = useState<number | null>(null);
 
     const load = useCallback(async (options?: { silent?: boolean }) => {
         const silent = options?.silent === true;
@@ -318,6 +363,124 @@ export default function AdminProductsPage() {
         }
     };
 
+    const handleCycleMainCover = useCallback(async (product: ProductRow) => {
+        const urls = getProductImageUrls(product.images);
+        if (urls.length < 2) return;
+        const current = getProductCoverUrl(product);
+        if (!current) return;
+        const i = urls.indexOf(current);
+        const next = urls[(i + 1) % urls.length];
+        const body = next === urls[0] ? { mainImage: null } : { mainImage: next };
+
+        setRotatingMainId(product.id);
+        try {
+            const res = await fetch(`/api/admin/products/${product.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                credentials: "same-origin",
+                body: JSON.stringify(body),
+            });
+            if (!res.ok) {
+                let msg = "Не удалось сменить обложку";
+                try {
+                    const err = (await res.json()) as { error?: string };
+                    if (err.error) msg = err.error;
+                } catch {
+                    /* keep msg */
+                }
+                alert(msg);
+                return;
+            }
+            const updated = (await res.json()) as ProductRow;
+            setProducts((prev) =>
+                prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)),
+            );
+        } catch {
+            alert("Ошибка сети");
+        } finally {
+            setRotatingMainId(null);
+        }
+    }, []);
+
+    const persistProductActive = useCallback(async (id: number, isActive: boolean) => {
+        const res = await fetch(`/api/admin/products/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify({ isActive }),
+        });
+        return res.ok;
+    }, []);
+
+    const handleAvailabilityChange = useCallback(
+        (id: number, nextActive: boolean) => {
+            setProducts((prev) =>
+                prev.map((p) => (p.id === id ? { ...p, isActive: nextActive } : p)),
+            );
+
+            if (!nextActive) {
+                setHideUndoProductId(id);
+                setHideUndoOpen(true);
+            }
+
+            void (async () => {
+                try {
+                    const ok = await persistProductActive(id, nextActive);
+                    if (!ok) {
+                        setProducts((prev) =>
+                            prev.map((p) =>
+                                p.id === id ? { ...p, isActive: !nextActive } : p,
+                            ),
+                        );
+                        if (!nextActive) {
+                            setHideUndoOpen(false);
+                            setHideUndoProductId(null);
+                        }
+                        alert("Не удалось обновить доступность");
+                    }
+                } catch {
+                    setProducts((prev) =>
+                        prev.map((p) =>
+                            p.id === id ? { ...p, isActive: !nextActive } : p,
+                        ),
+                    );
+                    if (!nextActive) {
+                        setHideUndoOpen(false);
+                        setHideUndoProductId(null);
+                    }
+                    alert("Ошибка сети");
+                }
+            })();
+        },
+        [persistProductActive],
+    );
+
+    const handleUndoHide = useCallback(() => {
+        if (hideUndoProductId === null) return;
+        const id = hideUndoProductId;
+        setProducts((prev) =>
+            prev.map((p) => (p.id === id ? { ...p, isActive: true } : p)),
+        );
+        setHideUndoOpen(false);
+        setHideUndoProductId(null);
+        void (async () => {
+            try {
+                const ok = await persistProductActive(id, true);
+                if (!ok) {
+                    setProducts((prev) =>
+                        prev.map((p) => (p.id === id ? { ...p, isActive: false } : p)),
+                    );
+                    alert("Не удалось вернуть товар на витрину");
+                }
+            } catch {
+                setProducts((prev) =>
+                    prev.map((p) => (p.id === id ? { ...p, isActive: false } : p)),
+                );
+                alert("Ошибка сети");
+            }
+        })();
+    }, [hideUndoProductId, persistProductActive]);
+
     return (
         <PageContainer>
             <ProductFormDialog
@@ -347,19 +510,95 @@ export default function AdminProductsPage() {
                     {saveSuccessIsEdit ? "Товар сохранён" : "Товар создан"}
                 </Alert>
             </Snackbar>
+            <Snackbar
+                open={hideUndoOpen}
+                autoHideDuration={4000}
+                onClose={() => {
+                    setHideUndoOpen(false);
+                    setHideUndoProductId(null);
+                }}
+                anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+                message="Товар скрыт с витрины"
+                action={
+                    <Button color="inherit" size="small" onClick={handleUndoHide}>
+                        Отмена
+                    </Button>
+                }
+            />
             <Container maxWidth="lg" disableGutters>
-                <StackedHeader
-                    onAdd={handleAddClick}
-                    onRetry={load}
-                    error={error}
-                    showRetry={!loading}
-                />
-
                 <SectionTitle>Товары (admin)</SectionTitle>
+
+                {error && !loading ? (
+                    <Box sx={{ mb: 2 }}>
+                        <Button variant="outlined" onClick={() => void load()}>
+                            Повторить
+                        </Button>
+                    </Box>
+                ) : null}
+
+                <Button
+                    variant="outlined"
+                    onClick={handleAddClick}
+                    sx={{
+                        mb: 2,
+                        textTransform: "none",
+                        fontWeight: 600,
+                        borderColor: "rgba(0,0,0,0.2)",
+                        color: "text.primary",
+                        "&:hover": {
+                            borderColor: "primary.main",
+                            bgcolor: "primary.main",
+                            color: "#fff",
+                        },
+                    }}
+                >
+                    <AddIcon fontSize="small" sx={{ mr: 1 }} />
+                    Добавить товар
+                </Button>
 
                 <Paper elevation={0} variant="outlined" sx={{ overflow: "auto" }}>
                     {loading ? (
-                        <TableSkeleton />
+                        <>
+                            <Box sx={{ display: { xs: "none", md: "block" } }}>
+                                <TableSkeleton />
+                            </Box>
+                            <Box sx={{ display: { xs: "block", md: "none" }, mt: 2 }}>
+                                {[0, 1, 2, 3].map((i) => (
+                                    <Paper
+                                        key={i}
+                                        elevation={0}
+                                        sx={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 2,
+                                            p: 1.5,
+                                            mb: 1.5,
+                                            borderRadius: 3,
+                                        }}
+                                    >
+                                        <Skeleton variant="rounded" width={56} height={56} />
+                                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                                            <Skeleton width="70%" />
+                                            <Skeleton width="40%" sx={{ mt: 0.5 }} />
+                                        </Box>
+                                        <Box sx={{ textAlign: "right", flexShrink: 0 }}>
+                                            <Skeleton width={64} sx={{ ml: "auto" }} />
+                                            <Box
+                                                sx={{
+                                                    display: "flex",
+                                                    justifyContent: "flex-end",
+                                                    gap: 0.5,
+                                                    mt: 0.5,
+                                                }}
+                                            >
+                                                <Skeleton variant="circular" width={20} height={20} />
+                                                <Skeleton variant="circular" width={20} height={20} />
+                                            </Box>
+                                        </Box>
+                                    </Paper>
+                                ))}
+                            </Box>
+                        </>
                     ) : error ? (
                         <Box sx={{ p: 2 }}>
                             <Typography color="error">{error}</Typography>
@@ -369,116 +608,317 @@ export default function AdminProductsPage() {
                             <Typography color="text.secondary">Список пуст.</Typography>
                         </Box>
                     ) : (
-                        <Table size="small" stickyHeader>
-                            <TableHead>
-                                <TableRow>
-                                    <TableCell>ID</TableCell>
-                                    <TableCell>Картинка</TableCell>
-                                    <TableCell>Название</TableCell>
-                                    <TableCell>Состав</TableCell>
-                                    <TableCell>Категория</TableCell>
-                                    <TableCell align="right">Цена</TableCell>
-                                    <TableCell>Статус</TableCell>
-                                    <TableCell align="right" width={100} />
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {products.map((product) => {
-                                    const thumb =
-                                        Array.isArray(product.images) &&
-                                        typeof product.images[0] === "string"
-                                            ? product.images[0]
-                                            : null;
-                                    return (
-                                    <TableRow key={product.id} hover>
-                                        <TableCell>{product.id}</TableCell>
-                                        <TableCell>
-                                            <Box
-                                                sx={{
-                                                    position: "relative",
-                                                    width: 50,
-                                                    height: 50,
-                                                    bgcolor: "action.hover",
-                                                }}
-                                            >
-                                                {thumb ? (
-                                                    <Image
-                                                        src={thumb}
-                                                        alt={product.name}
-                                                        width={50}
-                                                        height={50}
-                                                        style={{ objectFit: "cover" }}
-                                                        unoptimized
-                                                    />
-                                                ) : (
-                                                    <Box
+                        <>
+                            <Box sx={{ display: { xs: "none", md: "block" } }}>
+                                <Table size="small" stickyHeader>
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableCell>ID</TableCell>
+                                            <TableCell>Картинка</TableCell>
+                                            <TableCell>Название</TableCell>
+                                            <TableCell>Состав</TableCell>
+                                            <TableCell>Категория</TableCell>
+                                            <TableCell align="right">Цена</TableCell>
+                                            <TableCell>Статус</TableCell>
+                                            <TableCell align="right" width={100} />
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {products.map((product) => {
+                                            const thumb = getProductCoverUrl(product);
+                                            const canCycleMain =
+                                                getProductImageUrls(product.images).length >= 2;
+                                            return (
+                                                <TableRow
+                                                    key={product.id}
+                                                    hover
+                                                    sx={{
+                                                        transition: "all 0.3s ease",
+                                                        opacity: product.isActive ? 1 : 0.6,
+                                                        filter: product.isActive
+                                                            ? "none"
+                                                            : "grayscale(80%)",
+                                                    }}
+                                                >
+                                                    <TableCell>{product.id}</TableCell>
+                                                    <TableCell>
+                                                        <Box
+                                                            sx={{
+                                                                position: "relative",
+                                                                width: 50,
+                                                                height: 50,
+                                                                bgcolor: "action.hover",
+                                                            }}
+                                                        >
+                                                            {thumb ? (
+                                                                <Image
+                                                                    src={thumb}
+                                                                    alt={product.name}
+                                                                    width={50}
+                                                                    height={50}
+                                                                    style={{ objectFit: "cover" }}
+                                                                    unoptimized
+                                                                />
+                                                            ) : (
+                                                                <Box
+                                                                    sx={{
+                                                                        width: 50,
+                                                                        height: 50,
+                                                                        display: "flex",
+                                                                        alignItems: "center",
+                                                                        justifyContent: "center",
+                                                                        typography: "caption",
+                                                                        color: "text.disabled",
+                                                                    }}
+                                                                >
+                                                                    —
+                                                                </Box>
+                                                            )}
+                                                        </Box>
+                                                    </TableCell>
+                                                    <TableCell>{product.name}</TableCell>
+                                                    <TableCell
                                                         sx={{
-                                                            width: 50,
-                                                            height: 50,
-                                                            display: "flex",
-                                                            alignItems: "center",
-                                                            justifyContent: "center",
-                                                            typography: "caption",
-                                                            color: "text.disabled",
+                                                            maxWidth: 280,
+                                                            whiteSpace: "normal",
+                                                            wordBreak: "break-word",
                                                         }}
                                                     >
-                                                        —
-                                                    </Box>
-                                                )}
-                                            </Box>
-                                        </TableCell>
-                                        <TableCell>{product.name}</TableCell>
-                                        <TableCell
+                                                        {trimComposition(product.composition)}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {product.category?.name ?? "—"}
+                                                    </TableCell>
+                                                    <TableCell align="right">
+                                                        {product.price.toLocaleString("ru-RU")} ֏
+                                                    </TableCell>
+                                                    <TableCell align="right">
+                                                        <AvailabilityToggle
+                                                            product={product}
+                                                            disabled={
+                                                                deletingId === product.id || saveLoading
+                                                            }
+                                                            onChange={(next) =>
+                                                                handleAvailabilityChange(
+                                                                    product.id,
+                                                                    next,
+                                                                )
+                                                            }
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell align="right">
+                                                        <Box
+                                                            sx={{
+                                                                display: "flex",
+                                                                flexDirection: "column",
+                                                                alignItems: "flex-end",
+                                                                gap: 0.75,
+                                                            }}
+                                                        >
+                                                            <Box
+                                                                sx={{
+                                                                    display: "inline-flex",
+                                                                    alignItems: "center",
+                                                                    justifyContent: "flex-end",
+                                                                }}
+                                                            >
+                                                                <IconButton
+                                                                    size="small"
+                                                                    color="primary"
+                                                                    onClick={() => handleEditClick(product)}
+                                                                    disabled={
+                                                                        deletingId === product.id ||
+                                                                        saveLoading
+                                                                    }
+                                                                    aria-label="Редактировать"
+                                                                >
+                                                                    <EditIcon fontSize="small" />
+                                                                </IconButton>
+                                                                <IconButton
+                                                                    size="small"
+                                                                    color="error"
+                                                                    disabled={deletingId === product.id}
+                                                                    onClick={() => void handleDelete(product.id)}
+                                                                    aria-label="Удалить"
+                                                                >
+                                                                    <DeleteIcon fontSize="small" />
+                                                                </IconButton>
+                                                            </Box>
+                                                            {canCycleMain ? (
+                                                                <Button
+                                                                    variant="outlined"
+                                                                    size="small"
+                                                                    onClick={() =>
+                                                                        void handleCycleMainCover(product)
+                                                                    }
+                                                                    disabled={
+                                                                        deletingId === product.id ||
+                                                                        saveLoading ||
+                                                                        rotatingMainId === product.id
+                                                                    }
+                                                                    sx={{
+                                                                        fontSize: "0.7rem",
+                                                                        px: 1,
+                                                                        py: 0.25,
+                                                                        minWidth: 0,
+                                                                        whiteSpace: "nowrap",
+                                                                    }}
+                                                                >
+                                                                    Сделать главной
+                                                                </Button>
+                                                            ) : null}
+                                                        </Box>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </Box>
+                            <Box sx={{ display: { xs: "block", md: "none" }, mt: 2 }}>
+                                {products.map((product) => {
+                                    const imageUrl = getProductCoverUrl(product);
+                                    const showImage = Boolean(imageUrl);
+                                    const canCycleMain =
+                                        getProductImageUrls(product.images).length >= 2;
+
+                                    return (
+                                        <Paper
+                                            key={product.id}
+                                            elevation={0}
                                             sx={{
-                                                maxWidth: 280,
-                                                whiteSpace: "normal",
-                                                wordBreak: "break-word",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 2,
+                                                p: 1.5,
+                                                mb: 1.5,
+                                                borderRadius: 3,
+                                                transition: "all 0.3s ease",
+                                                opacity: product.isActive ? 1 : 0.6,
+                                                filter: product.isActive
+                                                    ? "none"
+                                                    : "grayscale(80%)",
                                             }}
                                         >
-                                            {trimComposition(product.composition)}
-                                        </TableCell>
-                                        <TableCell>
-                                            {product.category?.name ?? "—"}
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            {product.price.toLocaleString("ru-RU")} ֏
-                                        </TableCell>
-                                        <TableCell>
-                                            {product.isActive ? "Активен" : "Скрыт"}
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            <Box
-                                                sx={{
-                                                    display: "inline-flex",
-                                                    alignItems: "center",
-                                                    justifyContent: "flex-end",
-                                                }}
-                                            >
-                                                <IconButton
-                                                    size="small"
-                                                    color="primary"
-                                                    onClick={() => handleEditClick(product)}
-                                                    disabled={deletingId === product.id || saveLoading}
-                                                    aria-label="Редактировать"
+                                            {showImage ? (
+                                                <Avatar
+                                                    src={imageUrl ?? undefined}
+                                                    variant="rounded"
+                                                    sx={{ width: 56, height: 56 }}
+                                                    alt={product.name}
+                                                />
+                                            ) : (
+                                                <Avatar
+                                                    variant="rounded"
+                                                    sx={{
+                                                        width: 56,
+                                                        height: 56,
+                                                        bgcolor: "#f5f5f5",
+                                                    }}
                                                 >
-                                                    <EditIcon fontSize="small" />
-                                                </IconButton>
-                                                <IconButton
-                                                    size="small"
-                                                    color="error"
-                                                    disabled={deletingId === product.id}
-                                                    onClick={() => void handleDelete(product.id)}
-                                                    aria-label="Удалить"
+                                                    <ImageIcon />
+                                                </Avatar>
+                                            )}
+                                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                <Typography noWrap sx={{ fontWeight: 600 }}>
+                                                    {product.name}
+                                                </Typography>
+                                                <Typography
+                                                    sx={{
+                                                        fontSize: "0.75rem",
+                                                        color: "text.secondary",
+                                                    }}
+                                                    noWrap
                                                 >
-                                                    <DeleteIcon fontSize="small" />
-                                                </IconButton>
+                                                    {product.category?.name ?? "—"}
+                                                </Typography>
                                             </Box>
-                                        </TableCell>
-                                    </TableRow>
-                                );
+                                            <Box sx={{ textAlign: "right", flexShrink: 0 }}>
+                                                <Typography sx={{ fontWeight: 700 }}>
+                                                    {product.price.toLocaleString("ru-RU")} ֏
+                                                </Typography>
+                                                <Box sx={{ mt: -0.5 }}>
+                                                    <AvailabilityToggle
+                                                        product={product}
+                                                        disabled={
+                                                            deletingId === product.id || saveLoading
+                                                        }
+                                                        onChange={(next) =>
+                                                            handleAvailabilityChange(
+                                                                product.id,
+                                                                next,
+                                                            )
+                                                        }
+                                                    />
+                                                </Box>
+                                                <Box
+                                                    sx={{
+                                                        display: "flex",
+                                                        flexDirection: "column",
+                                                        alignItems: "flex-end",
+                                                        gap: 0.5,
+                                                        mt: 0.25,
+                                                    }}
+                                                >
+                                                    <Box
+                                                        sx={{
+                                                            display: "flex",
+                                                            justifyContent: "flex-end",
+                                                            gap: 0,
+                                                        }}
+                                                    >
+                                                        <IconButton
+                                                            size="small"
+                                                            color="primary"
+                                                            onClick={() => handleEditClick(product)}
+                                                            disabled={
+                                                                deletingId === product.id || saveLoading
+                                                            }
+                                                            aria-label="Редактировать"
+                                                        >
+                                                            <EditIcon sx={{ fontSize: 20 }} />
+                                                        </IconButton>
+                                                        <IconButton
+                                                            size="small"
+                                                            color="error"
+                                                            disabled={deletingId === product.id}
+                                                            onClick={() =>
+                                                                void handleDelete(product.id)
+                                                            }
+                                                            aria-label="Удалить"
+                                                        >
+                                                            <DeleteIcon sx={{ fontSize: 20 }} />
+                                                        </IconButton>
+                                                    </Box>
+                                                    {canCycleMain ? (
+                                                        <Button
+                                                            variant="outlined"
+                                                            size="small"
+                                                            onClick={() =>
+                                                                void handleCycleMainCover(product)
+                                                            }
+                                                            disabled={
+                                                                deletingId === product.id ||
+                                                                saveLoading ||
+                                                                rotatingMainId === product.id
+                                                            }
+                                                            sx={{
+                                                                fontSize: "0.7rem",
+                                                                px: 1,
+                                                                py: 0.25,
+                                                                minWidth: 0,
+                                                            }}
+                                                        >
+                                                            Сделать главной
+                                                        </Button>
+                                                    ) : null}
+                                                </Box>
+                                            </Box>
+                                        </Paper>
+                                    );
                                 })}
-                            </TableBody>
-                        </Table>
+                            </Box>
+                        </>
                     )}
                 </Paper>
             </Container>
@@ -680,13 +1120,37 @@ function ProductFormDialog(props: {
                 if (!submitLoading) onClose();
             }}
             fullWidth
-            maxWidth="sm"
+            maxWidth="md"
+            disableScrollLock={false}
+            sx={{
+                "& .MuiDialog-container": {
+                    alignItems: { xs: "stretch", md: "center" },
+                },
+                "& .MuiDialog-paper": {
+                    display: "flex",
+                    flexDirection: "column",
+                    height: { xs: "100%", md: "auto" },
+                    m: { xs: 0, md: 3 },
+                    borderRadius: { xs: 0, md: 4 },
+                },
+            }}
         >
-            <Box component="form" onSubmit={onSubmit} noValidate>
-                <DialogTitle>
+            <Box
+                component="form"
+                onSubmit={onSubmit}
+                noValidate
+                sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    flex: 1,
+                    minHeight: 0,
+                    overflow: "hidden",
+                }}
+            >
+                <DialogTitle sx={{ flexShrink: 0 }}>
                     {isEdit ? "Редактирование товара" : "Новый товар"}
                 </DialogTitle>
-                <DialogContent>
+                <DialogContent sx={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
                     <Stack spacing={2} sx={{ pt: 1 }}>
                         <TextField
                             required
@@ -904,7 +1368,7 @@ function ProductFormDialog(props: {
                         </Box>
                     </Stack>
                 </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2 }}>
+                <DialogActions sx={{ p: 2, borderTop: "1px solid #eee", flexShrink: 0 }}>
                     <Button onClick={onClose} disabled={submitLoading}>
                         Отмена
                     </Button>
@@ -920,41 +1384,5 @@ function ProductFormDialog(props: {
                 </DialogActions>
             </Box>
         </Dialog>
-    );
-}
-
-function StackedHeader(props: {
-    onAdd: () => void;
-    onRetry: () => void;
-    error: string | null;
-    showRetry: boolean;
-}) {
-    return (
-        <Box
-            sx={{
-                display: "flex",
-                flexDirection: { xs: "column", sm: "row" },
-                alignItems: { xs: "stretch", sm: "center" },
-                justifyContent: "space-between",
-                gap: 2,
-                mb: 2,
-            }}
-        >
-            <Button
-                variant="contained"
-                color="primary"
-                size="large"
-                startIcon={<AddIcon />}
-                onClick={props.onAdd}
-                sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
-            >
-                Добавить товар
-            </Button>
-            {props.error && props.showRetry ? (
-                <Button variant="outlined" onClick={() => void props.onRetry()}>
-                    Повторить
-                </Button>
-            ) : null}
-        </Box>
     );
 }

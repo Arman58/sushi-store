@@ -55,6 +55,160 @@ function parseProductId(
     };
 }
 
+/** Keys we accept on PUT — only keys present on the parsed body are merged into Prisma update `data`.
+ *  (POST в `route.ts` по-прежнему требует name, price, categoryId.) */
+async function parsePutBodyToPrismaUpdate(
+    raw: Record<string, unknown>,
+    productId: number,
+): Promise<{ data: Prisma.ProductUpdateInput } | { response: NextResponse }> {
+    const data: Prisma.ProductUpdateInput = {};
+    const has = (key: string) => Object.prototype.hasOwnProperty.call(raw, key);
+
+    if (has("name")) {
+        const v = raw.name;
+        if (typeof v !== "string" || v.trim() === "") {
+            return { response: NextResponse.json({ error: "Invalid name" }, { status: 400 }) };
+        }
+        data.name = v.trim();
+    }
+    if (has("slug")) {
+        const v = raw.slug;
+        if (typeof v !== "string" || v.trim() === "") {
+            return { response: NextResponse.json({ error: "Invalid slug" }, { status: 400 }) };
+        }
+        data.slug = v.trim();
+    }
+    if (has("description")) {
+        const v = raw.description;
+        if (v === null) {
+            data.description = null;
+        } else if (typeof v === "string") {
+            data.description = v;
+        } else {
+            return { response: NextResponse.json({ error: "Invalid description" }, { status: 400 }) };
+        }
+    }
+    if (has("composition")) {
+        const v = raw.composition;
+        if (v === null) {
+            data.composition = null;
+        } else if (typeof v === "string") {
+            data.composition = v;
+        } else {
+            return { response: NextResponse.json({ error: "Invalid composition" }, { status: 400 }) };
+        }
+    }
+    if (has("price")) {
+        const v = raw.price;
+        if (typeof v !== "number" || !Number.isFinite(v) || v < 0) {
+            return { response: NextResponse.json({ error: "Invalid price" }, { status: 400 }) };
+        }
+        data.price = Math.round(v);
+    }
+    if (has("weight")) {
+        const v = raw.weight;
+        if (v === null) {
+            data.weight = null;
+        } else if (typeof v === "number" && Number.isInteger(v)) {
+            data.weight = v;
+        } else {
+            return { response: NextResponse.json({ error: "Invalid weight" }, { status: 400 }) };
+        }
+    }
+    if (has("images")) {
+        const v = raw.images;
+        if (v === null) {
+            data.images = [] as Prisma.InputJsonValue;
+        } else if (Array.isArray(v)) {
+            data.images = v as Prisma.InputJsonValue;
+        } else {
+            return { response: NextResponse.json({ error: "Invalid images" }, { status: 400 }) };
+        }
+    }
+    if (has("mainImage")) {
+        const v = raw.mainImage;
+        if (v === null) {
+            data.mainImage = null;
+        } else if (typeof v === "string") {
+            const t = v.trim();
+            data.mainImage = t === "" ? null : t;
+        } else {
+            return { response: NextResponse.json({ error: "Invalid mainImage" }, { status: 400 }) };
+        }
+    }
+    if (has("isActive")) {
+        const v = raw.isActive;
+        if (typeof v !== "boolean") {
+            return { response: NextResponse.json({ error: "Invalid isActive" }, { status: 400 }) };
+        }
+        data.isActive = v;
+    }
+    if (has("categoryId")) {
+        const v = raw.categoryId;
+        if (typeof v !== "number" || !Number.isInteger(v)) {
+            return { response: NextResponse.json({ error: "Invalid categoryId" }, { status: 400 }) };
+        }
+        const category = await prisma.category.findUnique({ where: { id: v } });
+        if (!category) {
+            return { response: NextResponse.json({ error: "Category not found" }, { status: 400 }) };
+        }
+        data.category = { connect: { id: v } };
+    }
+
+    if (Object.keys(data).length === 0) {
+        return { response: NextResponse.json({ error: "No fields to update" }, { status: 400 }) };
+    }
+
+    if (typeof data.slug === "string") {
+        const taken = await prisma.product.findFirst({
+            where: { slug: data.slug, NOT: { id: productId } },
+        });
+        if (taken) {
+            return { response: NextResponse.json({ error: "slug already in use" }, { status: 400 }) };
+        }
+    }
+
+    return { data };
+}
+
+function urlListFromJson(images: unknown): string[] {
+    if (!Array.isArray(images)) return [];
+    return images.filter(
+        (x): x is string => typeof x === "string" && x.trim() !== "",
+    );
+}
+
+function reconcileMainImageForUpdate(
+    existing: { mainImage: string | null; images: unknown },
+    update: Prisma.ProductUpdateInput,
+    nextImages: string[],
+): { ok: true; mainImage: string | null } | { ok: false; response: NextResponse } {
+    let main: string | null;
+    if (update.mainImage !== undefined) {
+        if (update.mainImage === null) {
+            main = null;
+        } else {
+            const m = String(update.mainImage).trim();
+            main = m === "" ? null : m;
+            if (main !== null && !nextImages.includes(main)) {
+                return {
+                    ok: false,
+                    response: NextResponse.json(
+                        { error: "mainImage must be one of product images" },
+                        { status: 400 },
+                    ),
+                };
+            }
+        }
+    } else {
+        main = existing.mainImage;
+    }
+    if (main !== null && !nextImages.includes(main)) {
+        main = null;
+    }
+    return { ok: true, mainImage: main };
+}
+
 export async function PUT(
     request: Request,
     context: { params: Promise<{ id: string }> },
@@ -74,107 +228,35 @@ export async function PUT(
         return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    const b = body as Record<string, unknown>;
-    const data: {
-        name?: string;
-        slug?: string;
-        description?: string | null;
-        composition?: string | null;
-        price?: number;
-        weight?: number | null;
-        images?: Prisma.InputJsonValue;
-        isActive?: boolean;
-        categoryId?: number;
-    } = {};
-
-    if (b.name !== undefined) {
-        if (typeof b.name !== "string" || b.name.trim() === "") {
-            return NextResponse.json({ error: "Invalid name" }, { status: 400 });
-        }
-        data.name = b.name.trim();
-    }
-    if (b.slug !== undefined) {
-        if (typeof b.slug !== "string" || b.slug.trim() === "") {
-            return NextResponse.json({ error: "Invalid slug" }, { status: 400 });
-        }
-        data.slug = b.slug.trim();
-    }
-    if (b.description !== undefined) {
-        if (b.description === null) {
-            data.description = null;
-        } else if (typeof b.description === "string") {
-            data.description = b.description;
-        } else {
-            return NextResponse.json({ error: "Invalid description" }, { status: 400 });
-        }
-    }
-    if (b.composition !== undefined) {
-        if (b.composition === null) {
-            data.composition = null;
-        } else if (typeof b.composition === "string") {
-            data.composition = b.composition;
-        } else {
-            return NextResponse.json({ error: "Invalid composition" }, { status: 400 });
-        }
-    }
-    if (b.price !== undefined) {
-        if (typeof b.price !== "number" || !Number.isFinite(b.price) || b.price < 0) {
-            return NextResponse.json({ error: "Invalid price" }, { status: 400 });
-        }
-        data.price = Math.round(b.price);
-    }
-    if (b.weight !== undefined) {
-        if (b.weight === null) {
-            data.weight = null;
-        } else if (typeof b.weight === "number" && Number.isInteger(b.weight)) {
-            data.weight = b.weight;
-        } else {
-            return NextResponse.json({ error: "Invalid weight" }, { status: 400 });
-        }
-    }
-    if (b.images !== undefined) {
-        if (b.images === null) {
-            data.images = [] as Prisma.InputJsonValue;
-        } else if (Array.isArray(b.images)) {
-            data.images = b.images as Prisma.InputJsonValue;
-        } else {
-            return NextResponse.json({ error: "Invalid images" }, { status: 400 });
-        }
-    }
-    if (b.isActive !== undefined) {
-        if (typeof b.isActive !== "boolean") {
-            return NextResponse.json({ error: "Invalid isActive" }, { status: 400 });
-        }
-        data.isActive = b.isActive;
-    }
-    if (b.categoryId !== undefined) {
-        if (typeof b.categoryId !== "number" || !Number.isInteger(b.categoryId)) {
-            return NextResponse.json({ error: "Invalid categoryId" }, { status: 400 });
-        }
-        const category = await prisma.category.findUnique({ where: { id: b.categoryId } });
-        if (!category) {
-            return NextResponse.json({ error: "Category not found" }, { status: 400 });
-        }
-        data.categoryId = b.categoryId;
+    if (body === null || typeof body !== "object" || Array.isArray(body)) {
+        return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    if (data.slug) {
-        const taken = await prisma.product.findFirst({
-            where: { slug: data.slug, NOT: { id: idResult.id } },
-        });
-        if (taken) {
-            return NextResponse.json({ error: "slug already in use" }, { status: 400 });
-        }
+    const parsed = await parsePutBodyToPrismaUpdate(body as Record<string, unknown>, idResult.id);
+    if ("response" in parsed) return parsed.response;
+
+    const existing = await prisma.product.findUnique({ where: { id: idResult.id } });
+    if (!existing) {
+        return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    if (Object.keys(data).length === 0) {
-        return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+    const nextImages =
+        parsed.data.images !== undefined
+            ? urlListFromJson(parsed.data.images)
+            : urlListFromJson(existing.images);
+
+    const finalData: Prisma.ProductUpdateInput = { ...parsed.data };
+
+    if (parsed.data.images !== undefined || parsed.data.mainImage !== undefined) {
+        const reconciled = reconcileMainImageForUpdate(existing, parsed.data, nextImages);
+        if (!reconciled.ok) return reconciled.response;
+        finalData.mainImage = reconciled.mainImage;
     }
 
     try {
         const product = await prisma.product.update({
             where: { id: idResult.id },
-            data,
+            data: finalData,
             include: { category: true },
         });
         return NextResponse.json(product);

@@ -12,16 +12,17 @@ import {
     DialogTitle,
     Divider,
     IconButton,
-    Menu,
     MenuItem,
+    Select,
     Stack,
     TableCell,
     TableRow,
     Tooltip,
     Typography,
 } from "@mui/material";
+import type { SelectChangeEvent } from "@mui/material/Select";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useCartStore } from "@/features/cart";
 
@@ -83,19 +84,15 @@ function highlight(text: string, query: string) {
     );
 }
 
-const STATUS_OPTIONS = [
-    { value: "NEW", label: "Новый" },
-    { value: "IN_PROGRESS", label: "В работе" },
-    { value: "DONE", label: "Выполнен" },
-    { value: "CANCELLED", label: "Отменён" },
-] as const;
-
 export function OrderRow({ order, searchQuery }: OrderRowProps) {
     const [open, setOpen] = useState(false);
-    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [localStatus, setLocalStatus] = useState(order.status);
     const [updatingStatus, setUpdatingStatus] = useState(false);
     const [statusError, setStatusError] = useState<string | null>(null);
+
+    useEffect(() => {
+        setLocalStatus(order.status);
+    }, [order.status]);
     const router = useRouter();
     const setItems = useCartStore((state) => state.setItems);
 
@@ -127,39 +124,66 @@ export function OrderRow({ order, searchQuery }: OrderRowProps) {
         router.push("/checkout");
     };
 
-    const handleStatusClick = (event: React.MouseEvent<HTMLElement>) => {
-        setAnchorEl(event.currentTarget);
-    };
-
-    const handleCloseMenu = () => {
-        setAnchorEl(null);
-    };
-
-    const handleChangeStatus = async (nextStatus: string) => {
+    const handleStatusChange = async (_orderId: number, newStatus: string) => {
+        if (newStatus === localStatus) return;
+        const previous = localStatus;
         setStatusError(null);
+        setLocalStatus(newStatus);
         setUpdatingStatus(true);
         try {
-            const res = await fetch(`/api/admin/orders/${order.id}/status`, {
+            const res = await fetch(`/api/admin/orders/${_orderId}/status`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: nextStatus }),
+                body: JSON.stringify({ status: newStatus }),
             });
 
             if (!res.ok) {
                 const text = await res.text();
                 throw new Error(text || "Не удалось обновить статус");
             }
-
-            setLocalStatus(nextStatus);
+            router.refresh();
         } catch (error) {
+            setLocalStatus(previous);
             const message =
                 error instanceof Error ? error.message : "Не удалось обновить статус";
             setStatusError(message);
         } finally {
             setUpdatingStatus(false);
-            handleCloseMenu();
         }
     };
+
+    const onSelectStatus = (event: SelectChangeEvent<string>) => {
+        const next = event.target.value;
+        void handleStatusChange(order.id, next);
+    };
+
+    const statusSelectSx = {
+        minWidth: 130,
+        fontSize: "0.85rem",
+        "& .MuiSelect-select": { py: 0.5 },
+    };
+
+    const statusSelect = (
+        <Box sx={{ display: "inline-block" }}>
+            <Select
+                value={localStatus}
+                size="small"
+                variant="outlined"
+                disabled={updatingStatus}
+                sx={{
+                    ...statusSelectSx,
+                    minWidth: { xs: 120, md: 130 },
+                }}
+                onChange={onSelectStatus}
+            >
+                <MenuItem value="NEW">📦 Новый</MenuItem>
+                <MenuItem value="PREPARING">👨‍🍳 Готовится</MenuItem>
+                <MenuItem value="DELIVERING">🛵 В пути</MenuItem>
+                <MenuItem value="DONE">✅ Доставлен</MenuItem>
+                <MenuItem value="CANCELLED">❌ Отменен</MenuItem>
+            </Select>
+        </Box>
+    );
 
     return (
         <>
@@ -222,11 +246,7 @@ export function OrderRow({ order, searchQuery }: OrderRowProps) {
                             size="small"
                             sx={{ borderRadius: 999, fontSize: 10 }}
                         />
-                        <Chip
-                            label={order.statusLabel}
-                            size="small"
-                            sx={{ borderRadius: 999, fontSize: 10 }}
-                        />
+                        {statusSelect}
                         <Chip
                             label={order.paymentLabel}
                             size="small"
@@ -245,49 +265,6 @@ export function OrderRow({ order, searchQuery }: OrderRowProps) {
                     >
                         {order.totalPrice.toLocaleString("ru-RU")} ֏ · {order.phone}
                     </Typography>
-                </TableCell>
-
-                <TableCell
-                    sx={{
-                        width: 140,
-                    }}
-                >
-                    <Tooltip title="Изменить статус">
-                        <Chip
-                            label={
-                                STATUS_OPTIONS.find((opt) => opt.value === localStatus)
-                                    ?.label ?? order.statusLabel
-                            }
-                            size="small"
-                            onClick={handleStatusClick}
-                            sx={{
-                                borderRadius: 999,
-                                fontSize: 11,
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                bgcolor:
-                                    localStatus === "DONE"
-                                        ? "rgba(34,197,94,0.14)"
-                                        : localStatus === "CANCELLED"
-                                            ? "rgba(248,113,113,0.16)"
-                                            : localStatus === "IN_PROGRESS"
-                                                ? "rgba(59,130,246,0.14)"
-                                                : "rgba(148,163,184,0.14)",
-                            }}
-                        />
-                    </Tooltip>
-                    <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleCloseMenu}>
-                        {STATUS_OPTIONS.map((opt) => (
-                            <MenuItem
-                                key={opt.value}
-                                selected={localStatus === opt.value}
-                                disabled={updatingStatus}
-                                onClick={() => handleChangeStatus(opt.value)}
-                            >
-                                {opt.label}
-                            </MenuItem>
-                        ))}
-                    </Menu>
                 </TableCell>
 
                 <TableCell
@@ -322,6 +299,15 @@ export function OrderRow({ order, searchQuery }: OrderRowProps) {
                             }}
                         />
                     </Tooltip>
+                </TableCell>
+
+                <TableCell sx={{ verticalAlign: "middle" }}>
+                    {statusSelect}
+                    {statusError && (
+                        <Typography variant="caption" color="error" display="block" sx={{ mt: 0.5 }}>
+                            {statusError}
+                        </Typography>
+                    )}
                 </TableCell>
 
                 <TableCell
@@ -405,11 +391,6 @@ export function OrderRow({ order, searchQuery }: OrderRowProps) {
                         >
                             Повторить
                         </Button>
-                        {statusError && (
-                            <Typography variant="caption" color="error">
-                                {statusError}
-                            </Typography>
-                        )}
                     </Stack>
                 </TableCell>
             </TableRow>

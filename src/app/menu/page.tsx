@@ -1,8 +1,6 @@
 // src/app/menu/page.tsx
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
-import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { cache } from "react";
 
@@ -10,6 +8,8 @@ import { prisma } from "@/lib/prisma";
 import { PageContainer, SectionTitle } from "@/shared/ui";
 import { CategoryScroll } from "@/widgets/home/category-scroll";
 import { MenuSection } from "@/widgets/menu-section";
+
+import { MenuHeroCtas } from "./menu-hero-ctas";
 
 // Страница теперь может кешироваться и пересобирается раз в 60 секунд.
 // Этого для меню более чем достаточно.
@@ -80,10 +80,10 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
                             component="h1"
                             variant="h5"
                             sx={{
-                                typography: { xs: "h4", sm: "h5" },
+                                fontSize: "1.15rem",
                                 fontWeight: 800,
-                                lineHeight: 1.2,
                                 color: "text.primary",
+                                lineHeight: 1.3,
                                 maxWidth: 640,
                             }}
                         >
@@ -98,43 +98,7 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
                             Отсортируйте по цене, категории или начните с популярных
                             направлений.
                         </Typography>
-                        <Stack
-                            direction={{ xs: "column", sm: "row" }}
-                            spacing={1.5}
-                            sx={{ mt: 3 }}
-                            alignItems={{ xs: "stretch", sm: "center" }}
-                        >
-                            <Button
-                                color="secondary"
-                                variant="outlined"
-                                href="/order-status"
-                                sx={{
-                                    borderRadius: 3,
-                                    borderColor: "#e0e0e0",
-                                    textTransform: "none",
-                                    px: 3,
-                                    py: 1.2,
-                                    color: "text.primary",
-                                }}
-                            >
-                                Проверить заказ
-                            </Button>
-                            <Button
-                                color="secondary"
-                                variant="outlined"
-                                href="tel:+37400000000"
-                                sx={{
-                                    borderRadius: 3,
-                                    borderColor: "#e0e0e0",
-                                    textTransform: "none",
-                                    px: 3,
-                                    py: 1.2,
-                                    color: "text.primary",
-                                }}
-                            >
-                                Позвонить оператору
-                            </Button>
-                        </Stack>
+                        <MenuHeroCtas />
                     </Box>
 
                     <Box sx={{ px: 2, pb: 2.5, pt: 0, position: "relative" }}>

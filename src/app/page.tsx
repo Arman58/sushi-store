@@ -46,6 +46,7 @@ export default async function HomePage() {
         price: p.price,
         weight: p.weight,
         images: p.images,
+        mainImage: p.mainImage,
         category: p.category ? { name: p.category.name } : null,
         composition: p.composition ?? undefined,
     });
@@ -80,6 +81,7 @@ export default async function HomePage() {
             >
                 <PopularSection
                     products={popular.map(toPopular)}
+                    prioritizeFirstImage
                     title="🔥 Популярное"
                     badge="hit"
                     seeAllHref="/menu"

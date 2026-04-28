@@ -84,7 +84,7 @@ async function getOrders(
     if (statusFilter === "new") {
         where.status = OrderStatus.NEW;
     } else if (statusFilter === "in_progress") {
-        where.status = OrderStatus.IN_PROGRESS;
+        where.status = { in: [OrderStatus.PREPARING, OrderStatus.DELIVERING] };
     } else if (statusFilter === "done") {
         where.status = OrderStatus.DONE;
     } else if (statusFilter === "cancelled") {
@@ -142,10 +142,12 @@ function mapStatusLabel(status: string): string {
     switch (status) {
         case "NEW":
             return "Новый";
-        case "IN_PROGRESS":
-            return "В работе";
+        case "PREPARING":
+            return "Готовится";
+        case "DELIVERING":
+            return "В пути";
         case "DONE":
-            return "Выполнен";
+            return "Доставлен";
         case "CANCELLED":
             return "Отменён";
         default:

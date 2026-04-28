@@ -1,9 +1,11 @@
 "use client";
 
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
+import Snackbar from "@mui/material/Snackbar";
 import ButtonBase from "@mui/material/ButtonBase";
 import Container from "@mui/material/Container";
 import Stack from "@mui/material/Stack";
@@ -11,6 +13,7 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
@@ -26,7 +29,6 @@ const MobileBottomNav = dynamic(
     () => import("./mobile-bottom-nav").then((m) => m.MobileBottomNav),
     { ssr: false },
 );
-import { CartToast } from "./cart-toast";
 import { tokens } from "./theme";
 
 // ─── Cart button ──────────────────────────────────────────────────────────────
@@ -133,6 +135,16 @@ function CartHeaderButton() {
 type LayoutShellProps = { children: ReactNode };
 
 export function LayoutShell({ children }: LayoutShellProps) {
+    const pathname = usePathname();
+    const showClientChrome = !pathname.startsWith("/admin");
+    const addToast        = useCartStore((state) => state.addToast);
+    const setAddToast     = useCartStore((state) => state.setAddToast);
+    const lastAddedTitle  = useCartStore((state) => state.lastAddedTitle);
+
+    const addToCartMessage = lastAddedTitle
+        ? `${lastAddedTitle} добавлен в корзину`
+        : "Добавлено в корзину";
+
     return (
         <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
             {/* ── Sticky header ── */}
@@ -280,11 +292,57 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                 ))}
                             </Box>
 
-                            <CartHeaderButton />
+                            {showClientChrome ? <CartHeaderButton /> : null}
                         </Stack>
                     </Container>
                 </Toolbar>
             </AppBar>
+
+            {showClientChrome ? (
+                <Snackbar
+                    open={addToast !== 0}
+                    autoHideDuration={1500}
+                    onClose={() => setAddToast(0)}
+                    anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                    sx={{
+                        position: "fixed",
+                        top: {
+                            xs: "calc(64px + env(safe-area-inset-top))",
+                            sm: 72,
+                        },
+                        right: 16,
+                        zIndex: 1400,
+                        pointerEvents: "none",
+                        maxWidth: 320,
+                    }}
+                    ContentProps={{
+                        sx: {
+                            bgcolor: "#ffffff",
+                            color: "text.primary",
+                            borderRadius: 3,
+                            boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+                            p: 1.5,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1.5,
+                        },
+                    }}
+                    message={
+                        <Box
+                            sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1.5,
+                            }}
+                        >
+                            <CheckCircleOutlineIcon
+                                sx={{ color: "#2DB5A0", fontSize: 20 }}
+                            />
+                            <Box component="span">{addToCartMessage}</Box>
+                        </Box>
+                    }
+                />
+            ) : null}
 
             {/* Page content */}
             <Box component="main" sx={{ pb: { xs: 10, sm: 4 } }}>
@@ -293,8 +351,7 @@ export function LayoutShell({ children }: LayoutShellProps) {
 
             {/* Global overlays */}
             <CartDrawer />
-            <CartToast />
-            <MobileBottomNav />
+            {showClientChrome ? <MobileBottomNav /> : null}
         </Box>
     );
 }
