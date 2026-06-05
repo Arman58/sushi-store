@@ -120,6 +120,10 @@ model DeliveryZone {
   name           String
   deliveryPrice  Int
   minOrderAmount Int
+  /** Пояснение на чекауте (напр. плавающая цена доставки) */
+  description    String?  @default("")
+  /** true — оформление как заявка, менеджер перезванивает для уточнения */
+  requiresManagerApproval Boolean @default(false)
   isActive       Boolean  @default(true)
   orders         Order[]
 }

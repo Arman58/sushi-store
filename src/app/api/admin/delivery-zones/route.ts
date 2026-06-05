@@ -33,6 +33,8 @@ export async function POST(request: Request) {
         name?: unknown;
         deliveryPrice?: unknown;
         minOrderAmount?: unknown;
+        description?: unknown;
+        requiresManagerApproval?: unknown;
         isActive?: unknown;
     };
 
@@ -69,6 +71,12 @@ export async function POST(request: Request) {
         );
     }
 
+    const description =
+        typeof b.description === "string" ? b.description.trim() : "";
+    const requiresManagerApproval =
+        typeof b.requiresManagerApproval === "boolean"
+            ? b.requiresManagerApproval
+            : false;
     const isActive = typeof b.isActive === "boolean" ? b.isActive : true;
 
     try {
@@ -80,6 +88,8 @@ export async function POST(request: Request) {
                 name,
                 deliveryPrice: b.deliveryPrice,
                 minOrderAmount: b.minOrderAmount,
+                description,
+                requiresManagerApproval,
                 isActive,
                 position: nextPosition,
             },

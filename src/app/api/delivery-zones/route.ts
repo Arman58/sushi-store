@@ -24,6 +24,8 @@ export async function GET() {
                 name: true,
                 deliveryPrice: true,
                 minOrderAmount: true,
+                description: true,
+                requiresManagerApproval: true,
             },
         });
 

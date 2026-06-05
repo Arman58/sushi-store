@@ -32,6 +32,8 @@ export async function PATCH(
         name?: unknown;
         deliveryPrice?: unknown;
         minOrderAmount?: unknown;
+        description?: unknown;
+        requiresManagerApproval?: unknown;
         isActive?: unknown;
     };
 
@@ -39,6 +41,8 @@ export async function PATCH(
         name?: string;
         deliveryPrice?: number;
         minOrderAmount?: number;
+        description?: string;
+        requiresManagerApproval?: boolean;
         isActive?: boolean;
     } = {};
 
@@ -75,6 +79,15 @@ export async function PATCH(
             );
         }
         data.minOrderAmount = b.minOrderAmount;
+    }
+
+    if (b.description !== undefined) {
+        data.description =
+            typeof b.description === "string" ? b.description.trim() : "";
+    }
+
+    if (typeof b.requiresManagerApproval === "boolean") {
+        data.requiresManagerApproval = b.requiresManagerApproval;
     }
 
     if (typeof b.isActive === "boolean") {

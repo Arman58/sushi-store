@@ -1,6 +1,6 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 
-import { REAL_ARMENIA_ZONES } from "./ensure-delivery-zones";
+import { deliveryZonesData } from "./ensure-delivery-zones";
 
 const prisma = new PrismaClient();
 
@@ -243,9 +243,12 @@ async function main() {
     });
 
     await prisma.deliveryZone.createMany({
-        data: REAL_ARMENIA_ZONES.map((z) => ({ ...z })),
+        data: deliveryZonesData.map((z) => ({
+            ...z,
+            isActive: true,
+        })),
     });
-    console.log(`✅ Зоны доставки: ${REAL_ARMENIA_ZONES.length}`);
+    console.log(`✅ Зоны доставки: ${deliveryZonesData.length}`);
 
     console.log("✅ Seeding completed.");
 }

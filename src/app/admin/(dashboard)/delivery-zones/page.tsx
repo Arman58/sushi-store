@@ -38,6 +38,8 @@ type ZoneRow = {
     name: string;
     deliveryPrice: number;
     minOrderAmount: number;
+    description?: string | null;
+    requiresManagerApproval: boolean;
     isActive: boolean;
 };
 
@@ -45,6 +47,8 @@ const emptyCreate = () => ({
     name: "",
     deliveryPrice: "",
     minOrderAmount: "",
+    description: "",
+    requiresManagerApproval: false,
     isActive: true,
 });
 
@@ -112,6 +116,8 @@ export default function AdminDeliveryZonesPage() {
             name: row.name,
             deliveryPrice: String(row.deliveryPrice),
             minOrderAmount: String(row.minOrderAmount),
+            description: row.description ?? "",
+            requiresManagerApproval: row.requiresManagerApproval,
             isActive: row.isActive,
         });
         setDialogOpen(true);
@@ -135,6 +141,8 @@ export default function AdminDeliveryZonesPage() {
             name,
             deliveryPrice: dp,
             minOrderAmount: minA,
+            description: form.description.trim(),
+            requiresManagerApproval: form.requiresManagerApproval,
             isActive: form.isActive,
         };
 
@@ -281,6 +289,7 @@ export default function AdminDeliveryZonesPage() {
                                     <TableCell>Название</TableCell>
                                     <TableCell>Доставка</TableCell>
                                     <TableCell>Мин. сумма</TableCell>
+                                    <TableCell>Подтверждение</TableCell>
                                     <TableCell>Активна</TableCell>
                                     <TableCell align="right" />
                                 </TableRow>
@@ -288,11 +297,11 @@ export default function AdminDeliveryZonesPage() {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={5}>Загрузка…</TableCell>
+                                        <TableCell colSpan={6}>Загрузка…</TableCell>
                                     </TableRow>
                                 ) : rows.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={5}>Пока пусто</TableCell>
+                                        <TableCell colSpan={6}>Пока пусто</TableCell>
                                     </TableRow>
                                 ) : (
                                     rows.map((r) => (
@@ -310,6 +319,18 @@ export default function AdminDeliveryZonesPage() {
                                             <TableCell>
                                                 <Typography sx={{ fontVariantNumeric: "tabular-nums" }}>
                                                     {formatRub(r.minOrderAmount)}
+                                                </Typography>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Typography
+                                                    variant="body2"
+                                                    color={
+                                                        r.requiresManagerApproval
+                                                            ? "warning.main"
+                                                            : "text.secondary"
+                                                    }
+                                                >
+                                                    {r.requiresManagerApproval ? "Да" : "Нет"}
                                                 </Typography>
                                             </TableCell>
                                             <TableCell>
@@ -412,6 +433,35 @@ export default function AdminDeliveryZonesPage() {
                                     ),
                                 }}
                                 inputProps={{ step: 1, min: 0 }}
+                            />
+                            <TextField
+                                label="Описание"
+                                value={form.description}
+                                onChange={(e) =>
+                                    setForm((f) => ({
+                                        ...f,
+                                        description: e.target.value,
+                                    }))
+                                }
+                                fullWidth
+                                multiline
+                                minRows={2}
+                                placeholder="Пояснение для клиента на чекауте (необязательно)"
+                            />
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={form.requiresManagerApproval}
+                                        onChange={(e) =>
+                                            setForm((f) => ({
+                                                ...f,
+                                                requiresManagerApproval: e.target.checked,
+                                            }))
+                                        }
+                                        color="warning"
+                                    />
+                                }
+                                label="Требует подтверждения менеджером"
                             />
                             <FormControlLabel
                                 control={

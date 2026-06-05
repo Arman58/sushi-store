@@ -1,80 +1,112 @@
 import type { PrismaClient } from "@prisma/client";
 
-/** Реальные зоны доставки: Ереван, Котайк и окрестности (цены в ֏). */
-export const REAL_ARMENIA_ZONES = [
-    // Ереван
+/** Актуальные зоны доставки East West Delivery (цены в ֏). */
+export const deliveryZonesData = [
     {
-        name: "Ереван (в пределах центра)",
+        name: "Нор Ачин",
         deliveryPrice: 0,
-        minOrderAmount: 3000,
-        isActive: true,
+        minOrderAmount: 1500,
+        description: "",
+        requiresManagerApproval: false,
         position: 0,
     },
     {
-        name: "Ереван (отдаленные районы)",
-        deliveryPrice: 300,
-        minOrderAmount: 3000,
-        isActive: true,
+        name: "Нор Гехи (от 700 до 1200 ֏)",
+        deliveryPrice: 700,
+        minOrderAmount: 1500,
+        description:
+            "Точная стоимость доставки зависит от адреса (от 700 до 1200 ֏)",
+        requiresManagerApproval: false,
         position: 1,
     },
-
-    // Котайк — ближние города (Абовян и окрестности)
-    { name: "Абовян", deliveryPrice: 300, minOrderAmount: 3000, isActive: true, position: 2 },
-    { name: "Егвард", deliveryPrice: 400, minOrderAmount: 3000, isActive: true, position: 3 },
-    { name: "Нор-Хачн", deliveryPrice: 400, minOrderAmount: 3000, isActive: true, position: 4 },
-    { name: "Бюрегован", deliveryPrice: 400, minOrderAmount: 3000, isActive: true, position: 5 },
-    { name: "Котайк (село)", deliveryPrice: 500, minOrderAmount: 3000, isActive: true, position: 6 },
-    { name: "Арзни", deliveryPrice: 500, minOrderAmount: 3000, isActive: true, position: 7 },
-    { name: "Ариндж", deliveryPrice: 500, minOrderAmount: 3000, isActive: true, position: 8 },
-
-    // Котайк — дальние города
-    { name: "Раздан", deliveryPrice: 800, minOrderAmount: 5000, isActive: true, position: 9 },
-    { name: "Чаренцаван", deliveryPrice: 800, minOrderAmount: 5000, isActive: true, position: 10 },
-    { name: "Цахкадзор", deliveryPrice: 1000, minOrderAmount: 5000, isActive: true, position: 11 },
     {
-        name: "Севан (через Раздан)",
+        name: "Артамет",
+        deliveryPrice: 900,
+        minOrderAmount: 1500,
+        description: "",
+        requiresManagerApproval: false,
+        position: 2,
+    },
+    {
+        name: "Мргашен",
         deliveryPrice: 1200,
-        minOrderAmount: 5000,
-        isActive: true,
-        position: 12,
+        minOrderAmount: 1500,
+        description: "",
+        requiresManagerApproval: false,
+        position: 3,
+    },
+    {
+        name: "Лусакерт",
+        deliveryPrice: 1300,
+        minOrderAmount: 1500,
+        description: "",
+        requiresManagerApproval: false,
+        position: 4,
+    },
+    {
+        name: "Бюрекаван",
+        deliveryPrice: 1500,
+        minOrderAmount: 1500,
+        description: "",
+        requiresManagerApproval: false,
+        position: 5,
+    },
+    {
+        name: "Другие города (уточнение по звонку)",
+        deliveryPrice: 0,
+        minOrderAmount: 9000,
+        description:
+            "Доставка в другие города уточняется по звонку. Оставьте адрес и телефон, мы свяжемся с вами!",
+        requiresManagerApproval: true,
+        position: 6,
     },
 ] as const;
 
-/** @deprecated Используйте REAL_ARMENIA_ZONES */
-export const DEFAULT_DELIVERY_ZONES = REAL_ARMENIA_ZONES;
+/** @deprecated Используйте deliveryZonesData */
+export const REAL_ARMENIA_ZONES = deliveryZonesData;
 
-const LEGACY_ZONE_NAMES = ["Ближний район", "Дальний район"] as const;
+/** @deprecated Используйте deliveryZonesData */
+export const DEFAULT_DELIVERY_ZONES = deliveryZonesData;
+
+const ZONE_NAMES = deliveryZonesData.map((z) => z.name);
 
 /**
- * Синхронизирует справочник зон: удаляет устаревшие MVP-зоны,
- * создаёт отсутствующие и обновляет цены/порядок у существующих.
+ * Синхронизирует справочник зон: деактивирует устаревшие,
+ * создаёт отсутствующие и обновляет цены/описание у существующих.
  */
 export async function ensureDeliveryZones(client: PrismaClient): Promise<number> {
-    await client.deliveryZone.deleteMany({
-        where: { name: { in: [...LEGACY_ZONE_NAMES] } },
+    await client.deliveryZone.updateMany({
+        where: { name: { notIn: [...ZONE_NAMES] } },
+        data: { isActive: false },
     });
 
     let created = 0;
-    for (const z of REAL_ARMENIA_ZONES) {
+    for (const z of deliveryZonesData) {
         const existing = await client.deliveryZone.findFirst({
             where: { name: z.name },
             select: { id: true },
         });
 
+        const data = {
+            deliveryPrice: z.deliveryPrice,
+            minOrderAmount: z.minOrderAmount,
+            description: z.description,
+            requiresManagerApproval: z.requiresManagerApproval,
+            isActive: true,
+            position: z.position,
+        };
+
         if (!existing) {
-            await client.deliveryZone.create({ data: { ...z } });
+            await client.deliveryZone.create({
+                data: { name: z.name, ...data },
+            });
             created += 1;
             continue;
         }
 
         await client.deliveryZone.update({
             where: { id: existing.id },
-            data: {
-                deliveryPrice: z.deliveryPrice,
-                minOrderAmount: z.minOrderAmount,
-                isActive: z.isActive,
-                position: z.position,
-            },
+            data,
         });
     }
 

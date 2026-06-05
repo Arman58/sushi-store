@@ -196,6 +196,8 @@ type DeliveryZoneOption = {
     name: string;
     deliveryPrice: number;
     minOrderAmount: number;
+    description?: string | null;
+    requiresManagerApproval?: boolean;
 };
 
 function loadDraft(): Partial<CheckoutFormValues> | null {
@@ -580,6 +582,17 @@ export default function CheckoutPage() {
         [deliveryZones, deliveryZoneId],
     );
 
+    const requiresManagerApproval = Boolean(
+        isDelivery && selectedZone?.requiresManagerApproval,
+    );
+    const zoneDescription = (selectedZone?.description ?? "").trim();
+
+    useEffect(() => {
+        if (requiresManagerApproval) {
+            setValue("payment", "cash", { shouldValidate: false });
+        }
+    }, [requiresManagerApproval, setValue]);
+
     const deliveryFee =
         isDelivery && selectedZone ? selectedZone.deliveryPrice : 0;
     const grossBeforeDiscount = cartSubtotal + deliveryFee;
@@ -681,6 +694,12 @@ export default function CheckoutPage() {
         hasCartLineProblems;
     const softMuted = checkoutIncomplete && !hardSubmitDisabled;
     const isBusySubmit = isSubmitting || isSubmittingLocal || isPlacingOrder;
+
+    const submitButtonLabel = isBusySubmit
+        ? "Отправка…"
+        : requiresManagerApproval
+          ? "Отправить заявку на подтверждение"
+          : `Оформить заказ — ${grandTotal.toLocaleString("ru-RU")} ֏`;
 
     useEffect(() => {
         if (process.env.NODE_ENV !== "development") return;
@@ -1272,6 +1291,18 @@ export default function CheckoutPage() {
                                                         : "Цена доставки и минимальный заказ зависят от района."}
                                                 </FormHelperText>
                                             </FormControl>
+                                            {zoneDescription ? (
+                                                <Alert severity="info" sx={{ mt: 1 }}>
+                                                    {zoneDescription}
+                                                </Alert>
+                                            ) : null}
+                                            {requiresManagerApproval ? (
+                                                <Alert severity="warning" sx={{ mt: 1 }}>
+                                                    Доставка в этот район требует подтверждения. Наш
+                                                    менеджер перезвонит вам для уточнения стоимости и
+                                                    сроков.
+                                                </Alert>
+                                            ) : null}
                                         </>
                                     )}
 
@@ -1317,32 +1348,37 @@ export default function CheckoutPage() {
                                         Оплата
                                     </Typography>
 
-                                {/* Payment — visual cards instead of plain radios */}
-                                <Box>
-                                    <Typography variant="body2" fontWeight={600} sx={{ mb: 1.5 }}>
-                                        Способ оплаты
-                                    </Typography>
-                                    <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-                                        <PaymentCard
-                                            selected={payment === "cash"}
-                                            onSelect={() =>
-                                                setValue("payment", "cash", { shouldValidate: false })
-                                            }
-                                            icon={<LocalAtmOutlinedIcon fontSize="small" />}
-                                            label="Наличными"
-                                            sublabel="Курьеру при доставке"
-                                        />
-                                        <PaymentCard
-                                            selected={payment === "card"}
-                                            onSelect={() =>
-                                                setValue("payment", "card", { shouldValidate: false })
-                                            }
-                                            icon={<CreditCardOutlinedIcon fontSize="small" />}
-                                            label="Картой курьеру"
-                                            sublabel="Терминал при получении, не на сайте"
-                                        />
-                                    </Stack>
-                                </Box>
+                                {requiresManagerApproval ? (
+                                    <Alert severity="info" icon={<PhoneOutlinedIcon fontSize="inherit" />}>
+                                        Оплата курьеру / по телефону после подтверждения заказа менеджером.
+                                    </Alert>
+                                ) : (
+                                    <Box>
+                                        <Typography variant="body2" fontWeight={600} sx={{ mb: 1.5 }}>
+                                            Способ оплаты
+                                        </Typography>
+                                        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+                                            <PaymentCard
+                                                selected={payment === "cash"}
+                                                onSelect={() =>
+                                                    setValue("payment", "cash", { shouldValidate: false })
+                                                }
+                                                icon={<LocalAtmOutlinedIcon fontSize="small" />}
+                                                label="Наличными"
+                                                sublabel="Курьеру при доставке"
+                                            />
+                                            <PaymentCard
+                                                selected={payment === "card"}
+                                                onSelect={() =>
+                                                    setValue("payment", "card", { shouldValidate: false })
+                                                }
+                                                icon={<CreditCardOutlinedIcon fontSize="small" />}
+                                                label="Картой курьеру"
+                                                sublabel="Терминал при получении, не на сайте"
+                                            />
+                                        </Stack>
+                                    </Box>
+                                )}
 
                                 {/* Comment */}
                                 <TextField
@@ -1402,9 +1438,7 @@ export default function CheckoutPage() {
                                                 }),
                                     }}
                                 >
-                                    {isBusySubmit
-                                        ? "Отправка…"
-                                        : `Оформить заказ — ${grandTotal.toLocaleString("ru-RU")} ֏`}
+                                    {submitButtonLabel}
                                 </Button>
                                 <CheckoutConsentCaption />
                             </Box>
@@ -1698,9 +1732,7 @@ export default function CheckoutPage() {
                                         }),
                             }}
                         >
-                            {isBusySubmit
-                                ? "Отправка…"
-                                : `Оформить заказ — ${grandTotal.toLocaleString("ru-RU")} ֏`}
+                            {submitButtonLabel}
                         </Button>
                         <CheckoutConsentCaption />
                     </Box>
