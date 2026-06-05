@@ -802,45 +802,47 @@ export default function CheckoutPage() {
                 return;
             }
 
-            const fallback = "Не удалось оформить заказ. Попробуйте ещё раз.";
+            const unexpectedBody = { error: "Сервер не подтвердил заказ", result };
+            console.error("Order API Error:", unexpectedBody);
+            const fallback = "Сервер не подтвердил заказ. Попробуйте ещё раз.";
             setErrorMessage(fallback);
             showAppToast(`Ошибка: ${fallback}`, "error");
         } catch (error) {
+            let errorData: unknown;
+            let message: string;
+
             if (error instanceof ApiError) {
+                errorData = error.data;
+                message =
+                    error.message.trim() ||
+                    (error.status >= 500
+                        ? `Внутренняя ошибка сервера (${error.status})`
+                        : `Ошибка запроса (${error.status})`);
+
                 const isPriceConflict =
                     error.status === 409 &&
-                    error.message.includes("Цены на некоторые позиции");
+                    message.includes("Цены на некоторые позиции");
                 if (isPriceConflict) {
                     markPriceMismatch();
-                    setErrorMessage(error.message);
-                    showAppToast(`Ошибка: ${error.message}`, "error");
-                } else if (error.status === 400 || error.status === 422) {
-                    const msg =
-                        error.message ||
-                        "Проверьте данные заказа и попробуйте снова.";
-                    setErrorMessage(msg);
-                    showAppToast(`Ошибка: ${msg}`, "error");
-                } else if (error.status === 409 && !isPriceConflict) {
-                    setMissingItemError(error.message);
-                    showAppToast(`Ошибка: ${error.message}`, "error");
-                } else if (error.status >= 500) {
-                    setApiError(true);
-                    showAppToast(
-                        "Ошибка: не удалось оформить заказ на сервере. Попробуйте позже.",
-                        "error",
-                    );
-                } else {
-                    const msg =
-                        error.message ||
-                        "Не удалось отправить заказ. Попробуйте ещё раз.";
-                    setErrorMessage(msg);
-                    showAppToast(`Ошибка: ${msg}`, "error");
+                } else if (error.status === 409) {
+                    setMissingItemError(message);
                 }
+                if (error.status >= 500) {
+                    setApiError(true);
+                }
+            } else if (error instanceof Error) {
+                errorData = { message: error.message, name: error.name };
+                message =
+                    error.message.trim() ||
+                    "Не удалось отправить заказ. Проверьте соединение.";
             } else {
-                const msg = "Не удалось отправить заказ. Попробуйте ещё раз.";
-                setErrorMessage(msg);
-                showAppToast(`Ошибка: ${msg}`, "error");
+                errorData = error;
+                message = "Не удалось отправить заказ. Проверьте соединение.";
             }
+
+            console.error("Order API Error:", errorData);
+            setErrorMessage(message);
+            showAppToast(`Ошибка: ${message}`, "error");
         } finally {
             setIsSubmittingLocal(false);
             useCartStore.getState().setPlacingOrder(false);
