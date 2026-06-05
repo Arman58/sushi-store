@@ -10,8 +10,14 @@ import { apiPost } from "./client";
 export type OrderItemPayload = {
     productId: number;
     name: string;
+    /** Цена единицы с учётом модификаторов; сервер сверит её с пересчётом из БД. */
     price: number;
     quantity: number;
+    /**
+     * Канонический формат (Шаг 4): только id выбранных Modifier.
+     * Сервер сам поднимет name/priceDelta из БД и сделает snapshot для OrderItem.selectedModifiers.
+     */
+    selectedModifierIds?: number[];
 };
 
 export type PlaceOrderRequest = {
@@ -23,12 +29,19 @@ export type PlaceOrderRequest = {
     delivery: "delivery" | "pickup";
     items: OrderItemPayload[];
     totalPrice: number;
+    /** Сумма товаров без доставки — сверка с сервером */
+    subtotalBeforeDiscount?: number;
+    /** Сумма скидки по промокоду — сверка с сервером */
+    discountAmount?: number;
+    /** Для доставки — id активной зоны (сверяется на сервере) */
+    deliveryZoneId?: number;
     hp: string;
+    promoCode?: string;
 };
 
 export type PlaceOrderResponse = { ok: true; orderId: number };
 
-export type OrderStatus = "NEW" | "PREPARING" | "DELIVERING" | "DONE" | "CANCELLED";
+export type OrderStatus = "NEW" | "IN_WORK" | "DELIVERING" | "DONE" | "CANCELLED";
 
 export type OrderStatusResponse = {
     id: number;
@@ -38,7 +51,10 @@ export type OrderStatusResponse = {
     totalPrice: number;
     createdAt: string;
     address?: string | null;
-    items: { id: number; name: string; quantity: number; price: number }[];
+    deliveryZoneName?: string | null;
+    /** Стоимость доставки в заказе (минорные единицы) */
+    deliveryPrice: number;
+    items: { id: number; name: string; quantity: number; price: number; selectedModifiers?: unknown }[];
     etaMinutes: number;
 };
 

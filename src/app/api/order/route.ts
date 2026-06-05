@@ -1,49 +1,48 @@
-import { DeliveryType, PaymentMethod } from "@prisma/client";
+import { DeliveryType, PaymentMethod, Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
+import { auth } from "@/lib/auth";
+import { escapeHtml } from "@/lib/escape-html";
+import { prepareOrderItems } from "@/lib/prepare-order-items";
 import { prisma } from "@/lib/prisma";
+import {
+    computePromoDiscountAmount,
+    getPromoRejectionReason,
+} from "@/lib/promo";
+import {
+    buildKitchenStatusKeyboard,
+    isKitchenTelegramConfigured,
+} from "@/lib/telegram-kitchen";
+
+import {
+    countPhoneDigits,
+    firstZodMessage,
+    type OrderPayload,
+    orderPayloadSchema,
+} from "./_schema";
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+
+const telegramNotifyEnabled = isKitchenTelegramConfigured();
+
+if (!telegramNotifyEnabled) {
+    const g = globalThis as { __sushiTelegramEnvWarned?: boolean };
+    if (!g.__sushiTelegramEnvWarned) {
+        g.__sushiTelegramEnvWarned = true;
+        console.warn(
+            "[order] TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is not set; kitchen Telegram notifications are disabled.",
+        );
+    }
+}
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 5;
 
 const rateLimitStore = new Map<string, number[]>();
 
-type ClientPaymentMethod = "cash" | "card";
-type ClientDeliveryType = "delivery" | "pickup";
-
-type OrderItemPayload = {
-    productId: number;
-    name: string;
-    price: number;
-    quantity: number;
-};
-
-type ValidatedOrderItem = {
-    productId: number;
-    name: string;
-    price: number;
-    quantity: number;
-};
-
-type OrderPayload = {
-    name: string;
-    phone: string;
-    address: string;
-    comment: string;
-    payment: ClientPaymentMethod;
-    delivery: ClientDeliveryType;
-    items: OrderItemPayload[];
-    totalPrice: number;
-};
-
-type ValidationResult =
-    | { ok: true; value: OrderPayload }
-    | { ok: false; message: string };
-
 const DEFAULT_ERROR_MESSAGE = "Не удалось оформить заказ. Попробуйте ещё раз.";
-const HONEYPOT_KEY = "hp";
+
+// ─── Rate limit ────────────────────────────────────────────────────────────────
 
 function getClientIp(request: Request) {
     const xff = request.headers.get("x-forwarded-for");
@@ -56,7 +55,8 @@ function getClientIp(request: Request) {
 function isRateLimited(ip: string): boolean {
     const now = Date.now();
     const windowStart = now - RATE_LIMIT_WINDOW_MS;
-    const timestamps = rateLimitStore.get(ip)?.filter((ts) => ts > windowStart) ?? [];
+    const timestamps =
+        rateLimitStore.get(ip)?.filter((ts) => ts > windowStart) ?? [];
 
     if (timestamps.length >= RATE_LIMIT_MAX) {
         rateLimitStore.set(ip, timestamps);
@@ -68,156 +68,7 @@ function isRateLimited(ip: string): boolean {
     return false;
 }
 
-function validateOrderPayload(input: unknown): ValidationResult {
-    if (!input || typeof input !== "object") {
-        return { ok: false, message: "Неверный формат данных заказа" };
-    }
-
-    const body = input as Partial<OrderPayload>;
-
-    if (!body.name || typeof body.name !== "string" || body.name.trim().length < 2) {
-        return { ok: false, message: "Укажите имя" };
-    }
-
-    if (typeof body.phone !== "string") {
-        return {
-            ok: false,
-            message: "Введите корректный номер (например, XX XX XX XX)",
-        };
-    }
-
-    const phoneDigitCount = (body.phone.match(/\d/g) ?? []).length;
-    if (phoneDigitCount < 8) {
-        return {
-            ok: false,
-            message: "Введите корректный номер (например, XX XX XX XX)",
-        };
-    }
-
-    if (
-        !body.delivery ||
-        (body.delivery !== "delivery" && body.delivery !== "pickup")
-    ) {
-        return { ok: false, message: "Некорректный тип доставки" };
-    }
-
-    if (
-        body.delivery === "delivery" &&
-        (!body.address || typeof body.address !== "string" || body.address.trim().length < 5)
-    ) {
-        return { ok: false, message: "Укажите адрес доставки" };
-    }
-
-    if (!body.payment || (body.payment !== "cash" && body.payment !== "card")) {
-        return { ok: false, message: "Некорректный способ оплаты" };
-    }
-
-    if (!Array.isArray(body.items) || body.items.length === 0) {
-        return { ok: false, message: "Корзина пуста" };
-    }
-
-    const items: OrderItemPayload[] = [];
-
-    for (const item of body.items as OrderItemPayload[]) {
-        if (!item) {
-            return { ok: false, message: "Некорректная позиция в заказе" };
-        }
-
-        const { productId, name, price, quantity } = item;
-
-        if (typeof productId !== "number" || productId <= 0) {
-            return { ok: false, message: "Некорректный товар в заказе" };
-        }
-
-        if (!name || typeof name !== "string") {
-            return { ok: false, message: "Некорректное название товара" };
-        }
-
-        if (typeof price !== "number" || price <= 0) {
-            return { ok: false, message: "Некорректная цена товара" };
-        }
-
-        if (typeof quantity !== "number" || quantity <= 0) {
-            return { ok: false, message: "Некорректное количество товара" };
-        }
-
-        items.push({ productId, name, price, quantity });
-    }
-
-    if (typeof body.totalPrice !== "number" || body.totalPrice <= 0) {
-        return { ok: false, message: "Некорректная сумма заказа" };
-    }
-
-    const recalculatedTotal = items.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0,
-    );
-
-    if (Math.abs(recalculatedTotal - body.totalPrice) > 1) {
-        return { ok: false, message: "Сумма заказа не совпадает с позициями" };
-    }
-
-    return {
-        ok: true,
-        value: {
-            name: body.name.trim(),
-            phone: body.phone.trim(),
-            address:
-                body.delivery === "delivery"
-                    ? (body.address ?? "").toString().trim()
-                    : "",
-            comment: (body.comment ?? "").toString().trim(),
-            payment: body.payment,
-            delivery: body.delivery,
-            items,
-            totalPrice: body.totalPrice,
-        },
-    };
-}
-
-async function prepareOrderItems(
-    items: OrderItemPayload[],
-):
-    Promise<
-        | { ok: true; items: ValidatedOrderItem[]; total: number }
-        | { ok: false; message: string }
-    > {
-    const uniqueIds = Array.from(new Set(items.map((item) => item.productId)));
-
-    const products = await prisma.product.findMany({
-        where: { id: { in: uniqueIds }, isActive: true },
-        select: { id: true, name: true, price: true },
-    });
-
-    const productMap = new Map(products.map((product) => [product.id, product]));
-
-    const validatedItems: ValidatedOrderItem[] = [];
-
-    for (const item of items) {
-        const product = productMap.get(item.productId);
-
-        if (!product) {
-            return {
-                ok: false,
-                message: `Товар недоступен: ${item.name}`,
-            };
-        }
-
-        validatedItems.push({
-            productId: product.id,
-            name: product.name,
-            price: product.price,
-            quantity: item.quantity,
-        });
-    }
-
-    const total = validatedItems.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0,
-    );
-
-    return { ok: true, items: validatedItems, total };
-}
+// ─── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
     const clientIp = getClientIp(request);
@@ -229,44 +80,76 @@ export async function POST(request: Request) {
         );
     }
 
-    let json: unknown;
+    // Авторизованный — привяжем к userId. Гостевые остаются гостевыми.
+    const session = await auth();
+    const sessionUserIdRaw =
+        session?.user?.id != null && Number.isFinite(session.user.id)
+            ? Number(session.user.id)
+            : null;
 
+    /** Привязываем только к существующему User (Int), иначе null — без FK-ошибки. */
+    const sessionUserId =
+        sessionUserIdRaw != null
+            ? (
+                  await prisma.user.findUnique({
+                      where: { id: sessionUserIdRaw },
+                      select: { id: true },
+                  })
+              )?.id ?? null
+            : null;
+
+    let json: unknown;
     try {
         json = await request.json();
     } catch {
         return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    if (json && typeof json === "object" && HONEYPOT_KEY in (json as Record<string, unknown>)) {
-        const honeypotValue = (json as Record<string, unknown>)[HONEYPOT_KEY];
-        if (typeof honeypotValue === "string" && honeypotValue.trim().length > 0) {
-            return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-        }
+    // ── Zod-валидация формата ────────────────────────────────────────────────
+    const parsed = orderPayloadSchema.safeParse(json);
+
+    if (!parsed.success) {
+        return NextResponse.json(
+            { error: firstZodMessage(parsed.error) },
+            { status: 400 },
+        );
     }
 
-    const validation = validateOrderPayload(json);
+    const payload: OrderPayload = parsed.data;
+    const {
+        name,
+        phone,
+        address,
+        comment,
+        payment,
+        delivery,
+        items,
+        totalPrice,
+        subtotalBeforeDiscount: declaredSubtotal,
+        discountAmount: declaredDiscount,
+        deliveryZoneId,
+        promoCode: promoCodeRaw,
+    } = payload;
 
-    if (!validation.ok) {
-        return NextResponse.json({ error: validation.message }, { status: 400 });
-    }
+    // ── Сверка позиций с БД (пересчёт цен, snapshot, правила групп) ──────────
+    const declaredItemsTotal = items.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0,
+    );
 
-    const { name, phone, address, comment, payment, delivery, items, totalPrice } =
-        validation.value;
-
-    // Сверяем позиции с БД, чтобы исключить манипуляцию ценой и убрать неактивные товары
     const verifiedItemsResult = await prepareOrderItems(items);
 
     if (!verifiedItemsResult.ok) {
         return NextResponse.json(
             { error: verifiedItemsResult.message },
-            { status: 409 },
+            { status: verifiedItemsResult.httpStatus },
         );
     }
 
     const verifiedItems = verifiedItemsResult.items;
     const verifiedTotal = verifiedItemsResult.total;
 
-    if (verifiedTotal !== totalPrice) {
+    if (verifiedTotal !== declaredItemsTotal) {
         return NextResponse.json(
             {
                 error:
@@ -276,36 +159,181 @@ export async function POST(request: Request) {
         );
     }
 
-    // 1) Сначала сохраняем заказ в БД
-    let createdOrderId: number;
-    try {
-        const created = await prisma.order.create({
-            data: {
-                name,
-                phone,
-                address: address || null,
-                comment: comment || null,
-                payment:
-                    payment === "cash" ? PaymentMethod.CASH : PaymentMethod.CARD,
-                delivery:
-                    delivery === "delivery"
-                        ? DeliveryType.DELIVERY
-                        : DeliveryType.PICKUP,
-                status: "NEW",
-                totalPrice: verifiedTotal,
-                items: {
-                    create: verifiedItems.map((item) => ({
-                        productId: item.productId,
-                        name: item.name,
-                        price: item.price,
-                        quantity: item.quantity,
-                    })),
-                },
-            },
-            select: { id: true },
+    // ── Зона доставки ────────────────────────────────────────────────────────
+    let deliveryFee = 0;
+    let zoneIdForDb: number | null = null;
+    let zoneNameSnapshot: string | null = null;
+
+    if (delivery === "delivery") {
+        const zoneId = deliveryZoneId;
+        if (!zoneId) {
+            return NextResponse.json(
+                { error: "Выберите зону доставки" },
+                { status: 400 },
+            );
+        }
+
+        const zone = await prisma.deliveryZone.findFirst({
+            where: { id: zoneId, isActive: true },
         });
-        createdOrderId = created.id;
-    } catch (error) {
+
+        if (!zone) {
+            return NextResponse.json(
+                { error: "Выбранная зона доставки недоступна" },
+                { status: 400 },
+            );
+        }
+
+        if (verifiedTotal < zone.minOrderAmount) {
+            return NextResponse.json(
+                {
+                    error: `Минимальная сумма заказа для выбранной зоны — ${zone.minOrderAmount.toLocaleString("ru-RU")} ֏`,
+                },
+                { status: 400 },
+            );
+        }
+
+        deliveryFee = zone.deliveryPrice;
+        zoneIdForDb = zone.id;
+        zoneNameSnapshot = zone.name;
+    }
+
+    const grandBeforePay = verifiedTotal + deliveryFee;
+
+    let discountAmt = 0;
+    let promoDbId: number | null = null;
+
+    if (promoCodeRaw) {
+        const promoRow = await prisma.promoCode.findUnique({
+            where: { code: promoCodeRaw },
+        });
+        const reason = getPromoRejectionReason(promoRow, {
+            cartSubtotal: verifiedTotal,
+            grandTotalBeforeDiscount: grandBeforePay,
+        });
+        if (reason) {
+            return NextResponse.json({ error: reason }, { status: 422 });
+        }
+        discountAmt = computePromoDiscountAmount(
+            promoRow!,
+            verifiedTotal,
+            grandBeforePay,
+        );
+        promoDbId = promoRow!.id;
+    }
+
+    const payableTotal = verifiedTotal - discountAmt + deliveryFee;
+
+    if (declaredSubtotal !== undefined && declaredSubtotal !== verifiedTotal) {
+        return NextResponse.json(
+            {
+                error:
+                    "Сумма товаров не совпадает с расчётом сервера. Обновите страницу.",
+            },
+            { status: 409 },
+        );
+    }
+    if (declaredDiscount !== undefined && declaredDiscount !== discountAmt) {
+        return NextResponse.json(
+            {
+                error:
+                    "Сумма скидки не совпадает с расчётом сервера. Обновите страницу.",
+            },
+            { status: 409 },
+        );
+    }
+
+    // ── Транзакция: инкремент промокода и создание заказа ─────────────────────
+    let createdOrderId!: number;
+    let payableForNotify = payableTotal;
+
+    try {
+        await prisma.$transaction(async (tx) => {
+            if (promoCodeRaw && promoDbId != null) {
+                const bumped = await tx.$queryRaw<Array<{ id: number }>>(
+                    Prisma.sql`
+                        UPDATE "PromoCode"
+                        SET "timesUsed" = "timesUsed" + 1
+                        WHERE "id" = ${promoDbId}
+                          AND "isActive" = true
+                          AND ("maxUsages" IS NULL OR "timesUsed" < "maxUsages")
+                        RETURNING "id"
+                    `,
+                );
+
+                if (bumped.length === 0) {
+                    throw Object.assign(
+                        new Error("Промокод больше нельзя применить"),
+                        { httpStatus: 409 },
+                    );
+                }
+            }
+
+            if (payableTotal !== totalPrice) {
+                throw Object.assign(
+                    new Error(
+                        "Сумма заказа не совпадает с расчётом позиций, доставки и скидки. Обновите страницу и попробуйте снова.",
+                    ),
+                    { httpStatus: 409 },
+                );
+            }
+
+            const phoneForDb =
+                countPhoneDigits(phone) >= 8
+                    ? phone
+                    : delivery === "pickup"
+                      ? "—"
+                      : phone;
+
+            const created = await tx.order.create({
+                data: {
+                    name,
+                    phone: phoneForDb,
+                    address: address || null,
+                    comment: comment || null,
+                    payment:
+                        payment === "cash" ? PaymentMethod.CASH : PaymentMethod.CARD,
+                    delivery:
+                        delivery === "delivery"
+                            ? DeliveryType.DELIVERY
+                            : DeliveryType.PICKUP,
+                    status: "NEW",
+                    subtotalBeforeDiscount: verifiedTotal,
+                    discountAmount: discountAmt,
+                    totalPrice: payableTotal,
+                    deliveryZoneId: zoneIdForDb,
+                    deliveryZoneName: zoneNameSnapshot,
+                    deliveryPrice: deliveryFee,
+                    promoCodeId: promoDbId,
+                    userId: sessionUserId,
+                    items: {
+                        create: verifiedItems.map((item) => ({
+                            productId: item.productId,
+                            name: item.name,
+                            price: item.price,
+                            quantity: item.quantity,
+                            selectedModifiers: item.selectedModifiers,
+                        })),
+                    },
+                },
+                select: { id: true },
+            });
+            createdOrderId = created.id;
+            payableForNotify = payableTotal;
+        });
+    } catch (error: unknown) {
+        const msg =
+            error instanceof Error ? error.message : DEFAULT_ERROR_MESSAGE;
+        const httpStatus =
+            typeof error === "object" &&
+            error !== null &&
+            "httpStatus" in error &&
+            typeof (error as { httpStatus?: unknown }).httpStatus === "number"
+                ? (error as { httpStatus: number }).httpStatus
+                : 500;
+        if (httpStatus >= 400 && httpStatus < 500) {
+            return NextResponse.json({ error: msg }, { status: httpStatus });
+        }
         console.error("Prisma order create error:", error);
         return NextResponse.json(
             { error: DEFAULT_ERROR_MESSAGE },
@@ -313,42 +341,80 @@ export async function POST(request: Request) {
         );
     }
 
-    // 2) Только после успешного создания — уведомление в Telegram (сбой не ломает ответ клиенту)
-    if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+    // ── Telegram-уведомление (сбой не ломает ответ) ──────────────────────────
+    if (telegramNotifyEnabled && TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
         const lines: string[] = [];
 
-        lines.push("🍣 *Новый заказ East West*");
-        lines.push(`📋 Заказ №${createdOrderId}`);
+        lines.push("<b>🍣 Новый заказ East West</b>");
+        lines.push(`<b>📋 Заказ №${createdOrderId}</b>`);
         lines.push("");
-        lines.push(`👤 Имя: *${name}*`);
-        lines.push(`📞 Телефон: \`${phone}\``);
+        lines.push(`<b>👤 Имя:</b> ${escapeHtml(name)}`);
+        lines.push(`<b>📞 Телефон:</b> <code>${escapeHtml(phone)}</code>`);
 
         if (delivery === "delivery") {
-            lines.push(`📍 Доставка: *${address || "адрес не указан"}*`);
+            lines.push(
+                `<b>📍 Доставка:</b> ${escapeHtml(address || "адрес не указан")}`,
+            );
         } else {
-            lines.push("📍 Самовывоз");
+            lines.push("<b>📍</b> <i>Самовывоз</i>");
         }
 
-        lines.push(`💳 Оплата: *${payment === "cash" ? "Наличными" : "Картой"}*`);
+        lines.push(
+            `<b>💳 Оплата:</b> ${payment === "cash" ? "<i>Наличными</i>" : "<i>Картой</i>"}`,
+        );
 
         if (comment) {
             lines.push("");
-            lines.push(`💬 Комментарий: _${comment}_`);
+            lines.push(`<b>💬 Комментарий:</b> <i>${escapeHtml(comment)}</i>`);
         }
 
         lines.push("");
-        lines.push("🧾 Позиции:");
+        lines.push("<b>🧾 Позиции:</b>");
 
         for (const item of verifiedItems) {
+            const modsRaw = item.selectedModifiers;
+            let modSuffix = "";
+            if (Array.isArray(modsRaw) && modsRaw.length > 0) {
+                const labels = modsRaw
+                    .map((m: unknown) =>
+                        m &&
+                        typeof m === "object" &&
+                        "name" in m &&
+                        typeof (m as { name: string }).name === "string"
+                            ? escapeHtml((m as { name: string }).name)
+                            : null,
+                    )
+                    .filter(Boolean);
+                if (labels.length > 0) {
+                    modSuffix = ` <i>(${labels.join(", ")})</i>`;
+                }
+            }
             lines.push(
-                `• ${item.name} × ${item.quantity} — *${(
+                `• ${escapeHtml(item.name)}${modSuffix} × ${item.quantity} — <b>${(
                     item.price * item.quantity
-                ).toLocaleString("ru-RU")} ֏*`,
+                ).toLocaleString("ru-RU")} ֏</b>`,
+            );
+        }
+
+        if (delivery === "delivery" && deliveryFee > 0 && zoneNameSnapshot) {
+            lines.push("");
+            lines.push(
+                `<b>🚚 Доставка (${escapeHtml(zoneNameSnapshot)}):</b> <b>${deliveryFee.toLocaleString("ru-RU")} ֏</b>`,
+            );
+        }
+
+        if (promoCodeRaw && payableForNotify < grandBeforePay) {
+            const disc = grandBeforePay - payableForNotify;
+            lines.push("");
+            lines.push(
+                `<b>🏷️ Промокод</b> <code>${escapeHtml(promoCodeRaw)}</code>: <b>−${disc.toLocaleString("ru-RU")} ֏</b>`,
             );
         }
 
         lines.push("");
-        lines.push(`💰 *Итого: ${verifiedTotal.toLocaleString("ru-RU")} ֏*`);
+        lines.push(
+            `<b>💰 Итого: ${payableForNotify.toLocaleString("ru-RU")} ֏</b>`,
+        );
 
         const text = lines.join("\n");
         const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
@@ -360,7 +426,8 @@ export async function POST(request: Request) {
                 body: JSON.stringify({
                     chat_id: TELEGRAM_CHAT_ID,
                     text,
-                    parse_mode: "Markdown",
+                    parse_mode: "HTML",
+                    reply_markup: buildKitchenStatusKeyboard(createdOrderId),
                 }),
             });
 
@@ -371,8 +438,6 @@ export async function POST(request: Request) {
         } catch (error) {
             console.error("Telegram request failed:", error);
         }
-    } else {
-        console.error("Telegram env is not configured");
     }
 
     return NextResponse.json(

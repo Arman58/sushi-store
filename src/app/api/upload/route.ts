@@ -1,6 +1,8 @@
 import { v2 } from "cloudinary";
 import { NextResponse } from "next/server";
 
+import { verifyAdmin } from "@/lib/verify-admin";
+
 export const runtime = "nodejs";
 
 v2.config({
@@ -11,6 +13,11 @@ v2.config({
 });
 
 export async function POST(request: Request) {
+    const auth = await verifyAdmin(request);
+    if (!auth.ok) {
+        return auth.response;
+    }
+
     let formData: FormData;
     try {
         formData = await request.formData();

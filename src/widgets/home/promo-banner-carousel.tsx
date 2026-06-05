@@ -5,117 +5,130 @@ import "swiper/css/pagination";
 
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
+import Image from "next/image";
+import Link from "next/link";
 import { Autoplay, Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 
-export function PromoBannerCarousel() {
+import { isAllowedProductImageSrc } from "@/shared/lib/product-cover";
+
+export type PromoBannerSlide = {
+    title: string;
+    subtitle: string;
+    gradient: string;
+    href?: string;
+    imageUrl?: string;
+};
+
+type PromoBannerCarouselProps = {
+    slides: PromoBannerSlide[];
+};
+
+function SlideContent({ slide }: { slide: PromoBannerSlide }) {
+    const showImage =
+        slide.imageUrl && isAllowedProductImageSrc(slide.imageUrl);
+
+    return (
+        <Box
+            sx={{
+                height: 160,
+                borderRadius: 4,
+                background: slide.gradient,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                p: 3,
+                gap: 2,
+                overflow: "hidden",
+            }}
+        >
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography color="white" fontWeight={800} variant="h5" noWrap>
+                    {slide.title}
+                </Typography>
+                <Typography
+                    color="rgba(255,255,255,0.9)"
+                    variant="body1"
+                    sx={{
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                    }}
+                >
+                    {slide.subtitle}
+                </Typography>
+            </Box>
+            {showImage && (
+                <Box
+                    sx={{
+                        position: "relative",
+                        width: 112,
+                        height: 112,
+                        borderRadius: 3,
+                        overflow: "hidden",
+                        flexShrink: 0,
+                        bgcolor: "rgba(255,255,255,0.12)",
+                    }}
+                >
+                    <Image
+                        src={slide.imageUrl!}
+                        alt=""
+                        fill
+                        sizes="112px"
+                        style={{ objectFit: "cover" }}
+                    />
+                </Box>
+            )}
+        </Box>
+    );
+}
+
+export function PromoBannerCarousel({ slides }: PromoBannerCarouselProps) {
+    if (slides.length === 0) return null;
+
     return (
         <Swiper
             autoplay={{
-                delay: 3000,
+                delay: 4000,
                 disableOnInteraction: false,
             }}
             breakpoints={{
                 600: {
-                    slidesPerView: 1.4,
+                    slidesPerView: slides.length > 1 ? 1.4 : 1,
                 },
             }}
-            loop
+            loop={slides.length > 1}
             modules={[Autoplay, Pagination]}
             pagination={{ clickable: true }}
             slidesPerView={1.1}
             spaceBetween={16}
             style={{ paddingBottom: 30 }}
         >
-            <SwiperSlide>
-                <Box
-                    sx={{
-                        height: 160,
-                        borderRadius: 4,
-                        background:
-                            "linear-gradient(135deg, #E85D4A 0%, #FFB74D 100%)",
-                        display: "flex",
-                        alignItems: "center",
-                        p: 3,
-                    }}
-                >
-                    <Box>
-                        <Typography
-                            color="white"
-                            fontWeight={800}
-                            variant="h5"
-                        >
-                            Бесплатная доставка
-                        </Typography>
-                        <Typography
-                            color="rgba(255,255,255,0.9)"
-                            variant="body1"
-                        >
-                            При заказе от 5000֏
-                        </Typography>
-                    </Box>
-                </Box>
-            </SwiperSlide>
+            {slides.map((slide, index) => {
+                const inner = <SlideContent slide={slide} />;
+                const key = `${slide.title}-${index}`;
 
-            <SwiperSlide>
-                <Box
-                    sx={{
-                        height: 160,
-                        borderRadius: 4,
-                        background:
-                            "linear-gradient(135deg, #2DB5A0 0%, #2E7D32 100%)",
-                        display: "flex",
-                        alignItems: "center",
-                        p: 3,
-                    }}
-                >
-                    <Box>
-                        <Typography
-                            color="white"
-                            fontWeight={800}
-                            variant="h5"
-                        >
-                            Свежие суши каждый день
-                        </Typography>
-                        <Typography
-                            color="rgba(255,255,255,0.9)"
-                            variant="body1"
-                        >
-                            Готовим утром — привозим днём
-                        </Typography>
-                    </Box>
-                </Box>
-            </SwiperSlide>
+                if (slide.href) {
+                    return (
+                        <SwiperSlide key={key}>
+                            <Box
+                                component={Link}
+                                href={slide.href}
+                                sx={{
+                                    display: "block",
+                                    textDecoration: "none",
+                                    color: "inherit",
+                                }}
+                            >
+                                {inner}
+                            </Box>
+                        </SwiperSlide>
+                    );
+                }
 
-            <SwiperSlide>
-                <Box
-                    sx={{
-                        height: 160,
-                        borderRadius: 4,
-                        background:
-                            "linear-gradient(135deg, #5C6BC0 0%, #9575CD 100%)",
-                        display: "flex",
-                        alignItems: "center",
-                        p: 3,
-                    }}
-                >
-                    <Box>
-                        <Typography
-                            color="white"
-                            fontWeight={800}
-                            variant="h5"
-                        >
-                            Новинка: Острый Лахмаджо
-                        </Typography>
-                        <Typography
-                            color="rgba(255,255,255,0.9)"
-                            variant="body1"
-                        >
-                            Уже в меню — попробуй первым
-                        </Typography>
-                    </Box>
-                </Box>
-            </SwiperSlide>
+                return <SwiperSlide key={key}>{inner}</SwiperSlide>;
+            })}
         </Swiper>
     );
 }

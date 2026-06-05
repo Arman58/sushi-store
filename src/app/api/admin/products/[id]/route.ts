@@ -1,34 +1,12 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
+import {
+    type AdminModifierGroupInput,
+    parseAdminModifierGroupsPayload,
+} from "@/lib/admin-product-modifiers";
 import { prisma } from "@/lib/prisma";
-
-const ADMIN_USER = process.env.ADMIN_USER;
-const ADMIN_PASS = process.env.ADMIN_PASS;
-
-function isAuthorized(request: Request): boolean {
-    if (!ADMIN_USER || !ADMIN_PASS) return false;
-
-    const expected = Buffer.from(`${ADMIN_USER}:${ADMIN_PASS}`).toString("base64");
-    const cookieHeader = request.headers.get("cookie") ?? "";
-    const hasCookie = cookieHeader.includes(`admin_auth=${expected}`);
-
-    if (hasCookie) return true;
-
-    const authHeader = request.headers.get("authorization");
-    if (authHeader?.startsWith("Basic ")) {
-        const token = authHeader.split(" ")[1] ?? "";
-        try {
-            const decoded = Buffer.from(token, "base64").toString("utf-8");
-            const [user, pass] = decoded.split(":");
-            return user === ADMIN_USER && pass === ADMIN_PASS;
-        } catch {
-            return false;
-        }
-    }
-
-    return false;
-}
+import { verifyAdmin } from "@/lib/verify-admin";
 
 function parseProductId(
     request: Request,
@@ -155,10 +133,6 @@ async function parsePutBodyToPrismaUpdate(
         data.category = { connect: { id: v } };
     }
 
-    if (Object.keys(data).length === 0) {
-        return { response: NextResponse.json({ error: "No fields to update" }, { status: 400 }) };
-    }
-
     if (typeof data.slug === "string") {
         const taken = await prisma.product.findFirst({
             where: { slug: data.slug, NOT: { id: productId } },
@@ -209,16 +183,14 @@ function reconcileMainImageForUpdate(
     return { ok: true, mainImage: main };
 }
 
-export async function PUT(
-    request: Request,
-    context: { params: Promise<{ id: string }> },
-) {
-    if (!isAuthorized(request)) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+async function handleProductJsonPartialUpdate(request: Request, params: Promise<{ id: string }>) {
+    const auth = await verifyAdmin(request);
+    if (!auth.ok) {
+        return auth.response;
     }
 
-    const params = await context.params;
-    const idResult = parseProductId(request, params);
+    const resolvedParams = await params;
+    const idResult = parseProductId(request, resolvedParams);
     if (!idResult.ok) return idResult.response;
 
     let body: unknown;
@@ -232,8 +204,28 @@ export async function PUT(
         return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    const parsed = await parsePutBodyToPrismaUpdate(body as Record<string, unknown>, idResult.id);
+    const rawBody = body as Record<string, unknown>;
+    const hasModifierGroupsKey = Object.prototype.hasOwnProperty.call(rawBody, "modifierGroups");
+
+    let replacementGroups: AdminModifierGroupInput[] | undefined;
+    if (hasModifierGroupsKey) {
+        const modsParsed = parseAdminModifierGroupsPayload(rawBody.modifierGroups);
+        if (!modsParsed.ok) {
+            return NextResponse.json({ error: modsParsed.error }, { status: 400 });
+        }
+        replacementGroups = modsParsed.groups;
+    }
+
+    const rest: Record<string, unknown> = { ...rawBody };
+    delete rest.modifierGroups;
+
+    const parsed = await parsePutBodyToPrismaUpdate(rest, idResult.id);
     if ("response" in parsed) return parsed.response;
+
+
+    if (Object.keys(parsed.data).length === 0 && replacementGroups === undefined) {
+        return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+    }
 
     const existing = await prisma.product.findUnique({ where: { id: idResult.id } });
     if (!existing) {
@@ -254,24 +246,196 @@ export async function PUT(
     }
 
     try {
-        const product = await prisma.product.update({
-            where: { id: idResult.id },
-            data: finalData,
-            include: { category: true },
+        const product = await prisma.$transaction(async (tx) => {
+            if (Object.keys(finalData).length > 0) {
+                await tx.product.update({
+                    where: { id: idResult.id },
+                    data: finalData,
+                });
+            }
+
+            if (replacementGroups !== undefined) {
+                await upsertProductModifierGroups(tx, idResult.id, replacementGroups);
+            }
+
+            return tx.product.findUniqueOrThrow({
+                where: { id: idResult.id },
+                include: {
+                    category: true,
+                    modifierGroups: {
+                        orderBy: [{ position: "asc" }, { id: "asc" }],
+                        include: {
+                            modifiers: {
+                                orderBy: [{ position: "asc" }, { id: "asc" }],
+                            },
+                        },
+                    },
+                },
+            });
         });
+
         return NextResponse.json(product);
     } catch (error) {
-        console.error("Admin product PUT error", error);
+        if (
+            typeof error === "object" &&
+            error !== null &&
+            "httpStatus" in error &&
+            typeof (error as { httpStatus?: unknown }).httpStatus === "number"
+        ) {
+            const httpStatus = (error as { httpStatus: number }).httpStatus;
+            const message =
+                error instanceof Error ? error.message : "Bad Request";
+            if (httpStatus >= 400 && httpStatus < 500) {
+                return NextResponse.json({ error: message }, { status: httpStatus });
+            }
+        }
+        console.error("Admin product update error", error);
         return NextResponse.json({ error: "Failed to update product" }, { status: 500 });
     }
+}
+
+/**
+ * Upsert-стратегия для ModifierGroup и вложенных Modifier:
+ *
+ *   1. Удалить группы товара, которых нет в incoming (по id).
+ *   2. Для каждой incoming-группы:
+ *      - id есть → update (с anti-IDOR проверкой productId);
+ *      - id нет  → create.
+ *   3. Внутри группы — то же для опций (anti-IDOR по modifierGroupId).
+ *
+ * onDelete: Cascade в схеме сам подчистит modifiers удалённых групп.
+ */
+async function upsertProductModifierGroups(
+    tx: Prisma.TransactionClient,
+    productId: number,
+    incomingGroups: AdminModifierGroupInput[],
+): Promise<void> {
+    // 1) Удаляем группы, которых больше нет.
+    const incomingGroupIds = incomingGroups
+        .map((g) => g.id)
+        .filter((id): id is number => typeof id === "number");
+
+    await tx.modifierGroup.deleteMany({
+        where: {
+            productId,
+            ...(incomingGroupIds.length > 0
+                ? { id: { notIn: incomingGroupIds } }
+                : {}),
+        },
+    });
+
+    // 2) Для каждой incoming-группы — update либо create.
+    for (let gi = 0; gi < incomingGroups.length; gi++) {
+        const g = incomingGroups[gi];
+        const groupPosition = g.position || gi;
+
+        let groupId: number;
+
+        if (typeof g.id === "number") {
+            // anti-IDOR: убеждаемся, что эта группа принадлежит именно этому товару.
+            const owns = await tx.modifierGroup.findFirst({
+                where: { id: g.id, productId },
+                select: { id: true },
+            });
+            if (!owns) {
+                throw Object.assign(
+                    new Error(`Группа модификаторов id=${String(g.id)} не принадлежит товару`),
+                    { httpStatus: 400 },
+                );
+            }
+            await tx.modifierGroup.update({
+                where: { id: g.id },
+                data: {
+                    name: g.name,
+                    required: g.required,
+                    maxChoices: g.maxChoices,
+                    position: groupPosition,
+                },
+            });
+            groupId = g.id;
+        } else {
+            const created = await tx.modifierGroup.create({
+                data: {
+                    productId,
+                    name: g.name,
+                    required: g.required,
+                    maxChoices: g.maxChoices,
+                    position: groupPosition,
+                },
+                select: { id: true },
+            });
+            groupId = created.id;
+        }
+
+        // 3) Опции внутри группы.
+        const incomingModifierIds = g.modifiers
+            .map((m) => m.id)
+            .filter((id): id is number => typeof id === "number");
+
+        await tx.modifier.deleteMany({
+            where: {
+                modifierGroupId: groupId,
+                ...(incomingModifierIds.length > 0
+                    ? { id: { notIn: incomingModifierIds } }
+                    : {}),
+            },
+        });
+
+        for (let mi = 0; mi < g.modifiers.length; mi++) {
+            const m = g.modifiers[mi];
+            const modPosition = m.position || mi;
+
+            if (typeof m.id === "number") {
+                // anti-IDOR: опция должна принадлежать именно этой группе.
+                const owns = await tx.modifier.findFirst({
+                    where: { id: m.id, modifierGroupId: groupId },
+                    select: { id: true },
+                });
+                if (!owns) {
+                    throw Object.assign(
+                        new Error(
+                            `Опция id=${String(m.id)} не принадлежит группе`,
+                        ),
+                        { httpStatus: 400 },
+                    );
+                }
+                await tx.modifier.update({
+                    where: { id: m.id },
+                    data: {
+                        name: m.name,
+                        priceDelta: m.priceDelta,
+                        position: modPosition,
+                    },
+                });
+            } else {
+                await tx.modifier.create({
+                    data: {
+                        modifierGroupId: groupId,
+                        name: m.name,
+                        priceDelta: m.priceDelta,
+                        position: modPosition,
+                    },
+                });
+            }
+        }
+    }
+}
+
+export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
+    return handleProductJsonPartialUpdate(request, context.params);
+}
+
+export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+    return handleProductJsonPartialUpdate(request, context.params);
 }
 
 export async function DELETE(
     request: Request,
     context: { params: Promise<{ id: string }> },
 ) {
-    if (!isAuthorized(request)) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await verifyAdmin(request);
+    if (!auth.ok) {
+        return auth.response;
     }
 
     const params = await context.params;

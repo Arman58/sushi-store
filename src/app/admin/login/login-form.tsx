@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -17,8 +17,16 @@ type LoginFormProps = {
     disabled?: boolean;
 };
 
+function safeAdminNextPath(next: string | null): string {
+    if (!next || !next.startsWith("/admin/") || next.startsWith("/admin/login")) {
+        return "/admin/orders";
+    }
+    return next;
+}
+
 export function LoginForm({ disabled }: LoginFormProps) {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [serverError, setServerError] = useState<string | null>(null);
 
     const {
@@ -45,7 +53,7 @@ export function LoginForm({ disabled }: LoginFormProps) {
                 throw new Error(text || "Неверный логин или пароль");
             }
 
-            router.replace("/admin/orders");
+            router.replace(safeAdminNextPath(searchParams.get("next")));
         } catch (error) {
             const message =
                 error instanceof Error ? error.message : "Не удалось войти";

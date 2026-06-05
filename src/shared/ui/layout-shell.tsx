@@ -1,6 +1,7 @@
 "use client";
 
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import AppBar from "@mui/material/AppBar";
@@ -11,14 +12,17 @@ import Container from "@mui/material/Container";
 import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
+import { alpha } from "@mui/material/styles";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import CountUp from "react-countup";
 
+import { LoginButton } from "@/features/auth";
 import { useCartStore } from "@/features/cart";
 
 const CartDrawer = dynamic(
@@ -36,45 +40,76 @@ import { tokens } from "./theme";
 function CartHeaderButton() {
     const openCart = useCartStore((s) => s.openCart);
     const items    = useCartStore((s) => s.items);
+    const addToast = useCartStore((s) => s.addToast);
+
+    const [cartIconPulse, setCartIconPulse] = useState(0);
+    const lastAddToastRef = useRef(0);
 
     const { count, total } = useMemo(
         () => ({
             count: items.reduce((s, i) => s + i.quantity, 0),
-            total: items.reduce((s, i) => s + i.price * i.quantity, 0),
+            total: items.reduce(
+                        (s, i) => s + i.calculatedItemPrice * i.quantity,
+                        0,
+                    ),
         }),
         [items],
     );
+
+    useEffect(() => {
+        if (!addToast || addToast === lastAddToastRef.current) return;
+        lastAddToastRef.current = addToast;
+        setCartIconPulse((n) => n + 1);
+    }, [addToast]);
 
     return (
         <ButtonBase
             onClick={openCart}
             aria-label="Корзина"
-            sx={{
+            sx={(theme) => ({
                 display: "flex",
                 alignItems: "center",
                 gap: 1,
                 px: { xs: 1.5, sm: 2 },
                 py: 1,
                 borderRadius: 2,
-                bgcolor: count > 0 ? tokens.orange : tokens.surface,
-                border: `1px solid ${count > 0 ? tokens.orange : "#f0f0f0"}`,
-                color: count > 0 ? "#fff" : tokens.textSecondary,
+                bgcolor: count > 0 ? tokens.brand : "background.paper",
+                border: "1px solid",
+                borderColor: count > 0 ? tokens.brand : theme.palette.divider,
+                color:
+                    count > 0 ? theme.palette.primary.contrastText : "text.secondary",
                 transition: "all 0.18s ease",
                 "&:hover": {
-                    bgcolor: count > 0 ? tokens.orangeHi : tokens.surfaceHi,
+                    bgcolor: count > 0 ? tokens.brandHi : "action.hover",
                     transform: "translateY(-1px)",
                     boxShadow:
                         count > 0
-                            ? "0 1px 4px rgba(0,0,0,0.08)"
-                            : "0 1px 3px rgba(0,0,0,0.06)",
+                            ? `0 1px 4px ${alpha(theme.palette.common.black, 0.08)}`
+                            : `0 1px 3px ${alpha(theme.palette.common.black, 0.06)}`,
                 },
                 "&:active": { transform: "scale(0.97)" },
-            }}
+            })}
         >
-            <ShoppingBagOutlinedIcon
-                id="cart-icon"
-                sx={{ fontSize: 18 }}
-            />
+            <motion.span
+                key={cartIconPulse}
+                style={{ display: "inline-flex", lineHeight: 0 }}
+                initial={{ scale: 1 }}
+                animate={
+                    cartIconPulse === 0
+                        ? { scale: 1 }
+                        : { scale: [1, 1.2, 1] }
+                }
+                transition={
+                    cartIconPulse === 0
+                        ? { duration: 0 }
+                        : { duration: 0.2, times: [0, 0.4, 1], ease: "easeOut" }
+                }
+            >
+                <ShoppingBagOutlinedIcon
+                    id="cart-icon"
+                    sx={{ fontSize: 18 }}
+                />
+            </motion.span>
 
             {count > 0 ? (
                 <>
@@ -83,40 +118,80 @@ function CartHeaderButton() {
                             display: { xs: "none", sm: "flex" },
                             alignItems: "center",
                             justifyContent: "center",
-                            width: 20,
+                            minWidth: 20,
                             height: 20,
                             borderRadius: "50%",
-                            bgcolor: "rgba(255,255,255,0.25)",
+                            bgcolor: (theme) =>
+                                alpha(theme.palette.primary.contrastText, 0.28),
                             fontSize: 11,
                             fontWeight: 800,
+                            px: 0.5,
                         }}
                     >
-                        {count}
+                        <AnimatePresence mode="popLayout" initial={false}>
+                            <motion.span
+                                key={count}
+                                initial={{ opacity: 0, y: -5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 5 }}
+                                transition={{ duration: 0.16 }}
+                                style={{
+                                    fontVariantNumeric: "tabular-nums",
+                                    lineHeight: 1,
+                                }}
+                            >
+                                {count}
+                            </motion.span>
+                        </AnimatePresence>
                     </Box>
                     <Typography
+                        component="span"
                         variant="body2"
                         fontWeight={700}
                         sx={{
                             fontSize: { xs: 12, sm: 13 },
-                            display: { xs: "none", sm: "block" },
+                            display: { xs: "none", sm: "inline-flex" },
+                            fontVariantNumeric: "tabular-nums",
+                            alignItems: "baseline",
                         }}
                     >
-                        <CountUp
-                            end={total}
-                            duration={0.5}
-                            separator=" "
-                            decimals={0}
-                        />{" "}
-                        ֏
+                        <motion.span
+                            key={total}
+                            layout
+                            initial={{ scale: 0.96, opacity: 0.8 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ duration: 0.2 }}
+                            style={{ display: "inline-block" }}
+                        >
+                            <CountUp
+                                end={total}
+                                duration={0.45}
+                                separator=" "
+                                decimals={0}
+                            />
+                        </motion.span>
+                        &nbsp;֏
                     </Typography>
-                    {/* Mobile: just show count */}
-                    <Typography
-                        variant="caption"
-                        fontWeight={800}
-                        sx={{ display: { xs: "block", sm: "none" } }}
+                    <Box
+                        sx={{
+                            display: { xs: "block", sm: "none" },
+                            fontSize: 12,
+                            fontWeight: 800,
+                            fontVariantNumeric: "tabular-nums",
+                        }}
                     >
-                        {count}
-                    </Typography>
+                        <AnimatePresence mode="popLayout" initial={false}>
+                            <motion.span
+                                key={count}
+                                initial={{ opacity: 0, y: -4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 4 }}
+                                transition={{ duration: 0.16 }}
+                            >
+                                {count}
+                            </motion.span>
+                        </AnimatePresence>
+                    </Box>
                 </>
             ) : (
                 <Typography
@@ -136,14 +211,30 @@ type LayoutShellProps = { children: ReactNode };
 
 export function LayoutShell({ children }: LayoutShellProps) {
     const pathname = usePathname();
-    const showClientChrome = !pathname.startsWith("/admin");
-    const addToast        = useCartStore((state) => state.addToast);
-    const setAddToast     = useCartStore((state) => state.setAddToast);
-    const lastAddedTitle  = useCartStore((state) => state.lastAddedTitle);
+    const isAdminRoute =
+        typeof pathname === "string" && pathname.startsWith("/admin");
 
-    const addToCartMessage = lastAddedTitle
-        ? `${lastAddedTitle} добавлен в корзину`
-        : "Добавлено в корзину";
+    const addToast           = useCartStore((state) => state.addToast);
+    const setAddToast        = useCartStore((state) => state.setAddToast);
+    const lastAddedTitle     = useCartStore((state) => state.lastAddedTitle);
+    const appToastMessage    = useCartStore((state) => state.appToastMessage);
+    const appToastSeverity   = useCartStore((state) => state.appToastSeverity);
+
+    /** Админка — отдельный layout (src/app/admin), без витринного хедера и корзины. */
+    if (isAdminRoute) {
+        return <>{children}</>;
+    }
+
+    const isAppToast = Boolean(appToastMessage);
+    const isErrorToast = appToastSeverity === "error";
+
+    const snackbarMessage = isAppToast
+        ? appToastMessage
+        : lastAddedTitle
+          ? `${lastAddedTitle} добавлен в корзину`
+          : "Добавлено в корзину";
+
+    const snackbarDuration = isAppToast ? 3500 : 1500;
 
     return (
         <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
@@ -193,8 +284,9 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                     height: 36,
                                     borderRadius: 1.5,
                                     overflow: "hidden",
-                                    bgcolor: tokens.surface,
-                                    border: "1px solid #f0f0f0",
+                                    bgcolor: "background.paper",
+                                    border: "1px solid",
+                                    borderColor: "divider",
                                     flexShrink: 0,
                                     position: "relative",
                                 }}
@@ -216,7 +308,7 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                         lineHeight: 1,
                                         letterSpacing: -0.3,
                                         background:
-                                            "linear-gradient(135deg, #E85D4A 0%, #FF8A65 100%)",
+                                            `linear-gradient(135deg, ${tokens.brand} 0%, ${tokens.brandHi} 100%)`,
                                         backgroundClip: "text",
                                         WebkitBackgroundClip: "text",
                                         color: "transparent",
@@ -243,12 +335,13 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                 px: 2,
                                 py: 0.75,
                                 borderRadius: 999,
-                                bgcolor: tokens.surface,
-                                border: "1px solid #f0f0f0",
+                                bgcolor: "background.paper",
+                                border: "1px solid",
+                                borderColor: "divider",
                             }}
                         >
                             <LocationOnOutlinedIcon
-                                sx={{ fontSize: 15, color: tokens.orange }}
+                                sx={{ fontSize: 15, color: "primary.dark" }}
                             />
                             <Typography variant="body2" fontWeight={600} sx={{ fontSize: 13 }}>
                                 Ереван
@@ -266,6 +359,7 @@ export function LayoutShell({ children }: LayoutShellProps) {
                             {/* Nav links — desktop */}
                             <Box sx={{ display: { xs: "none", sm: "flex" }, gap: 0.5 }}>
                                 {[
+                                    { href: "/",             label: "Главная" },
                                     { href: "/menu",         label: "Меню" },
                                     { href: "/order-status", label: "Мой заказ" },
                                 ].map(({ href, label }) => (
@@ -292,16 +386,16 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                 ))}
                             </Box>
 
-                            {showClientChrome ? <CartHeaderButton /> : null}
+                            <LoginButton />
+                            <CartHeaderButton />
                         </Stack>
                     </Container>
                 </Toolbar>
             </AppBar>
 
-            {showClientChrome ? (
-                <Snackbar
+            <Snackbar
                     open={addToast !== 0}
-                    autoHideDuration={1500}
+                    autoHideDuration={snackbarDuration}
                     onClose={() => setAddToast(0)}
                     anchorOrigin={{ vertical: "top", horizontal: "right" }}
                     sx={{
@@ -313,19 +407,25 @@ export function LayoutShell({ children }: LayoutShellProps) {
                         right: 16,
                         zIndex: 1400,
                         pointerEvents: "none",
-                        maxWidth: 320,
+                        maxWidth: 360,
                     }}
                     ContentProps={{
-                        sx: {
-                            bgcolor: "#ffffff",
+                        sx: (theme) => ({
+                            bgcolor: isErrorToast
+                                ? alpha(theme.palette.error.main, 0.08)
+                                : "background.paper",
                             color: "text.primary",
                             borderRadius: 3,
-                            boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+                            border: "1px solid",
+                            borderColor: isErrorToast
+                                ? alpha(theme.palette.error.main, 0.35)
+                                : alpha(theme.palette.divider, 0.9),
+                            boxShadow: `0 8px 24px ${alpha(theme.palette.common.black, 0.15)}`,
                             p: 1.5,
                             display: "flex",
                             alignItems: "center",
                             gap: 1.5,
-                        },
+                        }),
                     }}
                     message={
                         <Box
@@ -335,14 +435,24 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                 gap: 1.5,
                             }}
                         >
-                            <CheckCircleOutlineIcon
-                                sx={{ color: "#2DB5A0", fontSize: 20 }}
-                            />
-                            <Box component="span">{addToCartMessage}</Box>
+                            {isErrorToast ? (
+                                <ErrorOutlineIcon
+                                    sx={{ color: "error.main", fontSize: 20 }}
+                                />
+                            ) : (
+                                <CheckCircleOutlineIcon
+                                    sx={{
+                                        color: isAppToast
+                                            ? "success.main"
+                                            : "secondary.main",
+                                        fontSize: 20,
+                                    }}
+                                />
+                            )}
+                            <Box component="span">{snackbarMessage}</Box>
                         </Box>
                     }
                 />
-            ) : null}
 
             {/* Page content */}
             <Box component="main" sx={{ pb: { xs: 10, sm: 4 } }}>
@@ -351,7 +461,7 @@ export function LayoutShell({ children }: LayoutShellProps) {
 
             {/* Global overlays */}
             <CartDrawer />
-            {showClientChrome ? <MobileBottomNav /> : null}
+            <MobileBottomNav />
         </Box>
     );
 }

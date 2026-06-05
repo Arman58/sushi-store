@@ -46,8 +46,8 @@ const HERO_KF = `
   100% { transform: translateX(-50%); }
 }
 @keyframes hero-badge-pulse {
-  0%, 100% { box-shadow: 0 0 0 0   ${tokens.orange}44; }
-  50%       { box-shadow: 0 0 0 8px ${tokens.orange}00; }
+  0%, 100% { box-shadow: 0 0 0 0   ${tokens.brand}44; }
+  50%       { box-shadow: 0 0 0 8px ${tokens.brand}00; }
 }
 `;
 
@@ -123,14 +123,14 @@ export function HeroSection() {
             overflow: "hidden",
           }}
         >
-          {/* Orb 1 — warm orange left */}
+          {/* Orb 1 — fresh green left */}
           <Box
             sx={{
               position: "absolute",
               width: "55%",
               paddingTop: "55%",
               borderRadius: "50%",
-              background: `radial-gradient(circle, ${tokens.orange}55 0%, transparent 70%)`,
+              background: `radial-gradient(circle, ${tokens.brand}55 0%, transparent 70%)`,
               top: "-10%",
               left: "-15%",
               animation: "hero-orb-1 9s ease-in-out infinite",
@@ -221,8 +221,8 @@ export function HeroSection() {
               py: 0.6,
               mb: 2.5,
               borderRadius: 999,
-              bgcolor: tokens.orangeDim,
-              border: `1px solid ${tokens.orange}44`,
+              bgcolor: tokens.brandDim,
+              border: `1px solid ${tokens.brand}44`,
               animation: "hero-badge-pulse 3s ease-in-out infinite",
             }}
           >
@@ -231,14 +231,14 @@ export function HeroSection() {
                 width: 6,
                 height: 6,
                 borderRadius: "50%",
-                bgcolor: tokens.orange,
-                boxShadow: `0 0 6px ${tokens.orange}`,
+                bgcolor: tokens.brand,
+                boxShadow: `0 0 6px ${tokens.brand}`,
               }}
             />
             <Typography
               variant="caption"
               fontWeight={700}
-              sx={{ color: tokens.orange, letterSpacing: 0.5, fontSize: 11 }}
+              sx={{ color: "primary.dark", letterSpacing: 0.5, fontSize: 11 }}
             >
               🔥 Акция дня — доставка за 45 мин
             </Typography>
@@ -281,7 +281,7 @@ export function HeroSection() {
                 lineHeight: 1.05,
                 letterSpacing: { xs: -1.5, md: -2 },
                 fontSize: { xs: "2rem", sm: "2.4rem", md: "2.8rem" },
-                background: `linear-gradient(90deg, ${tokens.orange} 0%, ${tokens.orangeHi} 55%, #FFCC88 100%)`,
+                background: `linear-gradient(90deg, ${tokens.brand} 0%, ${tokens.brandHi} 55%, #B8F5CC 100%)`,
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
@@ -366,7 +366,7 @@ export function HeroSection() {
           >
             {STATS.map((stat, i) => (
               <Stack key={i} direction="row" spacing={0.75} alignItems="center">
-                <Box sx={{ color: tokens.orange }}>{stat.icon}</Box>
+                <Box sx={{ color: tokens.brand }}>{stat.icon}</Box>
                 <Typography
                   variant="body2"
                   fontWeight={600}
@@ -446,7 +446,7 @@ export function HeroSection() {
                   width: 4,
                   height: 4,
                   borderRadius: "50%",
-                  bgcolor: tokens.orange + "88",
+                  bgcolor: tokens.brand + "88",
                 }}
               />
             </Box>

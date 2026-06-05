@@ -18,28 +18,61 @@ generator client {
 
 
 model Category {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   name      String
-  slug      String   @unique
+  slug      String    @unique
+  /** Порядок на витрине (меньше — выше). */
+  position  Int       @default(0)
+  isActive  Boolean   @default(true)
   products  Product[]
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 }
 
 model Product {
-  id          Int       @id @default(autoincrement())
-  name        String
-  slug        String    @unique
-  description String?
-  composition String?
-  price       Int
-  weight      Int?
-  images      Json      @default("[]")
+  id             Int             @id @default(autoincrement())
+  name           String
+  slug           String          @unique
+  description    String?
+  composition    String?
+  price          Int
+  weight         Int?
+  images         Json            @default("[]")
   /** Обложка на витрине; должна совпадать с одним из URL в `images`, иначе игнорируется при сохранении. */
-  mainImage   String?
-  isActive    Boolean   @default(true)
-  category    Category? @relation(fields: [categoryId], references: [id])
-  categoryId  Int?
-  createdAt   DateTime  @default(now())
+  mainImage      String?
+  /** На витрине: если false — гость не видит товар в меню/на главной; при заказе из сохранённой корзины — понятная ошибка. */
+  isActive       Boolean         @default(true)
+  category       Category?       @relation(fields: [categoryId], references: [id])
+  categoryId     Int?
+  createdAt      DateTime        @default(now())
+  modifierGroups ModifierGroup[]
+}
+
+/** Группа опций к товару (размер, добавки). maxChoices: 0 = без верхней границы. */
+model ModifierGroup {
+  id         Int        @id @default(autoincrement())
+  name       String
+  productId  Int
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  required   Boolean    @default(false)
+  maxChoices Int        @default(1)
+  /** Порядок вывода группы в UI (по возрастанию). */
+  position   Int        @default(0)
+  modifiers  Modifier[]
+
+  @@index([productId])
+}
+
+model Modifier {
+  id              Int           @id @default(autoincrement())
+  name            String
+  /** Дельта к цене товара. Может быть 0 или отрицательной (скидка за «без сыра» и т.п.). */
+  priceDelta      Int           @default(0)
+  modifierGroupId Int
+  modifierGroup   ModifierGroup @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+  /** Порядок вывода опции внутри группы (по возрастанию). */
+  position        Int           @default(0)
+
+  @@index([modifierGroupId])
 }
 
 
@@ -55,25 +88,91 @@ enum DeliveryType {
 
 enum OrderStatus {
   NEW
-  PREPARING
+  IN_WORK
   DELIVERING
   DONE
   CANCELLED
 }
 
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+model PromoCode {
+  id              Int           @id @default(autoincrement())
+  code            String        @unique
+  discountType    DiscountType
+  discountValue   Int
+  minOrderAmount  Int?
+  maxUsages       Int?
+  timesUsed       Int           @default(0)
+  expiresAt       DateTime?
+  isActive        Boolean       @default(true)
+  orders          Order[]
+}
+
+
+model DeliveryZone {
+  id             Int      @id @default(autoincrement())
+  /** Порядок в админке и на витрине (меньше — выше) */
+  position       Int      @default(0)
+  name           String
+  deliveryPrice  Int
+  minOrderAmount Int
+  isActive       Boolean  @default(true)
+  orders         Order[]
+}
+
 model Order {
-  id         Int           @id @default(autoincrement())
-  createdAt  DateTime      @default(now())
-  name       String
-  phone      String
-  address    String?
-  comment    String?
-  payment    PaymentMethod
-  delivery   DeliveryType
-  status     OrderStatus   @default(NEW)
-  totalPrice Int
+  id               Int           @id @default(autoincrement())
+  createdAt        DateTime      @default(now())
+  name             String
+  phone            String
+  address          String?
+  comment          String?
+  payment          PaymentMethod
+  delivery         DeliveryType
+  status           OrderStatus   @default(NEW)
+  /** Сумма позиций (без доставки), на момент оформления */
+  subtotalBeforeDiscount Int @default(0)
+  /** Скидка по промокоду (минорные единицы); 0 если промокода не было */
+  discountAmount   Int           @default(0)
+  totalPrice       Int
+  deliveryZoneId   Int?
+  deliveryZone     DeliveryZone? @relation(fields: [deliveryZoneId], references: [id])
+  /** Название зоны на момент заказа */
+  deliveryZoneName String?
+  /** Стоимость доставки (минорные единицы); 0 для самовывоза */
+  deliveryPrice    Int           @default(0)
+
+  promoCodeId Int?
+  promoCode   PromoCode? @relation(fields: [promoCodeId], references: [id], onDelete: SetNull)
+
+  /** Покупатель (NextAuth). null для гостей и старых заказов до миграции. */
+  userId Int?
+  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   items      OrderItem[]
+
+  @@index([userId])
+}
+
+/**
+ * Покупатель сайта. Email + пароль (NextAuth Credentials, JWT).
+ * Lazy Verification: emailVerified null не блокирует заказы.
+ * Телефон указывается на чекауте.
+ */
+model User {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  passwordHash  String
+  emailVerified DateTime?
+  phone         String?   @unique
+  name          String?
+  image         String?
+  createdAt     DateTime  @default(now())
+  orders        Order[]
 }
 
 model OrderItem {
@@ -87,5 +186,6 @@ model OrderItem {
   name      String
   price     Int
   quantity  Int
+  /** Снимок выбранных модификаторов на момент заказа: [{ id, name, priceDelta }] */
+  selectedModifiers Json @default("[]")
 }
-

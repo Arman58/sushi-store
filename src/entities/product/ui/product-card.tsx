@@ -3,15 +3,17 @@
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import Box from "@mui/material/Box";
+import Card from "@mui/material/Card";
 import IconButton from "@mui/material/IconButton";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import Image from "next/image";
-import { memo, useState } from "react";
+import { alpha } from "@mui/material/styles";
+import { memo } from "react";
 
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
-import { skeletonShimmerSx, tokens } from "@/shared/ui/theme";
+import { ProductCoverImage } from "@/shared/ui/product-cover-image";
+import { tokens } from "@/shared/ui/theme";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,6 +41,9 @@ export type ProductCardProps = {
 
 const fmt = new Intl.NumberFormat("ru-RU");
 
+const cardHoverShadow =
+    `0 8px 24px ${alpha(tokens.textPrimary, 0.08)}, 0 22px 52px ${alpha(tokens.textPrimary, 0.14)}`;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const ProductCard = memo(function ProductCard({
@@ -53,8 +58,6 @@ export const ProductCard = memo(function ProductCard({
     onDecrease,
     imagePriority = false,
 }: ProductCardProps) {
-    const [imgLoaded, setImgLoaded] = useState(false);
-
     const imageUrl = getProductCoverUrl({ images, mainImage });
 
     const hasInCart = quantity > 0;
@@ -66,20 +69,24 @@ export const ProductCard = memo(function ProductCard({
 
     return (
         <Box sx={{ width: "100%", height: "100%" }}>
-            <Box
+            <Card
+                elevation={1}
                 sx={{
                     width: "100%",
                     height: "100%",
-                    borderRadius: 3,
-                    overflow: "hidden",
-                    bgcolor: "#fff",
-                    boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
                     display: "flex",
                     flexDirection: "column",
+                    borderRadius: `${tokens.radiusCardLg}px`,
+                    overflow: "hidden",
                     cursor: "pointer",
-                    transition: "box-shadow 0.28s ease",
-                    "&:hover": {
-                        boxShadow: "0 4px 16px rgba(0,0,0,0.07)",
+                    bgcolor: "background.paper",
+                    transition:
+                        "transform 200ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1)",
+                    "@media (hover: hover) and (pointer: fine)": {
+                        "&:hover": {
+                            transform: "translateY(-4px)",
+                            boxShadow: cardHoverShadow,
+                        },
                     },
                 }}
             >
@@ -92,33 +99,10 @@ export const ProductCard = memo(function ProductCard({
                         bgcolor: tokens.surfaceHi,
                     }}
                 >
-                    {!imgLoaded && (
-                        <Skeleton
-                            variant="rectangular"
-                            sx={{
-                                position: "absolute",
-                                inset: 0,
-                                height: "100%",
-                                transform: "none",
-                                ...skeletonShimmerSx,
-                            }}
-                        />
-                    )}
-
-                    <Image
-                        src={imageUrl || "/placeholder.png"}
+                    <ProductCoverImage
+                        src={imageUrl}
                         alt={name}
-                        fill
-                        sizes="(max-width: 600px) 50vw, 25vw"
-                        style={{
-                            objectFit: "cover",
-                            width: "100%",
-                            height: "100%",
-                        }}
-                        {...(imagePriority
-                            ? { priority: true, fetchPriority: "high" as const }
-                            : { loading: "lazy" })}
-                        onLoad={() => setImgLoaded(true)}
+                        priority={imagePriority}
                     />
                 </Box>
 
@@ -185,6 +169,7 @@ export const ProductCard = memo(function ProductCard({
                                 color: "text.primary",
                                 letterSpacing: -0.02,
                                 minWidth: 0,
+                                fontVariantNumeric: "tabular-nums",
                             }}
                         >
                             {fmt.format(price)}&thinsp;֏
@@ -283,10 +268,9 @@ export const ProductCard = memo(function ProductCard({
                                         width: 40,
                                         height: 40,
                                         backgroundColor: "primary.main",
-                                        color: "#fff",
+                                        color: "primary.contrastText",
                                         borderRadius: "50%",
-                                        boxShadow:
-                                            "0 2px 8px rgba(232, 93, 74, 0.35)",
+                                        boxShadow: `0 2px 8px ${alpha(tokens.brand, 0.35)}`,
                                         transition:
                                             "background-color 0.18s ease, box-shadow 0.18s ease",
                                         "&:hover": {
@@ -297,13 +281,15 @@ export const ProductCard = memo(function ProductCard({
                                         },
                                     }}
                                 >
-                                    <AddIcon sx={{ fontSize: 22, color: "#fff" }} />
+                                    <AddIcon
+                                        sx={{ fontSize: 22, color: "primary.contrastText" }}
+                                    />
                                 </IconButton>
                             </Box>
                         )}
                     </Box>
                 </Box>
-            </Box>
+            </Card>
         </Box>
     );
 });
@@ -312,25 +298,26 @@ export const ProductCard = memo(function ProductCard({
 
 export function ProductCardSkeleton() {
     return (
-        <Box
-            sx={{
-                width: "100%",
-                height: "100%",
-                borderRadius: 3,
-                overflow: "hidden",
-                bgcolor: "#fff",
-                boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
-                display: "flex",
-                flexDirection: "column",
-            }}
-        >
+        <Box sx={{ width: "100%", height: "100%" }}>
+            <Card
+                elevation={1}
+                sx={{
+                    width: "100%",
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    borderRadius: `${tokens.radiusCardLg}px`,
+                    overflow: "hidden",
+                    bgcolor: "background.paper",
+                }}
+            >
             <Skeleton
                 variant="rectangular"
+                animation="wave"
                 sx={{
                     width: "100%",
                     aspectRatio: "1 / 1",
                     transform: "none",
-                    ...skeletonShimmerSx,
                 }}
             />
             <Box
@@ -346,8 +333,9 @@ export function ProductCardSkeleton() {
             >
                 <Skeleton
                     variant="text"
+                    animation="wave"
                     width="88%"
-                    sx={{ borderRadius: 1, ...skeletonShimmerSx }}
+                    sx={{ borderRadius: 1 }}
                 />
                 <Box
                     sx={{
@@ -359,17 +347,19 @@ export function ProductCardSkeleton() {
                 >
                     <Skeleton
                         variant="text"
+                        animation="wave"
                         width="40%"
-                        sx={{ borderRadius: 1, ...skeletonShimmerSx }}
+                        sx={{ borderRadius: 1 }}
                     />
                     <Skeleton
                         variant="circular"
+                        animation="wave"
                         width={40}
                         height={40}
-                        sx={{ ...skeletonShimmerSx }}
                     />
                 </Box>
             </Box>
+            </Card>
         </Box>
     );
 }

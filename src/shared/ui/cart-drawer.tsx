@@ -3,43 +3,35 @@
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import HighlightOffOutlinedIcon from "@mui/icons-material/HighlightOffOutlined";
 import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
 import RemoveIcon from "@mui/icons-material/Remove";
 import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
-import Drawer from "@mui/material/Drawer";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
+import { alpha, useTheme } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CountUp from "react-countup";
 
-import { useCartStore } from "@/features/cart";
+import { ModifiersList, useCartStore } from "@/features/cart";
+import { ApiError, validatePromo } from "@/shared/api";
+import { sanitizeProductImageSrc } from "@/shared/lib/product-cover";
+
+import { EmptyCart } from "./empty-cart";
 import { tokens } from "./theme";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
 const DRAWER_WIDTH = 420;
+const MotionBox = motion.create(Box);
 const MIN_ORDER = 3_000;
-
-const PROMO_CODES: Record<string, number> = {
-    EASTWEST10: 10,
-    SUSHI20: 20,
-};
-
-const UPSELL = [
-    { id: 9997, name: "Картофель фри", price: 900, emoji: "🍟" },
-    { id: 9998, name: "Кола 0.5 л", price: 500, emoji: "🥤" },
-    { id: 9999, name: "Соус Спайси", price: 300, emoji: "🌶" },
-];
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
@@ -51,87 +43,191 @@ export function CartDrawer() {
     const isCartOpen = useCartStore((s) => s.isCartOpen);
     const closeCart = useCartStore((s) => s.closeCart);
     const items = useCartStore((s) => s.items);
-    const addItem = useCartStore((s) => s.addItem);
     const removeItem = useCartStore((s) => s.removeItem);
     const setItemQty = useCartStore((s) => s.setItemQuantity);
     const clearCart = useCartStore((s) => s.clear);
+    const appliedPromoCode = useCartStore((s) => s.appliedPromoCode);
+    const setAppliedPromoCode = useCartStore((s) => s.setAppliedPromoCode);
 
     const [promoInput, setPromoInput] = useState("");
-    const [promoCode, setPromoCode] = useState("");
     const [promoError, setPromoError] = useState("");
+    const [promoDiscount, setPromoDiscount] = useState(0);
+    const [promoApplying, setPromoApplying] = useState(false);
 
-    const discountPct = PROMO_CODES[promoCode] ?? 0;
-    const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
-    const discount = Math.round((subtotal * discountPct) / 100);
-    const total = subtotal - discount;
+    const hasItems = items.length > 0;
+
+    const subtotal = items.reduce(
+        (s, i) => s + i.calculatedItemPrice * i.quantity,
+        0,
+    );
+    const total = Math.max(0, subtotal - promoDiscount);
     const count = items.reduce((s, i) => s + i.quantity, 0);
     const belowMin = total < MIN_ORDER && items.length > 0;
 
-    const applyPromo = () => {
-        const code = promoInput.trim().toUpperCase();
-        if (PROMO_CODES[code] !== undefined) {
-            setPromoCode(code);
+    useEffect(() => {
+        if (appliedPromoCode) setPromoInput(appliedPromoCode);
+    }, [appliedPromoCode]);
+
+    useEffect(() => {
+        let cancelled = false;
+        async function sync() {
+            if (!appliedPromoCode || !hasItems) {
+                if (!cancelled) setPromoDiscount(0);
+                return;
+            }
+            try {
+                const res = await validatePromo({
+                    code: appliedPromoCode,
+                    cartAmount: subtotal,
+                    deliveryAmount: 0,
+                });
+                if (!cancelled) {
+                    setPromoDiscount(res.discountAmount);
+                    setPromoError("");
+                }
+            } catch (e) {
+                if (!cancelled) {
+                    setPromoDiscount(0);
+                    setAppliedPromoCode(null);
+                    setPromoError(
+                        e instanceof ApiError
+                            ? e.message || "Промокод недействителен"
+                            : "Не удалось проверить промокод",
+                    );
+                }
+            }
+        }
+        void sync();
+        return () => {
+            cancelled = true;
+        };
+    }, [appliedPromoCode, hasItems, subtotal, setAppliedPromoCode]);
+
+    const applyPromo = async () => {
+        setPromoError("");
+        const code = promoInput.trim().replace(/\s+/g, "").toUpperCase();
+        if (!code) {
+            setPromoError("Введите промокод");
+            return;
+        }
+        if (!hasItems) return;
+        setPromoApplying(true);
+        try {
+            await validatePromo({
+                code,
+                cartAmount: subtotal,
+                deliveryAmount: 0,
+            });
+            setAppliedPromoCode(code);
+            setPromoInput(code);
             setPromoError("");
-            setPromoInput("");
-        } else {
-            setPromoCode("");
-            setPromoError("Промокод не найден");
+        } catch (e) {
+            setAppliedPromoCode(null);
+            setPromoError(
+                e instanceof ApiError
+                    ? e.message || "Промокод не найден"
+                    : "Не удалось проверить промокод",
+            );
+        } finally {
+            setPromoApplying(false);
         }
     };
 
+    const clearPromo = () => {
+        setAppliedPromoCode(null);
+        setPromoInput("");
+        setPromoError("");
+        setPromoDiscount(0);
+    };
+
+    const theme = useTheme();
+
+    useEffect(() => {
+        if (!isCartOpen) return;
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        return () => {
+            document.body.style.overflow = prevOverflow;
+        };
+    }, [isCartOpen]);
+
+    useEffect(() => {
+        if (!isCartOpen) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") closeCart();
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [isCartOpen, closeCart]);
+
+    const drawerTransition = {
+        duration: 0.28,
+        ease: [0.25, 1, 0.5, 1] as [number, number, number, number],
+    };
+
     return (
-        <Drawer
-            anchor="right"
-            open={isCartOpen}
-            onClose={closeCart}
-            disableScrollLock={false}
-            ModalProps={{ keepMounted: true }}
-            PaperProps={{
-                sx: {
-                    width: { xs: "100vw", sm: DRAWER_WIDTH },
-                    maxWidth: "100vw",
-                    height: "100%",
-                    maxHeight: "100dvh",
-                    display: "flex",
-                    flexDirection: "column",
-                    overflowX: "hidden",
-                    overflowY: "auto",
-                    overscrollBehaviorY: "contain",
-                    WebkitOverflowScrolling: "touch",
-                    bgcolor: "#FFFFFF",
-                    borderLeft: "1px solid #f0f0f0",
-                    boxShadow: "none",
-                },
-            }}
-            slotProps={{
-                backdrop: {
-                    sx: {
-                        backdropFilter: "blur(6px)",
-                        bgcolor: "rgba(0,0,0,0.35)",
-                    },
-                },
-            }}
-        >
-            <AnimatePresence mode="wait">
-                {isCartOpen ? (
-                    <motion.div
-                        key="cart-drawer-panel"
-                        initial={{ opacity: 0, y: 50 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 50 }}
-                        transition={{
-                            type: "spring",
-                            damping: 25,
-                            stiffness: 300,
+        <AnimatePresence>
+            {isCartOpen ? (
+                <>
+                    <MotionBox
+                        key="cart-drawer-backdrop"
+                        role="presentation"
+                        onClick={closeCart}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
+                        sx={{
+                            position: "fixed",
+                            inset: 0,
+                            zIndex: theme.zIndex.drawer - 1,
+                            bgcolor: (t) => alpha(t.palette.common.black, 0.35),
+                            backdropFilter: "blur(6px)",
+                            WebkitBackdropFilter: "blur(6px)",
                         }}
-                        style={{
+                    />
+                    <MotionBox
+                        key="cart-drawer-panel"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="cart-drawer-title"
+                        initial={{ x: "100%" }}
+                        animate={{ x: 0 }}
+                        exit={{ x: "100%" }}
+                        transition={drawerTransition}
+                        sx={{
+                            position: "fixed",
+                            top: 0,
+                            right: 0,
+                            bottom: 0,
+                            width: { xs: "100vw", sm: DRAWER_WIDTH },
+                            maxWidth: "100vw",
                             height: "100%",
+                            maxHeight: "100dvh",
                             display: "flex",
                             flexDirection: "column",
-                            overflow: "hidden",
-                            minHeight: 0,
+                            overflowX: "hidden",
+                            overflowY: "auto",
+                            overscrollBehaviorY: "contain",
+                            WebkitOverflowScrolling: "touch",
+                            bgcolor: "background.paper",
+                            borderLeft: "1px solid",
+                            borderColor: "divider",
+                            boxShadow: (t) =>
+                                `-16px 0 48px ${alpha(t.palette.common.black, 0.14)}`,
+                            zIndex: theme.zIndex.drawer,
                         }}
                     >
+            <LayoutGroup id="cart-drawer">
+                <Box
+                    sx={{
+                        height: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        overflow: "hidden",
+                        minHeight: 0,
+                    }}
+                >
                         {/* ── Header ── */}
                         <Box
                             sx={{
@@ -140,9 +236,10 @@ export function CartDrawer() {
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "space-between",
-                                borderBottom: "1px solid #f0f0f0",
+                                borderBottom: "1px solid",
+                                borderColor: "divider",
                                 flexShrink: 0,
-                                bgcolor: "#FFFFFF",
+                                bgcolor: "background.paper",
                             }}
                         >
                             <Stack
@@ -151,42 +248,71 @@ export function CartDrawer() {
                                 alignItems="center"
                             >
                                 <ShoppingBagOutlinedIcon
-                                    sx={{ color: tokens.orange, fontSize: 22 }}
+                                    sx={{ color: tokens.brand, fontSize: 22 }}
                                 />
-                                <Typography variant="h6" fontWeight={700}>
+                                <Typography id="cart-drawer-title" variant="h6" fontWeight={700}>
                                     Корзина
                                 </Typography>
                                 {count > 0 && (
-                                    <Box
-                                        sx={{
-                                            px: 1,
-                                            py: 0.25,
-                                            borderRadius: 999,
-                                            bgcolor: tokens.orangeDim,
-                                            border: `1px solid ${tokens.orange}44`,
+                                    <motion.div
+                                        layout
+                                        key="cart-badge"
+                                        initial={{ scale: 0.85 }}
+                                        animate={{ scale: 1 }}
+                                        transition={{
+                                            type: "spring",
+                                            stiffness: 520,
+                                            damping: 28,
                                         }}
+                                        style={{ display: "inline-flex" }}
                                     >
-                                        <Typography
-                                            variant="caption"
-                                            fontWeight={700}
-                                            sx={{ color: tokens.orange }}
+                                        <Box
+                                            sx={{
+                                                px: 1,
+                                                py: 0.25,
+                                                borderRadius: 999,
+                                                bgcolor: tokens.brandDim,
+                                                border: `1px solid ${tokens.brand}44`,
+                                            }}
                                         >
-                                            {count}
-                                        </Typography>
-                                    </Box>
+                                            <AnimatePresence mode="popLayout" initial={false}>
+                                                <motion.div
+                                                    key={count}
+                                                    initial={{ opacity: 0, y: -6 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: 6 }}
+                                                    transition={{ duration: 0.18 }}
+                                                    style={{ display: "flex" }}
+                                                >
+                                                    <Typography
+                                                        variant="caption"
+                                                        fontWeight={700}
+                                                        sx={{
+                                                            color: tokens.brand,
+                                                            fontVariantNumeric:
+                                                                "tabular-nums",
+                                                        }}
+                                                    >
+                                                        {count}
+                                                    </Typography>
+                                                </motion.div>
+                                            </AnimatePresence>
+                                        </Box>
+                                    </motion.div>
                                 )}
                             </Stack>
                             <IconButton
                                 onClick={closeCart}
                                 size="small"
                                 sx={{
-                                    color: tokens.textSecondary,
-                                    bgcolor: "#FFFFFF",
-                                    border: "1px solid #f0f0f0",
+                                    color: "text.secondary",
+                                    bgcolor: "background.paper",
+                                    border: "1px solid",
+                                    borderColor: "divider",
                                     "&:hover": {
-                                        bgcolor: tokens.surfaceHi,
-                                        color: tokens.textPrimary,
-                                        borderColor: tokens.borderHi,
+                                        bgcolor: "action.hover",
+                                        color: "text.primary",
+                                        borderColor: "divider",
                                     },
                                 }}
                             >
@@ -196,41 +322,7 @@ export function CartDrawer() {
 
                         {/* ── Empty state ── */}
                         {items.length === 0 && (
-                            <Box
-                                sx={{
-                                    flex: 1,
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    gap: 2,
-                                    px: 3,
-                                }}
-                            >
-                                <Typography sx={{ fontSize: 56 }}>
-                                    🛒
-                                </Typography>
-                                <Typography variant="h6" fontWeight={700}>
-                                    Корзина пуста
-                                </Typography>
-                                <Typography
-                                    variant="body2"
-                                    color="text.secondary"
-                                    textAlign="center"
-                                >
-                                    Добавьте блюда из меню, чтобы оформить заказ
-                                </Typography>
-                                <Button
-                                    variant="contained"
-                                    size="large"
-                                    component={Link}
-                                    href="/menu"
-                                    onClick={closeCart}
-                                    sx={{ mt: 1 }}
-                                >
-                                    Открыть меню
-                                </Button>
-                            </Box>
+                            <EmptyCart onNavigate={closeCart} />
                         )}
 
                         {/* ── Item list ── */}
@@ -250,14 +342,15 @@ export function CartDrawer() {
                                     <Stack spacing={1.5}>
                                         {items.map((item) => (
                                             <Box
-                                                key={item.productId}
+                                                key={item.cartItemId}
                                                 sx={{
                                                     display: "flex",
                                                     gap: 2,
                                                     p: 1.5,
                                                     borderRadius: 2,
-                                                    bgcolor: "#FAFAF8",
-                                                    border: "1px solid #f0f0f0",
+                                                    bgcolor: "grey.100",
+                                                    border: "1px solid",
+                                                    borderColor: "divider",
                                                     boxShadow: "none",
                                                     transition:
                                                         "border-color 0.15s",
@@ -280,9 +373,15 @@ export function CartDrawer() {
                                                             tokens.surfaceHi,
                                                     }}
                                                 >
-                                                    {item.image ? (
+                                                    {sanitizeProductImageSrc(
+                                                        item.image,
+                                                    ) ? (
                                                         <Image
-                                                            src={item.image}
+                                                            src={
+                                                                sanitizeProductImageSrc(
+                                                                    item.image,
+                                                                )!
+                                                            }
                                                             alt={item.name}
                                                             fill
                                                             sizes="56px"
@@ -324,13 +423,21 @@ export function CartDrawer() {
                                                     >
                                                         {item.name}
                                                     </Typography>
+                                                    {item.selectedModifiers.length > 0 && (
+                                                        <ModifiersList
+                                                            modifiers={item.selectedModifiers}
+                                                            sx={{ mb: 0.5 }}
+                                                        />
+                                                    )}
                                                     <Typography
                                                         variant="caption"
                                                         sx={{
                                                             color: tokens.textSecondary,
+                                                            fontVariantNumeric:
+                                                                "tabular-nums",
                                                         }}
                                                     >
-                                                        {fmt.format(item.price)}{" "}
+                                                        {fmt.format(item.calculatedItemPrice)}{" "}
                                                         ֏ / шт.
                                                     </Typography>
 
@@ -350,7 +457,7 @@ export function CartDrawer() {
                                                                 size="small"
                                                                 onClick={() =>
                                                                     setItemQty(
-                                                                        item.productId,
+                                                                        item.cartItemId,
                                                                         item.quantity -
                                                                             1,
                                                                     )
@@ -359,8 +466,9 @@ export function CartDrawer() {
                                                                     width: 44,
                                                                     height: 44,
                                                                     bgcolor:
-                                                                        "#FFFFFF",
-                                                                    border: "1px solid #f0f0f0",
+                                                                        "background.paper",
+                                                                    border: "1px solid",
+                                                                    borderColor: "divider",
                                                                     borderRadius:
                                                                         "50%",
                                                                     color: tokens.textSecondary,
@@ -368,10 +476,10 @@ export function CartDrawer() {
                                                                         "none",
                                                                     "&:hover": {
                                                                         borderColor:
-                                                                            tokens.orange,
-                                                                        color: tokens.orange,
+                                                                            tokens.brand,
+                                                                        color: tokens.brand,
                                                                         bgcolor:
-                                                                            tokens.orangeDim,
+                                                                            tokens.brandDim,
                                                                     },
                                                                 }}
                                                             >
@@ -396,7 +504,7 @@ export function CartDrawer() {
                                                                 size="small"
                                                                 onClick={() =>
                                                                     setItemQty(
-                                                                        item.productId,
+                                                                        item.cartItemId,
                                                                         item.quantity +
                                                                             1,
                                                                     )
@@ -405,17 +513,17 @@ export function CartDrawer() {
                                                                     width: 44,
                                                                     height: 44,
                                                                     bgcolor:
-                                                                        tokens.orange,
+                                                                        "primary.main",
                                                                     borderRadius:
                                                                         "50%",
-                                                                    color: "#fff",
+                                                                    color:
+                                                                        "primary.contrastText",
                                                                     boxShadow:
                                                                         "none",
                                                                     "&:hover": {
                                                                         bgcolor:
-                                                                            tokens.orangeHi,
-                                                                        boxShadow:
-                                                                            "0 1px 4px rgba(232,93,74,0.35)",
+                                                                            tokens.brandHi,
+                                                                        boxShadow: `0 1px 4px ${alpha(tokens.brand, 0.35)}`,
                                                                     },
                                                                 }}
                                                             >
@@ -436,11 +544,13 @@ export function CartDrawer() {
                                                                 variant="body2"
                                                                 fontWeight={700}
                                                                 sx={{
-                                                                    color: tokens.orange,
+                                                                    color: tokens.brand,
+                                                                    fontVariantNumeric:
+                                                                        "tabular-nums",
                                                                 }}
                                                             >
                                                                 {fmt.format(
-                                                                    item.price *
+                                                                    item.calculatedItemPrice *
                                                                         item.quantity,
                                                                 )}{" "}
                                                                 ֏
@@ -449,18 +559,19 @@ export function CartDrawer() {
                                                                 size="small"
                                                                 onClick={() =>
                                                                     removeItem(
-                                                                        item.productId,
+                                                                        item.cartItemId,
                                                                     )
                                                                 }
                                                                 sx={{
                                                                     width: 44,
                                                                     height: 44,
                                                                     bgcolor:
-                                                                        "#FFFFFF",
-                                                                    border: "1px solid #f0f0f0",
+                                                                        "background.paper",
+                                                                    border: "1px solid",
+                                                                    borderColor: "divider",
                                                                     borderRadius:
                                                                         "50%",
-                                                                    color: tokens.textSecondary,
+                                                                    color: "text.secondary",
                                                                     boxShadow:
                                                                         "none",
                                                                     "&:hover": {
@@ -484,94 +595,38 @@ export function CartDrawer() {
                                         ))}
                                     </Stack>
 
-                                    {/* ── Upsell ── */}
-                                    <Box
-                                        sx={{
-                                            mt: 3,
-                                            p: 2,
-                                            borderRadius: 2,
-                                            bgcolor: "#FAFAF8",
-                                            border: "1px solid #f0f0f0",
-                                            boxShadow: "none",
-                                        }}
-                                    >
-                                        <Typography
-                                            variant="caption"
-                                            fontWeight={700}
-                                            sx={{
-                                                color: tokens.orange,
-                                                display: "block",
-                                                mb: 1.5,
-                                            }}
-                                        >
-                                            🎁 Добавьте к заказу
-                                        </Typography>
-                                        <Stack
-                                            direction="row"
-                                            spacing={1}
-                                            flexWrap="wrap"
-                                            sx={{ gap: 1 }}
-                                        >
-                                            {UPSELL.map((u) => (
-                                                <Chip
-                                                    key={u.id}
-                                                    label={`${u.emoji} ${u.name} +${fmt.format(u.price)} ֏`}
-                                                    onClick={() =>
-                                                        addItem({
-                                                            productId: u.id,
-                                                            name: u.name,
-                                                            price: u.price,
-                                                        })
-                                                    }
-                                                    clickable
-                                                    size="small"
-                                                    variant="outlined"
-                                                    sx={{
-                                                        borderColor:
-                                                            tokens.border,
-                                                        color: tokens.textSecondary,
-                                                        fontWeight: 600,
-                                                        "&:hover": {
-                                                            borderColor:
-                                                                tokens.orange,
-                                                            color: tokens.orange,
-                                                            bgcolor:
-                                                                tokens.orangeDim,
-                                                        },
-                                                    }}
-                                                />
-                                            ))}
-                                        </Stack>
-                                    </Box>
-
                                     {/* ── Promo code ── */}
                                     <Box sx={{ mt: 2 }}>
                                         <TextField
                                             value={promoInput}
-                                            onChange={(e) =>
+                                            onChange={(e) => {
                                                 setPromoInput(
                                                     e.target.value.toUpperCase(),
-                                                )
-                                            }
-                                            onKeyDown={(e) =>
-                                                e.key === "Enter" &&
-                                                applyPromo()
-                                            }
+                                                );
+                                                if (promoError) setPromoError("");
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter") {
+                                                    void applyPromo();
+                                                }
+                                            }}
                                             placeholder="Промокод"
                                             size="small"
                                             fullWidth
+                                            disabled={!hasItems || promoApplying}
                                             error={Boolean(promoError)}
                                             helperText={
                                                 promoError ||
-                                                (promoCode
-                                                    ? `✓ Скидка ${discountPct}% применена`
+                                                (appliedPromoCode && !promoError
+                                                    ? `Применён: ${appliedPromoCode}`
                                                     : undefined)
                                             }
                                             FormHelperTextProps={{
                                                 sx: {
-                                                    color: promoCode
-                                                        ? tokens.green
-                                                        : undefined,
+                                                    color:
+                                                        appliedPromoCode && !promoError
+                                                            ? tokens.green
+                                                            : undefined,
                                                 },
                                             }}
                                             InputProps={{
@@ -586,19 +641,35 @@ export function CartDrawer() {
                                                     </InputAdornment>
                                                 ),
                                                 endAdornment: (
-                                                    <InputAdornment position="end">
+                                                    <InputAdornment
+                                                        position="end"
+                                                        sx={{ gap: 0.5 }}
+                                                    >
+                                                        {appliedPromoCode ? (
+                                                            <IconButton
+                                                                size="small"
+                                                                aria-label="Удалить промокод"
+                                                                onClick={clearPromo}
+                                                                edge="end"
+                                                                sx={{
+                                                                    color: tokens.textSecondary,
+                                                                }}
+                                                            >
+                                                                <HighlightOffOutlinedIcon fontSize="small" />
+                                                            </IconButton>
+                                                        ) : null}
                                                         <Button
                                                             size="small"
-                                                            onClick={applyPromo}
+                                                            onClick={() => void applyPromo()}
+                                                            disabled={!hasItems || promoApplying}
                                                             sx={{
-                                                                minWidth:
-                                                                    "auto",
+                                                                minWidth: "auto",
                                                                 px: 1.5,
                                                                 py: 0.5,
                                                                 fontSize: 12,
                                                             }}
                                                         >
-                                                            Применить
+                                                            {promoApplying ? "…" : "Применить"}
                                                         </Button>
                                                     </InputAdornment>
                                                 ),
@@ -616,9 +687,10 @@ export function CartDrawer() {
                                             xs: "calc(16px + env(safe-area-inset-bottom))",
                                             sm: 3,
                                         },
-                                        borderTop: "1px solid #f0f0f0",
+                                        borderTop: "1px solid",
+                                        borderColor: "divider",
                                         flexShrink: 0,
-                                        bgcolor: "#FFFFFF",
+                                        bgcolor: "background.paper",
                                         boxShadow: "none",
                                     }}
                                 >
@@ -634,11 +706,17 @@ export function CartDrawer() {
                                             >
                                                 Товары
                                             </Typography>
-                                            <Typography variant="body2">
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    fontVariantNumeric:
+                                                        "tabular-nums",
+                                                }}
+                                            >
                                                 {fmt.format(subtotal)} ֏
                                             </Typography>
                                         </Stack>
-                                        {discountPct > 0 && (
+                                        {promoDiscount > 0 && appliedPromoCode && (
                                             <Stack
                                                 direction="row"
                                                 justifyContent="space-between"
@@ -647,14 +725,18 @@ export function CartDrawer() {
                                                     variant="body2"
                                                     sx={{ color: tokens.green }}
                                                 >
-                                                    Скидка {discountPct}%
+                                                    Скидка ({appliedPromoCode})
                                                 </Typography>
                                                 <Typography
                                                     variant="body2"
-                                                    sx={{ color: tokens.green }}
+                                                    sx={{
+                                                        color: tokens.green,
+                                                        fontVariantNumeric:
+                                                            "tabular-nums",
+                                                    }}
                                                     fontWeight={600}
                                                 >
-                                                    −{fmt.format(discount)} ֏
+                                                    −{fmt.format(promoDiscount)} ֏
                                                 </Typography>
                                             </Stack>
                                         )}
@@ -670,23 +752,28 @@ export function CartDrawer() {
                                             </Typography>
                                             <Typography
                                                 variant="body2"
-                                                sx={{ color: tokens.green }}
-                                                fontWeight={600}
+                                                color="text.secondary"
+                                                fontWeight={500}
                                             >
-                                                Бесплатно
+                                                при оформлении
                                             </Typography>
                                         </Stack>
                                     </Stack>
 
-                                    <Divider
-                                        sx={{ mb: 2, borderColor: "#f0f0f0" }}
-                                    />
+                                    <Divider sx={{ mb: 2 }} />
 
                                     {/* Total */}
                                     <Stack
                                         direction="row"
                                         justifyContent="space-between"
                                         sx={{ mb: 2 }}
+                                        component={motion.div}
+                                        layout
+                                        transition={{
+                                            type: "spring",
+                                            stiffness: 420,
+                                            damping: 34,
+                                        }}
                                     >
                                         <Typography
                                             variant="subtitle1"
@@ -694,22 +781,32 @@ export function CartDrawer() {
                                         >
                                             Итого
                                         </Typography>
-                                        <Typography
-                                            variant="subtitle1"
-                                            fontWeight={800}
-                                            sx={{
-                                                color: tokens.orange,
-                                                fontSize: "1.1rem",
-                                            }}
+                                        <motion.div
+                                            key={total}
+                                            layout
+                                            initial={{ scale: 0.94, opacity: 0.75 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            transition={{ duration: 0.2 }}
                                         >
-                                            <CountUp
-                                                end={total}
-                                                duration={0.5}
-                                                separator=" "
-                                                decimals={0}
-                                            />{" "}
-                                            ֏
-                                        </Typography>
+                                            <Typography
+                                                variant="subtitle1"
+                                                fontWeight={800}
+                                                sx={{
+                                                    color: tokens.brand,
+                                                    fontSize: "1.1rem",
+                                                    fontVariantNumeric:
+                                                        "tabular-nums",
+                                                }}
+                                            >
+                                                <CountUp
+                                                    end={total}
+                                                    duration={0.45}
+                                                    separator=" "
+                                                    decimals={0}
+                                                />{" "}
+                                                ֏
+                                            </Typography>
+                                        </motion.div>
                                     </Stack>
 
                                     {/* Min order warning */}
@@ -719,8 +816,10 @@ export function CartDrawer() {
                                             sx={{
                                                 display: "block",
                                                 mb: 1.5,
-                                                color: tokens.orangeHi,
+                                                color: tokens.brandHi,
                                                 textAlign: "center",
+                                                fontVariantNumeric:
+                                                    "tabular-nums",
                                             }}
                                         >
                                             Минимальный заказ{" "}
@@ -765,9 +864,11 @@ export function CartDrawer() {
                                 </Box>
                             </>
                         )}
-                    </motion.div>
-                ) : null}
-            </AnimatePresence>
-        </Drawer>
+                </Box>
+            </LayoutGroup>
+                    </MotionBox>
+                </>
+            ) : null}
+        </AnimatePresence>
     );
 }

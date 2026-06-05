@@ -1,0 +1,77 @@
+"use client";
+
+import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
+import { useState } from "react";
+
+import { showAppToast } from "@/shared/lib/show-app-toast";
+
+type ProfileEmailVerificationAlertProps = {
+    email: string;
+};
+
+export function ProfileEmailVerificationAlert({
+    email,
+}: ProfileEmailVerificationAlertProps) {
+    const [loading, setLoading] = useState(false);
+
+    const handleResend = async () => {
+        setLoading(true);
+
+        try {
+            const res = await fetch("/api/auth/resend-verification", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+            });
+
+            const data = (await res.json().catch(() => null)) as {
+                error?: string;
+                ok?: boolean;
+            } | null;
+
+            if (!res.ok) {
+                const msg =
+                    data?.error ?? "Не удалось отправить письмо. Попробуйте позже.";
+                showAppToast(msg, "error");
+                return;
+            }
+
+            showAppToast("Письмо отправлено на ваш email");
+        } catch {
+            showAppToast("Сеть недоступна. Попробуйте ещё раз.", "error");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <Alert
+            severity="warning"
+            sx={{ mb: 3, borderRadius: 2 }}
+            action={
+                <Button
+                    color="inherit"
+                    size="small"
+                    disabled={loading}
+                    sx={{
+                        textTransform: "none",
+                        fontWeight: 600,
+                        whiteSpace: "nowrap",
+                        minWidth: 140,
+                    }}
+                    onClick={() => void handleResend()}
+                >
+                    {loading ? (
+                        <CircularProgress size={18} color="inherit" />
+                    ) : (
+                        "Отправить письмо повторно"
+                    )}
+                </Button>
+            }
+        >
+            Подтвердите вашу почту, чтобы защитить аккаунт
+        </Alert>
+    );
+}

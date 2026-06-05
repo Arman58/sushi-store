@@ -1,129 +1,181 @@
-// prisma/seed.ts
-import { PrismaClient, Prisma } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
+
+import { REAL_ARMENIA_ZONES } from "./ensure-delivery-zones";
 
 const prisma = new PrismaClient();
 
 async function main() {
-    console.log("🌱 Seeding East-West project...");
+    console.log("🌱 Seeding East West Delivery…");
 
-    // на всякий случай чистим (порядок важен из-за связей)
+    await prisma.orderItem.deleteMany();
+    await prisma.order.deleteMany();
     await prisma.product.deleteMany();
     await prisma.category.deleteMany();
+    await prisma.deliveryZone.deleteMany();
+    await prisma.promoCode.deleteMany();
 
     const categoriesData = [
+        { slug: "pizza", name: "Пицца" },
         { slug: "sushi", name: "Суши и роллы" },
         { slug: "shawarma", name: "Шаурма" },
-        { slug: "lahmajo", name: "Лахмаджо" },
-        { slug: "pizza", name: "Пицца" },
-        { slug: "snacks", name: "Стрипсы и фри" },
+        { slug: "drinks", name: "Напитки" },
+        { slug: "snacks", name: "Закуски" },
     ];
 
     const categories = await Promise.all(
-        categoriesData.map((c) =>
+        categoriesData.map((c, position) =>
             prisma.category.create({
                 data: {
                     name: c.name,
                     slug: c.slug,
+                    position,
+                    isActive: true,
                 },
-            })
-        )
+            }),
+        ),
     );
 
-    // удобная мапа slug → id
     const categoryIdBySlug = Object.fromEntries(
-        categories.map((c) => [c.slug, c.id] as const)
+        categories.map((c) => [c.slug, c.id] as const),
     );
 
-    const productsData = [
+    /** Без внешних URL — обложки через локальный плейсхолдер на витрине. */
+    const emptyImages = [] as Prisma.InputJsonArray;
+    const noMainImage = null;
+
+    const productsData: Array<{
+        name: string;
+        slug: string;
+        description: string;
+        composition: string;
+        price: number;
+        weight: number;
+        categorySlug: string;
+    }> = [
         {
-            name: "California Roll",
-            slug: "california-roll",
-            description: "Классический ролл с лососем и авокадо",
-            composition:
-                "Рис для суши, нори, лосось слабосолёный, авокадо, огурец, кунжут, соевый соус",
-            price: 4500,
-            weight: 220,
-            images: [
-                "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=500&h=500&fit=crop",
-            ] as Prisma.InputJsonArray,
-            categorySlug: "sushi",
-        },
-        {
-            name: "Spicy Tuna Roll",
-            slug: "spicy-tuna-roll",
-            description: "Острый ролл с тунцом",
-            composition:
-                "Рис, нори, тунец, острый майонезный соус, зелёный лук, соус шрирача",
-            price: 4800,
-            weight: 230,
-            images: [
-                "https://images.unsplash.com/photo-1611143669185-af2241765c1a?w=500&h=500&fit=crop",
-            ] as Prisma.InputJsonArray,
-            categorySlug: "sushi",
-        },
-        {
-            name: "Chicken Shawarma",
-            slug: "chicken-shawarma",
-            description: "Курица, соус, овощи, лаваш",
-            composition:
-                "Куриное филе гриль, лаваш пшеничный, чесночный соус, томаты, огурцы, капуста, зелень",
-            price: 3200,
-            weight: 300,
-            images: [
-                "https://images.unsplash.com/photo-1561651821-34c3462e85cc?w=500&h=500&fit=crop",
-            ] as Prisma.InputJsonArray,
-            categorySlug: "shawarma",
-        },
-        {
-            name: "Lahmajo Classic",
-            slug: "lahmajo-classic",
-            description: "Тонкое тесто, фарш, специи",
-            composition:
-                "Тонкое тесто, говяжий фарш, помидоры, лук, паприка, чеснок, зира, мята",
-            price: 2000,
-            weight: 180,
-            images: [
-                "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=500&h=500&fit=crop",
-            ] as Prisma.InputJsonArray,
-            categorySlug: "lahmajo",
-        },
-        {
-            name: "East-West Pizza",
-            slug: "east-west-pizza",
-            description: "Микс восточных специй и моцареллы",
-            composition:
-                "Тесто, моцарелла, томатный соус, ветчина, ананасы, паприка, орегано",
-            price: 6500,
-            weight: 500,
-            images: [
-                "https://images.unsplash.com/photo-1513104890138-7c749f3fd1e2?w=500&h=500&fit=crop",
-            ] as Prisma.InputJsonArray,
+            name: "Пепперони",
+            slug: "pepperoni",
+            description: "Классическая пицца с пепперони и моцареллой",
+            composition: "Тесто, томатный соус, моцарелла, пепперони, орегано",
+            price: 5800,
+            weight: 520,
             categorySlug: "pizza",
         },
         {
-            name: "Chicken Strips",
-            slug: "chicken-strips",
-            description: "Хрустящие куриные стрипсы",
-            composition:
-                "Куриное филе в панировке, яйцо, мука, специи, обжарка во фритюре",
-            price: 3500,
-            weight: 250,
-            images: [
-                "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=500&h=500&fit=crop",
-            ] as Prisma.InputJsonArray,
+            name: "Маргарита",
+            slug: "margarita",
+            description: "Томатный соус, моцарелла, базилик",
+            composition: "Тесто, томатный соус, моцарелла, свежий базилик",
+            price: 5200,
+            weight: 480,
+            categorySlug: "pizza",
+        },
+        {
+            name: "Четыре сыра",
+            slug: "four-cheese",
+            description: "Микс сыров на тонком тесте",
+            composition: "Тесто, сливочный соус, моцарелла, горгонзола, пармезан, чеддер",
+            price: 6200,
+            weight: 500,
+            categorySlug: "pizza",
+        },
+        {
+            name: "Филадельфия",
+            slug: "philadelphia",
+            description: "Ролл с лососем и сливочным сыром",
+            composition: "Рис, нори, лосось, сливочный сыр, огурец",
+            price: 4900,
+            weight: 240,
+            categorySlug: "sushi",
+        },
+        {
+            name: "Калифорния",
+            slug: "california",
+            description: "Ролл с крабом и авокадо",
+            composition: "Рис, нори, краб, авокадо, огурец, кунжут",
+            price: 4500,
+            weight: 220,
+            categorySlug: "sushi",
+        },
+        {
+            name: "Дракон",
+            slug: "dragon-roll",
+            description: "Запечённый ролл с угрём и соусом",
+            composition: "Рис, нори, угорь, авокадо, соус унаги, кунжут",
+            price: 5500,
+            weight: 260,
+            categorySlug: "sushi",
+        },
+        {
+            name: "Классическая шаурма",
+            slug: "shawarma-classic",
+            description: "Курица, овощи, чесночный соус в лаваше",
+            composition: "Куриное филе, лаваш, томаты, огурцы, капуста, чесночный соус",
+            price: 3200,
+            weight: 320,
+            categorySlug: "shawarma",
+        },
+        {
+            name: "Острая шаурма",
+            slug: "shawarma-spicy",
+            description: "Курица со спайси-соусом",
+            composition: "Куриное филе, лаваш, овощи, соус спайси, зелень",
+            price: 3400,
+            weight: 330,
+            categorySlug: "shawarma",
+        },
+        {
+            name: "Coca-Cola 0,5 л",
+            slug: "coca-cola-05",
+            description: "Газированный напиток",
+            composition: "Coca-Cola, 0,5 л",
+            price: 600,
+            weight: 500,
+            categorySlug: "drinks",
+        },
+        {
+            name: "Jermuk 0,5 л",
+            slug: "jermuk-05",
+            description: "Минеральная вода",
+            composition: "Jermuk, стекло 0,5 л",
+            price: 500,
+            weight: 500,
+            categorySlug: "drinks",
+        },
+        {
+            name: "Айран 0,3 л",
+            slug: "ayran-03",
+            description: "Кисломолочный напиток",
+            composition: "Айран, 0,3 л",
+            price: 400,
+            weight: 300,
+            categorySlug: "drinks",
+        },
+        {
+            name: "Картофель фри",
+            slug: "french-fries",
+            description: "Хрустящая картошка фри",
+            composition: "Картофель, масло, соль",
+            price: 1500,
+            weight: 150,
             categorySlug: "snacks",
         },
         {
-            name: "French Fries",
-            slug: "french-fries",
-            description: "Классическая картошка фри",
-            composition:
-                "Картофель, растительное масло, соль",
-            price: 1500,
-            weight: 150,
-            images: [
-                "https://images.unsplash.com/photo-1573080496219-bb080dd4d9d8?w=500&h=500&fit=crop",
-            ] as Prisma.InputJsonArray,
+            name: "Крылья BBQ",
+            slug: "bbq-wings",
+            description: "Куриные крылья в соусе BBQ",
+            composition: "Куриные крылья, соус BBQ, специи",
+            price: 3800,
+            weight: 280,
+            categorySlug: "snacks",
+        },
+        {
+            name: "Наггетсы",
+            slug: "chicken-nuggets",
+            description: "Куриные наггетсы с соусом",
+            composition: "Куриное филе в панировке, соус на выбор",
+            price: 2900,
+            weight: 200,
             categorySlug: "snacks",
         },
     ];
@@ -137,14 +189,65 @@ async function main() {
                 composition: p.composition,
                 price: p.price,
                 weight: p.weight,
-                images: p.images,
+                images: emptyImages,
+                mainImage: noMainImage,
                 isActive: true,
                 categoryId: categoryIdBySlug[p.categorySlug],
             },
         });
     }
 
-    console.log("✅ Seeding completed successfully!");
+    const pepperoni = await prisma.product.findUnique({
+        where: { slug: "pepperoni" },
+    });
+    if (pepperoni) {
+        await prisma.modifierGroup.create({
+            data: {
+                productId: pepperoni.id,
+                name: "Размер",
+                required: true,
+                maxChoices: 1,
+                position: 0,
+                modifiers: {
+                    create: [
+                        { name: "30 см", priceDelta: 0, position: 0 },
+                        { name: "45 см", priceDelta: 300, position: 1 },
+                    ],
+                },
+            },
+        });
+        await prisma.modifierGroup.create({
+            data: {
+                productId: pepperoni.id,
+                name: "Тесто",
+                required: true,
+                maxChoices: 1,
+                position: 1,
+                modifiers: {
+                    create: [
+                        { name: "Тонкое", priceDelta: 0, position: 0 },
+                        { name: "Пышное", priceDelta: 0, position: 1 },
+                    ],
+                },
+            },
+        });
+    }
+
+    await prisma.promoCode.create({
+        data: {
+            code: "WELCOME",
+            discountType: "PERCENTAGE",
+            discountValue: 10,
+            isActive: true,
+        },
+    });
+
+    await prisma.deliveryZone.createMany({
+        data: REAL_ARMENIA_ZONES.map((z) => ({ ...z })),
+    });
+    console.log(`✅ Зоны доставки: ${REAL_ARMENIA_ZONES.length}`);
+
+    console.log("✅ Seeding completed.");
 }
 
 main()

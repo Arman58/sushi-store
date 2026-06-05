@@ -13,7 +13,7 @@ function etaMinutesForStatus(status: OrderStatus): number {
     switch (status) {
         case OrderStatus.NEW:
             return 60;
-        case OrderStatus.PREPARING:
+        case OrderStatus.IN_WORK:
             return 40;
         case OrderStatus.DELIVERING:
             return 20;
@@ -34,11 +34,14 @@ function buildOrderStatusPayload(order: OrderWithItems) {
         totalPrice: order.totalPrice,
         createdAt: order.createdAt,
         address: order.address,
+        deliveryZoneName: order.deliveryZoneName,
+        deliveryPrice: order.deliveryPrice,
         items: order.items.map((item: OrderItem) => ({
             id: item.id,
             name: item.name,
             quantity: item.quantity,
             price: item.price,
+            selectedModifiers: item.selectedModifiers,
         })),
         etaMinutes: etaMinutesForStatus(order.status),
     };

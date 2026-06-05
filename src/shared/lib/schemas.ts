@@ -28,28 +28,67 @@ export const phoneSchema = z
 
 // ─── Checkout ─────────────────────────────────────────────────────────────────
 
+function checkoutPhoneDigits(value: string): string {
+    return normalizeArmenianPhoneDigits(value);
+}
+
 export const checkoutSchema = z
     .object({
         name: z
             .string()
             .min(1, "Введите имя")
             .min(2, "Минимум 2 символа"),
-        phone: phoneSchema,
+        /** Для авторизованных — подставляется из профиля; не уходит в заказ. */
+        email: z
+            .string()
+            .default("")
+            .refine(
+                (v) => v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+                "Некорректный email",
+            ),
+        /** Обязателен при доставке; при самовывозе — опционально. */
+        phone: z.string().default(""),
         delivery: z.enum(["delivery", "pickup"]),
         address: z.string().default(""),
         comment: z.string().default(""),
         payment: z.enum(["cash", "card"]).default("cash"),
+        /** Обязательна при delivery; для pickup не используется */
+        deliveryZoneId: z.number().int().positive().optional(),
         hp: z.string().default(""),   // honeypot — must stay empty
     })
     .superRefine((data, ctx) => {
-        if (data.delivery === "delivery" && (!data.address || data.address.trim().length < 5)) {
+        const phoneDigits = checkoutPhoneDigits(data.phone);
+
+        if (data.delivery === "delivery") {
+            if (phoneDigits.length !== 8) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ["phone"],
+                    message: "Укажите телефон для связи с курьером",
+                });
+            }
+            if (!data.address || data.address.trim().length < 5) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.too_small,
+                    minimum: 5,
+                    type: "string",
+                    inclusive: true,
+                    path: ["address"],
+                    message: "Укажите адрес доставки",
+                });
+            }
+            if (data.deliveryZoneId == null || data.deliveryZoneId <= 0) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ["deliveryZoneId"],
+                    message: "Выберите зону доставки",
+                });
+            }
+        } else if (data.phone.trim().length > 0 && phoneDigits.length !== 8) {
             ctx.addIssue({
-                code: z.ZodIssueCode.too_small,
-                minimum: 5,
-                type: "string",
-                inclusive: true,
-                path: ["address"],
-                message: "Укажите адрес доставки",
+                code: z.ZodIssueCode.custom,
+                path: ["phone"],
+                message: "Введите корректный номер (например, XX XX XX XX)",
             });
         }
     });

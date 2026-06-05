@@ -2,33 +2,7 @@ import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
-
-const ADMIN_USER = process.env.ADMIN_USER;
-const ADMIN_PASS = process.env.ADMIN_PASS;
-
-function isAuthorized(request: Request): boolean {
-    if (!ADMIN_USER || !ADMIN_PASS) return false;
-
-    const expected = Buffer.from(`${ADMIN_USER}:${ADMIN_PASS}`).toString("base64");
-    const cookieHeader = request.headers.get("cookie") ?? "";
-    const hasCookie = cookieHeader.includes(`admin_auth=${expected}`);
-
-    if (hasCookie) return true;
-
-    const authHeader = request.headers.get("authorization");
-    if (authHeader?.startsWith("Basic ")) {
-        const token = authHeader.split(" ")[1] ?? "";
-        try {
-            const decoded = Buffer.from(token, "base64").toString("utf-8");
-            const [user, pass] = decoded.split(":");
-            return user === ADMIN_USER && pass === ADMIN_PASS;
-        } catch {
-            return false;
-        }
-    }
-
-    return false;
-}
+import { verifyAdmin } from "@/lib/verify-admin";
 
 const FK_MESSAGE = "Нельзя удалить эту категорию, так как к ней привязаны товары!";
 
@@ -36,8 +10,9 @@ export async function DELETE(
     request: Request,
     context: { params: Promise<{ id: string }> },
 ) {
-    if (!isAuthorized(request)) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await verifyAdmin(request);
+    if (!auth.ok) {
+        return auth.response;
     }
 
     const { id: idParam } = await context.params;

@@ -10,6 +10,8 @@ export const PopularSection = dynamic(
     },
 );
 
+export type { PromoBannerSlide } from "@/widgets/home/promo-banner-carousel";
+
 export const BannerCarousel = dynamic(
     () =>
         import("@/widgets/home/promo-banner-carousel").then(

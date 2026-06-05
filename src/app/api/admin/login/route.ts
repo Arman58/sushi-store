@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 
+import {
+    getAdminAuthCookieSettings,
+    signAdminSessionToken,
+} from "@/lib/admin-session";
+
 const ADMIN_USER = process.env.ADMIN_USER;
 const ADMIN_PASS = process.env.ADMIN_PASS;
 
@@ -16,13 +21,15 @@ export async function POST(request: Request) {
         return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const token = Buffer.from(`${user}:${pass}`).toString("base64");
+    const token = await signAdminSessionToken();
+    if (!token) {
+        return new NextResponse("ADMIN_SESSION_SECRET is not configured or too weak", {
+            status: 503,
+        });
+    }
+
     const response = NextResponse.redirect(new URL("/admin/orders", request.url));
-    response.cookies.set("admin_auth", token, {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-    });
+    response.cookies.set("admin_auth", token, getAdminAuthCookieSettings());
 
     return response;
 }

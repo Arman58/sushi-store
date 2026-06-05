@@ -5,10 +5,13 @@ import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
+import { useState } from "react";
 
+import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
 import type { ProductBadge } from "@/entities/product/ui/product-card";
 import { ProductCard } from "@/entities/product/ui/product-card";
-import { useCartStore } from "@/features/cart";
+import { ProductModifiersDialog } from "@/entities/product/ui/product-modifiers-dialog";
+import { buildCartItemId, useCartStore } from "@/features/cart";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { tokens } from "@/shared/ui/theme";
 
@@ -24,6 +27,7 @@ export type PopularProduct = {
     mainImage?: string | null;
     category?: { name: string } | null;
     composition?: string | null;
+    modifierGroups?: MenuModifierGroup[];
 };
 
 type Props = {
@@ -54,14 +58,14 @@ function SectionHeader({
             }}
         >
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                {/* Orange accent bar */}
+                {/* Brand accent bar */}
                 <Box
                     sx={{
                         width: 4,
                         height: { xs: 22, sm: 28 },
                         borderRadius: 999,
-                        background: `linear-gradient(180deg, ${tokens.orange} 0%, ${tokens.red} 100%)`,
-                        boxShadow: `0 2px 12px ${tokens.orangeGlow}`,
+                        background: `linear-gradient(180deg, ${tokens.brand} 0%, #008C33 100%)`,
+                        boxShadow: `0 2px 12px ${tokens.brandGlow}`,
                         flexShrink: 0,
                     }}
                 />
@@ -92,11 +96,11 @@ function SectionHeader({
                         borderRadius: "10px",
                         border: `1px solid ${tokens.border}`,
                         bgcolor: "transparent",
-                        color: tokens.orange,
+                        color: "primary.dark",
                         transition: "all 0.18s ease",
                         "&:hover": {
-                            bgcolor: tokens.orangeDim,
-                            borderColor: tokens.orange + "44",
+                            bgcolor: tokens.brandDim,
+                            borderColor: tokens.brand + "44",
                             gap: 0.9,
                         },
                         "&:active": { transform: "scale(0.95)" },
@@ -131,16 +135,52 @@ export function PopularSection({
 }: Props) {
     const addItem = useCartStore((s) => s.addItem);
     const setItemQty = useCartStore((s) => s.setItemQuantity);
+    const decrementFirstLineForProduct = useCartStore(
+        (s) => s.decrementFirstLineForProduct,
+    );
     const cartItems = useCartStore((s) => s.items);
+    const [modifierProduct, setModifierProduct] = useState<PopularProduct | null>(
+        null,
+    );
+
+    function productHasModifiers(p: PopularProduct) {
+        return (p.modifierGroups?.length ?? 0) > 0;
+    }
+
+    function qtyForProduct(productId: number) {
+        return cartItems
+            .filter((i) => i.productId === productId)
+            .reduce((s, i) => s + i.quantity, 0);
+    }
 
     const handleAdd = (p: PopularProduct) => {
-        const thumb = getProductCoverUrl({ images: p.images, mainImage: p.mainImage });
+        if (productHasModifiers(p)) {
+            setModifierProduct(p);
+            return;
+        }
+        const thumb = getProductCoverUrl({
+            images: p.images,
+            mainImage: p.mainImage,
+        });
         addItem({
             productId: p.id,
             name: p.name,
-            price: p.price,
+            basePrice: p.price,
+            selectedModifiers: [],
+            calculatedItemPrice: p.price,
             image: thumb,
         });
+    };
+
+    const handleIncrease = (p: PopularProduct) => {
+        if (productHasModifiers(p)) {
+            setModifierProduct(p);
+            return;
+        }
+        const cartItemId = buildCartItemId(p.id, []);
+        const q =
+            cartItems.find((i) => i.cartItemId === cartItemId)?.quantity ?? 0;
+        setItemQty(cartItemId, q + 1);
     };
 
     if (products.length === 0) return null;
@@ -161,9 +201,7 @@ export function PopularSection({
                 }}
             >
                 {products.map((product, index) => {
-                    const qty =
-                        cartItems.find((i) => i.productId === product.id)
-                            ?.quantity ?? 0;
+                    const qty = qtyForProduct(product.id);
 
                     return (
                         <ProductCard
@@ -181,12 +219,37 @@ export function PopularSection({
                             badges={badge ? [badge] : []}
                             quantity={qty}
                             onAddToCart={() => handleAdd(product)}
-                            onIncrease={() => setItemQty(product.id, qty + 1)}
-                            onDecrease={() => setItemQty(product.id, qty - 1)}
+                            onIncrease={() => handleIncrease(product)}
+                            onDecrease={() =>
+                                decrementFirstLineForProduct(product.id)
+                            }
                         />
                     );
                 })}
             </Box>
+
+            <ProductModifiersDialog
+                open={modifierProduct !== null}
+                onClose={() => setModifierProduct(null)}
+                productName={modifierProduct?.name ?? ""}
+                basePrice={modifierProduct?.price ?? 0}
+                modifierGroups={modifierProduct?.modifierGroups ?? []}
+                onConfirm={({ selectedModifiers, calculatedItemPrice }) => {
+                    if (!modifierProduct) return;
+                    const thumb = getProductCoverUrl({
+                        images: modifierProduct.images,
+                        mainImage: modifierProduct.mainImage,
+                    });
+                    addItem({
+                        productId: modifierProduct.id,
+                        name: modifierProduct.name,
+                        basePrice: modifierProduct.price,
+                        selectedModifiers,
+                        calculatedItemPrice,
+                        image: thumb,
+                    });
+                }}
+            />
         </Box>
     );
 }

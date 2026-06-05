@@ -10,14 +10,17 @@ import Paper from "@mui/material/Paper";
 import type { SelectChangeEvent } from "@mui/material/Select";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
+import { alpha, useTheme } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
 import { ProductCard } from "@/entities/product/ui/product-card";
-import { useCartStore } from "@/features/cart";
+import { ProductModifiersDialog } from "@/entities/product/ui/product-modifiers-dialog";
+import { buildCartItemId, useCartStore } from "@/features/cart";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { tokens } from "@/shared/ui/theme";
 
@@ -38,6 +41,7 @@ export type MenuProduct = {
     images?: unknown;
     mainImage?: string | null;
     category?: MenuCategory | null;
+    modifierGroups?: MenuModifierGroup[];
 };
 
 type MenuSectionProps = {
@@ -50,45 +54,6 @@ type MenuSectionProps = {
 type PriceFilter = "all" | "lt3" | "lt5" | "gt5";
 
 type SortBy = "name" | "price_asc";
-
-const filterSelectMenuProps = {
-    PaperProps: {
-        sx: {
-            borderRadius: 2,
-            boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
-            mt: 0.5,
-            border: "1px solid rgba(0,0,0,0.05)",
-        },
-    },
-} as const;
-
-const filterMenuItemSx = {
-    color: "text.primary",
-    fontSize: "0.85rem",
-    py: 0.8,
-    borderRadius: 1,
-    mx: 0.5,
-    "&:hover": { backgroundColor: "#f5f5f5" },
-} as const;
-
-const filterSelectSx = {
-    borderRadius: 50,
-    px: 2.5,
-    py: 1.2,
-    height: 40,
-    fontSize: "0.85rem",
-    textTransform: "none" as const,
-    backgroundColor: "#f7f7f8",
-    "& .MuiOutlinedInput-notchedOutline": { border: "none" },
-    "& .MuiSvgIcon-root": { color: "text.secondary" },
-    "&:hover": { backgroundColor: "#efefef" },
-    "&.Mui-focused": {
-        boxShadow: "0 0 0 2px rgba(0,0,0,0.1)",
-    },
-    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-        border: "none",
-    },
-} as const;
 
 const SORT_LABELS: Record<SortBy, string> = {
     name: "По алфавиту",
@@ -105,11 +70,69 @@ const PRICE_LABELS: Record<PriceFilter, string> = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function MenuSection({ categories, products }: MenuSectionProps) {
+    const theme = useTheme();
     const searchParams = useSearchParams();
+
+    const filterSelectMenuProps = useMemo(
+        () => ({
+            PaperProps: {
+                sx: {
+                    borderRadius: 2,
+                    mt: 0.5,
+                    border: `1px solid ${theme.palette.divider}`,
+                    boxShadow: `0 4px 15px ${alpha(theme.palette.common.black, 0.08)}`,
+                },
+            },
+        }),
+        [theme],
+    );
+
+    const filterMenuItemSx = useMemo(
+        () =>
+            ({
+                color: "text.primary",
+                fontSize: "0.85rem",
+                py: 0.8,
+                borderRadius: 1,
+                mx: 0.5,
+                "&:hover": { backgroundColor: "action.hover" },
+            }) as const,
+        [],
+    );
+
+    const filterSelectSx = useMemo(
+        () =>
+            ({
+                borderRadius: 50,
+                px: 2.5,
+                py: 1.2,
+                height: 40,
+                fontSize: "0.85rem",
+                textTransform: "none" as const,
+                backgroundColor: theme.palette.action.hover,
+                "& .MuiOutlinedInput-notchedOutline": { border: "none" },
+                "& .MuiSvgIcon-root": { color: "text.secondary" },
+                "&:hover": { backgroundColor: theme.palette.grey[100] },
+                "&.Mui-focused": {
+                    boxShadow: `0 0 0 2px ${tokens.brand}`,
+                },
+                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                    border: "none",
+                },
+            }) as const,
+        [theme],
+    );
+
 
     const addItem = useCartStore((s) => s.addItem);
     const setItemQuantity = useCartStore((s) => s.setItemQuantity);
+    const decrementFirstLineForProduct = useCartStore(
+        (s) => s.decrementFirstLineForProduct,
+    );
     const cartItems = useCartStore((s) => s.items);
+    const [modifierProduct, setModifierProduct] = useState<MenuProduct | null>(
+        null,
+    );
     const [search, setSearch] = useState("");
     const [sort, setSort] = useState<SortBy>("name");
     const [priceFilter, setPriceFilter] = useState<PriceFilter>("all");
@@ -165,30 +188,55 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
     const { totalCount, totalPrice } = useMemo(
         () => ({
             totalCount: cartItems.reduce((s, i) => s + i.quantity, 0),
-            totalPrice: cartItems.reduce((s, i) => s + i.price * i.quantity, 0),
+            totalPrice: cartItems.reduce(
+                (s, i) =>
+                    s + i.calculatedItemPrice * i.quantity,
+                0,
+            ),
         }),
         [cartItems],
     );
 
+    function productHasModifiers(p: MenuProduct) {
+        return (p.modifierGroups?.length ?? 0) > 0;
+    }
+
+    function qtyForProduct(productId: number) {
+        return cartItems
+            .filter((i) => i.productId === productId)
+            .reduce((s, i) => s + i.quantity, 0);
+    }
+
     const handleAddToCart = (p: MenuProduct) => {
+        if (productHasModifiers(p)) {
+            setModifierProduct(p);
+            return;
+        }
         addItem({
             productId: p.id,
             name: p.name,
-            price: p.price,
-            image: getProductCoverUrl({ images: p.images, mainImage: p.mainImage }) || "",
+            basePrice: p.price,
+            selectedModifiers: [],
+            calculatedItemPrice: p.price,
+            image:
+                getProductCoverUrl({
+                    images: p.images,
+                    mainImage: p.mainImage,
+                }) || "",
         });
     };
-    const handleIncrease = (productId: number) => {
-        const qty =
-            (cartItems.find((i) => i.productId === productId)?.quantity ?? 0) +
-            1;
-        setItemQuantity(productId, qty);
+    const handleIncrease = (p: MenuProduct) => {
+        if (productHasModifiers(p)) {
+            setModifierProduct(p);
+            return;
+        }
+        const cartItemId = buildCartItemId(p.id, []);
+        const q =
+            cartItems.find((i) => i.cartItemId === cartItemId)?.quantity ?? 0;
+        setItemQuantity(cartItemId, q + 1);
     };
     const handleDecrease = (productId: number) => {
-        const qty =
-            (cartItems.find((i) => i.productId === productId)?.quantity ?? 0) -
-            1;
-        setItemQuantity(productId, qty);
+        decrementFirstLineForProduct(productId);
     };
 
     const selectedPrice = priceFilter;
@@ -215,8 +263,9 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                     px: { xs: 2, md: 3 },
                     py: 2,
                     mb: 2,
-                    bgcolor: "#ffffff",
-                    borderBottom: "1px solid #e0e0e0",
+                    bgcolor: "background.paper",
+                    borderBottom: "1px solid",
+                    borderColor: "divider",
                 }}
             >
                 <Stack
@@ -235,7 +284,9 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                         sx={{
                             flex: { xs: 1, sm: "unset" },
                             minWidth: { sm: 220 },
-                            "& .MuiOutlinedInput-root": { borderRadius: 2 },
+                            "& .MuiOutlinedInput-root": {
+                                borderRadius: `${tokens.radiusInput}px`,
+                            },
                         }}
                     />
 
@@ -352,7 +403,7 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                             href="/menu"
                             variant="outlined"
                             color="primary"
-                            sx={{ mt: 3, borderRadius: 3 }}
+                            sx={{ mt: 3, borderRadius: `${tokens.radiusCardLg}px` }}
                         >
                             Посмотреть другие блюда
                         </Button>
@@ -397,9 +448,7 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                     }}
                 >
                     {filteredProducts.map((product, index) => {
-                        const qty =
-                            cartItems.find((i) => i.productId === product.id)
-                                ?.quantity ?? 0;
+                        const qty = qtyForProduct(product.id);
                         return (
                             <ProductCard
                                 key={product.id}
@@ -416,7 +465,7 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                                 mainImage={product.mainImage}
                                 onAddToCart={() => handleAddToCart(product)}
                                 quantity={qty}
-                                onIncrease={() => handleIncrease(product.id)}
+                                onIncrease={() => handleIncrease(product)}
                                 onDecrease={() => handleDecrease(product.id)}
                             />
                         );
@@ -438,8 +487,8 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                         zIndex: 1100,
                         px: 1.5,
                         pb: "calc(16px + env(safe-area-inset-bottom))",
-                        bgcolor: "#ffffff",
-                        boxShadow: "0 -2px 10px rgba(0,0,0,0.05)",
+                        bgcolor: "background.paper",
+                        boxShadow: `0 -2px 10px ${alpha(theme.palette.common.black, 0.06)}`,
                     }}
                 >
                     <Button
@@ -448,13 +497,15 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                         href="/checkout"
                         sx={{
                             height: 56,
-                            borderRadius: 3,
-                            bgcolor: "#fff",
+                            borderRadius: `${tokens.radiusCardLg}px`,
+                            bgcolor: "background.paper",
                             color: "text.primary",
                             justifyContent: "space-between",
                             px: 2,
                             textTransform: "none",
-                            "&:hover": { bgcolor: "#fafafa" },
+                            border: "1px solid",
+                            borderColor: "divider",
+                            "&:hover": { bgcolor: "action.hover" },
                         }}
                     >
                         <Box
@@ -475,6 +526,7 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                                     fontWeight: 800,
                                     fontSize: "1rem",
                                     color: "primary.main",
+                                    fontVariantNumeric: "tabular-nums",
                                 }}
                             >
                                 {totalPrice.toLocaleString("ru-RU")} ֏
@@ -492,6 +544,28 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                     </Button>
                 </Box>
             )}
+            <ProductModifiersDialog
+                open={modifierProduct !== null}
+                onClose={() => setModifierProduct(null)}
+                productName={modifierProduct?.name ?? ""}
+                basePrice={modifierProduct?.price ?? 0}
+                modifierGroups={modifierProduct?.modifierGroups ?? []}
+                onConfirm={({ selectedModifiers, calculatedItemPrice }) => {
+                    if (!modifierProduct) return;
+                    addItem({
+                        productId: modifierProduct.id,
+                        name: modifierProduct.name,
+                        basePrice: modifierProduct.price,
+                        selectedModifiers,
+                        calculatedItemPrice,
+                        image:
+                            getProductCoverUrl({
+                                images: modifierProduct.images,
+                                mainImage: modifierProduct.mainImage,
+                            }) || "",
+                    });
+                }}
+            />
         </Box>
     );
 }

@@ -41,7 +41,7 @@ export function CartToast() {
                     py: 1.5,
                     borderRadius: 2.5,
                     bgcolor: tokens.surfaceHi,
-                    border: `1px solid ${tokens.orange}44`,
+                    border: `1px solid ${tokens.brand}44`,
                     boxShadow: `0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px ${tokens.border}`,
                     backdropFilter: "blur(16px)",
                     minWidth: 240,
@@ -52,14 +52,14 @@ export function CartToast() {
                         width: 32,
                         height: 32,
                         borderRadius: "50%",
-                        bgcolor: tokens.orangeDim,
+                        bgcolor: tokens.brandDim,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         flexShrink: 0,
                     }}
                 >
-                    <CheckCircleOutlineIcon sx={{ fontSize: 18, color: tokens.orange }} />
+                    <CheckCircleOutlineIcon sx={{ fontSize: 18, color: tokens.brand }} />
                 </Box>
                 <Box>
                     <Typography variant="body2" fontWeight={700} sx={{ lineHeight: 1.2 }}>

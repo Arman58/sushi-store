@@ -1,4 +1,6 @@
-"use server";
+import { Suspense } from "react";
+
+import { isAdminSessionConfigured } from "@/lib/admin-session";
 
 import { LoginForm } from "./login-form";
 
@@ -6,7 +8,8 @@ const ADMIN_USER = process.env.ADMIN_USER;
 const ADMIN_PASS = process.env.ADMIN_PASS;
 
 export default async function AdminLoginPage() {
-    const envConfigured = Boolean(ADMIN_USER && ADMIN_PASS);
+    const envConfigured =
+        Boolean(ADMIN_USER && ADMIN_PASS) && isAdminSessionConfigured();
 
     return (
         <main
@@ -71,11 +74,14 @@ export default async function AdminLoginPage() {
                             fontSize: 13,
                         }}
                     >
-                        ADMIN_USER / ADMIN_PASS не заданы. Добавьте их в .env.local и перезапустите dev.
+                        ADMIN_USER, ADMIN_PASS или ADMIN_SESSION_SECRET (≥32 символов) не заданы.
+                        Добавьте их в .env.local и перезапустите dev.
                     </div>
                 )}
 
-                <LoginForm disabled={!envConfigured} />
+                <Suspense fallback={null}>
+                    <LoginForm disabled={!envConfigured} />
+                </Suspense>
             </div>
         </main>
     );

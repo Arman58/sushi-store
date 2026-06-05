@@ -5,8 +5,6 @@ import { AppRouterCacheProvider } from "@mui/material-nextjs/v13-appRouter";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
-import { LayoutShell } from "@/shared/ui";
-
 import { interFont } from "./fonts";
 import { AppProviders } from "./providers";
 
@@ -35,15 +33,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
     return (
-        <html lang="ru" className={interFont.variable}>
+        <html
+            lang="ru"
+            className={interFont.variable}
+            data-scroll-behavior="smooth"
+        >
         <body
             suppressHydrationWarning
             className={interFont.className}
         >
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
-            <AppProviders>
-                <LayoutShell>{children}</LayoutShell>
-            </AppProviders>
+            <AppProviders>{children}</AppProviders>
         </AppRouterCacheProvider>
         </body>
         </html>

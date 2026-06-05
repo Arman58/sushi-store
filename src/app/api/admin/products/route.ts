@@ -1,34 +1,9 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
+import { parseAdminModifierGroupsPayload } from "@/lib/admin-product-modifiers";
 import { prisma } from "@/lib/prisma";
-
-const ADMIN_USER = process.env.ADMIN_USER;
-const ADMIN_PASS = process.env.ADMIN_PASS;
-
-function isAuthorized(request: Request): boolean {
-    if (!ADMIN_USER || !ADMIN_PASS) return false;
-
-    const expected = Buffer.from(`${ADMIN_USER}:${ADMIN_PASS}`).toString("base64");
-    const cookieHeader = request.headers.get("cookie") ?? "";
-    const hasCookie = cookieHeader.includes(`admin_auth=${expected}`);
-
-    if (hasCookie) return true;
-
-    const authHeader = request.headers.get("authorization");
-    if (authHeader?.startsWith("Basic ")) {
-        const token = authHeader.split(" ")[1] ?? "";
-        try {
-            const decoded = Buffer.from(token, "base64").toString("utf-8");
-            const [user, pass] = decoded.split(":");
-            return user === ADMIN_USER && pass === ADMIN_PASS;
-        } catch {
-            return false;
-        }
-    }
-
-    return false;
-}
+import { verifyAdmin } from "@/lib/verify-admin";
 
 function slugifyName(name: string): string {
     const cleaned = name
@@ -50,13 +25,24 @@ async function makeUniqueProductSlug(name: string): Promise<string> {
 }
 
 export async function GET(request: Request) {
-    if (!isAuthorized(request)) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await verifyAdmin(request);
+    if (!auth.ok) {
+        return auth.response;
     }
 
     try {
         const products = await prisma.product.findMany({
-            include: { category: true },
+            include: {
+                category: true,
+                modifierGroups: {
+                    orderBy: [{ position: "asc" }, { id: "asc" }],
+                    include: {
+                        modifiers: {
+                            orderBy: [{ position: "asc" }, { id: "asc" }],
+                        },
+                    },
+                },
+            },
             orderBy: { id: "asc" },
         });
         return NextResponse.json(products);
@@ -67,8 +53,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-    if (!isAuthorized(request)) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await verifyAdmin(request);
+    if (!auth.ok) {
+        return auth.response;
     }
 
     let body: unknown;
@@ -89,7 +76,45 @@ export async function POST(request: Request) {
         mainImage?: unknown;
         isActive?: unknown;
         slug?: unknown;
+        modifierGroups?: unknown;
     };
+
+    let modifierGroupsNested:
+        | {
+              create: {
+                  name: string;
+                  required: boolean;
+                  maxChoices: number;
+                  position: number;
+                  modifiers: {
+                      create: { name: string; priceDelta: number; position: number }[];
+                  };
+              }[];
+          }
+        | undefined;
+
+    if (Object.prototype.hasOwnProperty.call(b, "modifierGroups")) {
+        const parsed = parseAdminModifierGroupsPayload(b.modifierGroups);
+        if (!parsed.ok) {
+            return NextResponse.json({ error: parsed.error }, { status: 400 });
+        }
+        // На create id из payload игнорируем — это новый товар, новые сущности.
+        modifierGroupsNested = {
+            create: parsed.groups.map((g, gi) => ({
+                name: g.name,
+                required: g.required,
+                maxChoices: g.maxChoices,
+                position: g.position || gi,
+                modifiers: {
+                    create: g.modifiers.map((m, mi) => ({
+                        name: m.name,
+                        priceDelta: m.priceDelta,
+                        position: m.position || mi,
+                    })),
+                },
+            })),
+        };
+    }
 
     if (typeof b.name !== "string" || b.name.trim() === "") {
         return NextResponse.json({ error: "name is required" }, { status: 400 });
@@ -160,8 +185,19 @@ export async function POST(request: Request) {
                 images,
                 mainImage,
                 isActive: typeof b.isActive === "boolean" ? b.isActive : true,
+                ...(modifierGroupsNested ? { modifierGroups: modifierGroupsNested } : {}),
             },
-            include: { category: true },
+            include: {
+                category: true,
+                modifierGroups: {
+                    orderBy: [{ position: "asc" }, { id: "asc" }],
+                    include: {
+                        modifiers: {
+                            orderBy: [{ position: "asc" }, { id: "asc" }],
+                        },
+                    },
+                },
+            },
         });
         return NextResponse.json(product, { status: 201 });
     } catch (error) {

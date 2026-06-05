@@ -2,7 +2,8 @@
 
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useRef, type ReactNode } from "react";
+import { SessionProvider } from "next-auth/react";
+import { type ReactNode,useRef } from "react";
 
 import theme from "@/shared/ui/theme";
 
@@ -27,11 +28,13 @@ export function AppProviders({ children }: AppProvidersProps) {
     }
 
     return (
-        <QueryClientProvider client={queryClientRef.current}>
-            <ThemeProvider theme={theme}>
-                <CssBaseline />
-                {children}
-            </ThemeProvider>
-        </QueryClientProvider>
+        <SessionProvider>
+            <QueryClientProvider client={queryClientRef.current}>
+                <ThemeProvider theme={theme}>
+                    <CssBaseline />
+                    {children}
+                </ThemeProvider>
+            </QueryClientProvider>
+        </SessionProvider>
     );
 }

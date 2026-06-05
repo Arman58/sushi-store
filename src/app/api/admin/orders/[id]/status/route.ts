@@ -1,42 +1,20 @@
+import type { OrderStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 
-import type { OrderStatus } from "@prisma/client";
-
-import { prisma } from "@/lib/prisma";
-
-const ADMIN_USER = process.env.ADMIN_USER;
-const ADMIN_PASS = process.env.ADMIN_PASS;
-
-function isAuthorized(request: Request): boolean {
-    if (!ADMIN_USER || !ADMIN_PASS) return false;
-
-    const expected = Buffer.from(`${ADMIN_USER}:${ADMIN_PASS}`).toString("base64");
-    const cookieHeader = request.headers.get("cookie") ?? "";
-    const hasCookie = cookieHeader.includes(`admin_auth=${expected}`);
-
-    if (hasCookie) return true;
-
-    const authHeader = request.headers.get("authorization");
-    if (authHeader?.startsWith("Basic ")) {
-        const token = authHeader.split(" ")[1] ?? "";
-        try {
-            const decoded = Buffer.from(token, "base64").toString("utf-8");
-            const [user, pass] = decoded.split(":");
-            return user === ADMIN_USER && pass === ADMIN_PASS;
-        } catch {
-            return false;
-        }
-    }
-
-    return false;
-}
+import {
+    isOrderStatus,
+    UpdateOrderStatusError,
+    updateOrderStatus,
+} from "@/lib/order-service";
+import { verifyAdmin } from "@/lib/verify-admin";
 
 export async function POST(
     request: Request,
     context: { params: Promise<{ id: string }> },
 ) {
-    if (!isAuthorized(request)) {
-        return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await verifyAdmin(request);
+    if (!auth.ok) {
+        return auth.response;
     }
 
     const params = await context.params;
@@ -75,26 +53,24 @@ export async function POST(
         return NextResponse.json({ error: "status must be a string" }, { status: 400 });
     }
 
-    const allowedStatuses: OrderStatus[] = [
-        "NEW",
-        "PREPARING",
-        "DELIVERING",
-        "DONE",
-        "CANCELLED",
-    ];
-    if (!(allowedStatuses as readonly string[]).includes(rawStatus)) {
+    if (!isOrderStatus(rawStatus)) {
         return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
     try {
-        const updated = await prisma.order.update({
-            where: { id: orderId },
-            data: { status: rawStatus as OrderStatus },
-            select: { id: true, status: true },
-        });
-
+        const updated = await updateOrderStatus(orderId, rawStatus as OrderStatus);
         return NextResponse.json({ ok: true, status: updated.status });
     } catch (error) {
+        if (error instanceof UpdateOrderStatusError) {
+            if (error.code === "NOT_FOUND") {
+                return NextResponse.json({ error: "Order not found" }, { status: 404 });
+            }
+            if (error.code === "CANCELLED_LOCKED") {
+                return NextResponse.json({ error: error.message }, { status: 409 });
+            }
+            return NextResponse.json({ error: error.message }, { status: 400 });
+        }
+
         console.error("Update status error", error);
         const message = error instanceof Error ? error.message : String(error);
         return NextResponse.json({ error: message }, { status: 500 });
