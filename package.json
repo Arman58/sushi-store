@@ -10,9 +10,9 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\" --write",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"node\"}' prisma/seed.ts",
-    "prisma:seed-zones": "ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"node\"}' prisma/seed-zones.ts"
+    "prisma:migrate": "dotenv -e .env.local -- prisma migrate dev",
+    "prisma:seed": "dotenv -e .env.local -- ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"node\"}' prisma/seed.ts",
+    "prisma:seed-zones": "dotenv -e .env.local -- ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"node\"}' prisma/seed-zones.ts"
   },
   "prisma": {
     "seed": "npm run prisma:seed"
@@ -52,6 +52,7 @@
     "@types/node": "^20.19.25",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.0.7",
     "eslint-config-prettier": "^10.1.8",
