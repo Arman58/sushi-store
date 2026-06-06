@@ -1,5 +1,4 @@
 import Box from "@mui/material/Box";
-import type { OrderStatus } from "@prisma/client";
 import { notFound, redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
@@ -10,26 +9,12 @@ import { OrderTracker } from "./order-tracker";
 
 type PageProps = {
     params: Promise<{ id: string }>;
+    searchParams: Promise<{ key?: string }>;
 };
 
-function etaMinutesFor(orderStatus: OrderStatus): OrderStatusResponse["etaMinutes"] {
-    switch (orderStatus) {
-        case "NEW":
-            return 60;
-        case "IN_WORK":
-            return 40;
-        case "DELIVERING":
-            return 20;
-        case "DONE":
-            return 0;
-        case "CANCELLED":
-        default:
-            return 0;
-    }
-}
-
-export default async function OrderPage({ params }: PageProps) {
+export default async function OrderPage({ params, searchParams }: PageProps) {
     const { id: rawId } = await params;
+    const { key: accessKey } = await searchParams;
     const id = Number.parseInt(rawId, 10);
     if (!Number.isFinite(id)) notFound();
 
@@ -41,33 +26,46 @@ export default async function OrderPage({ params }: PageProps) {
     if (!order) notFound();
 
     const session = await auth();
-    const sessionUserId = session?.user?.id ?? null;
-    if (
-        sessionUserId == null ||
-        order.userId == null ||
-        order.userId !== sessionUserId
-    ) {
+    const sessionUserId =
+        session?.user?.id != null && Number.isFinite(Number(session.user.id))
+            ? Number(session.user.id)
+            : null;
+
+    const isOwner =
+        sessionUserId != null &&
+        order.userId != null &&
+        order.userId === sessionUserId;
+
+    const hasValidKey =
+        accessKey != null &&
+        accessKey.length > 0 &&
+        accessKey === order.accessToken;
+
+    if (!isOwner && !hasValidKey) {
         redirect("/order-status");
     }
 
     const orderPayload: OrderStatusResponse = {
         id: order.id,
         status: order.status,
+        name: order.name,
+        phone: order.phone,
         delivery: order.delivery,
         payment: order.payment,
         totalPrice: order.totalPrice,
         createdAt: order.createdAt.toISOString(),
+        estimatedDeliveryAt: order.estimatedDeliveryAt?.toISOString() ?? null,
         address: order.address,
         deliveryZoneName: order.deliveryZoneName,
         deliveryPrice: order.deliveryPrice,
         items: order.items.map((item) => ({
             id: item.id,
+            productId: item.productId,
             name: item.name,
             quantity: item.quantity,
             price: item.price,
             selectedModifiers: item.selectedModifiers,
         })),
-        etaMinutes: etaMinutesFor(order.status),
     };
 
     return (
@@ -77,9 +75,9 @@ export default async function OrderPage({ params }: PageProps) {
                 display: "flex",
                 alignItems: "flex-start",
                 justifyContent: "center",
-                py: { xs: 4, md: 8 },
+                py: { xs: 3, md: 6 },
                 px: 2,
-                bgcolor: "#fff",
+                bgcolor: "background.default",
             }}
         >
             <OrderTracker order={orderPayload} phone={order.phone} />

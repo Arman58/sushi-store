@@ -1,3 +1,7 @@
+import {
+    ETA_PRESET_MINUTES,
+    formatEstimatedDeliveryTime,
+} from "@/lib/order-status";
 import type { KitchenButtonStatus } from "@/lib/order-service";
 import {
     KITCHEN_BUTTON_STATUSES,
@@ -15,7 +19,7 @@ export function isKitchenTelegramConfigured(): boolean {
     return Boolean(TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID);
 }
 
-/** callback_data: ord_{id}_{STATUS}, напр. ord_15_IN_WORK (≤ 64 байт) */
+/** callback_data: ord_{id}_{STATUS}, напр. ord_15_COOKING (≤ 64 байт) */
 export function buildKitchenCallbackData(
     orderId: number,
     status: KitchenButtonStatus,
@@ -23,10 +27,14 @@ export function buildKitchenCallbackData(
     return `ord_${orderId}_${status}`;
 }
 
+export function buildKitchenEtaCallbackData(orderId: number, minutes: number): string {
+    return `eta_${minutes}_${orderId}`;
+}
+
 export function parseKitchenCallbackData(
     data: string,
 ): { orderId: number; status: KitchenButtonStatus } | null {
-    const match = /^ord_(\d+)_(IN_WORK|DELIVERING|DONE|CANCELLED)$/.exec(data.trim());
+    const match = /^ord_(\d+)_(COOKING|DELIVERING|DONE|CANCELLED)$/.exec(data.trim());
     if (!match) return null;
 
     const orderId = Number(match[1]);
@@ -38,41 +46,59 @@ export function parseKitchenCallbackData(
     };
 }
 
+export function parseKitchenEtaCallbackData(
+    data: string,
+): { orderId: number; minutes: number } | null {
+    const match = /^eta_(\d+)_(\d+)$/.exec(data.trim());
+    if (!match) return null;
+
+    const minutes = Number(match[1]);
+    const orderId = Number(match[2]);
+    if (
+        !Number.isFinite(orderId) ||
+        orderId <= 0 ||
+        !Number.isFinite(minutes) ||
+        minutes <= 0
+    ) {
+        return null;
+    }
+
+    return { orderId, minutes };
+}
+
 export function buildKitchenStatusKeyboard(orderId: number) {
     return {
         inline_keyboard: [
-            [
-                {
-                    text: orderStatusTelegramButtonLabel("IN_WORK"),
-                    callback_data: buildKitchenCallbackData(orderId, "IN_WORK"),
-                },
-                {
-                    text: orderStatusTelegramButtonLabel("DELIVERING"),
-                    callback_data: buildKitchenCallbackData(orderId, "DELIVERING"),
-                },
-            ],
-            [
-                {
-                    text: orderStatusTelegramButtonLabel("DONE"),
-                    callback_data: buildKitchenCallbackData(orderId, "DONE"),
-                },
-                {
-                    text: orderStatusTelegramButtonLabel("CANCELLED"),
-                    callback_data: buildKitchenCallbackData(orderId, "CANCELLED"),
-                },
-            ],
+            ETA_PRESET_MINUTES.map((minutes) => ({
+                text: `⏱ ${minutes} мин`,
+                callback_data: buildKitchenEtaCallbackData(orderId, minutes),
+            })),
+            KITCHEN_BUTTON_STATUSES.map((status) => ({
+                text: orderStatusTelegramButtonLabel(status),
+                callback_data: buildKitchenCallbackData(orderId, status),
+            })),
         ],
     };
 }
 
 const STATUS_FOOTER_RE = /\n\n🔄 Статус обновлен:.*$/u;
+const ETA_FOOTER_RE = /\n\n⏱ Ожидаемое время готовности:.*$/u;
+
+export function stripKitchenFooters(messageText: string): string {
+    return messageText.replace(STATUS_FOOTER_RE, "").replace(ETA_FOOTER_RE, "").trimEnd();
+}
 
 export function appendKitchenStatusFooter(
     messageText: string,
     status: KitchenButtonStatus,
 ): string {
-    const base = messageText.replace(STATUS_FOOTER_RE, "").trimEnd();
+    const base = stripKitchenFooters(messageText);
     return `${base}\n\n🔄 Статус обновлен: ${orderStatusLabel(status)}`;
+}
+
+export function appendKitchenEtaFooter(messageText: string, at: Date): string {
+    const withoutEta = messageText.replace(ETA_FOOTER_RE, "").trimEnd();
+    return `${withoutEta}\n\n⏱ Ожидаемое время готовности: ${formatEstimatedDeliveryTime(at)}`;
 }
 
 type TelegramApiResult<T> = { ok: true; result: T } | { ok: false; description?: string };
@@ -133,6 +159,23 @@ export async function editKitchenOrderMessageWithKeyboard(params: {
     status: KitchenButtonStatus;
 }): Promise<void> {
     const nextText = appendKitchenStatusFooter(params.text, params.status);
+    await telegramApi("editMessageText", {
+        chat_id: params.chatId,
+        message_id: params.messageId,
+        text: nextText,
+        parse_mode: "HTML",
+        reply_markup: buildKitchenStatusKeyboard(params.orderId),
+    });
+}
+
+export async function editKitchenOrderMessageEta(params: {
+    chatId: number | string;
+    messageId: number;
+    text: string;
+    orderId: number;
+    estimatedDeliveryAt: Date;
+}): Promise<void> {
+    const nextText = appendKitchenEtaFooter(params.text, params.estimatedDeliveryAt);
     await telegramApi("editMessageText", {
         chat_id: params.chatId,
         message_id: params.messageId,

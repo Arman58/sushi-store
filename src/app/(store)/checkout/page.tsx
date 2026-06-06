@@ -788,17 +788,15 @@ export default function CheckoutPage() {
                 hp: data.hp,
             });
 
-            if (result?.ok) {
+            if (result?.ok && result.order?.id && result.order.accessToken) {
                 useCartStore.getState().clear();
                 try {
                     localStorage.removeItem(DRAFT_STORAGE_KEY);
-                    sessionStorage.setItem(ORDER_ID_KEY, String(result.orderId));
+                    sessionStorage.setItem(ORDER_ID_KEY, String(result.order.id));
                 } catch { /* ignore */ }
-                if (typeof result.orderId === "number" && result.orderId > 0) {
-                    router.push(`/order/${result.orderId}`);
-                } else {
-                    router.push("/order-success");
-                }
+                router.push(
+                    `/order/${result.order.id}?key=${encodeURIComponent(result.order.accessToken)}`,
+                );
                 return;
             }
 

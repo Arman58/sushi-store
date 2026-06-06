@@ -1,4 +1,4 @@
-import { type OrderItem, OrderStatus, type Prisma } from "@prisma/client";
+import { type OrderItem, type Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
@@ -9,41 +9,28 @@ const normalizePhone = (phone: string) => phone.replace(/\D/g, "");
 
 type OrderWithItems = Prisma.OrderGetPayload<{ include: { items: true } }>;
 
-function etaMinutesForStatus(status: OrderStatus): number {
-    switch (status) {
-        case OrderStatus.NEW:
-            return 60;
-        case OrderStatus.IN_WORK:
-            return 40;
-        case OrderStatus.DELIVERING:
-            return 20;
-        case OrderStatus.DONE:
-            return 0;
-        case OrderStatus.CANCELLED:
-        default:
-            return 0;
-    }
-}
-
 function buildOrderStatusPayload(order: OrderWithItems) {
     return {
         id: order.id,
         status: order.status,
+        name: order.name,
+        phone: order.phone,
         delivery: order.delivery,
         payment: order.payment,
         totalPrice: order.totalPrice,
         createdAt: order.createdAt,
+        estimatedDeliveryAt: order.estimatedDeliveryAt,
         address: order.address,
         deliveryZoneName: order.deliveryZoneName,
         deliveryPrice: order.deliveryPrice,
         items: order.items.map((item: OrderItem) => ({
             id: item.id,
+            productId: item.productId,
             name: item.name,
             quantity: item.quantity,
             price: item.price,
             selectedModifiers: item.selectedModifiers,
         })),
-        etaMinutes: etaMinutesForStatus(order.status),
     };
 }
 

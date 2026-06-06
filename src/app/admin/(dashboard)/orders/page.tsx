@@ -15,7 +15,7 @@ import {
     PaymentMethod,
     Prisma,
 } from "@prisma/client";
-import { orderStatusLabel } from "@/lib/order-service";
+import { isOrderStatus, orderStatusLabel } from "@/lib/order-status";
 import { prisma } from "@/lib/prisma";
 
 import { OrdersTable } from "./orders-table";
@@ -76,7 +76,7 @@ async function getOrders(
     if (statusFilter === "new") {
         where.status = OrderStatus.NEW;
     } else if (statusFilter === "in_progress") {
-        where.status = { in: [OrderStatus.IN_WORK, OrderStatus.DELIVERING] };
+        where.status = { in: [OrderStatus.COOKING, OrderStatus.DELIVERING] };
     } else if (statusFilter === "done") {
         where.status = OrderStatus.DONE;
     } else if (statusFilter === "cancelled") {
@@ -131,14 +131,8 @@ function mapDeliveryLabel(delivery: DeliveryType): string {
 }
 
 function mapStatusLabel(status: string): string {
-    if (
-        status === "NEW" ||
-        status === "IN_WORK" ||
-        status === "DELIVERING" ||
-        status === "DONE" ||
-        status === "CANCELLED"
-    ) {
-        return orderStatusLabel(status as OrderStatus);
+    if (isOrderStatus(status)) {
+        return orderStatusLabel(status);
     }
     return status;
 }
@@ -432,6 +426,7 @@ export default async function AdminOrdersPage({
         totalPrice: order.totalPrice,
         items: order.items,
         comment: order.comment,
+        estimatedDeliveryAt: order.estimatedDeliveryAt?.toISOString() ?? null,
     }));
 
     return (

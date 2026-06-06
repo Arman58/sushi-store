@@ -39,23 +39,36 @@ export type PlaceOrderRequest = {
     promoCode?: string;
 };
 
-export type PlaceOrderResponse = { ok: true; orderId: number };
+export type PlaceOrderResponse = {
+    ok: true;
+    order: { id: number; accessToken: string };
+};
 
-export type OrderStatus = "NEW" | "IN_WORK" | "DELIVERING" | "DONE" | "CANCELLED";
+export type OrderStatus = "NEW" | "COOKING" | "DELIVERING" | "DONE" | "CANCELLED";
 
 export type OrderStatusResponse = {
     id: number;
     status: OrderStatus;
+    name: string;
+    phone: string;
     delivery: "DELIVERY" | "PICKUP";
     payment: "CASH" | "CARD";
     totalPrice: number;
     createdAt: string;
+    /** ISO-строка или null — задаётся кухней */
+    estimatedDeliveryAt: string | null;
     address?: string | null;
     deliveryZoneName?: string | null;
     /** Стоимость доставки в заказе (минорные единицы) */
     deliveryPrice: number;
-    items: { id: number; name: string; quantity: number; price: number; selectedModifiers?: unknown }[];
-    etaMinutes: number;
+    items: {
+        id: number;
+        productId?: number | null;
+        name: string;
+        quantity: number;
+        price: number;
+        selectedModifiers?: unknown;
+    }[];
 };
 
 // ─── API calls ─────────────────────────────────────────────────────────────────

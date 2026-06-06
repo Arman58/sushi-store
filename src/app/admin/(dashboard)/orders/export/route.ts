@@ -1,7 +1,7 @@
 import type { OrderStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 
-import { orderStatusLabel } from "@/lib/order-service";
+import { isOrderStatus, orderStatusLabel } from "@/lib/order-status";
 import { prisma } from "@/lib/prisma";
 
 type SortField = "date" | "total" | "name" | "id";
@@ -95,14 +95,8 @@ function mapDeliveryLabel(delivery: string): string {
 }
 
 function mapStatusLabel(status: string): string {
-    if (
-        status === "NEW" ||
-        status === "IN_WORK" ||
-        status === "DELIVERING" ||
-        status === "DONE" ||
-        status === "CANCELLED"
-    ) {
-        return orderStatusLabel(status as OrderStatus);
+    if (isOrderStatus(status)) {
+        return orderStatusLabel(status);
     }
     return status;
 }
@@ -171,7 +165,7 @@ export async function GET(request: Request) {
     if (statusFilter === "new") {
         where.status = "NEW";
     } else if (statusFilter === "in_progress") {
-        where.status = { in: ["IN_WORK", "DELIVERING"] };
+        where.status = { in: ["COOKING", "DELIVERING"] };
     } else if (statusFilter === "done") {
         where.status = "DONE";
     } else if (statusFilter === "cancelled") {

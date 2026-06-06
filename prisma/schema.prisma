@@ -87,11 +87,11 @@ enum DeliveryType {
 }
 
 enum OrderStatus {
-  NEW
-  IN_WORK
-  DELIVERING
-  DONE
-  CANCELLED
+  NEW        // Заказ принят
+  COOKING    // Готовится
+  DELIVERING // В пути
+  DONE       // Доставлен
+  CANCELLED  // Отменён
 }
 
 enum DiscountType {
@@ -130,6 +130,8 @@ model DeliveryZone {
 
 model Order {
   id               Int           @id @default(autoincrement())
+  /** Уникальный ключ для гостевого доступа к странице трекинга: /order/[id]?key=… */
+  accessToken      String        @unique @default(uuid())
   createdAt        DateTime      @default(now())
   name             String
   phone            String
@@ -138,6 +140,8 @@ model Order {
   payment          PaymentMethod
   delivery         DeliveryType
   status           OrderStatus   @default(NEW)
+  /** Ожидаемое время готовности/доставки — задаёт кухня (Telegram / админка). */
+  estimatedDeliveryAt DateTime?
   /** Сумма позиций (без доставки), на момент оформления */
   subtotalBeforeDiscount Int @default(0)
   /** Скидка по промокоду (минорные единицы); 0 если промокода не было */

@@ -245,6 +245,7 @@ export async function POST(request: Request) {
 
     // ── Транзакция: инкремент промокода и создание заказа ─────────────────────
     let createdOrderId!: number;
+    let createdAccessToken!: string;
     let payableForNotify = payableTotal;
 
     try {
@@ -316,9 +317,10 @@ export async function POST(request: Request) {
                         })),
                     },
                 },
-                select: { id: true },
+                select: { id: true, accessToken: true },
             });
             createdOrderId = created.id;
+            createdAccessToken = created.accessToken;
             payableForNotify = payableTotal;
         });
     } catch (error: unknown) {
@@ -441,7 +443,10 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-        { ok: true, orderId: createdOrderId },
+        {
+            ok: true,
+            order: { id: createdOrderId, accessToken: createdAccessToken },
+        },
         { status: 201 },
     );
 }

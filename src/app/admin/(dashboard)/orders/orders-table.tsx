@@ -49,6 +49,7 @@ export type OrdersTableOrder = {
         selectedModifiers?: unknown;
     }>;
     comment?: string | null;
+    estimatedDeliveryAt?: string | null;
 };
 
 type SortField = "date" | "total" | "name" | "id";

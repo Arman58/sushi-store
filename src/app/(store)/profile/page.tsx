@@ -9,6 +9,7 @@ import type { OrderStatus } from "@prisma/client";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
+import { ORDER_STATUS_UI } from "@/lib/order-status";
 import { formatPhoneForDisplay } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import { EmptyCart, PageContainer, SectionTitle } from "@/shared/ui";
@@ -21,13 +22,7 @@ import type { ProfileOrderItem } from "./types";
 // Личный кабинет — динамическая страница: каждый запрос проверяет сессию.
 export const dynamic = "force-dynamic";
 
-const STATUS_RU: Record<OrderStatus, { label: string; color: "default" | "warning" | "info" | "success" | "error" }> = {
-    NEW:        { label: "Принят",       color: "warning" },
-    IN_WORK:    { label: "Готовится",    color: "info" },
-    DELIVERING: { label: "В доставке",   color: "info" },
-    DONE:       { label: "Доставлен",    color: "success" },
-    CANCELLED:  { label: "Отменён",      color: "error" },
-};
+const STATUS_RU = ORDER_STATUS_UI;
 
 function formatDate(d: Date): string {
     return new Intl.DateTimeFormat("ru-RU", {

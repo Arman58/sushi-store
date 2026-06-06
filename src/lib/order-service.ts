@@ -1,19 +1,17 @@
 import type { OrderStatus } from "@prisma/client";
 
+import {
+    isOrderStatus,
+    orderStatusLabel,
+    ORDER_STATUSES,
+} from "@/lib/order-status";
 import { prisma } from "@/lib/prisma";
 
-/** Все статусы из Prisma enum OrderStatus */
-export const ORDER_STATUSES = [
-    "NEW",
-    "IN_WORK",
-    "DELIVERING",
-    "DONE",
-    "CANCELLED",
-] as const satisfies readonly OrderStatus[];
+export { isOrderStatus, orderStatusLabel, ORDER_STATUSES };
 
 /** Статусы, доступные повару через inline-кнопки Telegram */
 export const KITCHEN_BUTTON_STATUSES = [
-    "IN_WORK",
+    "COOKING",
     "DELIVERING",
     "DONE",
     "CANCELLED",
@@ -21,39 +19,12 @@ export const KITCHEN_BUTTON_STATUSES = [
 
 export type KitchenButtonStatus = (typeof KITCHEN_BUTTON_STATUSES)[number];
 
-export function isOrderStatus(value: string): value is OrderStatus {
-    return (ORDER_STATUSES as readonly string[]).includes(value);
-}
-
 export function isKitchenButtonStatus(value: string): value is KitchenButtonStatus {
     return (KITCHEN_BUTTON_STATUSES as readonly string[]).includes(value);
 }
 
-/**
- * Русские названия статусов — единый источник для админки (MUI Chip) и Telegram.
- * Совпадает с mapStatusLabel в админ-панели заказов.
- */
-export function orderStatusLabel(status: OrderStatus): string {
-    switch (status) {
-        case "NEW":
-            return "Новый";
-        case "IN_WORK":
-            return "Готовится";
-        case "DELIVERING":
-            return "В работе";
-        case "DONE":
-            return "Доставлен";
-        case "CANCELLED":
-            return "Отменён";
-        default: {
-            const _exhaustive: never = status;
-            return _exhaustive;
-        }
-    }
-}
-
 const TELEGRAM_BUTTON_EMOJI: Record<KitchenButtonStatus, string> = {
-    IN_WORK: "🟡",
+    COOKING: "🔥",
     DELIVERING: "🚗",
     DONE: "✅",
     CANCELLED: "❌",
@@ -75,6 +46,21 @@ export class UpdateOrderStatusError extends Error {
     constructor(message: string, code: UpdateOrderStatusErrorCode) {
         super(message);
         this.name = "UpdateOrderStatusError";
+        this.code = code;
+    }
+}
+
+export type UpdateOrderEtaErrorCode =
+    | "INVALID_ORDER_ID"
+    | "INVALID_ETA"
+    | "NOT_FOUND";
+
+export class UpdateOrderEtaError extends Error {
+    readonly code: UpdateOrderEtaErrorCode;
+
+    constructor(message: string, code: UpdateOrderEtaErrorCode) {
+        super(message);
+        this.name = "UpdateOrderEtaError";
         this.code = code;
     }
 }
@@ -109,4 +95,38 @@ export async function updateOrderStatus(
         data: { status: newStatus },
         select: { id: true, status: true },
     });
+}
+
+export async function updateOrderEstimatedDeliveryAt(
+    orderId: number,
+    estimatedDeliveryAt: Date,
+): Promise<{ id: number; estimatedDeliveryAt: Date }> {
+    if (!Number.isFinite(orderId) || orderId <= 0) {
+        throw new UpdateOrderEtaError("Invalid order id", "INVALID_ORDER_ID");
+    }
+
+    if (!(estimatedDeliveryAt instanceof Date) || Number.isNaN(estimatedDeliveryAt.getTime())) {
+        throw new UpdateOrderEtaError("Invalid ETA", "INVALID_ETA");
+    }
+
+    const existing = await prisma.order.findUnique({
+        where: { id: orderId },
+        select: { id: true },
+    });
+
+    if (!existing) {
+        throw new UpdateOrderEtaError("Order not found", "NOT_FOUND");
+    }
+
+    const updated = await prisma.order.update({
+        where: { id: orderId },
+        data: { estimatedDeliveryAt },
+        select: { id: true, estimatedDeliveryAt: true },
+    });
+
+    if (!updated.estimatedDeliveryAt) {
+        throw new UpdateOrderEtaError("Failed to save ETA", "INVALID_ETA");
+    }
+
+    return { id: updated.id, estimatedDeliveryAt: updated.estimatedDeliveryAt };
 }

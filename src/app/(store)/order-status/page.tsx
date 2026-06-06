@@ -17,6 +17,7 @@ import Typography from "@mui/material/Typography";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
+import { formatEstimatedDeliveryTime, ORDER_STATUS_UI } from "@/lib/order-status";
 import { ApiError, fetchOrderStatus, type OrderStatusResponse } from "@/shared/api";
 import { orderStatusSchema, type OrderStatusFormValues } from "@/shared/lib/schemas";
 import { PageContainer, SectionTitle } from "@/shared/ui";
@@ -24,18 +25,18 @@ import { PageContainer, SectionTitle } from "@/shared/ui";
 // ─── Status config ─────────────────────────────────────────────────────────────
 
 const STEPS = [
-    { key: "NEW", label: "Принят", icon: <ReceiptLongIcon fontSize="small" /> },
-    { key: "IN_WORK", label: "Готовится", icon: <TaskAltIcon fontSize="small" /> },
-    { key: "DELIVERING", label: "В пути", icon: <LocalShippingIcon fontSize="small" /> },
-    { key: "DONE", label: "Доставлен", icon: <AccessTimeIcon fontSize="small" /> },
+    { key: "NEW", label: ORDER_STATUS_UI.NEW.label, icon: <ReceiptLongIcon fontSize="small" /> },
+    { key: "COOKING", label: ORDER_STATUS_UI.COOKING.label, icon: <TaskAltIcon fontSize="small" /> },
+    { key: "DELIVERING", label: ORDER_STATUS_UI.DELIVERING.label, icon: <LocalShippingIcon fontSize="small" /> },
+    { key: "DONE", label: ORDER_STATUS_UI.DONE.label, icon: <AccessTimeIcon fontSize="small" /> },
 ] as const;
 
 const STATUS_LABEL: Record<OrderStatusResponse["status"], string> = {
-    NEW: "Принят",
-    IN_WORK: "Готовится",
-    DELIVERING: "В пути",
-    DONE: "Доставлен",
-    CANCELLED: "Отменён",
+    NEW: ORDER_STATUS_UI.NEW.label,
+    COOKING: ORDER_STATUS_UI.COOKING.label,
+    DELIVERING: ORDER_STATUS_UI.DELIVERING.label,
+    DONE: ORDER_STATUS_UI.DONE.label,
+    CANCELLED: ORDER_STATUS_UI.CANCELLED.label,
 };
 
 const DELIVERY_LABEL: Record<OrderStatusResponse["delivery"], string> = {
@@ -270,9 +271,11 @@ export default function OrderStatusPage() {
                                     >
                                         <LocalShippingIcon sx={{ color: "#34d399" }} />
                                         <Typography variant="body2" fontWeight={600}>
-                                            {order.etaMinutes === 0
+                                            {order.status === "DONE"
                                                 ? "Заказ готов / доставлен"
-                                                : `Ориентировочно: ${order.etaMinutes} мин.`}
+                                                : order.estimatedDeliveryAt
+                                                  ? `Ожидайте до ~${formatEstimatedDeliveryTime(new Date(order.estimatedDeliveryAt))}`
+                                                  : "⏳ Время приготовления уточняется у кухни..."}
                                         </Typography>
                                     </Stack>
                                 )}
