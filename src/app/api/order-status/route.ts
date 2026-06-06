@@ -1,6 +1,11 @@
 import { type OrderItem, type Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
+import {
+    orderStatusGetQuerySchema,
+    orderStatusPostBodySchema,
+} from "@/lib/api-schemas";
+import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
 
 const DEFAULT_ERROR = "Не удалось найти заказ по указанным данным";
@@ -37,18 +42,20 @@ function buildOrderStatusPayload(order: OrderWithItems) {
 /** Опрос статуса по id и телефону (телефон обязателен в query, чтобы нельзя было перебирать id). */
 export async function GET(request: Request) {
     const url = new URL(request.url);
-    const idRaw = url.searchParams.get("id");
-    const phone = url.searchParams.get("phone");
+    const queryParsed = orderStatusGetQuerySchema.safeParse({
+        id: url.searchParams.get("id"),
+        phone: url.searchParams.get("phone") ?? "",
+    });
 
-    const id = idRaw ? Number.parseInt(idRaw, 10) : NaN;
-    if (!Number.isFinite(id) || id <= 0) {
-        return NextResponse.json({ error: DEFAULT_ERROR }, { status: 400 });
+    if (!queryParsed.success) {
+        const phoneMissing = !url.searchParams.get("phone")?.trim();
+        return NextResponse.json(
+            { error: phoneMissing ? "Forbidden" : DEFAULT_ERROR },
+            { status: phoneMissing ? 403 : 400 },
+        );
     }
 
-    if (!phone || phone.trim().length < 8) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
+    const { id, phone } = queryParsed.data;
     const normalized = normalizePhone(phone);
 
     try {
@@ -69,19 +76,12 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-    let body: unknown;
-    try {
-        body = await request.json();
-    } catch {
-        return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-    }
-
-    const { id, phone } = body as { id?: number; phone?: string };
-
-    if (typeof id !== "number" || id <= 0 || !phone || typeof phone !== "string") {
+    const parsed = await parseJsonBody(request, orderStatusPostBodySchema);
+    if (!parsed.ok) {
         return NextResponse.json({ error: DEFAULT_ERROR }, { status: 400 });
     }
 
+    const { id, phone } = parsed.data;
     const normalized = normalizePhone(phone);
 
     try {

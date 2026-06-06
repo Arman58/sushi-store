@@ -2,6 +2,8 @@ import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { parseAdminModifierGroupsPayload } from "@/lib/admin-product-modifiers";
+import { adminProductCreateSchema } from "@/lib/api-schemas";
+import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
 import { verifyAdmin } from "@/lib/verify-admin";
 
@@ -58,26 +60,10 @@ export async function POST(request: Request) {
         return auth.response;
     }
 
-    let body: unknown;
-    try {
-        body = await request.json();
-    } catch {
-        return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-    }
+    const parsed = await parseJsonBody(request, adminProductCreateSchema);
+    if (!parsed.ok) return parsed.response;
 
-    const b = body as {
-        name?: unknown;
-        price?: unknown;
-        categoryId?: unknown;
-        description?: unknown;
-        composition?: unknown;
-        weight?: unknown;
-        images?: unknown;
-        mainImage?: unknown;
-        isActive?: unknown;
-        slug?: unknown;
-        modifierGroups?: unknown;
-    };
+    const b = parsed.data;
 
     let modifierGroupsNested:
         | {
@@ -93,14 +79,14 @@ export async function POST(request: Request) {
           }
         | undefined;
 
-    if (Object.prototype.hasOwnProperty.call(b, "modifierGroups")) {
-        const parsed = parseAdminModifierGroupsPayload(b.modifierGroups);
-        if (!parsed.ok) {
-            return NextResponse.json({ error: parsed.error }, { status: 400 });
+    if (b.modifierGroups !== undefined) {
+        const modParsed = parseAdminModifierGroupsPayload(b.modifierGroups);
+        if (!modParsed.ok) {
+            return NextResponse.json({ error: modParsed.error }, { status: 400 });
         }
         // На create id из payload игнорируем — это новый товар, новые сущности.
         modifierGroupsNested = {
-            create: parsed.groups.map((g, gi) => ({
+            create: modParsed.groups.map((g, gi) => ({
                 name: g.name,
                 required: g.required,
                 maxChoices: g.maxChoices,
@@ -116,23 +102,13 @@ export async function POST(request: Request) {
         };
     }
 
-    if (typeof b.name !== "string" || b.name.trim() === "") {
-        return NextResponse.json({ error: "name is required" }, { status: 400 });
-    }
-    if (typeof b.price !== "number" || !Number.isFinite(b.price) || b.price < 0) {
-        return NextResponse.json({ error: "price is required" }, { status: 400 });
-    }
-    if (typeof b.categoryId !== "number" || !Number.isInteger(b.categoryId)) {
-        return NextResponse.json({ error: "categoryId is required" }, { status: 400 });
-    }
-
-    const price = Math.round(b.price);
+    const price = b.price;
     const category = await prisma.category.findUnique({ where: { id: b.categoryId } });
     if (!category) {
         return NextResponse.json({ error: "Category not found" }, { status: 400 });
     }
 
-    const slugInput = typeof b.slug === "string" && b.slug.trim() !== "" ? b.slug.trim() : null;
+    const slugInput = b.slug?.trim() ? b.slug.trim() : null;
     const slug = slugInput ?? (await makeUniqueProductSlug(b.name));
     if (slugInput) {
         const taken = await prisma.product.findUnique({ where: { slug } });
@@ -148,18 +124,13 @@ export async function POST(request: Request) {
         imageUrls = [];
     } else if (Array.isArray(b.images)) {
         images = b.images as Prisma.InputJsonValue;
-        imageUrls = (b.images as unknown[]).filter(
-            (x): x is string => typeof x === "string" && x.trim() !== "",
-        );
+        imageUrls = b.images.filter((x) => x.trim() !== "");
     } else {
         return NextResponse.json({ error: "Invalid images" }, { status: 400 });
     }
 
     let mainImage: string | null = null;
-    if (b.mainImage !== undefined && b.mainImage !== null) {
-        if (typeof b.mainImage !== "string") {
-            return NextResponse.json({ error: "Invalid mainImage" }, { status: 400 });
-        }
+    if (b.mainImage != null) {
         const t = b.mainImage.trim();
         if (t !== "") {
             if (!imageUrls.includes(t)) {
@@ -175,16 +146,16 @@ export async function POST(request: Request) {
     try {
         const product = await prisma.product.create({
             data: {
-                name: b.name.trim(),
+                name: b.name,
                 slug,
                 price,
                 categoryId: b.categoryId,
-                description: typeof b.description === "string" ? b.description : null,
-                composition: typeof b.composition === "string" ? b.composition : null,
-                weight: typeof b.weight === "number" && Number.isInteger(b.weight) ? b.weight : null,
+                description: b.description ?? null,
+                composition: b.composition ?? null,
+                weight: b.weight ?? null,
                 images,
                 mainImage,
-                isActive: typeof b.isActive === "boolean" ? b.isActive : true,
+                isActive: b.isActive ?? true,
                 ...(modifierGroupsNested ? { modifierGroups: modifierGroupsNested } : {}),
             },
             include: {

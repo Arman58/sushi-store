@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
-import { computeEstimatedDeliveryAt } from "@/lib/order-status";
+import { telegramWebhookBodySchema } from "@/lib/api-schemas";
 import {
     type KitchenButtonStatus,
     orderStatusLabel,
-    UpdateOrderEtaError,
-    UpdateOrderStatusError,
     updateOrderEstimatedDeliveryAt,
+    UpdateOrderEtaError,
     updateOrderStatus,
+    UpdateOrderStatusError,
 } from "@/lib/order-service";
+import { computeEstimatedDeliveryAt } from "@/lib/order-status";
 import {
     answerKitchenCallbackQuery,
     editKitchenOrderMessageEta,
@@ -20,19 +22,7 @@ import {
     parseKitchenEtaCallbackData,
 } from "@/lib/telegram-kitchen";
 
-type TelegramCallbackQuery = {
-    id: string;
-    data?: string;
-    message?: {
-        message_id: number;
-        chat: { id: number | string };
-        text?: string;
-    };
-};
-
-type TelegramUpdate = {
-    callback_query?: TelegramCallbackQuery;
-};
+type TelegramUpdate = z.infer<typeof telegramWebhookBodySchema>;
 
 export async function POST(request: Request) {
     if (!isKitchenTelegramConfigured()) {
@@ -45,12 +35,19 @@ export async function POST(request: Request) {
         return new NextResponse("Forbidden", { status: 403 });
     }
 
-    let update: TelegramUpdate;
+    let json: unknown;
     try {
-        update = (await request.json()) as TelegramUpdate;
+        json = await request.json();
     } catch {
         return NextResponse.json({ ok: false }, { status: 400 });
     }
+
+    const bodyParsed = telegramWebhookBodySchema.safeParse(json);
+    if (!bodyParsed.success) {
+        return NextResponse.json({ ok: false }, { status: 400 });
+    }
+
+    const update: TelegramUpdate = bodyParsed.data;
 
     const callback = update.callback_query;
     if (!callback?.data || !callback.id) {
@@ -109,12 +106,12 @@ export async function POST(request: Request) {
         }
     }
 
-    const parsed = parseKitchenCallbackData(callback.data);
-    if (!parsed) {
+    const statusParsed = parseKitchenCallbackData(callback.data);
+    if (!statusParsed) {
         return NextResponse.json({ ok: true });
     }
 
-    const { orderId, status } = parsed;
+    const { orderId, status } = statusParsed;
 
     try {
         const updated = await updateOrderStatus(orderId, status);

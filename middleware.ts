@@ -13,10 +13,8 @@ const ADMIN_PASS = process.env.ADMIN_PASS;
 
 function decodeTokenToBasicPayload(token: string): string {
     try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const atobFn = (globalThis as any).atob;
-        if (typeof atobFn === "function") {
-            return atobFn(token);
+        if (typeof globalThis.atob === "function") {
+            return globalThis.atob(token);
         }
     } catch {
         // ignore

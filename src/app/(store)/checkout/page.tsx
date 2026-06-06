@@ -2,11 +2,11 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
+import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import LocalAtmOutlinedIcon from "@mui/icons-material/LocalAtmOutlined";
 import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
 import NotesIcon from "@mui/icons-material/Notes";
-import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
 import Alert from "@mui/material/Alert";
@@ -39,18 +39,20 @@ import {
 } from "react-hook-form";
 
 import {
+    cartLineIssueMessage,
     ModifiersList,
     toOrderPayloadItems,
+    useCartLineValidation,
     useCartStore,
 } from "@/features/cart";
-import { formatPhoneForDisplay, normalizePhoneToE164Digits } from "@/lib/phone";
+import { normalizePhoneToE164Digits } from "@/lib/phone";
 import { ApiError, placeOrder, validatePromo } from "@/shared/api";
-import { showAppToast } from "@/shared/lib/show-app-toast";
 import {
     type CheckoutFormValues,
     checkoutSchema,
     type DeliveryType,
 } from "@/shared/lib/schemas";
+import { showAppToast } from "@/shared/lib/show-app-toast";
 import { PageContainer, SectionTitle } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
 
@@ -220,30 +222,6 @@ function isAbortError(e: unknown): boolean {
     );
 }
 
-type CheckoutCartLineIssue = {
-    reason:
-        | "inactive"
-        | "not_found"
-        | "price_mismatch"
-        | "invalid_payload"
-        | "rule_violation";
-    serverUnitPrice?: number;
-};
-
-function checkoutCartLineIssueMessage(issue: CheckoutCartLineIssue): string {
-    switch (issue.reason) {
-        case "inactive":
-        case "not_found":
-            return "Товар больше недоступен. Удалите позицию из корзины.";
-        case "price_mismatch":
-            return issue.serverUnitPrice != null
-                ? `Цена изменилась. Сейчас ${issue.serverUnitPrice.toLocaleString("ru-RU")} ֏ за единицу. Удалите строку или пересоберите заказ.`
-                : "Цена изменилась. Удалите строку или пересоберите заказ.";
-        default:
-            return "Опции товара изменились. Удалите позицию и добавьте её заново.";
-    }
-}
-
 // ─── Payment option card ──────────────────────────────────────────────────────
 
 type PaymentCardProps = {
@@ -336,26 +314,12 @@ export default function CheckoutPage() {
         useCartStore.getState().setPlacingOrder(false);
     }, []);
 
-    const [cartLineIssues, setCartLineIssues] = useState<
-        Record<string, CheckoutCartLineIssue>
-    >({});
-    const [cartValidatePending, setCartValidatePending] = useState(false);
-    const cartValidateGenRef = useRef(0);
-
-    /** Сумма только по строкам, прошедшим серверную проверку (проблемные исключаются из итога). */
-    const cartSubtotal = useMemo(
-        () =>
-            items.reduce((sum, item) => {
-                if (cartLineIssues[item.cartItemId]) return sum;
-                return sum + item.calculatedItemPrice * item.quantity;
-            }, 0),
-        [items, cartLineIssues],
-    );
-
-    const hasCartLineProblems = useMemo(
-        () => items.some((item) => Boolean(cartLineIssues[item.cartItemId])),
-        [items, cartLineIssues],
-    );
+    const {
+        cartLineIssues,
+        cartValidatePending,
+        hasCartLineProblems,
+        validSubtotal: cartSubtotal,
+    } = useCartLineValidation(items);
 
     const [deliveryZones, setDeliveryZones] = useState<DeliveryZoneOption[]>([]);
     const [zonesLoading, setZonesLoading] = useState(true);
@@ -497,79 +461,6 @@ export default function CheckoutPage() {
     }, []);
 
     useEffect(() => {
-        if (items.length === 0) {
-            setCartLineIssues({});
-            setCartValidatePending(false);
-            return;
-        }
-
-        const ac = new AbortController();
-        const gen = ++cartValidateGenRef.current;
-
-        const timer = window.setTimeout(() => {
-            void (async () => {
-                if (cartValidateGenRef.current !== gen) return;
-                setCartValidatePending(true);
-                try {
-                    const res = await fetch("/api/validate-cart", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            items: items.map((item) => ({
-                                cartItemId: item.cartItemId,
-                                productId: item.productId,
-                                price: item.calculatedItemPrice,
-                                quantity: item.quantity,
-                                selectedModifierIds: item.selectedModifiers.map(
-                                    (m) => m.id,
-                                ),
-                            })),
-                        }),
-                        signal: ac.signal,
-                    });
-                    if (cartValidateGenRef.current !== gen) return;
-                    if (!res.ok) return;
-                    const data = (await res.json()) as {
-                        items: Array<{
-                            cartItemId: string;
-                            ok: boolean;
-                            reason?: CheckoutCartLineIssue["reason"];
-                            serverUnitPrice?: number;
-                        }>;
-                    };
-                    if (cartValidateGenRef.current !== gen) return;
-                    const next: Record<string, CheckoutCartLineIssue> = {};
-                    for (const row of data.items) {
-                        if (!row.ok && row.reason) {
-                            next[row.cartItemId] = {
-                                reason: row.reason,
-                                serverUnitPrice: row.serverUnitPrice,
-                            };
-                        }
-                    }
-                    setCartLineIssues(next);
-                } catch (e) {
-                    if (
-                        !isAbortError(e) &&
-                        cartValidateGenRef.current === gen
-                    ) {
-                        setCartLineIssues({});
-                    }
-                } finally {
-                    if (cartValidateGenRef.current === gen) {
-                        setCartValidatePending(false);
-                    }
-                }
-            })();
-        }, 350);
-
-        return () => {
-            window.clearTimeout(timer);
-            ac.abort();
-        };
-    }, [items]);
-
-    useEffect(() => {
         if (delivery !== "delivery") {
             setValue("deliveryZoneId", undefined, { shouldValidate: false });
             clearErrors(["deliveryZoneId", "address", "phone"]);
@@ -701,30 +592,6 @@ export default function CheckoutPage() {
           ? "Отправить заявку на подтверждение"
           : `Оформить заказ — ${grandTotal.toLocaleString("ru-RU")} ֏`;
 
-    useEffect(() => {
-        if (process.env.NODE_ENV !== "development") return;
-        console.log("Submit disabled:", hardSubmitDisabled, "Reasons:", {
-            noItems: !hasItems,
-            isSubmitting,
-            isSubmittingLocal,
-            isPlacingOrder,
-            deliveryBlocked,
-            cartValidatePending,
-            hasCartLineProblems,
-            checkoutIncomplete,
-        });
-    }, [
-        hardSubmitDisabled,
-        hasItems,
-        isSubmitting,
-        isSubmittingLocal,
-        isPlacingOrder,
-        deliveryBlocked,
-        cartValidatePending,
-        hasCartLineProblems,
-        checkoutIncomplete,
-    ]);
-
     const onInvalid = (formErrors: FieldErrors<CheckoutFormValues>) => {
         const first = Object.values(formErrors).find(
             (e) => e && typeof e === "object" && "message" in e,
@@ -734,7 +601,7 @@ export default function CheckoutPage() {
                 ? first.message
                 : "Проверьте данные формы";
         setErrorMessage(msg);
-        showAppToast(`Ошибка: ${msg}`, "error");
+        showAppToast(msg, "error");
     };
 
     // Persist draft to localStorage on every change
@@ -804,7 +671,7 @@ export default function CheckoutPage() {
             console.error("Order API Error:", unexpectedBody);
             const fallback = "Сервер не подтвердил заказ. Попробуйте ещё раз.";
             setErrorMessage(fallback);
-            showAppToast(`Ошибка: ${fallback}`, "error");
+            showAppToast(fallback, "error");
         } catch (error) {
             let errorData: unknown;
             let message: string;
@@ -840,7 +707,7 @@ export default function CheckoutPage() {
 
             console.error("Order API Error:", errorData);
             setErrorMessage(message);
-            showAppToast(`Ошибка: ${message}`, "error");
+            showAppToast(message, "error");
         } finally {
             setIsSubmittingLocal(false);
             useCartStore.getState().setPlacingOrder(false);
@@ -1519,7 +1386,7 @@ export default function CheckoutPage() {
                                             )}
                                             {lineIssue ? (
                                                 <Alert severity="error" sx={{ py: 0.25 }}>
-                                                    {checkoutCartLineIssueMessage(lineIssue)}
+                                                    {cartLineIssueMessage(lineIssue)}
                                                 </Alert>
                                             ) : null}
                                         </Stack>

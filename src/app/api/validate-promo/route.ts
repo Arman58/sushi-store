@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { validatePromoBodySchema } from "@/lib/api-schemas";
+import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
 import {
     computePromoDiscountAmount,
@@ -7,52 +9,17 @@ import {
     normalizePromoCode,
 } from "@/lib/promo";
 
-type ValidateBody = {
-    code?: unknown;
-    cartAmount?: unknown;
-    deliveryAmount?: unknown;
-};
-
 export async function POST(request: Request) {
-    let body: unknown;
-    try {
-        body = await request.json();
-    } catch {
-        return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-    }
+    const parsed = await parseJsonBody(request, validatePromoBodySchema);
+    if (!parsed.ok) return parsed.response;
 
-    const b = body as ValidateBody;
-
-    if (typeof b.code !== "string") {
-        return NextResponse.json({ error: "Укажите промокод" }, { status: 400 });
-    }
-
-    const code = normalizePromoCode(b.code);
+    const code = normalizePromoCode(parsed.data.code);
     if (!code) {
         return NextResponse.json({ error: "Укажите промокод" }, { status: 400 });
     }
 
-    if (typeof b.cartAmount !== "number" || !Number.isFinite(b.cartAmount)) {
-        return NextResponse.json({ error: "Укажите сумму корзины" }, { status: 400 });
-    }
-    const cartAmount = Math.round(b.cartAmount);
-    if (cartAmount <= 0) {
-        return NextResponse.json(
-            { error: "Корзина пустая или сумма указана некорректно" },
-            { status: 400 },
-        );
-    }
-
-    let deliveryAmount = 0;
-    if (b.deliveryAmount != null) {
-        if (typeof b.deliveryAmount !== "number" || !Number.isFinite(b.deliveryAmount)) {
-            return NextResponse.json(
-                { error: "Некорректная сумма доставки" },
-                { status: 400 },
-            );
-        }
-        deliveryAmount = Math.max(0, Math.round(b.deliveryAmount));
-    }
+    const cartAmount = parsed.data.cartAmount;
+    const deliveryAmount = parsed.data.deliveryAmount ?? 0;
 
     try {
         const promo = await prisma.promoCode.findUnique({

@@ -1,8 +1,8 @@
-import type { OrderStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { isOrderStatus, orderStatusLabel } from "@/lib/order-status";
 import { prisma } from "@/lib/prisma";
+import { verifyAdmin } from "@/lib/verify-admin";
 
 type SortField = "date" | "total" | "name" | "id";
 type SortDirection = "asc" | "desc";
@@ -121,6 +121,11 @@ function escapeCsv(value: string | number | null | undefined): string {
 }
 
 export async function GET(request: Request) {
+    const auth = await verifyAdmin(request);
+    if (!auth.ok) {
+        return auth.response;
+    }
+
     const {
         sortField,
         sortDir,

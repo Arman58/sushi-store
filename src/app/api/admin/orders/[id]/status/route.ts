@@ -1,11 +1,12 @@
 import type { OrderStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 
+import { adminOrderStatusBodySchema } from "@/lib/api-schemas";
 import {
-    isOrderStatus,
-    UpdateOrderStatusError,
     updateOrderStatus,
+    UpdateOrderStatusError,
 } from "@/lib/order-service";
+import { parseJsonBody } from "@/lib/parse-json-body";
 import { verifyAdmin } from "@/lib/verify-admin";
 
 export async function POST(
@@ -41,24 +42,13 @@ export async function POST(
         return NextResponse.json({ error: "Invalid order id" }, { status: 400 });
     }
 
-    let body: unknown;
-    try {
-        body = await request.json();
-    } catch {
-        return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-    }
+    const parsed = await parseJsonBody(request, adminOrderStatusBodySchema);
+    if (!parsed.ok) return parsed.response;
 
-    const rawStatus = (body as { status?: unknown }).status;
-    if (typeof rawStatus !== "string") {
-        return NextResponse.json({ error: "status must be a string" }, { status: 400 });
-    }
-
-    if (!isOrderStatus(rawStatus)) {
-        return NextResponse.json({ error: "Invalid status" }, { status: 400 });
-    }
+    const rawStatus = parsed.data.status as OrderStatus;
 
     try {
-        const updated = await updateOrderStatus(orderId, rawStatus as OrderStatus);
+        const updated = await updateOrderStatus(orderId, rawStatus);
         return NextResponse.json({ ok: true, status: updated.status });
     } catch (error) {
         if (error instanceof UpdateOrderStatusError) {

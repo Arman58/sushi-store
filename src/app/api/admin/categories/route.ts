@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { adminCategoryCreateSchema } from "@/lib/api-schemas";
+import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
 import { verifyAdmin } from "@/lib/verify-admin";
 
@@ -45,19 +47,10 @@ export async function POST(request: Request) {
         return auth.response;
     }
 
-    let body: unknown;
-    try {
-        body = await request.json();
-    } catch {
-        return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-    }
+    const parsed = await parseJsonBody(request, adminCategoryCreateSchema);
+    if (!parsed.ok) return parsed.response;
 
-    const b = body as { name?: unknown };
-    if (typeof b.name !== "string" || b.name.trim() === "") {
-        return NextResponse.json({ error: "name is required" }, { status: 400 });
-    }
-
-    const name = b.name.trim();
+    const name = parsed.data.name;
     const slug = await makeUniqueCategorySlug(name);
 
     try {

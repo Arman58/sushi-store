@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { adminDeliveryZonePatchSchema } from "@/lib/api-schemas";
+import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
 import { verifyAdmin } from "@/lib/verify-admin";
 
@@ -21,82 +23,18 @@ export async function PATCH(
         return NextResponse.json({ error: "Invalid id" }, { status: 400 });
     }
 
-    let body: unknown;
-    try {
-        body = await request.json();
-    } catch {
-        return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-    }
+    const parsed = await parseJsonBody(request, adminDeliveryZonePatchSchema);
+    if (!parsed.ok) return parsed.response;
 
-    const b = body as {
-        name?: unknown;
-        deliveryPrice?: unknown;
-        minOrderAmount?: unknown;
-        description?: unknown;
-        requiresManagerApproval?: unknown;
-        isActive?: unknown;
+    const data = {
+        ...parsed.data,
+        ...(parsed.data.name !== undefined
+            ? { name: parsed.data.name.trim() }
+            : {}),
+        ...(parsed.data.description !== undefined
+            ? { description: parsed.data.description.trim() }
+            : {}),
     };
-
-    const data: {
-        name?: string;
-        deliveryPrice?: number;
-        minOrderAmount?: number;
-        description?: string;
-        requiresManagerApproval?: boolean;
-        isActive?: boolean;
-    } = {};
-
-    if (typeof b.name === "string") {
-        const n = b.name.trim();
-        if (!n) return NextResponse.json({ error: "name empty" }, { status: 400 });
-        data.name = n;
-    }
-
-    if (b.deliveryPrice !== undefined) {
-        if (typeof b.deliveryPrice !== "number" || !Number.isInteger(b.deliveryPrice)) {
-            return NextResponse.json({ error: "deliveryPrice invalid" }, { status: 400 });
-        }
-        if (b.deliveryPrice < 0) {
-            return NextResponse.json(
-                { error: "deliveryPrice must be >= 0" },
-                { status: 400 },
-            );
-        }
-        data.deliveryPrice = b.deliveryPrice;
-    }
-
-    if (b.minOrderAmount !== undefined) {
-        if (
-            typeof b.minOrderAmount !== "number" ||
-            !Number.isInteger(b.minOrderAmount)
-        ) {
-            return NextResponse.json({ error: "minOrderAmount invalid" }, { status: 400 });
-        }
-        if (b.minOrderAmount < 0) {
-            return NextResponse.json(
-                { error: "minOrderAmount must be >= 0" },
-                { status: 400 },
-            );
-        }
-        data.minOrderAmount = b.minOrderAmount;
-    }
-
-    if (b.description !== undefined) {
-        data.description =
-            typeof b.description === "string" ? b.description.trim() : "";
-    }
-
-    if (typeof b.requiresManagerApproval === "boolean") {
-        data.requiresManagerApproval = b.requiresManagerApproval;
-    }
-
-    if (typeof b.isActive === "boolean") {
-        data.isActive = b.isActive;
-    }
-
-    if (Object.keys(data).length === 0) {
-        return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
-    }
 
     try {
         const updated = await prisma.deliveryZone.update({

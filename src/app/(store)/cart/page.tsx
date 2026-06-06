@@ -11,17 +11,24 @@ import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
+import { alpha } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import type { CartItem } from "@/features/cart";
-import { ModifiersList, useCartStore } from "@/features/cart";
+import type { CartItem, CartLineIssue } from "@/features/cart";
+import {
+    cartLineIssueMessage,
+    ModifiersList,
+    useCartLineValidation,
+    useCartStore,
+} from "@/features/cart";
 import { ApiError, validatePromo } from "@/shared/api";
 import { sanitizeProductImageSrc } from "@/shared/lib/product-cover";
 import { EmptyCart, PageContainer, SectionTitle } from "@/shared/ui";
+import { tokens } from "@/shared/ui/theme";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -31,15 +38,19 @@ const MIN_ORDER_AMD = 3_000;
 
 function CartItemRow({
     item,
+    lineIssue,
     onIncrease,
     onDecrease,
     onRemove,
 }: {
     item: CartItem;
+    lineIssue?: CartLineIssue;
     onIncrease: () => void;
     onDecrease: () => void;
     onRemove: () => void;
 }) {
+    const lineInvalid = Boolean(lineIssue);
+
     return (
         <Box
             sx={{
@@ -48,8 +59,9 @@ function CartItemRow({
                 gap: { xs: 1.5, sm: 2 },
                 p: { xs: 1.5, sm: 2 },
                 borderRadius: 3,
-                border: "1px solid rgba(15,23,42,0.06)",
-                bgcolor: "background.paper",
+                border: "1px solid",
+                borderColor: lineInvalid ? tokens.red : alpha("#0f172a", 0.06),
+                bgcolor: lineInvalid ? tokens.redDim : "background.paper",
             }}
         >
             {/* Thumbnail */}
@@ -95,11 +107,19 @@ function CartItemRow({
                     variant="body2"
                     fontWeight={600}
                     noWrap
+                    color={lineInvalid ? "error.main" : "text.primary"}
                     sx={{ fontSize: { xs: 13, sm: 14 } }}
                 >
                     {item.name}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                <Typography
+                    variant="caption"
+                    color={lineInvalid ? "error.main" : "text.secondary"}
+                    sx={{
+                        display: "block",
+                        textDecoration: lineInvalid ? "line-through" : undefined,
+                    }}
+                >
                     {item.calculatedItemPrice.toLocaleString("ru-RU")} ֏ / шт.
                 </Typography>
                 {item.selectedModifiers.length > 0 && (
@@ -108,6 +128,11 @@ function CartItemRow({
                         sx={{ mt: 0.5 }}
                     />
                 )}
+                {lineIssue ? (
+                    <Typography variant="caption" color="error.main" sx={{ display: "block", mt: 0.5 }}>
+                        {cartLineIssueMessage(lineIssue)}
+                    </Typography>
+                ) : null}
             </Box>
 
             {/* Stepper */}
@@ -154,7 +179,15 @@ function CartItemRow({
                 spacing={1}
                 sx={{ flexShrink: 0, minWidth: { xs: 72, sm: 90 }, justifyContent: "flex-end" }}
             >
-                <Typography variant="body2" fontWeight={700} sx={{ fontSize: { xs: 13, sm: 14 } }}>
+                <Typography
+                    variant="body2"
+                    fontWeight={700}
+                    color={lineInvalid ? "text.disabled" : "text.primary"}
+                    sx={{
+                        fontSize: { xs: 13, sm: 14 },
+                        textDecoration: lineInvalid ? "line-through" : undefined,
+                    }}
+                >
                     {(item.calculatedItemPrice * item.quantity).toLocaleString("ru-RU")} ֏
                 </Typography>
                 <IconButton size="small" color="error" onClick={onRemove}>
@@ -175,6 +208,13 @@ export default function CartPage() {
     const appliedPromoCode = useCartStore((state) => state.appliedPromoCode);
     const setAppliedPromoCode = useCartStore((state) => state.setAppliedPromoCode);
 
+    const {
+        cartLineIssues,
+        cartValidatePending,
+        hasCartLineProblems,
+        validSubtotal: subtotal,
+    } = useCartLineValidation(items);
+
     const [promoDraft, setPromoDraft] = useState("");
     const [promoError, setPromoError] = useState("");
     const [promoDiscount, setPromoDiscount] = useState(0);
@@ -185,11 +225,6 @@ export default function CartPage() {
     useEffect(() => {
         if (appliedPromoCode) setPromoDraft(appliedPromoCode);
     }, [appliedPromoCode]);
-
-    const subtotal = items.reduce(
-        (sum, item) => sum + item.calculatedItemPrice * item.quantity,
-        0,
-    );
 
     useEffect(() => {
         let cancelled = false;
@@ -269,13 +304,24 @@ export default function CartPage() {
                         spacing={4}
                         alignItems="flex-start"
                     >
-                        {/* ── Left: item list ── */}
                         <Box flex={2}>
+                            {hasCartLineProblems && (
+                                <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+                                    Часть позиций недоступна или изменилась по цене.
+                                    Удалите подсвеченные строки перед оформлением.
+                                </Alert>
+                            )}
+                            {cartValidatePending && !hasCartLineProblems && (
+                                <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
+                                    Проверяем актуальность корзины…
+                                </Alert>
+                            )}
                             <Stack spacing={1.5}>
                                 {items.map((item) => (
                                     <CartItemRow
                                         key={item.cartItemId}
                                         item={item}
+                                        lineIssue={cartLineIssues[item.cartItemId]}
                                         onIncrease={() =>
                                             setItemQuantity(item.cartItemId, item.quantity + 1)
                                         }
@@ -464,7 +510,7 @@ export default function CartPage() {
                                 color="primary"
                                 fullWidth
                                 size="large"
-                                disabled={belowMin}
+                                disabled={belowMin || hasCartLineProblems || cartValidatePending}
                                 sx={{ fontWeight: 700 }}
                             >
                                 Оформить заказ

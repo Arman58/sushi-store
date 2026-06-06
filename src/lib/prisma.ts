@@ -52,9 +52,7 @@ function resolvePrismaClient(): PrismaClient {
             process.env.NODE_ENV !== "production" && globalForPrisma.prisma
                 ? globalForPrisma.prisma
                 : createPrismaClient();
-        if (process.env.NODE_ENV !== "production") {
-            globalForPrisma.prisma = prismaClient;
-        }
+        globalForPrisma.prisma = prismaClient;
     }
 
     return prismaClient;
