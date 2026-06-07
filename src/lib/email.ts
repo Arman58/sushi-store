@@ -1,9 +1,15 @@
 import { Resend } from "resend";
 
 import { escapeHtml } from "@/lib/escape-html";
+import {
+    NOTIFICATION_FETCH_TIMEOUT_MS,
+    withTimeout,
+} from "@/lib/fetch-with-timeout";
+import { SITE_URL } from "@/lib/site-config";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 
+/** Локальная разработка — Resend sandbox принимает только этот отправитель. */
 const DEV_FROM = "East West Delivery <onboarding@resend.dev>";
 
 /** Ленивая инициализация — не падаем при сборке без ключа. */
@@ -12,26 +18,15 @@ function getResendClient(): Resend | null {
     return new Resend(resendApiKey);
 }
 
-function getSiteUrl(): string {
-    const url =
-        process.env.NEXTAUTH_URL ??
-        process.env.NEXT_PUBLIC_SITE_URL ??
-        "https://sushi-store.vercel.app";
-    return url.replace(/\/$/, "");
-}
-
 /**
- * В development Resend принимает только onboarding@resend.dev как отправителя.
- * В production — RESEND_FROM (верифицированный домен), например no-reply@yourdomain.com.
+ * RESEND_FROM — верифицированный отправитель на проде
+ * (например East West Delivery <no-reply@eastwestnh.com>).
+ * Без переменной — onboarding@resend.dev для локальной разработки.
  */
 function getFromAddress(): string {
-    if (process.env.NODE_ENV === "development") {
-        return DEV_FROM;
-    }
-    return (
-        process.env.RESEND_FROM?.trim() ??
-        "East West Delivery <no-reply@eastwestdelivery.am>"
-    );
+    const configured = process.env.RESEND_FROM?.trim();
+    if (configured) return configured;
+    return DEV_FROM;
 }
 
 /**
@@ -101,7 +96,7 @@ function buildWelcomeEmailHtml(
                 Привет, ${safeName}! Рады видеть вас в <strong style="color:#1C1917;">East West Delivery</strong>.
               </p>
               <p style="margin:0 0 24px;font-size:15px;line-height:1.5;color:rgba(28,25,23,0.62);">
-                Заказывайте суши, пиццу и любимые блюда с доставкой за 45–60 минут. История заказов сохраняется в личном кабинете.
+                Заказывайте суши, пиццу и любимые блюда с доставкой за 45-60 минут. История заказов сохраняется в личном кабинете.
               </p>
               <a href="${safeUrl}" style="display:inline-block;padding:14px 28px;background:#00B341;color:#FFFFFF;text-decoration:none;font-size:15px;font-weight:700;border-radius:12px;">
                 Перейти на сайт
@@ -145,29 +140,25 @@ export async function sendWelcomeEmail(to: string, name: string): Promise<void> 
         throw new Error("RESEND_API_KEY is not configured");
     }
 
-    const siteUrl = getSiteUrl();
+    const siteUrl = SITE_URL || "/";
     const from = getFromAddress();
     const { recipient, devRedirectNote } = resolveRecipient(to);
     const html = buildWelcomeEmailHtml(name, siteUrl, devRedirectNote);
 
-    const { data, error } = await resend.emails.send({
-        from,
-        to: [recipient],
-        subject: "Добро пожаловать в East West Delivery!",
-        html,
-    });
+    const { error } = await withTimeout(
+        resend.emails.send({
+            from,
+            to: [recipient],
+            subject: "Добро пожаловать в East West Delivery!",
+            html,
+        }),
+        NOTIFICATION_FETCH_TIMEOUT_MS,
+        "Resend welcome email",
+    );
 
     if (error) {
         throw new Error(
             formatResendError(error.message, from, to, recipient),
         );
     }
-
-    console.info("[email] Welcome email sent:", {
-        id: data?.id,
-        intendedTo: to,
-        sentTo: recipient,
-        from,
-        devRedirect: Boolean(devRedirectNote),
-    });
 }

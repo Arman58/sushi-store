@@ -7,7 +7,7 @@ import type { HomeProductPayload } from "./home-product-include";
 
 const DEFAULT_SLIDE: PromoBannerSlide = {
     title: "Скидка на первый заказ",
-    subtitle: "−20% по промокоду при оформлении — выберите блюда в меню",
+    subtitle: "−20% по промокоду при оформлении - выберите блюда в меню",
     gradient: "linear-gradient(135deg, #E85D4A 0%, #FFB74D 100%)",
     href: "/menu",
 };

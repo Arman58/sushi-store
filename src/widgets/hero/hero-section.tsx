@@ -2,7 +2,6 @@
 
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import DeliveryDiningIcon from "@mui/icons-material/DeliveryDining";
-import StarRoundedIcon from "@mui/icons-material/StarRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
@@ -10,6 +9,7 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import { useEffect } from "react";
 
+import type { HeroPromo } from "@/lib/hero-data";
 import { tokens } from "@/shared/ui/theme";
 
 // ─── Keyframes ────────────────────────────────────────────────────────────────
@@ -73,14 +73,6 @@ const TICKER_ITEMS = [
   "🥤  Напитки",
 ];
 
-// ─── Stats ────────────────────────────────────────────────────────────────────
-
-const STATS = [
-  { icon: <DeliveryDiningIcon sx={{ fontSize: 15 }} />, text: "45–60 мин доставка" },
-  { icon: <AccessTimeIcon     sx={{ fontSize: 15 }} />, text: "11:00 – 23:00" },
-  { icon: <StarRoundedIcon    sx={{ fontSize: 15 }} />, text: "4.9 · 800+ отзывов" },
-] as const;
-
 // ─── Floating food items (right side decoration) ──────────────────────────────
 
 const FLOATERS = [
@@ -93,14 +85,22 @@ const FLOATERS = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function HeroSection() {
+export type HeroSectionProps = {
+  deliveryStat: string;
+  openingHoursStat: string;
+  promo: HeroPromo | null;
+};
+
+export function HeroSection({ deliveryStat, openingHoursStat, promo }: HeroSectionProps) {
   useEffect(() => { ensureHeroKf(); }, []);
+
+  const stats = [
+    { icon: <DeliveryDiningIcon sx={{ fontSize: 15 }} />, text: deliveryStat },
+    { icon: <AccessTimeIcon sx={{ fontSize: 15 }} />, text: openingHoursStat },
+  ];
 
   return (
     <Box sx={{ mb: { xs: 0, sm: 4 } }}>
-      {/* ════════════════════════════════════════════════════════════
-          MAIN CINEMATIC HERO BLOCK
-      ════════════════════════════════════════════════════════════ */}
       <Box
         sx={{
           position: "relative",
@@ -114,7 +114,6 @@ export function HeroSection() {
           isolation: "isolate",
         }}
       >
-        {/* ── Animated ambient orbs ── */}
         <Box
           sx={{
             position: "absolute",
@@ -123,7 +122,6 @@ export function HeroSection() {
             overflow: "hidden",
           }}
         >
-          {/* Orb 1 — fresh green left */}
           <Box
             sx={{
               position: "absolute",
@@ -137,7 +135,6 @@ export function HeroSection() {
               filter: "blur(40px)",
             }}
           />
-          {/* Orb 2 — red bottom-right */}
           <Box
             sx={{
               position: "absolute",
@@ -151,7 +148,6 @@ export function HeroSection() {
               filter: "blur(50px)",
             }}
           />
-          {/* Orb 3 — blue accent mid */}
           <Box
             sx={{
               position: "absolute",
@@ -165,7 +161,6 @@ export function HeroSection() {
               filter: "blur(60px)",
             }}
           />
-          {/* Noise texture */}
           <Box
             sx={{
               position: "absolute",
@@ -178,7 +173,6 @@ export function HeroSection() {
           />
         </Box>
 
-        {/* ── Floating food emojis (right side, desktop) ── */}
         {FLOATERS.map((f, i) => (
           <Box
             key={i}
@@ -201,7 +195,6 @@ export function HeroSection() {
           </Box>
         ))}
 
-        {/* ── Content ── */}
         <Box
           sx={{
             position: "relative",
@@ -211,73 +204,54 @@ export function HeroSection() {
             maxWidth: { xs: "100%", md: "60%" },
           }}
         >
-          {/* Tag pill */}
-          <Box
-            sx={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 0.75,
-              px: 1.75,
-              py: 0.6,
-              mb: 2.5,
-              borderRadius: 999,
-              bgcolor: tokens.brandDim,
-              border: `1px solid ${tokens.brand}44`,
-              animation: "hero-badge-pulse 3s ease-in-out infinite",
-            }}
-          >
+          {promo && (
             <Box
               sx={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                bgcolor: tokens.brand,
-                boxShadow: `0 0 6px ${tokens.brand}`,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 0.75,
+                px: 1.75,
+                py: 0.6,
+                mb: 2.5,
+                borderRadius: 999,
+                bgcolor: tokens.brandDim,
+                border: `1px solid ${tokens.brand}44`,
+                animation: "hero-badge-pulse 3s ease-in-out infinite",
               }}
-            />
-            <Typography
-              variant="caption"
-              fontWeight={700}
-              sx={{ color: "primary.dark", letterSpacing: 0.5, fontSize: 11 }}
             >
-              🔥 Акция дня — доставка за 45 мин
-            </Typography>
-          </Box>
+              <Typography sx={{ fontSize: 14, lineHeight: 1 }}>🎁</Typography>
+              <Typography
+                variant="caption"
+                fontWeight={700}
+                sx={{ color: "primary.dark", letterSpacing: 0.3, fontSize: 11 }}
+              >
+                Скидка {promo.discountValue}% на первый заказ по промокоду {promo.code}
+              </Typography>
+            </Box>
+          )}
 
-          {/* Headline — cinematic typographic stack */}
-          <Box sx={{ mb: 3 }}>
-            <Typography
-              component="h1"
-              sx={{
-                fontWeight: 900,
-                lineHeight: 0.95,
-                letterSpacing: { xs: -2, md: -3 },
-                fontSize: { xs: "3rem", sm: "3.8rem", md: "4.6rem" },
-                color: tokens.textPrimary,
-                display: "block",
-              }}
-            >
+          <Typography
+            component="h1"
+            sx={{
+              fontWeight: 900,
+              lineHeight: 0.95,
+              letterSpacing: { xs: -2, md: -3 },
+              fontSize: { xs: "3rem", sm: "3.8rem", md: "4.6rem" },
+              color: tokens.textPrimary,
+              mb: 3,
+            }}
+          >
+            <Box component="span" sx={{ display: "block" }}>
               Суши. Пицца.
-            </Typography>
-            <Typography
-              component="h1"
-              sx={{
-                fontWeight: 900,
-                lineHeight: 0.95,
-                letterSpacing: { xs: -2, md: -3 },
-                fontSize: { xs: "3rem", sm: "3.8rem", md: "4.6rem" },
-                color: tokens.textPrimary,
-                display: "block",
-                mt: 0.25,
-              }}
-            >
+            </Box>
+            <Box component="span" sx={{ display: "block", mt: 0.25 }}>
               Шаурма.
-            </Typography>
-            {/* Gradient accent line */}
-            <Typography
-              component="h1"
+            </Box>
+            <Box
+              component="span"
               sx={{
-                fontWeight: 900,
+                display: "block",
+                mt: 1,
                 lineHeight: 1.05,
                 letterSpacing: { xs: -1.5, md: -2 },
                 fontSize: { xs: "2rem", sm: "2.4rem", md: "2.8rem" },
@@ -285,15 +259,12 @@ export function HeroSection() {
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
-                display: "block",
-                mt: 1,
               }}
             >
-              Горячо и быстро — у двери.
-            </Typography>
-          </Box>
+              Горячо и быстро - у двери.
+            </Box>
+          </Typography>
 
-          {/* Sub */}
           <Typography
             sx={{
               color: tokens.textSecondary,
@@ -303,11 +274,10 @@ export function HeroSection() {
               maxWidth: 460,
             }}
           >
-            Бесплатная доставка от 3 000&thinsp;֏. Роллы, пицца и шаурма от лучших
-            поваров — прямо до вашей двери.
+            Закажите любимую еду с быстрой доставкой по Котайку и Еревану. Свежие
+            роллы, горячая пицца и сочная шаурма.
           </Typography>
 
-          {/* CTA row */}
           <Stack
             direction={{ xs: "column", sm: "row" }}
             spacing={1.5}
@@ -328,32 +298,8 @@ export function HeroSection() {
             >
               Заказать сейчас →
             </Button>
-
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                px: 2.25,
-                py: 1.25,
-                borderRadius: "14px",
-                bgcolor: tokens.surfaceUp,
-                border: `1px solid ${tokens.border}`,
-                cursor: "default",
-              }}
-            >
-              <Typography sx={{ fontSize: 18, lineHeight: 1 }}>🎁</Typography>
-              <Typography
-                variant="body2"
-                fontWeight={800}
-                sx={{ color: tokens.green, fontSize: 13 }}
-              >
-                −20% на первый заказ
-              </Typography>
-            </Box>
           </Stack>
 
-          {/* Stats bar */}
           <Stack
             direction="row"
             sx={{
@@ -364,7 +310,7 @@ export function HeroSection() {
               gap: { xs: 2, sm: 3 },
             }}
           >
-            {STATS.map((stat, i) => (
+            {stats.map((stat, i) => (
               <Stack key={i} direction="row" spacing={0.75} alignItems="center">
                 <Box sx={{ color: tokens.brand }}>{stat.icon}</Box>
                 <Typography
@@ -380,9 +326,6 @@ export function HeroSection() {
         </Box>
       </Box>
 
-      {/* ════════════════════════════════════════════════════════════
-          SCROLLING FOOD TICKER — below hero
-      ════════════════════════════════════════════════════════════ */}
       <Box
         sx={{
           mt: { xs: 0, sm: 2 },
@@ -394,7 +337,6 @@ export function HeroSection() {
           border:       { sm: `1px solid ${tokens.border}` },
           py: 0.75,
           position: "relative",
-          // Fade edges
           "&::before, &::after": {
             content: '""',
             position: "absolute",
@@ -422,7 +364,6 @@ export function HeroSection() {
             "&:hover": { animationPlayState: "paused" },
           }}
         >
-          {/* Duplicate for seamless loop */}
           {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, i) => (
             <Box
               key={i}

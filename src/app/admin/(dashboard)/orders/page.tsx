@@ -419,7 +419,7 @@ export default async function AdminOrdersPage({
         paymentLabel: mapPaymentLabel(order.payment),
         statusLabel: mapStatusLabel(order.status),
         status: order.status,
-        address: order.address ?? "—",
+        address: order.address ?? "-",
         subtotalBeforeDiscount: order.subtotalBeforeDiscount,
         discountAmount: order.discountAmount,
         deliveryPrice: order.deliveryPrice,
@@ -448,7 +448,7 @@ export default async function AdminOrdersPage({
                         sx={{ maxWidth: 520 }}
                     >
                         Клик по строке открывает детали: телефон, адрес и
-                        состав заказа. Поиск — по имени, телефону или ID.
+                        состав заказа. Поиск - по имени, телефону или ID.
                     </Typography>
                     <Stack direction="row" spacing={1} flexWrap="wrap">
                         <Button

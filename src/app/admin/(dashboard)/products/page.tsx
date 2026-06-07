@@ -64,7 +64,7 @@ type EditingProduct = null | Record<string, never> | ProductRow;
 const MAX_COMP_LEN = 80;
 
 function trimComposition(text: string | null): string {
-    if (!text) return "—";
+    if (!text) return "-";
     const t = text.replace(/\s+/g, " ").trim();
     if (t.length <= MAX_COMP_LEN) return t;
     return `${t.slice(0, MAX_COMP_LEN).trimEnd()}…`;
@@ -276,11 +276,9 @@ export default function AdminProductsPage() {
                 } catch {
                     /* keep msg */
                 }
-                console.error(isEdit ? "Update product failed" : "Create product failed", res.status, msg);
                 alert(msg);
             }
-        } catch (err) {
-            console.error("Product save network error", err);
+        } catch {
             alert(isEdit ? "Ошибка сети при сохранении товара" : "Ошибка сети при создании товара");
         } finally {
             setSaveLoading(false);
@@ -611,7 +609,7 @@ export default function AdminProductsPage() {
                                                                         color: "text.disabled",
                                                                     }}
                                                                 >
-                                                                    —
+                                                                    -
                                                                 </Box>
                                                             )}
                                                         </Box>
@@ -627,7 +625,7 @@ export default function AdminProductsPage() {
                                                         {trimComposition(product.composition)}
                                                     </TableCell>
                                                     <TableCell>
-                                                        {product.category?.name ?? "—"}
+                                                        {product.category?.name ?? "-"}
                                                     </TableCell>
                                                     <TableCell align="right">
                                                         {product.price.toLocaleString("ru-RU")} ֏
@@ -770,7 +768,7 @@ export default function AdminProductsPage() {
                                                     }}
                                                     noWrap
                                                 >
-                                                    {product.category?.name ?? "—"}
+                                                    {product.category?.name ?? "-"}
                                                 </Typography>
                                             </Box>
                                             <Box sx={{ textAlign: "right", flexShrink: 0 }}>

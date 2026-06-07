@@ -3,11 +3,12 @@ import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
 import { alpha } from "@mui/material/styles";
+import type { Metadata } from "next";
 import { cache } from "react";
 
 import { prisma } from "@/lib/prisma";
 import { tokens } from "@/shared/ui/theme";
-import { PageContainer, SectionTitle } from "@/shared/ui";
+import { PageContainer } from "@/shared/ui";
 import { CategoryScroll } from "@/widgets/home/category-scroll";
 import { MenuSection } from "@/widgets/menu-section";
 
@@ -18,37 +19,80 @@ import { MenuHeroCtas } from "./menu-hero-ctas";
 export const revalidate = 60;
 
 const getMenuData = cache(async () => {
-    const [categories, products] = await Promise.all([
-        prisma.category.findMany({
-            where: {
-                isActive: true,
-                products: { some: { isActive: true } },
-            },
-            orderBy: { position: "asc" },
-        }),
-        prisma.product.findMany({
-            where: { isActive: true },
-            include: {
-                category: true,
-                modifierGroups: {
-                    orderBy: [{ position: "asc" }, { id: "asc" }],
-                    include: {
-                        modifiers: {
-                            orderBy: [{ position: "asc" }, { id: "asc" }],
+    try {
+        const [categories, products] = await Promise.all([
+            prisma.category.findMany({
+                where: {
+                    isActive: true,
+                    products: { some: { isActive: true } },
+                },
+                orderBy: { position: "asc" },
+            }),
+            prisma.product.findMany({
+                where: { isActive: true },
+                include: {
+                    category: true,
+                    modifierGroups: {
+                        orderBy: [{ position: "asc" }, { id: "asc" }],
+                        include: {
+                            modifiers: {
+                                orderBy: [{ position: "asc" }, { id: "asc" }],
+                            },
                         },
                     },
                 },
-            },
-            orderBy: { name: "asc" },
-        }),
-    ]);
+                orderBy: { name: "asc" },
+            }),
+        ]);
 
-    return { categories, products };
+        return { categories, products };
+    } catch (error) {
+        console.error("[menu] Database unavailable:", error);
+        return { categories: [], products: [] };
+    }
 });
 
 type MenuPageProps = {
     searchParams: Promise<{ category?: string }>;
 };
+
+export async function generateMetadata({
+    searchParams,
+}: MenuPageProps): Promise<Metadata> {
+    const sp = await searchParams;
+    const categorySlug = sp.category?.trim();
+
+    if (categorySlug && categorySlug !== "all") {
+        try {
+            const category = await prisma.category.findFirst({
+                where: { slug: categorySlug, isActive: true },
+                select: { name: true, slug: true },
+            });
+
+            if (category) {
+                const nameLower = category.name.toLowerCase();
+                return {
+                    title: `${category.name} с доставкой`,
+                    description: `Закажите ${nameLower} с доставкой в Ереване и Котайке. Свежие блюда East West Delivery - быстро, горячо, до двери.`,
+                    alternates: {
+                        canonical: `/menu?category=${category.slug}`,
+                    },
+                };
+            }
+        } catch (error) {
+            console.error("[menu metadata] Database unavailable:", error);
+        }
+    }
+
+    return {
+        title: {
+            absolute: "Меню доставки еды | Пицца, Суши, Шаурма",
+        },
+        description:
+            "Актуальное меню доставки East West. Выбирайте любимые блюда с доставкой домой и в офис.",
+        alternates: { canonical: "/menu" },
+    };
+}
 
 export default async function MenuPage({ searchParams }: MenuPageProps) {
     const sp = await searchParams;
@@ -84,7 +128,7 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
 
                     <Box sx={{ px: 2, pt: 3, pb: 4, position: "relative" }}>
                         <Chip
-                            label="Пик сезона — доставляем без задержек"
+                            label="Пик сезона - доставляем без задержек"
                             size="small"
                             sx={{
                                 mb: 1.5,
@@ -101,6 +145,20 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
                                 color: "text.primary",
                                 lineHeight: 1.25,
                                 maxWidth: 640,
+                            }}
+                        >
+                            Меню доставки
+                        </Typography>
+                        <Typography
+                            component="p"
+                            variant="h6"
+                            sx={{
+                                fontWeight: 600,
+                                color: "text.primary",
+                                lineHeight: 1.35,
+                                maxWidth: 640,
+                                mt: 1,
+                                fontSize: { xs: "1rem", sm: "1.125rem" },
                             }}
                         >
                             Выбирайте блюдо, пока мы греем печи и разогреваем вок.
@@ -125,7 +183,6 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
                     </Box>
                 </Box>
 
-                <SectionTitle subdued>Меню</SectionTitle>
                 <MenuSection categories={categories} products={products} />
             </PageContainer>
         </main>

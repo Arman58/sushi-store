@@ -22,7 +22,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import CountUp from "react-countup";
 
-import { ModifiersList, useCartStore } from "@/features/cart";
+import { ModifiersList, useCartLineValidation, useCartStore } from "@/features/cart";
 import { ApiError, validatePromo } from "@/shared/api";
 import { sanitizeProductImageSrc } from "@/shared/lib/product-cover";
 
@@ -31,7 +31,9 @@ import { tokens } from "./theme";
 
 const DRAWER_WIDTH = 420;
 const MotionBox = motion.create(Box);
-const MIN_ORDER = 3_000;
+
+const MIN_ORDER_HINT =
+    "Минимальная сумма заказа зависит от зоны доставки и будет рассчитана при оформлении";
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
@@ -49,6 +51,12 @@ export function CartDrawer() {
     const appliedPromoCode = useCartStore((s) => s.appliedPromoCode);
     const setAppliedPromoCode = useCartStore((s) => s.setAppliedPromoCode);
 
+    const {
+        cartLineIssues,
+        cartValidatePending,
+        hasCartLineProblems,
+    } = useCartLineValidation(items);
+
     const [promoInput, setPromoInput] = useState("");
     const [promoError, setPromoError] = useState("");
     const [promoDiscount, setPromoDiscount] = useState(0);
@@ -62,7 +70,11 @@ export function CartDrawer() {
     );
     const total = Math.max(0, subtotal - promoDiscount);
     const count = items.reduce((s, i) => s + i.quantity, 0);
-    const belowMin = total < MIN_ORDER && items.length > 0;
+    const hasAtLeastOneValidItem = items.some(
+        (item) => !cartLineIssues[item.cartItemId],
+    );
+    const canProceedToCheckout =
+        hasAtLeastOneValidItem && !cartValidatePending;
 
     useEffect(() => {
         if (appliedPromoCode) setPromoInput(appliedPromoCode);
@@ -809,24 +821,33 @@ export function CartDrawer() {
                                         </motion.div>
                                     </Stack>
 
-                                    {/* Min order warning */}
-                                    {belowMin && (
+                                    {hasCartLineProblems && (
                                         <Typography
                                             variant="caption"
                                             sx={{
                                                 display: "block",
-                                                mb: 1.5,
-                                                color: tokens.brandHi,
+                                                mb: 1,
+                                                color: tokens.red,
                                                 textAlign: "center",
-                                                fontVariantNumeric:
-                                                    "tabular-nums",
+                                                lineHeight: 1.45,
                                             }}
                                         >
-                                            Минимальный заказ{" "}
-                                            {fmt.format(MIN_ORDER)} ֏. Ещё{" "}
-                                            {fmt.format(MIN_ORDER - total)} ֏
+                                            Удалите недоступные позиции перед оформлением
                                         </Typography>
                                     )}
+
+                                    <Typography
+                                        variant="caption"
+                                        sx={{
+                                            display: "block",
+                                            mb: 1.5,
+                                            color: tokens.textMuted,
+                                            textAlign: "center",
+                                            lineHeight: 1.45,
+                                        }}
+                                    >
+                                        {MIN_ORDER_HINT}
+                                    </Typography>
 
                                     {/* CTA */}
                                     <Button
@@ -836,7 +857,7 @@ export function CartDrawer() {
                                         variant="contained"
                                         fullWidth
                                         size="large"
-                                        disabled={belowMin}
+                                        disabled={!canProceedToCheckout}
                                         sx={{
                                             fontWeight: 700,
                                             fontSize: { xs: "1rem" },

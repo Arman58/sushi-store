@@ -297,7 +297,7 @@ export default function AdminPromoCodesPage() {
                                         <TableCell>
                                             {r.minOrderAmount != null
                                                 ? `${r.minOrderAmount.toLocaleString("ru-RU")} ֏`
-                                                : "—"}
+                                                : "-"}
                                         </TableCell>
                                         <TableCell>
                                             {r.maxUsages != null
@@ -307,7 +307,7 @@ export default function AdminPromoCodesPage() {
                                         <TableCell>
                                             {r.expiresAt
                                                 ? new Date(r.expiresAt).toLocaleString("ru-RU")
-                                                : "—"}
+                                                : "-"}
                                         </TableCell>
                                         <TableCell>{r.isActive ? "Да" : "Нет"}</TableCell>
                                         <TableCell align="right">
@@ -393,7 +393,7 @@ export default function AdminPromoCodesPage() {
                             }}
                         />
                         <TextField
-                            label="Мин. сумма заказа (товары); пусто — нет порога"
+                            label="Мин. сумма заказа (товары); пусто - нет порога"
                             type="number"
                             value={form.minOrderAmount}
                             onChange={(e) =>
@@ -403,7 +403,7 @@ export default function AdminPromoCodesPage() {
                             inputProps={{ step: 1, min: 0 }}
                         />
                         <TextField
-                            label="Макс. использований; пусто — без лимита"
+                            label="Макс. использований; пусто - без лимита"
                             type="number"
                             value={form.maxUsages}
                             onChange={(e) =>

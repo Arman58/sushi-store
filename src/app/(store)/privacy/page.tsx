@@ -56,7 +56,7 @@ export default function PrivacyPage() {
                     <Typography variant="body1" sx={bodySx}>
                         1.1. Настоящая Политика определяет порядок обработки и защиты
                         персональных данных пользователей сайта и мобильной версии сервиса
-                        East West Delivery (далее — «Сервис», «Оператор»).
+                        East West Delivery (далее - «Сервис», «Оператор»).
                     </Typography>
                     <Typography variant="body1" sx={bodySx}>
                         1.2. Оператором персональных данных является ресторан East West,
@@ -84,14 +84,14 @@ export default function PrivacyPage() {
                     </Typography>
                     <Box component="ul" sx={listSx}>
                         <Typography component="li" variant="body1">
-                            <strong>Имя</strong> — для обращения при исполнении заказа;
+                            <strong>Имя</strong> - для обращения при исполнении заказа;
                         </Typography>
                         <Typography component="li" variant="body1">
-                            <strong>Номер телефона</strong> — для подтверждения заказа, входа в
+                            <strong>Номер телефона</strong> - для подтверждения заказа, входа в
                             личный кабинет (OTP), связи с курьером;
                         </Typography>
                         <Typography component="li" variant="body1">
-                            <strong>Адрес доставки</strong> — при выборе доставки (улица, дом,
+                            <strong>Адрес доставки</strong> - при выборе доставки (улица, дом,
                             подъезд, этаж, комментарий к адресу);
                         </Typography>
                         <Typography component="li" variant="body1">
@@ -99,7 +99,7 @@ export default function PrivacyPage() {
                         </Typography>
                         <Typography component="li" variant="body1">
                             технические данные: IP-адрес, тип браузера, файлы cookie и
-                            localStorage (корзина, черновик оформления) — в объёме, необходимом
+                            localStorage (корзина, черновик оформления) - в объёме, необходимом
                             для функционирования Сайта.
                         </Typography>
                     </Box>
@@ -132,7 +132,7 @@ export default function PrivacyPage() {
                         </Typography>
                         <Typography component="li" variant="body1">
                             соблюдение требований законодательства (бухгалтерский и налоговый
-                            учёт — в обезличенном или минимально необходимом объёме).
+                            учёт - в обезличенном или минимально необходимом объёме).
                         </Typography>
                     </Box>
                     <Typography variant="body1" sx={bodySx}>
@@ -149,16 +149,16 @@ export default function PrivacyPage() {
                     </Typography>
                     <Box component="ul" sx={listSx}>
                         <Typography component="li" variant="body1">
-                            курьерам и сотрудникам доставки — имя, телефон, адрес и сумма к
+                            курьерам и сотрудникам доставки - имя, телефон, адрес и сумма к
                             оплате для передачи заказа;
                         </Typography>
                         <Typography component="li" variant="body1">
-                            платёжным и техническим партнёрам — в объёме, требуемом для оказания
+                            платёжным и техническим партнёрам - в объёме, требуемом для оказания
                             услуг (хостинг, SMS-шлюз для OTP), при наличии договоров о
                             конфиденциальности;
                         </Typography>
                         <Typography component="li" variant="body1">
-                            государственным органам — по законному запросу в пределах,
+                            государственным органам - по законному запросу в пределах,
                             установленных законом.
                         </Typography>
                     </Box>
@@ -174,7 +174,7 @@ export default function PrivacyPage() {
                     </Typography>
                     <Typography variant="body1" sx={bodySx}>
                         5.1. Данные хранятся в течение срока, необходимого для целей обработки:
-                        данные учётной записи и история заказов — до удаления аккаунта или
+                        данные учётной записи и история заказов - до удаления аккаунта или
                         отзыва согласия, но не менее срока, установленного для бухгалтерского учёта
                         (как правило, 3 года с даты последней операции), если иное не требуется
                         законом.
@@ -203,7 +203,7 @@ export default function PrivacyPage() {
                         </Typography>
                         <Typography component="li" variant="body1">
                             отозвать согласие на обработку (в том числе запросить удаление
-                            учётной записи), направив обращение Оператору — при этом исполнение
+                            учётной записи), направив обращение Оператору - при этом исполнение
                             текущих заказов может быть ограничено;
                         </Typography>
                         <Typography component="li" variant="body1">

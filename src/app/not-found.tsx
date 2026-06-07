@@ -22,7 +22,7 @@ export default function NotFound() {
                     Страница не найдена
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                    Похоже, этот ролл или пицца уже съедены, а страница исчезла.
+                    Возможно, её съели 🍣
                 </Typography>
                 <Link href="/" style={{ textDecoration: "none" }}>
                     <Button
@@ -30,7 +30,7 @@ export default function NotFound() {
                         color="primary"
                         sx={{ borderRadius: 3, mt: 4, px: 6, textTransform: "none" }}
                     >
-                        Вернуться в меню
+                        На главную
                     </Button>
                 </Link>
             </Stack>

@@ -3,7 +3,11 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { escapeHtml } from "@/lib/escape-html";
-import { prepareOrderItems } from "@/lib/prepare-order-items";
+import {
+    NOTIFICATION_FETCH_TIMEOUT_MS,
+    fetchWithTimeout,
+} from "@/lib/fetch-with-timeout";
+import { prepareOrderItems, type VerifiedOrderItem } from "@/lib/prepare-order-items";
 import { prisma } from "@/lib/prisma";
 import {
     computePromoDiscountAmount,
@@ -26,15 +30,6 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 const telegramNotifyEnabled = isKitchenTelegramConfigured();
 
-if (!telegramNotifyEnabled) {
-    const g = globalThis as { __sushiTelegramEnvWarned?: boolean };
-    if (!g.__sushiTelegramEnvWarned) {
-        g.__sushiTelegramEnvWarned = true;
-        console.warn(
-            "[order] TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is not set; kitchen Telegram notifications are disabled.",
-        );
-    }
-}
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 5;
 
@@ -66,6 +61,136 @@ function isRateLimited(ip: string): boolean {
     timestamps.push(now);
     rateLimitStore.set(ip, timestamps);
     return false;
+}
+
+type KitchenTelegramPayload = {
+    orderId: number;
+    name: string;
+    phone: string;
+    address: string | undefined;
+    comment: string | undefined;
+    payment: OrderPayload["payment"];
+    delivery: OrderPayload["delivery"];
+    verifiedItems: VerifiedOrderItem[];
+    deliveryFee: number;
+    zoneNameSnapshot: string | null;
+    promoCodeRaw: string | undefined;
+    payableForNotify: number;
+    grandBeforePay: number;
+};
+
+async function notifyKitchenTelegram(payload: KitchenTelegramPayload): Promise<void> {
+    if (!telegramNotifyEnabled || !TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+
+    const {
+        orderId,
+        name,
+        phone,
+        address,
+        comment,
+        payment,
+        delivery,
+        verifiedItems,
+        deliveryFee,
+        zoneNameSnapshot,
+        promoCodeRaw,
+        payableForNotify,
+        grandBeforePay,
+    } = payload;
+
+    const lines: string[] = [];
+
+    lines.push("<b>🍣 Новый заказ East West</b>");
+    lines.push(`<b>📋 Заказ №${orderId}</b>`);
+    lines.push("");
+    lines.push(`<b>👤 Имя:</b> ${escapeHtml(name)}`);
+    lines.push(`<b>📞 Телефон:</b> <code>${escapeHtml(phone)}</code>`);
+
+    if (delivery === "delivery") {
+        lines.push(
+            `<b>📍 Доставка:</b> ${escapeHtml(address || "адрес не указан")}`,
+        );
+    } else {
+        lines.push("<b>📍</b> <i>Самовывоз</i>");
+    }
+
+    lines.push(
+        `<b>💳 Оплата:</b> ${payment === "cash" ? "<i>Наличными</i>" : "<i>Картой</i>"}`,
+    );
+
+    if (comment) {
+        lines.push("");
+        lines.push(`<b>💬 Комментарий:</b> <i>${escapeHtml(comment)}</i>`);
+    }
+
+    lines.push("");
+    lines.push("<b>🧾 Позиции:</b>");
+
+    for (const item of verifiedItems) {
+        const modsRaw = item.selectedModifiers;
+        let modSuffix = "";
+        if (Array.isArray(modsRaw) && modsRaw.length > 0) {
+            const labels = modsRaw
+                .map((m: unknown) =>
+                    m &&
+                    typeof m === "object" &&
+                    "name" in m &&
+                    typeof (m as { name: string }).name === "string"
+                        ? escapeHtml((m as { name: string }).name)
+                        : null,
+                )
+                .filter(Boolean);
+            if (labels.length > 0) {
+                modSuffix = ` <i>(${labels.join(", ")})</i>`;
+            }
+        }
+        lines.push(
+            `• ${escapeHtml(item.name)}${modSuffix} × ${item.quantity} - <b>${(
+                item.price * item.quantity
+            ).toLocaleString("ru-RU")} ֏</b>`,
+        );
+    }
+
+    if (delivery === "delivery" && deliveryFee > 0 && zoneNameSnapshot) {
+        lines.push("");
+        lines.push(
+            `<b>🚚 Доставка (${escapeHtml(zoneNameSnapshot)}):</b> <b>${deliveryFee.toLocaleString("ru-RU")} ֏</b>`,
+        );
+    }
+
+    if (promoCodeRaw && payableForNotify < grandBeforePay) {
+        const disc = grandBeforePay - payableForNotify;
+        lines.push("");
+        lines.push(
+            `<b>🏷️ Промокод</b> <code>${escapeHtml(promoCodeRaw)}</code>: <b>−${disc.toLocaleString("ru-RU")} ֏</b>`,
+        );
+    }
+
+    lines.push("");
+    lines.push(`<b>💰 Итого: ${payableForNotify.toLocaleString("ru-RU")} ֏</b>`);
+
+    const text = lines.join("\n");
+    const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+    const telegramResponse = await fetchWithTimeout(
+        telegramUrl,
+        {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                chat_id: TELEGRAM_CHAT_ID,
+                text,
+                parse_mode: "HTML",
+                reply_markup: buildKitchenStatusKeyboard(orderId),
+            }),
+        },
+        NOTIFICATION_FETCH_TIMEOUT_MS,
+    );
+
+    if (!telegramResponse.ok) {
+        const errorText = await telegramResponse.text().catch(() => "");
+        console.error("Telegram error:", telegramResponse.status, errorText);
+    }
 }
 
 // ─── Route handler ─────────────────────────────────────────────────────────────
@@ -187,7 +312,7 @@ export async function POST(request: Request) {
         if (verifiedTotal < zone.minOrderAmount) {
             return NextResponse.json(
                 {
-                    error: `Минимальная сумма заказа для выбранной зоны — ${zone.minOrderAmount.toLocaleString("ru-RU")} ֏`,
+                    error: `Минимальная сумма заказа для выбранной зоны - ${zone.minOrderAmount.toLocaleString("ru-RU")} ֏`,
                 },
                 { status: 400 },
             );
@@ -343,103 +468,25 @@ export async function POST(request: Request) {
         );
     }
 
-    // ── Telegram-уведомление (сбой не ломает ответ) ──────────────────────────
-    if (telegramNotifyEnabled && TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
-        const lines: string[] = [];
-
-        lines.push("<b>🍣 Новый заказ East West</b>");
-        lines.push(`<b>📋 Заказ №${createdOrderId}</b>`);
-        lines.push("");
-        lines.push(`<b>👤 Имя:</b> ${escapeHtml(name)}`);
-        lines.push(`<b>📞 Телефон:</b> <code>${escapeHtml(phone)}</code>`);
-
-        if (delivery === "delivery") {
-            lines.push(
-                `<b>📍 Доставка:</b> ${escapeHtml(address || "адрес не указан")}`,
-            );
-        } else {
-            lines.push("<b>📍</b> <i>Самовывоз</i>");
-        }
-
-        lines.push(
-            `<b>💳 Оплата:</b> ${payment === "cash" ? "<i>Наличными</i>" : "<i>Картой</i>"}`,
-        );
-
-        if (comment) {
-            lines.push("");
-            lines.push(`<b>💬 Комментарий:</b> <i>${escapeHtml(comment)}</i>`);
-        }
-
-        lines.push("");
-        lines.push("<b>🧾 Позиции:</b>");
-
-        for (const item of verifiedItems) {
-            const modsRaw = item.selectedModifiers;
-            let modSuffix = "";
-            if (Array.isArray(modsRaw) && modsRaw.length > 0) {
-                const labels = modsRaw
-                    .map((m: unknown) =>
-                        m &&
-                        typeof m === "object" &&
-                        "name" in m &&
-                        typeof (m as { name: string }).name === "string"
-                            ? escapeHtml((m as { name: string }).name)
-                            : null,
-                    )
-                    .filter(Boolean);
-                if (labels.length > 0) {
-                    modSuffix = ` <i>(${labels.join(", ")})</i>`;
-                }
-            }
-            lines.push(
-                `• ${escapeHtml(item.name)}${modSuffix} × ${item.quantity} — <b>${(
-                    item.price * item.quantity
-                ).toLocaleString("ru-RU")} ֏</b>`,
-            );
-        }
-
-        if (delivery === "delivery" && deliveryFee > 0 && zoneNameSnapshot) {
-            lines.push("");
-            lines.push(
-                `<b>🚚 Доставка (${escapeHtml(zoneNameSnapshot)}):</b> <b>${deliveryFee.toLocaleString("ru-RU")} ֏</b>`,
-            );
-        }
-
-        if (promoCodeRaw && payableForNotify < grandBeforePay) {
-            const disc = grandBeforePay - payableForNotify;
-            lines.push("");
-            lines.push(
-                `<b>🏷️ Промокод</b> <code>${escapeHtml(promoCodeRaw)}</code>: <b>−${disc.toLocaleString("ru-RU")} ֏</b>`,
-            );
-        }
-
-        lines.push("");
-        lines.push(
-            `<b>💰 Итого: ${payableForNotify.toLocaleString("ru-RU")} ֏</b>`,
-        );
-
-        const text = lines.join("\n");
-        const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-
-        try {
-            const telegramResponse = await fetch(telegramUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    chat_id: TELEGRAM_CHAT_ID,
-                    text,
-                    parse_mode: "HTML",
-                    reply_markup: buildKitchenStatusKeyboard(createdOrderId),
-                }),
-            });
-
-            if (!telegramResponse.ok) {
-                const errorText = await telegramResponse.text().catch(() => "");
-                console.error("Telegram error:", telegramResponse.status, errorText);
-            }
-        } catch (error) {
+    // ── Telegram-уведомление (не блокирует ответ 201) ────────────────────────
+    if (telegramNotifyEnabled) {
+        void notifyKitchenTelegram({
+            orderId: createdOrderId,
+            name,
+            phone,
+            address: address ?? undefined,
+            comment: comment ?? undefined,
+            payment,
+            delivery,
+            verifiedItems,
+            deliveryFee,
+            zoneNameSnapshot,
+            promoCodeRaw: promoCodeRaw ?? undefined,
+            payableForNotify,
+            grandBeforePay,
+        }).catch((error) => {
             console.error("Telegram request failed:", error);
-        }
+        });
     }
 
     return NextResponse.json(

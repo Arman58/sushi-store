@@ -24,7 +24,13 @@ type PromoBannerCarouselProps = {
     slides: PromoBannerSlide[];
 };
 
-function SlideContent({ slide }: { slide: PromoBannerSlide }) {
+function SlideContent({
+    slide,
+    priority = false,
+}: {
+    slide: PromoBannerSlide;
+    priority?: boolean;
+}) {
     const showImage =
         slide.imageUrl && isAllowedProductImageSrc(slide.imageUrl);
 
@@ -73,10 +79,11 @@ function SlideContent({ slide }: { slide: PromoBannerSlide }) {
                 >
                     <Image
                         src={slide.imageUrl!}
-                        alt=""
+                        alt={slide.title}
                         fill
                         sizes="112px"
                         style={{ objectFit: "cover" }}
+                        {...(priority ? { priority: true } : { loading: "lazy" })}
                     />
                 </Box>
             )}
@@ -106,7 +113,7 @@ export function PromoBannerCarousel({ slides }: PromoBannerCarouselProps) {
             style={{ paddingBottom: 30 }}
         >
             {slides.map((slide, index) => {
-                const inner = <SlideContent slide={slide} />;
+                const inner = <SlideContent slide={slide} priority={index === 0} />;
                 const key = `${slide.title}-${index}`;
 
                 if (slide.href) {

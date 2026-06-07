@@ -5,6 +5,8 @@ import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useState } from "react";
 
+import { handleSessionExpired } from "@/features/auth/handle-session-expired";
+import { LoginDialog } from "@/features/auth/ui/login-dialog";
 import { showAppToast } from "@/shared/lib/show-app-toast";
 
 type ProfileEmailVerificationAlertProps = {
@@ -15,6 +17,7 @@ export function ProfileEmailVerificationAlert({
     email,
 }: ProfileEmailVerificationAlertProps) {
     const [loading, setLoading] = useState(false);
+    const [loginOpen, setLoginOpen] = useState(false);
 
     const handleResend = async () => {
         setLoading(true);
@@ -25,6 +28,12 @@ export function ProfileEmailVerificationAlert({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),
             });
+
+            if (res.status === 401) {
+                await handleSessionExpired(() => setLoginOpen(true));
+                showAppToast("Ваша сессия истекла, пожалуйста, войдите заново", "error");
+                return;
+            }
 
             const data = (await res.json().catch(() => null)) as {
                 error?: string;
@@ -47,31 +56,34 @@ export function ProfileEmailVerificationAlert({
     };
 
     return (
-        <Alert
-            severity="warning"
-            sx={{ mb: 3, borderRadius: 2 }}
-            action={
-                <Button
-                    color="inherit"
-                    size="small"
-                    disabled={loading}
-                    sx={{
-                        textTransform: "none",
-                        fontWeight: 600,
-                        whiteSpace: "nowrap",
-                        minWidth: 140,
-                    }}
-                    onClick={() => void handleResend()}
-                >
-                    {loading ? (
-                        <CircularProgress size={18} color="inherit" />
-                    ) : (
-                        "Отправить письмо повторно"
-                    )}
-                </Button>
-            }
-        >
-            Подтвердите вашу почту, чтобы защитить аккаунт
-        </Alert>
+        <>
+            <Alert
+                severity="warning"
+                sx={{ mb: 3, borderRadius: 2 }}
+                action={
+                    <Button
+                        color="inherit"
+                        size="small"
+                        disabled={loading}
+                        sx={{
+                            textTransform: "none",
+                            fontWeight: 600,
+                            whiteSpace: "nowrap",
+                            minWidth: 140,
+                        }}
+                        onClick={() => void handleResend()}
+                    >
+                        {loading ? (
+                            <CircularProgress size={18} color="inherit" />
+                        ) : (
+                            "Отправить письмо повторно"
+                        )}
+                    </Button>
+                }
+            >
+                Подтвердите вашу почту, чтобы защитить аккаунт
+            </Alert>
+            <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
+        </>
     );
 }

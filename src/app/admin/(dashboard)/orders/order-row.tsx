@@ -459,7 +459,7 @@ export function OrderRow({ order, searchQuery }: OrderRowProps) {
                                 Телефон: {order.phone}
                             </Typography>
                             <Typography variant="body2">
-                                Адрес: {order.address || "—"}
+                                Адрес: {order.address || "-"}
                             </Typography>
                             {order.comment && (
                                 <Typography variant="body2">

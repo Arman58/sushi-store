@@ -33,18 +33,24 @@ function ProductCoverPlaceholder() {
             }}
         >
             <Box
-                component="img"
-                src="/east-west-logo.png"
-                alt=""
-                aria-hidden
                 sx={{
+                    position: "relative",
                     width: 40,
                     height: 40,
                     borderRadius: 1,
-                    objectFit: "cover",
+                    overflow: "hidden",
                     opacity: 0.85,
                 }}
-            />
+            >
+                <Image
+                    src="/east-west-logo.png"
+                    alt=""
+                    width={40}
+                    height={40}
+                    style={{ objectFit: "cover" }}
+                    aria-hidden
+                />
+            </Box>
             <RestaurantMenuRoundedIcon sx={{ fontSize: 28, opacity: 0.35 }} />
         </Box>
     );

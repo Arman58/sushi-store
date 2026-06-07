@@ -1,6 +1,10 @@
 import { v2 } from "cloudinary";
 import { NextResponse } from "next/server";
 
+import {
+    DEFAULT_FETCH_TIMEOUT_MS,
+    withTimeout,
+} from "@/lib/fetch-with-timeout";
 import { verifyAdmin } from "@/lib/verify-admin";
 
 export const runtime = "nodejs";
@@ -51,19 +55,23 @@ export async function POST(request: Request) {
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        const result = await new Promise<{ secure_url: string }>((resolve, reject) => {
-            v2.uploader
-                .upload_stream({ folder: "east-west-products" }, (error, uploadResult) => {
-                    if (error) {
-                        reject(error);
-                    } else if (uploadResult?.secure_url) {
-                        resolve({ secure_url: uploadResult.secure_url });
-                    } else {
-                        reject(new Error("No URL from Cloudinary"));
-                    }
-                })
-                .end(buffer);
-        });
+        const result = await withTimeout(
+            new Promise<{ secure_url: string }>((resolve, reject) => {
+                v2.uploader
+                    .upload_stream({ folder: "east-west-products" }, (error, uploadResult) => {
+                        if (error) {
+                            reject(error);
+                        } else if (uploadResult?.secure_url) {
+                            resolve({ secure_url: uploadResult.secure_url });
+                        } else {
+                            reject(new Error("No URL from Cloudinary"));
+                        }
+                    })
+                    .end(buffer);
+            }),
+            DEFAULT_FETCH_TIMEOUT_MS,
+            "Cloudinary upload",
+        );
 
         return NextResponse.json({ url: result.secure_url });
     } catch (err) {

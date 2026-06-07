@@ -3,9 +3,13 @@
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
+import MenuIcon from "@mui/icons-material/Menu";
 import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
+import IconButton from "@mui/material/IconButton";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
 import Snackbar from "@mui/material/Snackbar";
 import ButtonBase from "@mui/material/ButtonBase";
 import Container from "@mui/material/Container";
@@ -34,6 +38,69 @@ const MobileBottomNav = dynamic(
     { ssr: false },
 );
 import { tokens } from "./theme";
+import { StoreFooter } from "./store-footer";
+
+const STORE_NAV_LINKS = [
+    { href: "/", label: "Главная" },
+    { href: "/menu", label: "Меню" },
+    { href: "/contacts", label: "Контакты" },
+] as const;
+
+// ─── Mobile nav menu ────────────────────────────────────────────────────────────
+
+function MobileNavMenu() {
+    const pathname = usePathname();
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const open = Boolean(anchorEl);
+
+    return (
+        <>
+            <IconButton
+                onClick={(e) => setAnchorEl(e.currentTarget)}
+                aria-label="Меню навигации"
+                sx={{
+                    display: { xs: "inline-flex", sm: "none" },
+                    border: "1px solid",
+                    borderColor: "divider",
+                    bgcolor: "background.paper",
+                    color: tokens.textSecondary,
+                }}
+            >
+                <MenuIcon />
+            </IconButton>
+
+            <Menu
+                anchorEl={anchorEl}
+                open={open}
+                onClose={() => setAnchorEl(null)}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                transformOrigin={{ vertical: "top", horizontal: "right" }}
+                PaperProps={{
+                    sx: {
+                        mt: 0.75,
+                        minWidth: 200,
+                        borderRadius: 2,
+                        border: "1px solid",
+                        borderColor: "divider",
+                    },
+                }}
+            >
+                {STORE_NAV_LINKS.map(({ href, label }) => (
+                    <MenuItem
+                        key={href}
+                        component={Link}
+                        href={href}
+                        onClick={() => setAnchorEl(null)}
+                        selected={pathname === href}
+                        sx={{ fontWeight: pathname === href ? 700 : 500 }}
+                    >
+                        {label}
+                    </MenuItem>
+                ))}
+            </Menu>
+        </>
+    );
+}
 
 // ─── Cart button ──────────────────────────────────────────────────────────────
 
@@ -350,19 +417,19 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                 variant="caption"
                                 sx={{ color: tokens.textMuted }}
                             >
-                                · 45–60 мин
+                                · 45-60 мин
                             </Typography>
                         </Box>
 
                         {/* Right actions */}
                         <Stack direction="row" spacing={1} alignItems="center">
                             {/* Nav links — desktop */}
-                            <Box sx={{ display: { xs: "none", sm: "flex" }, gap: 0.5 }}>
-                                {[
-                                    { href: "/",             label: "Главная" },
-                                    { href: "/menu",         label: "Меню" },
-                                    { href: "/order-status", label: "Мой заказ" },
-                                ].map(({ href, label }) => (
+                            <Box
+                                component="nav"
+                                aria-label="Основная навигация"
+                                sx={{ display: { xs: "none", sm: "flex" }, gap: 0.5 }}
+                            >
+                                {STORE_NAV_LINKS.map(({ href, label }) => (
                                     <ButtonBase
                                         key={href}
                                         component={Link}
@@ -386,6 +453,7 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                 ))}
                             </Box>
 
+                            <MobileNavMenu />
                             <LoginButton />
                             <CartHeaderButton />
                         </Stack>
@@ -455,8 +523,9 @@ export function LayoutShell({ children }: LayoutShellProps) {
                 />
 
             {/* Page content */}
-            <Box component="main" sx={{ pb: { xs: 10, sm: 4 } }}>
+            <Box sx={{ pb: { xs: 10, sm: 4 }, display: "flex", flexDirection: "column", minHeight: "calc(100vh - 64px)" }}>
                 {children}
+                <StoreFooter />
             </Box>
 
             {/* Global overlays */}

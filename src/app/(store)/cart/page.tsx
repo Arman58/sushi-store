@@ -30,9 +30,8 @@ import { sanitizeProductImageSrc } from "@/shared/lib/product-cover";
 import { EmptyCart, PageContainer, SectionTitle } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const MIN_ORDER_AMD = 3_000;
+const MIN_ORDER_HINT =
+    "Минимальная сумма заказа зависит от зоны доставки и будет рассчитана при оформлении";
 
 // ─── Line item row ─────────────────────────────────────────────────────────────
 
@@ -215,6 +214,12 @@ export default function CartPage() {
         validSubtotal: subtotal,
     } = useCartLineValidation(items);
 
+    const hasAtLeastOneValidItem = items.some(
+        (item) => !cartLineIssues[item.cartItemId],
+    );
+    const canProceedToCheckout =
+        hasAtLeastOneValidItem && !cartValidatePending;
+
     const [promoDraft, setPromoDraft] = useState("");
     const [promoError, setPromoError] = useState("");
     const [promoDiscount, setPromoDiscount] = useState(0);
@@ -262,7 +267,6 @@ export default function CartPage() {
     }, [appliedPromoCode, hasItems, subtotal, setAppliedPromoCode]);
 
     const totalPrice = Math.max(0, subtotal - promoDiscount);
-    const belowMin = totalPrice < MIN_ORDER_AMD;
 
     const handleApplyPromo = async () => {
         setPromoError("");
@@ -494,14 +498,18 @@ export default function CartPage() {
                                 />
                             </Box>
 
-                            {/* Min order warning */}
-                            {belowMin && (
-                                <Alert severity="warning" sx={{ mb: 2, borderRadius: 2, fontSize: 12 }}>
-                                    Минимальный заказ {MIN_ORDER_AMD.toLocaleString("ru-RU")} ֏.
-                                    Добавьте ещё на{" "}
-                                    {(MIN_ORDER_AMD - totalPrice).toLocaleString("ru-RU")} ֏.
-                                </Alert>
-                            )}
+                            <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{
+                                    display: "block",
+                                    mb: 2,
+                                    textAlign: "center",
+                                    lineHeight: 1.45,
+                                }}
+                            >
+                                {MIN_ORDER_HINT}
+                            </Typography>
 
                             <Button
                                 component={Link}
@@ -510,7 +518,7 @@ export default function CartPage() {
                                 color="primary"
                                 fullWidth
                                 size="large"
-                                disabled={belowMin || hasCartLineProblems || cartValidatePending}
+                                disabled={!canProceedToCheckout}
                                 sx={{ fontWeight: 700 }}
                             >
                                 Оформить заказ
@@ -521,7 +529,7 @@ export default function CartPage() {
                                 color="text.secondary"
                                 sx={{ display: "block", mt: 1.5, textAlign: "center" }}
                             >
-                                Адрес и оплата — на следующем шаге
+                                Адрес и оплата - на следующем шаге
                             </Typography>
                         </Box>
                     </Stack>

@@ -22,7 +22,9 @@ const actionBoxSx = {
     },
 } as const;
 
-const TEL = "tel:+37400000000";
+import { CONTACT_PHONE } from "@/lib/site-config";
+
+const TEL = `tel:${CONTACT_PHONE}`;
 
 function goToTel() {
     if (typeof window === "undefined") return;

@@ -31,7 +31,7 @@ export default function Error({
                     Произошла ошибка при загрузке. Попробуйте обновить страницу.
                 </Typography>
                 <Button variant="contained" color="primary" onClick={() => reset()}>
-                    Обновить страницу
+                    Попробовать снова
                 </Button>
             </Stack>
         </Box>

@@ -338,7 +338,7 @@ function ModifierGroupAccordion(props: {
                             disabled={disabled}
                             sx={{ width: 128, ...TEXT_FIELD_FOCUS_SX }}
                             inputProps={{ min: 0, step: 1 }}
-                            helperText="0 — без лимита"
+                            helperText="0 - без лимита"
                         />
                     </Stack>
                     <Stack spacing={1}>

@@ -70,6 +70,7 @@ export const ProductCard = memo(function ProductCard({
     return (
         <Box sx={{ width: "100%", height: "100%" }}>
             <Card
+                component="article"
                 elevation={1}
                 sx={{
                     width: "100%",
@@ -300,6 +301,7 @@ export function ProductCardSkeleton() {
     return (
         <Box sx={{ width: "100%", height: "100%" }}>
             <Card
+                component="article"
                 elevation={1}
                 sx={{
                     width: "100%",

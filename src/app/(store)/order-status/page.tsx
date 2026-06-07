@@ -109,7 +109,7 @@ export default function OrderStatusPage() {
                     <Box sx={{ position: "relative" }}>
                         <SectionTitle>Статус заказа</SectionTitle>
                         <Typography variant="body1" sx={{ color: "rgba(255,255,255,0.82)", maxWidth: 500 }}>
-                            Отследите заказ по номеру и телефону — увидите этапы и время доставки.
+                            Отследите заказ по номеру и телефону - увидите этапы и время доставки.
                         </Typography>
                         <Stack direction="row" spacing={1.5} sx={{ mt: 2 }} flexWrap="wrap">
                             <Chip

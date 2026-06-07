@@ -3,6 +3,29 @@
  * Centralises error handling, JSON parsing, and Content-Type headers.
  */
 
+const SESSION_EXPIRED_TOAST = "Сессия истекла, войдите заново";
+
+let unauthorizedHandling: Promise<void> | null = null;
+
+async function handleUnauthorized(): Promise<void> {
+    if (typeof window === "undefined") return;
+
+    if (!unauthorizedHandling) {
+        unauthorizedHandling = (async () => {
+            const [{ signOut }, { showAppToast }] = await Promise.all([
+                import("next-auth/react"),
+                import("@/shared/lib/show-app-toast"),
+            ]);
+            await signOut({ redirect: false });
+            showAppToast(SESSION_EXPIRED_TOAST, "error");
+        })().finally(() => {
+            unauthorizedHandling = null;
+        });
+    }
+
+    await unauthorizedHandling;
+}
+
 export class ApiError extends Error {
     readonly data: unknown;
 
@@ -57,6 +80,11 @@ async function parseResponse<T>(res: Response): Promise<T> {
             typeof body === "object" && body !== null
                 ? body
                 : { error: message, status: res.status, raw: rawText || null };
+
+        if (res.status === 401) {
+            void handleUnauthorized();
+        }
+
         throw new ApiError(res.status, message, errorData);
     }
 

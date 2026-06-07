@@ -14,15 +14,23 @@ import { alpha, useTheme } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
 import { ProductCard } from "@/entities/product/ui/product-card";
-import { ProductModifiersDialog } from "@/entities/product/ui/product-modifiers-dialog";
 import { buildCartItemId, useCartStore } from "@/features/cart";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { tokens } from "@/shared/ui/theme";
+
+const ProductModifiersDialog = dynamic(
+    () =>
+        import("@/entities/product/ui/product-modifiers-dialog").then(
+            (m) => m.ProductModifiersDialog,
+        ),
+    { ssr: false },
+);
 
 export type MenuCategory = {
     id: number;
@@ -435,6 +443,8 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                 )
             ) : (
                 <Box
+                    component="section"
+                    aria-label="Каталог блюд"
                     sx={{
                         display: "grid",
                         gap: { xs: 1.5, sm: 2, md: 2.5 },

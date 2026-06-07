@@ -5,15 +5,23 @@ import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useState } from "react";
 
 import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
 import type { ProductBadge } from "@/entities/product/ui/product-card";
 import { ProductCard } from "@/entities/product/ui/product-card";
-import { ProductModifiersDialog } from "@/entities/product/ui/product-modifiers-dialog";
 import { buildCartItemId, useCartStore } from "@/features/cart";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { tokens } from "@/shared/ui/theme";
+
+const ProductModifiersDialog = dynamic(
+    () =>
+        import("@/entities/product/ui/product-modifiers-dialog").then(
+            (m) => m.ProductModifiersDialog,
+        ),
+    { ssr: false },
+);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

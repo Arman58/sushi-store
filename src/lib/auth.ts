@@ -5,12 +5,46 @@ import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/prisma";
 
+const isProduction = process.env.NODE_ENV === "production";
+
+/**
+ * Без явного domain — куки привязаны к текущему хосту (localhost или eastwestnh.com).
+ * secure только на проде, чтобы dev на http://localhost работал без HTTPS.
+ */
+const sessionCookieOptions = {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    path: "/",
+    secure: process.env.NODE_ENV === "production",
+};
+
 /**
  * NextAuth: JWT-сессии, вход по email + пароль.
  * Lazy Verification: emailVerified === null не блокирует вход и заказы.
  */
 export const authOptions: NextAuthOptions = {
     session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 /* 30 дней */ },
+    useSecureCookies: isProduction,
+    cookies: {
+        sessionToken: {
+            name: isProduction
+                ? "__Secure-next-auth.session-token"
+                : "next-auth.session-token",
+            options: sessionCookieOptions,
+        },
+        callbackUrl: {
+            name: isProduction
+                ? "__Secure-next-auth.callback-url"
+                : "next-auth.callback-url",
+            options: sessionCookieOptions,
+        },
+        csrfToken: {
+            name: isProduction
+                ? "__Host-next-auth.csrf-token"
+                : "next-auth.csrf-token",
+            options: sessionCookieOptions,
+        },
+    },
     providers: [
         CredentialsProvider({
             name: "Email and Password",

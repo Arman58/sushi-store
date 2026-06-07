@@ -6,7 +6,6 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { OrderStatus } from "@prisma/client";
-import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
 import { ORDER_STATUS_UI } from "@/lib/order-status";
@@ -17,6 +16,8 @@ import { tokens } from "@/shared/ui/theme";
 
 import { ProfileEmailVerificationAlert } from "./profile-email-verification-alert";
 import { ProfileOrderActions } from "./profile-order-actions";
+import { ProfileSessionGuard } from "./profile-session-guard";
+import { ProfileLoginPrompt } from "./profile-login-prompt";
 import type { ProfileOrderItem } from "./types";
 
 // Личный кабинет — динамическая страница: каждый запрос проверяет сессию.
@@ -39,8 +40,7 @@ export default async function ProfilePage() {
     const userId = session?.user?.id ?? null;
 
     if (!userId) {
-        // Не залогинен — отправляем на главную, где есть кнопка «Войти».
-        redirect("/?login=1");
+        return <ProfileLoginPrompt reason="no_session" />;
     }
 
     const user = await prisma.user.findUnique({
@@ -57,8 +57,7 @@ export default async function ProfilePage() {
     });
 
     if (!user) {
-        // Юзер удалён, но cookie ещё жив — отправляем на главную.
-        redirect("/");
+        return <ProfileLoginPrompt reason="session_expired" />;
     }
 
     const orders = await prisma.order.findMany({
@@ -83,6 +82,7 @@ export default async function ProfilePage() {
 
     return (
         <main>
+            <ProfileSessionGuard />
             <PageContainer>
                 <SectionTitle>Личный кабинет</SectionTitle>
 

@@ -248,7 +248,7 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
                 {isCancelled ? (
                     <Alert severity="error" sx={{ borderRadius: 2 }}>
                         К сожалению, ваш заказ был отменён. Приносим извинения за неудобства.
-                        Если у вас остались вопросы — свяжитесь с нами по телефону.
+                        Если у вас остались вопросы - свяжитесь с нами по телефону.
                     </Alert>
                 ) : (
                     <>
@@ -379,7 +379,7 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
                             value={
                                 order.delivery === "PICKUP"
                                     ? "Самовывоз"
-                                    : order.address?.trim() || "—"
+                                    : order.address?.trim() || "-"
                             }
                         />
                         <InfoRow label="Способ получения" value={DELIVERY_LABEL[order.delivery]} />

@@ -2,6 +2,10 @@ import {
     ETA_PRESET_MINUTES,
     formatEstimatedDeliveryTime,
 } from "@/lib/order-status";
+import {
+    DEFAULT_FETCH_TIMEOUT_MS,
+    fetchWithTimeout,
+} from "@/lib/fetch-with-timeout";
 import type { KitchenButtonStatus } from "@/lib/order-service";
 import {
     KITCHEN_BUTTON_STATUSES,
@@ -112,13 +116,14 @@ async function telegramApi<T>(
     }
 
     try {
-        const res = await fetch(
+        const res = await fetchWithTimeout(
             `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`,
             {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body),
             },
+            DEFAULT_FETCH_TIMEOUT_MS,
         );
 
         const json = (await res.json().catch(() => null)) as

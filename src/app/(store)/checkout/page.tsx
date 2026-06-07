@@ -46,6 +46,7 @@ import {
     useCartStore,
 } from "@/features/cart";
 import { normalizePhoneToE164Digits } from "@/lib/phone";
+import { KITCHEN_ADDRESS, OPENING_HOURS } from "@/lib/site-config";
 import { ApiError, placeOrder, validatePromo } from "@/shared/api";
 import {
     type CheckoutFormValues,
@@ -64,8 +65,7 @@ const DRAFT_TTL_MS = 24 * 60 * 60 * 1_000;
 const ORDER_ID_KEY = "last-order-id";
 
 /** Точка самовывоза East West — показываем на checkout. */
-const PICKUP_LOCATION_LINE =
-    "Самовывоз из ресторана East West: Нор Ачин, ул. Чаренца 19.";
+const PICKUP_LOCATION_LINE = `Самовывоз из ресторана East West: ${KITCHEN_ADDRESS.pickup}.`;
 
 /** Секции формы чекаута — одинаковые отступы и рамка по токенам. */
 const checkoutSectionPaperSx = {
@@ -590,7 +590,7 @@ export default function CheckoutPage() {
         ? "Отправка…"
         : requiresManagerApproval
           ? "Отправить заявку на подтверждение"
-          : `Оформить заказ — ${grandTotal.toLocaleString("ru-RU")} ֏`;
+          : `Оформить заказ - ${grandTotal.toLocaleString("ru-RU")} ֏`;
 
     const onInvalid = (formErrors: FieldErrors<CheckoutFormValues>) => {
         const first = Object.values(formErrors).find(
@@ -667,8 +667,6 @@ export default function CheckoutPage() {
                 return;
             }
 
-            const unexpectedBody = { error: "Сервер не подтвердил заказ", result };
-            console.error("Order API Error:", unexpectedBody);
             const fallback = "Сервер не подтвердил заказ. Попробуйте ещё раз.";
             setErrorMessage(fallback);
             showAppToast(fallback, "error");
@@ -705,7 +703,6 @@ export default function CheckoutPage() {
                 message = "Не удалось отправить заказ. Проверьте соединение.";
             }
 
-            console.error("Order API Error:", errorData);
             setErrorMessage(message);
             showAppToast(message, "error");
         } finally {
@@ -741,13 +738,16 @@ export default function CheckoutPage() {
                 >
                     <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "flex-start", sm: "center" }}>
                         <Chip
-                            label="Доставка за 45–60 минут"
+                            label="Доставка за 45-60 минут"
                             color="warning"
                             size="small"
                             sx={{ fontWeight: 700, borderRadius: 999 }}
                         />
                         <Typography variant="body2" color="text.secondary" component="div">
-                            <span>Курьер перезвонит для подтверждения. Работаем с 11:00 до 23:00.</span>
+                            <span>
+                                Курьер перезвонит для подтверждения. Работаем{" "}
+                                {OPENING_HOURS.label.toLowerCase()}.
+                            </span>
                             <Box component="span" sx={{ display: "block", mt: 1, color: "text.primary" }}>
                                 {PICKUP_LOCATION_LINE}
                             </Box>
@@ -794,7 +794,7 @@ export default function CheckoutPage() {
                 {hasItems && hasCartLineProblems && (
                     <Alert severity="error" sx={{ mb: 3 }}>
                         Часть позиций недоступна или изменилась по цене. Удалите
-                        подсвеченные строки или вернитесь в меню — оформление
+                        подсвеченные строки или вернитесь в меню - оформление
                         недоступно, пока корзина не будет согласована с меню.
                     </Alert>
                 )}
@@ -813,7 +813,7 @@ export default function CheckoutPage() {
                         <Box flex={2}>
                             {apiError && (
                                 <Alert severity="error" sx={{ mt: 2 }}>
-                                    Не удалось оформить заказ — на сервере произошла ошибка.
+                                    Не удалось оформить заказ - на сервере произошла ошибка.
                                     Попробуйте чуть позже или обновите страницу.
                                 </Alert>
                             )}
@@ -1085,7 +1085,7 @@ export default function CheckoutPage() {
                                                         variant="body2"
                                                         sx={{ fontVariantNumeric: "tabular-nums" }}
                                                     >
-                                                        Для зоны «{selectedZone.name}» минимальная сумма заказа —{" "}
+                                                        Для зоны «{selectedZone.name}» минимальная сумма заказа -{" "}
                                                         {selectedZone.minOrderAmount.toLocaleString("ru-RU")} ֏ (сейчас{" "}
                                                         {cartSubtotal.toLocaleString("ru-RU")} ֏).
                                                     </Typography>
@@ -1137,7 +1137,7 @@ export default function CheckoutPage() {
                                                             </MenuItem>
                                                             {deliveryZones.map((zone) => (
                                                                 <MenuItem key={zone.id} value={zone.id}>
-                                                                    {zone.name} — доставка{" "}
+                                                                    {zone.name} - доставка{" "}
                                                                     {formatZoneDeliveryPrice(zone.deliveryPrice)}{" "}
                                                                     · от{" "}
                                                                     {zone.minOrderAmount.toLocaleString("ru-RU")}{" "}
@@ -1417,20 +1417,26 @@ export default function CheckoutPage() {
                                     variant="body2"
                                     fontWeight={600}
                                     color={
-                                        deliveryFee > 0 ? "text.primary" : "success.main"
+                                        requiresManagerApproval
+                                            ? "error.main"
+                                            : deliveryFee > 0
+                                              ? "text.primary"
+                                              : "success.main"
                                     }
                                     sx={{ fontVariantNumeric: "tabular-nums" }}
                                 >
-                                    {deliveryFee > 0
-                                        ? `${deliveryFee.toLocaleString("ru-RU")} ֏`
-                                        : isDelivery && zonesLoading
-                                          ? "…"
-                                          : isDelivery &&
-                                              !zonesLoading &&
-                                              !zonesError &&
-                                              deliveryZones.length === 0
-                                            ? "—"
-                                            : "Бесплатно"}
+                                    {requiresManagerApproval
+                                        ? "Доставка уточняется менеджером"
+                                        : deliveryFee > 0
+                                          ? `${deliveryFee.toLocaleString("ru-RU")} ֏`
+                                          : isDelivery && zonesLoading
+                                            ? "…"
+                                            : isDelivery &&
+                                                !zonesLoading &&
+                                                !zonesError &&
+                                                deliveryZones.length === 0
+                                              ? "-"
+                                              : "Бесплатно"}
                                 </Typography>
                             </Stack>
 
