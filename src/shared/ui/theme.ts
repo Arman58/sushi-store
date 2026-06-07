@@ -368,6 +368,7 @@ const theme = createTheme({
         MuiOutlinedInput: {
             styleOverrides: {
                 root: {
+                    fontSize: "1rem",
                     borderRadius: tokens.radiusInput,
                     backgroundColor: tokens.surface,
                     transition: "box-shadow 0.18s ease, border-color 0.18s ease",
@@ -407,11 +408,14 @@ const theme = createTheme({
                 input: {
                     color: tokens.textPrimary,
                     // iOS не зумит страницу при фокусе, если font-size ≥ 16px
-                    fontSize: "16px",
+                    fontSize: "1rem",
                     "&::placeholder": {
                         color: tokens.textMuted,
                         opacity: 1,
                     },
+                },
+                inputMultiline: {
+                    fontSize: "1rem",
                 },
                 notchedOutline: {
                     borderRadius: tokens.radiusInput,

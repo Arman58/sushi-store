@@ -71,7 +71,7 @@ const PICKUP_LOCATION_LINE = `Самовывоз из ресторана East We
 
 /** Секции формы чекаута — одинаковые отступы и рамка по токенам. */
 const checkoutSectionPaperSx = {
-    p: 3,
+    p: { xs: 2, md: 3 },
     borderRadius: 2,
     border: `1px solid ${tokens.border}`,
     bgcolor: "background.paper",
@@ -79,7 +79,17 @@ const checkoutSectionPaperSx = {
     display: "flex",
     flexDirection: "column",
     gap: 2.5,
+    minWidth: 0,
+    overflow: "hidden",
 } as const;
+
+const checkoutFieldProps = {
+    size: "small" as const,
+    fullWidth: true,
+};
+
+/** Отступ снизу под fixed CTA + запас при открытой клавиатуре iOS. */
+const CHECKOUT_MOBILE_SCROLL_PAD = "calc(120px + env(safe-area-inset-bottom))";
 
 const checkoutInputRadiusSx = {
     "& .MuiOutlinedInput-root": {
@@ -378,6 +388,37 @@ export default function CheckoutPage() {
         useCartStore.getState().setPlacingOrder(false);
     }, []);
 
+    useEffect(() => {
+        const form = checkoutFormRef.current;
+        if (!form || !hasItems) return;
+
+        const isFormControl = (el: Element | null) =>
+            el instanceof HTMLElement &&
+            el.matches('input, textarea, select, [role="combobox"], [contenteditable="true"]');
+
+        const onFocusIn = (e: FocusEvent) => {
+            if (isFormControl(e.target as Element)) {
+                setFormFieldFocused(true);
+            }
+        };
+
+        const onFocusOut = () => {
+            window.requestAnimationFrame(() => {
+                const active = document.activeElement;
+                if (!isFormControl(active) || !form.contains(active)) {
+                    setFormFieldFocused(false);
+                }
+            });
+        };
+
+        form.addEventListener("focusin", onFocusIn);
+        form.addEventListener("focusout", onFocusOut);
+        return () => {
+            form.removeEventListener("focusin", onFocusIn);
+            form.removeEventListener("focusout", onFocusOut);
+        };
+    }, [hasItems]);
+
     const {
         cartLineIssues,
         cartValidatePending,
@@ -399,6 +440,9 @@ export default function CheckoutPage() {
     const [promoError, setPromoError] = useState<string | null>(null);
     const [promoDiscount, setPromoDiscount] = useState(0);
     const [promoApplying, setPromoApplying] = useState(false);
+    /** Скрываем mobile CTA, пока открыта клавиатура — инпут не перекрывается. */
+    const [formFieldFocused, setFormFieldFocused] = useState(false);
+    const checkoutFormRef = useRef<HTMLFormElement>(null);
 
     const draft = useMemo(() => loadDraft(), []);
 
@@ -785,8 +829,10 @@ export default function CheckoutPage() {
         <PageContainer>
                 <Box
                     sx={{
+                        minWidth: 0,
+                        overflowX: "clip",
                         pb: hasItems
-                            ? { xs: "calc(88px + env(safe-area-inset-bottom))", md: 0 }
+                            ? { xs: CHECKOUT_MOBILE_SCROLL_PAD, md: 0 }
                             : 0,
                     }}
                 >
@@ -876,10 +922,15 @@ export default function CheckoutPage() {
 
                 {hasItems && (
                     <>
-                    <Stack direction={{ xs: "column", md: "row" }} spacing={4} alignItems="flex-start">
+                    <Stack
+                        direction={{ xs: "column", md: "row" }}
+                        spacing={4}
+                        alignItems="flex-start"
+                        sx={{ minWidth: 0 }}
+                    >
 
                         {/* ── Form ── */}
-                        <Box flex={2}>
+                        <Box flex={2} sx={{ minWidth: 0, width: "100%" }}>
                             {apiError && (
                                 <Alert severity="error" sx={{ mt: 2 }}>
                                     Не удалось оформить заказ - на сервере произошла ошибка.
@@ -889,9 +940,17 @@ export default function CheckoutPage() {
                             <Box
                                 component="form"
                                 id="checkout-form"
+                                ref={checkoutFormRef}
                                 noValidate
                                 onSubmit={handleSubmit(onSubmit, onInvalid)}
-                                sx={{ display: "flex", flexDirection: "column", gap: 3 }}
+                                sx={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 3,
+                                    minWidth: 0,
+                                    maxWidth: "100%",
+                                    overflowX: "clip",
+                                }}
                             >
                                 {/* Honeypot — hidden from users */}
                                 <input
@@ -912,9 +971,8 @@ export default function CheckoutPage() {
                                 {/* Name */}
                                 <TextField
                                     label="Имя"
-                                    fullWidth
+                                    {...checkoutFieldProps}
                                     sx={checkoutInputRadiusSx}
-                                    inputProps={{ style: { fontSize: 16 } }}
                                     {...register("name")}
                                     error={showCheckoutFieldError(
                                         errors,
@@ -950,9 +1008,8 @@ export default function CheckoutPage() {
                                     <TextField
                                         label="Email"
                                         type="email"
-                                        fullWidth
+                                        {...checkoutFieldProps}
                                         sx={checkoutInputRadiusSx}
-                                        inputProps={{ style: { fontSize: 16 } }}
                                         {...register("email")}
                                         error={showCheckoutFieldError(
                                             errors,
@@ -988,14 +1045,14 @@ export default function CheckoutPage() {
                                     render={({ field }) => (
                                         <TextField
                                             label="Телефон"
-                                            fullWidth
+                                            {...checkoutFieldProps}
                                             sx={checkoutInputRadiusSx}
                                             value={field.value}
                                             onChange={(e) => field.onChange(formatPhone(e.target.value))}
                                             onBlur={field.onBlur}
                                             required={isDelivery}
                                             placeholder={PHONE_TEMPLATE}
-                                            inputProps={{ style: { fontSize: 16 }, inputMode: "tel" }}
+                                            inputProps={{ inputMode: "tel" }}
                                             error={showCheckoutFieldError(
                                                 errors,
                                                 touchedFields,
@@ -1037,7 +1094,7 @@ export default function CheckoutPage() {
                                     <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
                                         Способ получения
                                     </Typography>
-                                    <Stack direction="row" spacing={1}>
+                                    <Stack direction="row" spacing={1} sx={{ minWidth: 0 }}>
                                         {DELIVERY_TYPE_OPTIONS.map(({ type, label, icon }) => (
                                             <Paper
                                                 key={type}
@@ -1087,6 +1144,7 @@ export default function CheckoutPage() {
                                                     alignItems: "center",
                                                     justifyContent: "center",
                                                     userSelect: "none",
+                                                    overflow: "hidden",
                                                     "&:hover": {
                                                         bgcolor: delivery === type ? tokens.brandDim : tokens.surfaceHi,
                                                         borderColor: delivery === type ? "primary.main" : tokens.borderHi,
@@ -1098,10 +1156,12 @@ export default function CheckoutPage() {
                                                     spacing={0.75}
                                                     alignItems="center"
                                                     justifyContent="center"
+                                                    sx={{ minWidth: 0, maxWidth: "100%" }}
                                                 >
                                                     <Box
                                                         sx={{
                                                             display: "flex",
+                                                            flexShrink: 0,
                                                             color: delivery === type ? "primary.main" : "text.secondary",
                                                         }}
                                                     >
@@ -1110,7 +1170,12 @@ export default function CheckoutPage() {
                                                     <Typography
                                                         variant="body2"
                                                         fontWeight={delivery === type ? 700 : 500}
-                                                        noWrap
+                                                        sx={{
+                                                            minWidth: 0,
+                                                            overflow: "hidden",
+                                                            textOverflow: "ellipsis",
+                                                            whiteSpace: "nowrap",
+                                                        }}
                                                     >
                                                         {label}
                                                     </Typography>
@@ -1151,7 +1216,7 @@ export default function CheckoutPage() {
                                             <Alert severity="warning">
                                                 Доставка временно недоступна. Выберите самовывоз или попробуйте позже.
                                             </Alert>
-                                            <FormControl fullWidth disabled sx={checkoutInputRadiusSx}>
+                                            <FormControl fullWidth size="small" disabled sx={checkoutInputRadiusSx}>
                                                 <InputLabel id="checkout-delivery-zone-unavailable-label">
                                                     Район / зона доставки
                                                 </InputLabel>
@@ -1160,9 +1225,6 @@ export default function CheckoutPage() {
                                                     label="Район / зона доставки"
                                                     value=""
                                                     MenuProps={deliveryZoneSelectMenuProps}
-                                                    inputProps={{
-                                                        style: { fontSize: 16 },
-                                                    }}
                                                 >
                                                     <MenuItem value="" disabled>
                                                         <em>Нет активных зон</em>
@@ -1191,6 +1253,7 @@ export default function CheckoutPage() {
                                             )}
                                             <FormControl
                                                 fullWidth
+                                                size="small"
                                                 required
                                                 error={showCheckoutFieldError(
                                                     errors,
@@ -1227,9 +1290,6 @@ export default function CheckoutPage() {
                                                                 );
                                                             }}
                                                             MenuProps={deliveryZoneSelectMenuProps}
-                                                            inputProps={{
-                                                                style: { fontSize: 16 },
-                                                            }}
                                                         >
                                                             <MenuItem value="" disabled>
                                                                 <em>Выберите зону</em>
@@ -1276,9 +1336,8 @@ export default function CheckoutPage() {
                                 {isDelivery && (
                                     <TextField
                                         label="Адрес доставки"
-                                        fullWidth
+                                        {...checkoutFieldProps}
                                         sx={checkoutInputRadiusSx}
-                                        inputProps={{ style: { fontSize: 16 } }}
                                         {...register("address")}
                                         required
                                         error={showCheckoutFieldError(
@@ -1323,7 +1382,7 @@ export default function CheckoutPage() {
                                         <Typography variant="body2" fontWeight={600} sx={{ mb: 1.5 }}>
                                             Способ оплаты
                                         </Typography>
-                                        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+                                        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ minWidth: 0 }}>
                                             <PaymentCard
                                                 selected={payment === "cash"}
                                                 onSelect={() =>
@@ -1349,13 +1408,12 @@ export default function CheckoutPage() {
                                 {/* Comment */}
                                 <TextField
                                     label="Комментарий к заказу"
-                                    fullWidth
+                                    {...checkoutFieldProps}
                                     multiline
                                     minRows={2}
                                     sx={checkoutInputRadiusSx}
                                     {...register("comment")}
                                     InputProps={{
-                                        style: { fontSize: 16 },
                                         startAdornment: (
                                             <InputAdornment position="start">
                                                 <NotesIcon sx={{ fontSize: 18, color: "text.secondary" }} />
@@ -1415,14 +1473,16 @@ export default function CheckoutPage() {
                         <Box
                             flex={1}
                             sx={{
-                                p: 3,
+                                p: { xs: 2, md: 3 },
                                 borderRadius: 2,
                                 border: `1px solid ${tokens.border}`,
                                 bgcolor: "background.paper",
                                 minWidth: { xs: "100%", md: 280 },
+                                width: "100%",
                                 position: { md: "sticky" },
                                 top: { md: 80 },
                                 boxShadow: "none",
+                                overflow: "hidden",
                             }}
                         >
                             <Typography
@@ -1434,7 +1494,7 @@ export default function CheckoutPage() {
                                 Состав заказа
                             </Typography>
 
-                            <Stack spacing={1} sx={{ mb: 2 }}>
+                            <Stack spacing={1} sx={{ mb: 2, minWidth: 0 }}>
                                 {items.map((item) => (
                                     <CheckoutOrderLine
                                         key={item.cartItemId}
@@ -1497,8 +1557,7 @@ export default function CheckoutPage() {
                                     if (promoError) setPromoError(null);
                                 }}
                                 placeholder="Промокод"
-                                size="small"
-                                fullWidth
+                                {...checkoutFieldProps}
                                 disabled={deliveryBlocked || !hasItems || promoApplying}
                                 error={Boolean(promoError)}
                                 helperText={
@@ -1616,21 +1675,22 @@ export default function CheckoutPage() {
 
                     <Box
                         sx={{
-                            display: { xs: "flex", md: "none" },
+                            display: {
+                                xs: formFieldFocused ? "none" : "flex",
+                                md: "none",
+                            },
                             flexDirection: "column",
                             position: "fixed",
                             left: 0,
                             right: 0,
                             bottom: 0,
                             zIndex: 1250,
-                            px: 2,
-                            pt: 1.5,
-                            pb: "calc(12px + env(safe-area-inset-bottom))",
-                            bgcolor: (t) => alpha(t.palette.background.paper, 0.92),
-                            backdropFilter: "blur(12px)",
-                            WebkitBackdropFilter: "blur(12px)",
-                            borderTop: `1px solid ${tokens.border}`,
-                            boxShadow: `0 -10px 40px ${alpha("#000", 0.075)}`,
+                            p: 2,
+                            pb: "calc(16px + env(safe-area-inset-bottom))",
+                            bgcolor: "background.paper",
+                            borderTop: 1,
+                            borderColor: "divider",
+                            boxShadow: 3,
                         }}
                     >
                         <Button
