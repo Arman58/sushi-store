@@ -45,6 +45,20 @@ const fmt = new Intl.NumberFormat("ru-RU");
 const cardHoverShadow =
     `0 8px 24px ${alpha(tokens.textPrimary, 0.08)}, 0 22px 52px ${alpha(tokens.textPrimary, 0.14)}`;
 
+const STEPPER_SIZE = 36;
+
+const stepperButtonSx = {
+    flexShrink: 0,
+    p: 0,
+    width: STEPPER_SIZE,
+    height: STEPPER_SIZE,
+    minWidth: STEPPER_SIZE,
+    minHeight: STEPPER_SIZE,
+    maxWidth: STEPPER_SIZE,
+    maxHeight: STEPPER_SIZE,
+    borderRadius: "50%",
+} as const;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const ProductCard = memo(function ProductCard({
@@ -70,7 +84,7 @@ export const ProductCard = memo(function ProductCard({
     };
 
     return (
-        <Box sx={{ width: "100%", height: "100%" }}>
+        <Box sx={{ width: "100%", height: "100%", minWidth: 0 }}>
             <Card
                 component="article"
                 elevation={1}
@@ -93,11 +107,13 @@ export const ProductCard = memo(function ProductCard({
                     },
                 }}
             >
+                {/* 1. Image — fixed aspect ratio, never stretches the card */}
                 <Box
                     sx={{
                         position: "relative",
                         width: "100%",
-                        aspectRatio: "1 / 1",
+                        aspectRatio: "4 / 3",
+                        flexShrink: 0,
                         overflow: "hidden",
                         bgcolor: tokens.surfaceHi,
                     }}
@@ -109,191 +125,169 @@ export const ProductCard = memo(function ProductCard({
                     />
                 </Box>
 
+                {/* 2. Content — name + description, grows within card */}
                 <Box
                     sx={{
                         flex: 1,
+                        minWidth: 0,
+                        minHeight: 0,
+                        overflow: "hidden",
                         display: "flex",
                         flexDirection: "column",
                         pt: 1.5,
                         px: 1.5,
-                        pb: 1.5,
-                        minHeight: 0,
                     }}
                 >
-                    <Box sx={{ flexGrow: 1, minHeight: 0 }}>
-                        <Typography
-                            sx={{
-                                fontWeight: 700,
-                                fontSize: "0.9rem",
-                                whiteSpace: "nowrap",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                color: "text.primary",
-                                lineHeight: 1.25,
-                            }}
-                        >
-                            {name}
-                        </Typography>
-
-                        {composition?.trim() ? (
-                            <Typography
-                                variant="caption"
-                                color="text.secondary"
-                                sx={{
-                                    mt: 0.5,
-                                    display: "-webkit-box",
-                                    WebkitLineClamp: 2,
-                                    WebkitBoxOrient: "vertical",
-                                    overflow: "hidden",
-                                }}
-                            >
-                                {composition.trim()}
-                            </Typography>
-                        ) : null}
-                    </Box>
-
-                    <Box
+                    <Typography
+                        variant="body2"
                         sx={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            mt: "auto",
-                            pt: 1,
-                            gap: 1,
-                            minWidth: 0,
-                            flexShrink: 0,
+                            fontWeight: 700,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            color: "text.primary",
+                            lineHeight: 1.25,
                         }}
                     >
+                        {name}
+                    </Typography>
+
+                    {composition?.trim() ? (
                         <Typography
-                            component="span"
+                            variant="caption"
+                            color="text.secondary"
                             sx={{
-                                fontWeight: 800,
-                                fontSize: { xs: "0.85rem", sm: "1rem" },
-                                whiteSpace: "nowrap",
-                                lineHeight: 1,
-                                color: "text.primary",
-                                letterSpacing: -0.02,
-                                minWidth: 0,
-                                fontVariantNumeric: "tabular-nums",
+                                mt: 0.5,
+                                display: "-webkit-box",
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                                lineHeight: 1.35,
                             }}
                         >
-                            {fmt.format(price)}&thinsp;֏
+                            {composition.trim()}
                         </Typography>
+                    ) : null}
+                </Box>
 
-                        {hasInCart ? (
-                            <Stack
-                                direction="row"
-                                alignItems="center"
-                                spacing={0.5}
-                                sx={{ flexShrink: 0, ml: "auto" }}
-                            >
-                                <IconButton
-                                    size="small"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onDecrease?.();
-                                    }}
-                                    aria-label={`Уменьшить количество: ${name}`}
-                                    sx={{
-                                        width: 44,
-                                        height: 44,
-                                        backgroundColor: "action.hover",
-                                        color: "text.secondary",
-                                        transition:
-                                            "color 0.15s ease, background-color 0.15s ease",
-                                        "&:hover": {
-                                            bgcolor: "action.selected",
-                                        },
-                                        "&:active": {
-                                            transform: "scale(0.92)",
-                                        },
-                                    }}
-                                >
-                                    <RemoveIcon sx={{ fontSize: 20 }} />
-                                </IconButton>
+                {/* 3. Footer — price truncates before action controls */}
+                <Box
+                    sx={{
+                        display: "flex",
+                        flexDirection: "row",
+                        flexWrap: "nowrap",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        mt: "auto",
+                        gap: 1,
+                        minWidth: 0,
+                        flexShrink: 0,
+                        width: "100%",
+                        px: 1.5,
+                        pb: 1.5,
+                        pt: 1,
+                    }}
+                >
+                    <Typography
+                        component="span"
+                        sx={{
+                            flex: 1,
+                            minWidth: 0,
+                            fontWeight: 800,
+                            fontSize: { xs: "0.8rem", sm: "0.95rem" },
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            lineHeight: 1,
+                            color: "text.primary",
+                            letterSpacing: -0.02,
+                            fontVariantNumeric: "tabular-nums",
+                        }}
+                    >
+                        {fmt.format(price)}&thinsp;֏
+                    </Typography>
 
-                                <Typography
-                                    sx={{
-                                        fontSize: "0.9rem",
-                                        fontWeight: 700,
-                                        minWidth: 22,
-                                        textAlign: "center",
-                                        color: "text.primary",
-                                        lineHeight: 1,
-                                    }}
-                                >
-                                    {quantity}
-                                </Typography>
-
-                                <Box
-                                    sx={{
-                                        display: "inline-flex",
-                                        borderRadius: "50%",
-                                    }}
-                                >
-                                    <IconButton
-                                        size="small"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onIncrease?.();
-                                        }}
-                                        aria-label={`Увеличить количество: ${name}`}
-                                        sx={{
-                                            width: 44,
-                                            height: 44,
-                                            backgroundColor: "action.hover",
-                                            color: "text.secondary",
-                                            borderRadius: "50%",
-                                            transition:
-                                                "color 0.15s ease, background-color 0.15s ease",
-                                            "&:hover": {
-                                                bgcolor: "action.selected",
-                                            },
-                                            "&:active": {
-                                                transform: "scale(0.92)",
-                                            },
-                                        }}
-                                    >
-                                        <AddIcon sx={{ fontSize: 20 }} />
-                                    </IconButton>
-                                </Box>
-                            </Stack>
-                        ) : (
-                            <Box
+                    {hasInCart ? (
+                        <Stack
+                            direction="row"
+                            alignItems="center"
+                            spacing={0.25}
+                            sx={{ flexShrink: 0 }}
+                        >
+                            <IconButton
+                                size="small"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDecrease?.();
+                                }}
+                                aria-label={`Уменьшить количество: ${name}`}
                                 sx={{
-                                    display: "inline-flex",
-                                    borderRadius: "50%",
+                                    ...stepperButtonSx,
+                                    bgcolor: "action.hover",
+                                    color: "text.secondary",
+                                    "&:hover": { bgcolor: "action.selected" },
+                                    "&:active": { transform: "scale(0.92)" },
+                                }}
+                            >
+                                <RemoveIcon sx={{ fontSize: 20 }} />
+                            </IconButton>
+
+                            <Typography
+                                sx={{
+                                    fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                                    fontWeight: 700,
+                                    minWidth: 20,
+                                    textAlign: "center",
+                                    color: "text.primary",
+                                    lineHeight: 1,
+                                    fontVariantNumeric: "tabular-nums",
                                     flexShrink: 0,
                                 }}
                             >
-                                <IconButton
-                                    size="small"
-                                    onClick={handleAdd}
-                                    aria-label={`Добавить ${name}`}
-                                    sx={{
-                                        width: 44,
-                                        height: 44,
-                                        backgroundColor: "primary.main",
-                                        color: "primary.contrastText",
-                                        borderRadius: "50%",
-                                        boxShadow: `0 2px 8px ${alpha(tokens.brand, 0.35)}`,
-                                        transition:
-                                            "background-color 0.18s ease, box-shadow 0.18s ease",
-                                        "&:hover": {
-                                            backgroundColor: "primary.dark",
-                                        },
-                                        "&:active": {
-                                            transform: "scale(0.92)",
-                                        },
-                                    }}
-                                >
-                                    <AddIcon
-                                        sx={{ fontSize: 22, color: "primary.contrastText" }}
-                                    />
-                                </IconButton>
-                            </Box>
-                        )}
-                    </Box>
+                                {quantity}
+                            </Typography>
+
+                            <IconButton
+                                size="small"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onIncrease?.();
+                                }}
+                                aria-label={`Увеличить количество: ${name}`}
+                                sx={{
+                                    ...stepperButtonSx,
+                                    bgcolor: "action.hover",
+                                    color: "text.secondary",
+                                    "&:hover": { bgcolor: "action.selected" },
+                                    "&:active": { transform: "scale(0.92)" },
+                                }}
+                            >
+                                <AddIcon sx={{ fontSize: 20 }} />
+                            </IconButton>
+                        </Stack>
+                    ) : (
+                        <IconButton
+                            size="small"
+                            onClick={handleAdd}
+                            aria-label={`Добавить ${name}`}
+                            sx={{
+                                ...stepperButtonSx,
+                                flexShrink: 0,
+                                bgcolor: "primary.main",
+                                color: "primary.contrastText",
+                                boxShadow: `0 2px 8px ${alpha(tokens.brand, 0.35)}`,
+                                "&:hover": { bgcolor: "primary.dark" },
+                                "&:active": { transform: "scale(0.92)" },
+                            }}
+                        >
+                            <AddIcon
+                                sx={{
+                                    fontSize: 22,
+                                    color: "primary.contrastText",
+                                }}
+                            />
+                        </IconButton>
+                    )}
                 </Box>
             </Card>
         </Box>
@@ -304,7 +298,7 @@ export const ProductCard = memo(function ProductCard({
 
 export function ProductCardSkeleton() {
     return (
-        <Box sx={{ width: "100%", height: "100%" }}>
+        <Box sx={{ width: "100%", height: "100%", minWidth: 0 }}>
             <Card
                 component="article"
                 elevation={1}
@@ -318,54 +312,66 @@ export function ProductCardSkeleton() {
                     bgcolor: "background.paper",
                 }}
             >
-            <Skeleton
-                variant="rectangular"
-                animation="wave"
-                sx={{
-                    width: "100%",
-                    aspectRatio: "1 / 1",
-                    transform: "none",
-                }}
-            />
-            <Box
-                sx={{
-                    flex: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                    pt: 1.5,
-                    px: 1.5,
-                    pb: 1.5,
-                    minHeight: 0,
-                }}
-            >
                 <Skeleton
-                    variant="text"
+                    variant="rectangular"
                     animation="wave"
-                    width="88%"
-                    sx={{ borderRadius: 1 }}
+                    sx={{
+                        width: "100%",
+                        aspectRatio: "4 / 3",
+                        flexShrink: 0,
+                        transform: "none",
+                    }}
                 />
                 <Box
                     sx={{
-                        mt: "auto",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
+                        flex: 1,
+                        minWidth: 0,
+                        minHeight: 0,
+                        overflow: "hidden",
+                        pt: 1.5,
+                        px: 1.5,
                     }}
                 >
                     <Skeleton
                         variant="text"
                         animation="wave"
-                        width="40%"
+                        width="88%"
                         sx={{ borderRadius: 1 }}
+                    />
+                    <Skeleton
+                        variant="text"
+                        animation="wave"
+                        width="70%"
+                        sx={{ borderRadius: 1, mt: 0.5 }}
+                    />
+                </Box>
+                <Box
+                    sx={{
+                        mt: "auto",
+                        pt: 1,
+                        pb: 1.5,
+                        px: 1.5,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 1,
+                        minWidth: 0,
+                    }}
+                >
+                    <Skeleton
+                        variant="text"
+                        animation="wave"
+                        width="38%"
+                        sx={{ borderRadius: 1, flex: 1, minWidth: 0 }}
                     />
                     <Skeleton
                         variant="circular"
                         animation="wave"
-                        width={40}
-                        height={40}
+                        width={STEPPER_SIZE}
+                        height={STEPPER_SIZE}
+                        sx={{ flexShrink: 0 }}
                     />
                 </Box>
-            </Box>
             </Card>
         </Box>
     );

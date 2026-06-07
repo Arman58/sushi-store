@@ -263,6 +263,7 @@ export function CartDrawer() {
                                 direction="row"
                                 spacing={1.5}
                                 alignItems="center"
+                                sx={{ flex: 1, minWidth: 0 }}
                             >
                                 <ShoppingBagOutlinedIcon
                                     sx={{ color: tokens.brand, fontSize: 22 }}
@@ -362,8 +363,8 @@ export function CartDrawer() {
                                         py: 2,
                                     }}
                                 >
-                                    <Stack spacing={1.5}>
-                                        {items.map((item) => (
+                                    <Stack spacing={0} divider={null}>
+                                        {items.map((item, index) => (
                                             <CartLineItem
                                                 key={item.cartItemId}
                                                 item={item}
@@ -371,6 +372,7 @@ export function CartDrawer() {
                                                     cartLineIssues[item.cartItemId]
                                                 }
                                                 variant="drawer"
+                                                showDivider={index < items.length - 1}
                                                 onIncrease={() =>
                                                     setItemQty(
                                                         item.cartItemId,
@@ -497,10 +499,12 @@ export function CartDrawer() {
                                         <Stack
                                             direction="row"
                                             justifyContent="space-between"
+                                            sx={{ minWidth: 0 }}
                                         >
                                             <Typography
                                                 variant="body2"
                                                 color="text.secondary"
+                                                sx={{ minWidth: 0, flex: 1, pr: 1 }}
                                             >
                                                 Товары
                                             </Typography>
@@ -509,6 +513,8 @@ export function CartDrawer() {
                                                 sx={{
                                                     fontVariantNumeric:
                                                         "tabular-nums",
+                                                    flexShrink: 0,
+                                                    whiteSpace: "nowrap",
                                                 }}
                                             >
                                                 {fmt.format(subtotal)} ֏
@@ -518,10 +524,19 @@ export function CartDrawer() {
                                             <Stack
                                                 direction="row"
                                                 justifyContent="space-between"
+                                                sx={{ minWidth: 0 }}
                                             >
                                                 <Typography
                                                     variant="body2"
-                                                    sx={{ color: tokens.green }}
+                                                    sx={{
+                                                        color: tokens.green,
+                                                        minWidth: 0,
+                                                        flex: 1,
+                                                        pr: 1,
+                                                        overflow: "hidden",
+                                                        textOverflow: "ellipsis",
+                                                        whiteSpace: "nowrap",
+                                                    }}
                                                 >
                                                     Скидка ({appliedPromoCode})
                                                 </Typography>
@@ -531,6 +546,8 @@ export function CartDrawer() {
                                                         color: tokens.green,
                                                         fontVariantNumeric:
                                                             "tabular-nums",
+                                                        flexShrink: 0,
+                                                        whiteSpace: "nowrap",
                                                     }}
                                                     fontWeight={600}
                                                 >
@@ -541,10 +558,12 @@ export function CartDrawer() {
                                         <Stack
                                             direction="row"
                                             justifyContent="space-between"
+                                            sx={{ minWidth: 0 }}
                                         >
                                             <Typography
                                                 variant="body2"
                                                 color="text.secondary"
+                                                sx={{ minWidth: 0, flex: 1, pr: 1 }}
                                             >
                                                 Доставка
                                             </Typography>
@@ -552,6 +571,7 @@ export function CartDrawer() {
                                                 variant="body2"
                                                 color="text.secondary"
                                                 fontWeight={500}
+                                                sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
                                             >
                                                 при оформлении
                                             </Typography>
@@ -564,7 +584,7 @@ export function CartDrawer() {
                                     <Stack
                                         direction="row"
                                         justifyContent="space-between"
-                                        sx={{ mb: 2 }}
+                                        sx={{ mb: 2, minWidth: 0 }}
                                         component={motion.div}
                                         layout
                                         transition={{
@@ -576,6 +596,7 @@ export function CartDrawer() {
                                         <Typography
                                             variant="subtitle1"
                                             fontWeight={700}
+                                            sx={{ minWidth: 0, flex: 1, pr: 1 }}
                                         >
                                             Итого
                                         </Typography>
@@ -585,6 +606,7 @@ export function CartDrawer() {
                                             initial={{ scale: 0.94, opacity: 0.75 }}
                                             animate={{ scale: 1, opacity: 1 }}
                                             transition={{ duration: 0.2 }}
+                                            style={{ flexShrink: 0 }}
                                         >
                                             <Typography
                                                 variant="subtitle1"

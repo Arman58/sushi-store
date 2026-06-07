@@ -193,8 +193,8 @@ const theme = createTheme({
                     color: tokens.textPrimary,
                     WebkitFontSmoothing: "antialiased",
                     MozOsxFontSmoothing: "grayscale",
+                    overflowWrap: "break-word",
                     wordBreak: "break-word",
-                    overflowWrap: "anywhere",
                 },
                 "#main-content": {
                     overflowX: "clip",
@@ -216,12 +216,19 @@ const theme = createTheme({
             styleOverrides: { root: focusVisibleRing },
         },
 
+        MuiTypography: {
+            defaultProps: {
+                noWrap: false,
+            },
+        },
+
         MuiButton: {
             defaultProps: {
                 disableElevation: true,
             },
             styleOverrides: {
                 root: {
+                    flexShrink: 0,
                     borderRadius: tokens.radiusCardLg,
                     paddingInline: 22,
                     paddingBlock: 12,
@@ -280,6 +287,11 @@ const theme = createTheme({
                 "aria-hidden": true,
                 focusable: "false",
             },
+            styleOverrides: {
+                root: {
+                    flexShrink: 0,
+                },
+            },
         },
 
         MuiIconButton: {
@@ -289,6 +301,7 @@ const theme = createTheme({
             },
             styleOverrides: {
                 root: {
+                    flexShrink: 0,
                     minWidth: 44,
                     minHeight: 44,
                     transition: "background-color 0.18s ease, transform 0.15s ease",
@@ -445,6 +458,7 @@ const theme = createTheme({
         MuiChip: {
             styleOverrides: {
                 root: {
+                    flexShrink: 0,
                     borderRadius: tokens.radiusInput,
                     fontWeight: 650,
                     fontSize: "0.75rem",
@@ -595,6 +609,17 @@ const theme = createTheme({
                     minWidth: 18,
                     height: 18,
                     padding: "0 4px",
+                },
+            },
+        },
+
+        MuiStack: {
+            defaultProps: {
+                useFlexGap: true,
+            },
+            styleOverrides: {
+                root: {
+                    minWidth: 0,
                 },
             },
         },

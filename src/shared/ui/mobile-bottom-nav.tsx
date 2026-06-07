@@ -77,7 +77,7 @@ export function MobileBottomNav() {
                 }}
             />
 
-            <Stack direction="row" sx={{ position: "relative", px: 1, py: 0.75 }}>
+            <Stack direction="row" sx={{ position: "relative", px: 1, py: 0.75, minWidth: 0 }}>
                 {/* Home */}
                 <ButtonBase
                     component={Link}

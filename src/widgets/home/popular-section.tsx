@@ -63,9 +63,11 @@ function SectionHeader({
                 alignItems: "center",
                 justifyContent: "space-between",
                 mb: { xs: 2.5, sm: 3 },
+                minWidth: 0,
+                gap: 1,
             }}
         >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0, flex: 1, overflow: "hidden" }}>
                 {/* Brand accent bar */}
                 <Box
                     sx={{
@@ -86,6 +88,9 @@ function SectionHeader({
                         fontSize: { xs: "1.2rem", sm: "1.4rem" },
                         lineHeight: 1.1,
                         color: tokens.textPrimary,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
                     }}
                 >
                     {title}
@@ -106,6 +111,7 @@ function SectionHeader({
                         border: `1px solid ${tokens.border}`,
                         bgcolor: "transparent",
                         color: "primary.dark",
+                        flexShrink: 0,
                         transition: "all 0.18s ease",
                         "&:hover": {
                             bgcolor: tokens.brandDim,
@@ -202,10 +208,12 @@ export function PopularSection({
                 sx={{
                     display: "grid",
                     gap: { xs: 1.5, sm: 2, md: 2.5 },
+                    minWidth: 0,
+                    alignItems: "stretch",
                     gridTemplateColumns: {
-                        xs: "repeat(2, 1fr)",
-                        sm: "repeat(3, 1fr)",
-                        md: "repeat(4, 1fr)",
+                        xs: "repeat(2, minmax(0, 1fr))",
+                        sm: "repeat(3, minmax(0, 1fr))",
+                        md: "repeat(4, minmax(0, 1fr))",
                     },
                 }}
             >
@@ -213,8 +221,15 @@ export function PopularSection({
                     const qty = qtyForProduct(product.id);
 
                     return (
-                        <ProductCard
+                        <Box
                             key={product.id}
+                            sx={{
+                                height: "100%",
+                                minWidth: 0,
+                                display: "flex",
+                            }}
+                        >
+                        <ProductCard
                             index={index}
                             imagePriority={prioritizeFirstImage && index === 0}
                             name={product.name}
@@ -233,6 +248,7 @@ export function PopularSection({
                                 decrementFirstLineForProduct(product.id)
                             }
                         />
+                        </Box>
                     );
                 })}
             </Box>

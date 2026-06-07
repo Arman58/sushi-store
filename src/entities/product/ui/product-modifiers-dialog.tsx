@@ -111,6 +111,7 @@ function OptionTile({
                 alignItems: "center",
                 justifyContent: "space-between",
                 gap: 1.5,
+                minWidth: 0,
                 px: 1.75,
                 py: 1.5,
                 minHeight: 44,
@@ -144,9 +145,14 @@ function OptionTile({
             <Typography
                 variant="body2"
                 sx={{
+                    flex: 1,
+                    minWidth: 0,
                     fontWeight: selected ? 700 : 500,
                     lineHeight: 1.3,
                     pr: 1,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
                 }}
             >
                 {name}

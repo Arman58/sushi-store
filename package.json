@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "dotenv -e .env.local -- npx prisma migrate deploy && dotenv -e .env.local -- npx prisma generate && next build",    "postinstall": "npx prisma generate",
+    "build": "dotenv -e .env.local -- npx prisma migrate deploy && dotenv -e .env.local -- npx prisma generate && next build",
+    "postinstall": "npx prisma generate",
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

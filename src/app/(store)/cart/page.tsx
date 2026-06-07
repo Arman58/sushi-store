@@ -8,6 +8,7 @@ import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
+import { alpha } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
@@ -134,7 +135,7 @@ export default function CartPage() {
                         spacing={4}
                         alignItems="flex-start"
                     >
-                        <Box flex={2}>
+                        <Box flex={2} sx={{ minWidth: 0 }}>
                             {hasCartLineProblems && (
                                 <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
                                     Часть позиций недоступна или изменилась по цене.
@@ -146,13 +147,23 @@ export default function CartPage() {
                                     Проверяем актуальность корзины…
                                 </Alert>
                             )}
-                            <Stack spacing={1.5}>
-                                {items.map((item) => (
+                            <Box
+                                sx={{
+                                    borderRadius: 3,
+                                    border: "1px solid",
+                                    borderColor: alpha("#0f172a", 0.06),
+                                    bgcolor: "background.paper",
+                                    px: { xs: 1.5, sm: 2 },
+                                    overflow: "hidden",
+                                }}
+                            >
+                                {items.map((item, index) => (
                                     <CartLineItem
                                         key={item.cartItemId}
                                         item={item}
                                         lineIssue={cartLineIssues[item.cartItemId]}
                                         variant="page"
+                                        showDivider={index < items.length - 1}
                                         onIncrease={() =>
                                             setItemQuantity(item.cartItemId, item.quantity + 1)
                                         }
@@ -162,7 +173,7 @@ export default function CartPage() {
                                         onRemove={() => removeItem(item.cartItemId)}
                                     />
                                 ))}
-                            </Stack>
+                            </Box>
 
                             <Box sx={{ mt: 1.5 }}>
                                 <Button
@@ -199,31 +210,42 @@ export default function CartPage() {
 
                             {/* Line items summary */}
                             <Stack spacing={1} sx={{ mb: 2 }}>
-                                <Stack direction="row" justifyContent="space-between">
-                                    <Typography variant="body2" color="text.secondary">
+                                <Stack direction="row" justifyContent="space-between" sx={{ minWidth: 0 }}>
+                                    <Typography variant="body2" color="text.secondary" sx={{ minWidth: 0, flex: 1, pr: 1 }}>
                                         Товары ({items.length} поз.)
                                     </Typography>
-                                    <Typography variant="body2">
+                                    <Typography variant="body2" sx={{ flexShrink: 0, whiteSpace: "nowrap" }}>
                                         {subtotal.toLocaleString("ru-RU")} ֏
                                     </Typography>
                                 </Stack>
 
                                 {promoDiscount > 0 && appliedPromoCode && (
-                                    <Stack direction="row" justifyContent="space-between">
-                                        <Typography variant="body2" color="success.main">
+                                    <Stack direction="row" justifyContent="space-between" sx={{ minWidth: 0 }}>
+                                        <Typography
+                                            variant="body2"
+                                            color="success.main"
+                                            sx={{
+                                                minWidth: 0,
+                                                flex: 1,
+                                                pr: 1,
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                whiteSpace: "nowrap",
+                                            }}
+                                        >
                                             Скидка ({appliedPromoCode})
                                         </Typography>
-                                        <Typography variant="body2" color="success.main" fontWeight={600}>
+                                        <Typography variant="body2" color="success.main" fontWeight={600} sx={{ flexShrink: 0, whiteSpace: "nowrap" }}>
                                             −{promoDiscount.toLocaleString("ru-RU")} ֏
                                         </Typography>
                                     </Stack>
                                 )}
 
-                                <Stack direction="row" justifyContent="space-between">
-                                    <Typography variant="body2" color="text.secondary">
+                                <Stack direction="row" justifyContent="space-between" sx={{ minWidth: 0 }}>
+                                    <Typography variant="body2" color="text.secondary" sx={{ minWidth: 0, flex: 1, pr: 1 }}>
                                         Доставка
                                     </Typography>
-                                    <Typography variant="body2" color="success.main" fontWeight={600}>
+                                    <Typography variant="body2" color="success.main" fontWeight={600} sx={{ flexShrink: 0, whiteSpace: "nowrap" }}>
                                         Бесплатно
                                     </Typography>
                                 </Stack>
@@ -231,11 +253,11 @@ export default function CartPage() {
 
                             <Divider sx={{ my: 1.5 }} />
 
-                            <Stack direction="row" justifyContent="space-between" sx={{ mb: 2 }}>
-                                <Typography variant="subtitle1" fontWeight={700}>
+                            <Stack direction="row" justifyContent="space-between" sx={{ mb: 2, minWidth: 0 }}>
+                                <Typography variant="subtitle1" fontWeight={700} sx={{ minWidth: 0, flex: 1, pr: 1 }}>
                                     К оплате
                                 </Typography>
-                                <Typography variant="subtitle1" fontWeight={700}>
+                                <Typography variant="subtitle1" fontWeight={700} sx={{ flexShrink: 0, whiteSpace: "nowrap" }}>
                                     {totalPrice.toLocaleString("ru-RU")} ֏
                                 </Typography>
                             </Stack>

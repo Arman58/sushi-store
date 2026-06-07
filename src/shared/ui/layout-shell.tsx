@@ -314,6 +314,7 @@ export function LayoutShell({ children }: LayoutShellProps) {
                             alignItems: "center",
                             justifyContent: "space-between",
                             gap: 2,
+                            minWidth: 0,
                             px: { xs: 2, sm: 3 },
                         }}
                     >
@@ -410,7 +411,7 @@ export function LayoutShell({ children }: LayoutShellProps) {
                         </Box>
 
                         {/* Right actions */}
-                        <Stack direction="row" spacing={1} alignItems="center">
+                        <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
                             {/* Nav links — desktop */}
                             <Box
                                 component="nav"
@@ -510,7 +511,7 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                     }}
                                 />
                             )}
-                            <Box component="span">{snackbarMessage}</Box>
+                            <Box component="span" sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{snackbarMessage}</Box>
                         </Box>
                     }
                 />

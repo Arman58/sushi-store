@@ -273,6 +273,7 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                     spacing={{ xs: 1.5, sm: 2 }}
                     alignItems="center"
                     justifyContent="space-between"
+                    sx={{ minWidth: 0 }}
                 >
                     <TextField
                         fullWidth
@@ -441,39 +442,51 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                     aria-label="Каталог блюд"
                     sx={{
                         display: "grid",
-                        gap: { xs: 1.5, sm: 2, md: 2.5 },
-                        pt: 2,
-                        pb: "100px",
+                        width: "100%",
+                        minWidth: 0,
                         alignItems: "stretch",
-                        gridAutoRows: "1fr",
+                        gap: 2,
+                        pt: 2,
+                        pb: {
+                            xs: "calc(72px + env(safe-area-inset-bottom))",
+                            sm: 2,
+                        },
                         gridTemplateColumns: {
-                            xs: "repeat(2, 1fr)",
-                            sm: "repeat(3, 1fr)",
-                            lg: "repeat(4, 1fr)",
+                            xs: "repeat(2, minmax(0, 1fr))",
+                            sm: "repeat(3, minmax(0, 1fr))",
+                            md: "repeat(4, minmax(0, 1fr))",
                         },
                     }}
                 >
                     {filteredProducts.map((product, index) => {
                         const qty = qtyForProduct(product.id);
                         return (
-                            <ProductCard
+                            <Box
                                 key={product.id}
-                                index={index}
-                                name={product.name}
-                                composition={
-                                    product.composition ||
-                                    product.description ||
-                                    ""
-                                }
-                                price={product.price}
-                                weight={product.weight ?? undefined}
-                                images={product.images}
-                                mainImage={product.mainImage}
-                                onAddToCart={() => handleAddToCart(product)}
-                                quantity={qty}
-                                onIncrease={() => handleIncrease(product)}
-                                onDecrease={() => handleDecrease(product.id)}
-                            />
+                                sx={{
+                                    height: "100%",
+                                    minWidth: 0,
+                                    display: "flex",
+                                }}
+                            >
+                                <ProductCard
+                                    index={index}
+                                    name={product.name}
+                                    composition={
+                                        product.composition ||
+                                        product.description ||
+                                        ""
+                                    }
+                                    price={product.price}
+                                    weight={product.weight ?? undefined}
+                                    images={product.images}
+                                    mainImage={product.mainImage}
+                                    onAddToCart={() => handleAddToCart(product)}
+                                    quantity={qty}
+                                    onIncrease={() => handleIncrease(product)}
+                                    onDecrease={() => handleDecrease(product.id)}
+                                />
+                            </Box>
                         );
                     })}
                 </Box>
@@ -520,10 +533,20 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                                 flexDirection: "column",
                                 alignItems: "flex-start",
                                 gap: 0.25,
+                                flex: 1,
+                                minWidth: 0,
+                                overflow: "hidden",
                             }}
                         >
                             <Typography
-                                sx={{ fontWeight: 600, fontSize: "0.9rem" }}
+                                sx={{
+                                    fontWeight: 600,
+                                    fontSize: "0.9rem",
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    width: "100%",
+                                }}
                             >
                                 Корзина: {totalCount} шт
                             </Typography>
@@ -533,6 +556,10 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                                     fontSize: "1rem",
                                     color: "primary.main",
                                     fontVariantNumeric: "tabular-nums",
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    width: "100%",
                                 }}
                             >
                                 {totalPrice.toLocaleString("ru-RU")} ֏
@@ -543,6 +570,7 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                                 color: "primary.main",
                                 fontWeight: 800,
                                 fontSize: "1.2rem",
+                                flexShrink: 0,
                             }}
                         >
                             →

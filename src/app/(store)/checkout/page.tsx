@@ -290,6 +290,7 @@ function PaymentCard({ selected, onSelect, icon, label, sublabel }: PaymentCardP
             }}
             sx={{
                 flex: 1,
+                minWidth: 0,
                 p: 2,
                 cursor: "pointer",
                 border: "1px solid",
@@ -324,11 +325,29 @@ function PaymentCard({ selected, onSelect, icon, label, sublabel }: PaymentCardP
             >
                 {icon}
             </Box>
-            <Box>
-                <Typography variant="body2" fontWeight={700} sx={{ lineHeight: 1.2 }}>
+            <Box sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+                <Typography
+                    variant="body2"
+                    fontWeight={700}
+                    sx={{
+                        lineHeight: 1.2,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                    }}
+                >
                     {label}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
+                <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{
+                        display: "block",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                    }}
+                >
                     {sublabel}
                 </Typography>
             </Box>
@@ -1427,14 +1446,14 @@ export default function CheckoutPage() {
 
                             <Divider sx={{ my: 2 }} />
 
-                            <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
-                                <Typography variant="body2" color="text.secondary">
+                            <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5, minWidth: 0 }}>
+                                <Typography variant="body2" color="text.secondary" sx={{ minWidth: 0, flex: 1, pr: 1 }}>
                                     Товары
                                 </Typography>
                                 <Typography
                                     variant="body2"
                                     fontWeight={600}
-                                    sx={{ fontVariantNumeric: "tabular-nums" }}
+                                    sx={{ fontVariantNumeric: "tabular-nums", flexShrink: 0, whiteSpace: "nowrap" }}
                                 >
                                     {cartSubtotal.toLocaleString("ru-RU")} ֏
                                 </Typography>
@@ -1444,9 +1463,9 @@ export default function CheckoutPage() {
                                 <Stack
                                     direction="row"
                                     justifyContent="space-between"
-                                    sx={{ mb: 1 }}
+                                    sx={{ mb: 1, minWidth: 0 }}
                                 >
-                                    <Typography variant="body2" color="text.secondary">
+                                    <Typography variant="body2" color="text.secondary" sx={{ minWidth: 0, flex: 1, pr: 1 }}>
                                         Доставка
                                     </Typography>
                                     <Typography
@@ -1461,9 +1480,9 @@ export default function CheckoutPage() {
                                         }
                                         sx={{
                                             fontVariantNumeric: "tabular-nums",
+                                            flexShrink: 0,
+                                            whiteSpace: "nowrap",
                                             textAlign: "right",
-                                            maxWidth: "55%",
-                                            wordBreak: "break-word",
                                         }}
                                     >
                                         {deliverySummaryLabel}
@@ -1546,30 +1565,30 @@ export default function CheckoutPage() {
                                 <Stack
                                     direction="row"
                                     justifyContent="space-between"
-                                    sx={{ mb: 1 }}
+                                    sx={{ mb: 1, minWidth: 0 }}
                                 >
-                                    <Typography variant="body2" color="success.main">
+                                    <Typography variant="body2" color="success.main" sx={{ minWidth: 0, flex: 1, pr: 1 }}>
                                         Скидка по промокоду
                                     </Typography>
                                     <Typography
                                         variant="body2"
                                         color="success.main"
                                         fontWeight={600}
-                                        sx={{ fontVariantNumeric: "tabular-nums" }}
+                                        sx={{ fontVariantNumeric: "tabular-nums", flexShrink: 0, whiteSpace: "nowrap" }}
                                     >
                                         −{promoDiscount.toLocaleString("ru-RU")} ֏
                                     </Typography>
                                 </Stack>
                             ) : null}
 
-                            <Stack direction="row" justifyContent="space-between">
-                                <Typography variant="subtitle1" fontWeight={700}>
+                            <Stack direction="row" justifyContent="space-between" sx={{ minWidth: 0 }}>
+                                <Typography variant="subtitle1" fontWeight={700} sx={{ minWidth: 0, flex: 1, pr: 1 }}>
                                     Итого
                                 </Typography>
                                 <Typography
                                     variant="subtitle1"
                                     fontWeight={800}
-                                    sx={{ fontVariantNumeric: "tabular-nums" }}
+                                    sx={{ fontVariantNumeric: "tabular-nums", flexShrink: 0, whiteSpace: "nowrap" }}
                                 >
                                     {grandTotal.toLocaleString("ru-RU")} ֏
                                 </Typography>

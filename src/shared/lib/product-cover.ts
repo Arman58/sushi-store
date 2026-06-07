@@ -1,5 +1,9 @@
 /** Хосты, разрешённые в next.config.ts → images.remotePatterns */
-const ALLOWED_REMOTE_HOSTS = new Set(["res.cloudinary.com"]);
+const ALLOWED_REMOTE_HOSTS = new Set([
+    "res.cloudinary.com",
+    "images.unsplash.com",
+    "placehold.co",
+]);
 
 function siteHostname(): string | null {
     const raw =
@@ -17,7 +21,7 @@ function siteHostname(): string | null {
 
 /**
  * Можно ли передать URL в next/image (локальные пути и разрешённые remote).
- * Блокирует Unsplash и прочие домены вне allowlist — защита от Runtime Error.
+ * Блокирует домены вне allowlist — защита от Runtime Error в next/image.
  */
 export function isAllowedProductImageSrc(src: string | null | undefined): boolean {
     const trimmed = src?.trim();

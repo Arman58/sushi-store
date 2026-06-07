@@ -62,14 +62,21 @@ export function CartToast() {
                 >
                     <CheckCircleOutlineIcon sx={{ fontSize: 18, color: tokens.brand }} />
                 </Box>
-                <Box>
+                <Box sx={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
                     <Typography variant="body2" fontWeight={700} sx={{ lineHeight: 1.2 }}>
                         Добавлено в корзину
                     </Typography>
                     {lastAddedTitle && (
                         <Typography
                             variant="caption"
-                            sx={{ color: tokens.textSecondary, display: "block", lineHeight: 1.3 }}
+                            sx={{
+                                color: tokens.textSecondary,
+                                display: "block",
+                                lineHeight: 1.3,
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                            }}
                         >
                             {lastAddedTitle}
                         </Typography>

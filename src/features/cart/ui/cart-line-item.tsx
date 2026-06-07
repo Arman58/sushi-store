@@ -16,11 +16,21 @@ import {
     cartLineIssueMessage,
 } from "@/features/cart/model/use-cart-line-validation";
 import { sanitizeProductImageSrc } from "@/shared/lib/product-cover";
+import { ProductCoverPlaceholder } from "@/shared/ui/product-cover-image";
 import { tokens } from "@/shared/ui/theme";
 
-import { ModifiersList } from "./modifiers-list";
-
 const fmt = new Intl.NumberFormat("ru-RU");
+const IMAGE_SIZE = 56;
+
+const stepperButtonSx = {
+    minWidth: 32,
+    minHeight: 32,
+    width: 32,
+    height: 32,
+    p: 0,
+    flexShrink: 0,
+    borderRadius: "50%",
+} as const;
 
 type CartLineItemProps = {
     item: CartItem;
@@ -28,9 +38,16 @@ type CartLineItemProps = {
     onIncrease: () => void;
     onDecrease: () => void;
     onRemove: () => void;
-    /** Drawer — компактная карточка на сером фоне; page — карточка страницы корзины. */
+    /** Drawer — компактная строка; page — строка страницы корзины. */
     variant?: "drawer" | "page";
+    /** Разделитель снизу (последняя строка — false). */
+    showDivider?: boolean;
 };
+
+function modifiersLabel(item: CartItem): string | null {
+    if (item.selectedModifiers.length === 0) return null;
+    return item.selectedModifiers.map((m) => m.name).join(" · ");
+}
 
 export function CartLineItem({
     item,
@@ -39,111 +56,108 @@ export function CartLineItem({
     onDecrease,
     onRemove,
     variant = "page",
+    showDivider = true,
 }: CartLineItemProps) {
     const lineInvalid = Boolean(lineIssue);
     const lineTotal = item.calculatedItemPrice * item.quantity;
     const isDrawer = variant === "drawer";
+    const safeImage = sanitizeProductImageSrc(item.image);
+    const modifiersText = modifiersLabel(item);
 
     return (
         <Box
             sx={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-                gap: { xs: 1, sm: 1.5 },
-                p: isDrawer ? 1.5 : { xs: 1.5, sm: 2 },
-                borderRadius: isDrawer ? 2 : 3,
-                bgcolor: lineInvalid
-                    ? tokens.redDim
-                    : isDrawer
-                      ? "grey.100"
-                      : "background.paper",
-                border: "1px solid",
-                borderColor: lineInvalid
-                    ? alpha(tokens.red, 0.35)
-                    : isDrawer
-                      ? "divider"
-                      : alpha("#0f172a", 0.06),
-                transition: isDrawer ? "border-color 0.15s" : undefined,
-                ...(isDrawer
-                    ? {
-                          "&:hover": { borderColor: tokens.borderHi },
-                      }
-                    : {}),
+                py: isDrawer ? 1.5 : 2,
+                bgcolor: lineInvalid ? tokens.redDim : "transparent",
+                borderBottom: showDivider
+                    ? `1px solid ${alpha("#000", 0.08)}`
+                    : "none",
             }}
         >
             <Box
                 sx={{
                     display: "flex",
-                    flexDirection: "row",
                     alignItems: "center",
-                    flex: 1,
-                    minWidth: 0,
                     gap: 1.5,
+                    width: "100%",
+                    minWidth: 0,
                 }}
             >
+                {/* 1. Image */}
                 <Box
                     sx={{
                         position: "relative",
-                        width: 50,
-                        height: 50,
-                        borderRadius: 1.5,
+                        width: IMAGE_SIZE,
+                        height: IMAGE_SIZE,
+                        borderRadius: 2,
                         overflow: "hidden",
                         flexShrink: 0,
                         bgcolor: tokens.surfaceHi,
                     }}
                 >
-                    {sanitizeProductImageSrc(item.image) ? (
+                    {safeImage ? (
                         <Image
-                            src={sanitizeProductImageSrc(item.image)!}
+                            src={safeImage}
                             alt={item.name}
                             fill
-                            sizes="50px"
+                            sizes={`${IMAGE_SIZE}px`}
                             style={{ objectFit: "cover" }}
                         />
                     ) : (
-                        <Box
-                            sx={{
-                                width: "100%",
-                                height: "100%",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                fontSize: 20,
-                            }}
-                        >
-                            🍱
-                        </Box>
+                        <ProductCoverPlaceholder />
                     )}
                 </Box>
 
+                {/* 2. Text */}
                 <Box sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
                     <Typography
                         variant="body2"
-                        fontWeight={600}
+                        fontWeight={700}
                         color={lineInvalid ? "error.main" : "text.primary"}
                         sx={{
+                            whiteSpace: "nowrap",
                             overflow: "hidden",
                             textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
                             lineHeight: 1.3,
-                            fontSize: isDrawer ? undefined : { xs: 13, sm: 14 },
                         }}
                     >
                         {item.name}
                     </Typography>
-                    {item.selectedModifiers.length > 0 && (
-                        <ModifiersList
-                            modifiers={item.selectedModifiers}
+
+                    {modifiersText ? (
+                        <Typography
+                            variant="caption"
+                            color="text.secondary"
                             sx={{
+                                display: "-webkit-box",
+                                WebkitLineClamp: 1,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
                                 mt: 0.25,
-                                "& .MuiTypography-root": {
-                                    wordBreak: "break-word",
-                                    overflowWrap: "anywhere",
-                                },
+                                lineHeight: 1.35,
                             }}
-                        />
-                    )}
+                        >
+                            {modifiersText}
+                        </Typography>
+                    ) : null}
+
+                    <Typography
+                        variant="caption"
+                        color={lineInvalid ? "error.main" : "text.secondary"}
+                        sx={{
+                            display: "block",
+                            mt: 0.25,
+                            lineHeight: 1.35,
+                            fontVariantNumeric: "tabular-nums",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            textDecoration: lineInvalid ? "line-through" : undefined,
+                        }}
+                    >
+                        {fmt.format(item.calculatedItemPrice)} ֏/шт
+                    </Typography>
+
                     {lineIssue ? (
                         <Typography
                             variant="caption"
@@ -152,105 +166,26 @@ export function CartLineItem({
                                 display: "block",
                                 mt: 0.25,
                                 lineHeight: 1.35,
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
                             }}
                         >
                             {cartLineIssueMessage(lineIssue)}
                         </Typography>
                     ) : null}
                 </Box>
-            </Box>
 
-            <Box
-                sx={{
-                    display: "flex",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    flexShrink: 0,
-                    gap: { xs: 0.75, sm: 1 },
-                }}
-            >
+                {/* 3. Price + stepper + delete */}
                 <Stack
-                    direction="row"
-                    alignItems="center"
+                    alignItems="flex-end"
                     spacing={0.5}
                     sx={{ flexShrink: 0 }}
                 >
-                    <IconButton
-                        size="small"
-                        aria-label={`Уменьшить количество: ${item.name}`}
-                        onClick={onDecrease}
-                        sx={{
-                            width: 40,
-                            height: 40,
-                            bgcolor: "background.paper",
-                            border: "1px solid",
-                            borderColor: "divider",
-                            borderRadius: "50%",
-                            color: tokens.textSecondary,
-                            boxShadow: "none",
-                            "&:hover": {
-                                borderColor: tokens.brand,
-                                color: tokens.brand,
-                                bgcolor: tokens.brandDim,
-                            },
-                        }}
-                    >
-                        <RemoveIcon sx={{ fontSize: 18 }} />
-                    </IconButton>
                     <Typography
                         variant="body2"
-                        fontWeight={700}
-                        sx={{
-                            minWidth: 22,
-                            textAlign: "center",
-                            fontVariantNumeric: "tabular-nums",
-                        }}
-                    >
-                        {item.quantity}
-                    </Typography>
-                    <IconButton
-                        size="small"
-                        aria-label={`Увеличить количество: ${item.name}`}
-                        onClick={onIncrease}
-                        sx={{
-                            width: 40,
-                            height: 40,
-                            bgcolor: "primary.main",
-                            borderRadius: "50%",
-                            color: "primary.contrastText",
-                            boxShadow: "none",
-                            "&:hover": {
-                                bgcolor: tokens.brandHi,
-                            },
-                        }}
-                    >
-                        <AddIcon sx={{ fontSize: 18 }} />
-                    </IconButton>
-                </Stack>
-
-                <Stack
-                    alignItems="flex-end"
-                    sx={{
-                        flexShrink: 0,
-                        minWidth: { xs: 64, sm: 72 },
-                    }}
-                >
-                    <Typography
-                        variant="caption"
-                        color={lineInvalid ? "error.main" : "text.secondary"}
-                        sx={{
-                            lineHeight: 1.2,
-                            fontVariantNumeric: "tabular-nums",
-                            whiteSpace: "nowrap",
-                            textDecoration: lineInvalid ? "line-through" : undefined,
-                        }}
-                    >
-                        {fmt.format(item.calculatedItemPrice)} ֏ / шт.
-                    </Typography>
-                    <Typography
-                        variant="body2"
-                        fontWeight={700}
-                        color={lineInvalid ? "text.disabled" : tokens.brand}
+                        fontWeight={800}
+                        color={lineInvalid ? "text.disabled" : "text.primary"}
                         sx={{
                             lineHeight: 1.2,
                             fontVariantNumeric: "tabular-nums",
@@ -260,31 +195,84 @@ export function CartLineItem({
                     >
                         {fmt.format(lineTotal)} ֏
                     </Typography>
-                </Stack>
 
-                <IconButton
-                    size="small"
-                    aria-label={`Удалить из корзины: ${item.name}`}
-                    onClick={onRemove}
-                    sx={{
-                        width: 40,
-                        height: 40,
-                        flexShrink: 0,
-                        bgcolor: "background.paper",
-                        border: "1px solid",
-                        borderColor: "divider",
-                        borderRadius: "50%",
-                        color: "text.secondary",
-                        boxShadow: "none",
-                        "&:hover": {
-                            color: tokens.red,
-                            borderColor: `${tokens.red}55`,
-                            bgcolor: tokens.redDim,
-                        },
-                    }}
-                >
-                    <DeleteOutlineIcon sx={{ fontSize: 20 }} />
-                </IconButton>
+                    <Stack
+                        direction="row"
+                        alignItems="center"
+                        spacing={0.5}
+                        sx={{ flexShrink: 0 }}
+                    >
+                        <IconButton
+                            aria-label={`Уменьшить количество: ${item.name}`}
+                            onClick={onDecrease}
+                            sx={{
+                                ...stepperButtonSx,
+                                bgcolor: "background.paper",
+                                border: "1px solid",
+                                borderColor: "divider",
+                                color: tokens.textSecondary,
+                                "&:hover": {
+                                    borderColor: tokens.brand,
+                                    color: tokens.brand,
+                                    bgcolor: tokens.brandDim,
+                                },
+                            }}
+                        >
+                            <RemoveIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
+
+                        <Typography
+                            variant="body2"
+                            fontWeight={700}
+                            sx={{
+                                minWidth: 24,
+                                textAlign: "center",
+                                fontVariantNumeric: "tabular-nums",
+                                lineHeight: 1,
+                                flexShrink: 0,
+                            }}
+                        >
+                            {item.quantity}
+                        </Typography>
+
+                        <IconButton
+                            aria-label={`Увеличить количество: ${item.name}`}
+                            onClick={onIncrease}
+                            sx={{
+                                ...stepperButtonSx,
+                                bgcolor: "primary.main",
+                                color: "primary.contrastText",
+                                "&:hover": {
+                                    bgcolor: tokens.brandHi,
+                                },
+                            }}
+                        >
+                            <AddIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
+                    </Stack>
+
+                    <IconButton
+                        size="small"
+                        aria-label={`Удалить из корзины: ${item.name}`}
+                        onClick={onRemove}
+                        sx={{
+                            width: 32,
+                            height: 32,
+                            minWidth: 32,
+                            minHeight: 32,
+                            p: 0,
+                            flexShrink: 0,
+                            mt: 0.25,
+                            color: "text.disabled",
+                            "&:hover": {
+                                color: tokens.red,
+                                bgcolor: tokens.redDim,
+                            },
+                        }}
+                    >
+                        <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                </Stack>
             </Box>
         </Box>
     );

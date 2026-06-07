@@ -58,7 +58,7 @@ export function CheckoutOrderLine({ item, lineIssue }: CheckoutOrderLineProps) {
                 bgcolor: lineInvalid ? tokens.redDim : tokens.surfaceHi,
             }}
         >
-            <Stack direction="row" alignItems="flex-start" spacing={1.25}>
+            <Stack direction="row" alignItems="flex-start" spacing={1.25} sx={{ minWidth: 0 }}>
                 <Box
                     sx={{
                         position: "relative",
@@ -83,7 +83,7 @@ export function CheckoutOrderLine({ item, lineIssue }: CheckoutOrderLineProps) {
                     )}
                 </Box>
 
-                <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Box sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
                     <Typography
                         variant="body2"
                         fontWeight={700}
@@ -99,12 +99,13 @@ export function CheckoutOrderLine({ item, lineIssue }: CheckoutOrderLineProps) {
                     </Typography>
 
                     {hasModifiers ? (
-                        <Stack spacing={0.75} sx={{ mt: 0.75 }}>
+                        <Stack spacing={0.75} sx={{ mt: 0.75, minWidth: 0 }}>
                             <Stack
                                 direction="row"
                                 flexWrap="wrap"
                                 gap={0.5}
                                 useFlexGap
+                                sx={{ minWidth: 0 }}
                             >
                                 {item.selectedModifiers.map((m) => (
                                     <Chip
@@ -128,7 +129,10 @@ export function CheckoutOrderLine({ item, lineIssue }: CheckoutOrderLineProps) {
                                     color: "primary.main",
                                     fontWeight: 600,
                                     lineHeight: 1.45,
-                                    display: "block",
+                                    display: "-webkit-box",
+                                    WebkitLineClamp: 1,
+                                    WebkitBoxOrient: "vertical",
+                                    overflow: "hidden",
                                 }}
                             >
                                 {formatModifiersInline(item.selectedModifiers)}
