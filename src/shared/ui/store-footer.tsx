@@ -11,6 +11,7 @@ import {
     OPENING_HOURS,
     SITE_NAME,
 } from "@/lib/site-config";
+
 import { tokens } from "./theme";
 
 const footerLinkSx = {
@@ -100,7 +101,7 @@ export function StoreFooter() {
 
                 <Typography
                     variant="caption"
-                    color="text.disabled"
+                    color="text.secondary"
                     sx={{ display: "block", mt: 3 }}
                 >
                     © {new Date().getFullYear()} {SITE_NAME}. Все права защищены.

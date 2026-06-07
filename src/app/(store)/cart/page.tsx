@@ -1,201 +1,28 @@
 "use client";
 
-import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
-import RemoveIcon from "@mui/icons-material/Remove";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
-import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
-import { alpha } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import type { CartItem, CartLineIssue } from "@/features/cart";
 import {
-    cartLineIssueMessage,
-    ModifiersList,
+    CartLineItem,
     useCartLineValidation,
     useCartStore,
 } from "@/features/cart";
 import { ApiError, validatePromo } from "@/shared/api";
-import { sanitizeProductImageSrc } from "@/shared/lib/product-cover";
 import { EmptyCart, PageContainer, SectionTitle } from "@/shared/ui";
-import { tokens } from "@/shared/ui/theme";
 
 const MIN_ORDER_HINT =
     "Минимальная сумма заказа зависит от зоны доставки и будет рассчитана при оформлении";
-
-// ─── Line item row ─────────────────────────────────────────────────────────────
-
-function CartItemRow({
-    item,
-    lineIssue,
-    onIncrease,
-    onDecrease,
-    onRemove,
-}: {
-    item: CartItem;
-    lineIssue?: CartLineIssue;
-    onIncrease: () => void;
-    onDecrease: () => void;
-    onRemove: () => void;
-}) {
-    const lineInvalid = Boolean(lineIssue);
-
-    return (
-        <Box
-            sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: { xs: 1.5, sm: 2 },
-                p: { xs: 1.5, sm: 2 },
-                borderRadius: 3,
-                border: "1px solid",
-                borderColor: lineInvalid ? tokens.red : alpha("#0f172a", 0.06),
-                bgcolor: lineInvalid ? tokens.redDim : "background.paper",
-            }}
-        >
-            {/* Thumbnail */}
-            <Box
-                sx={{
-                    position: "relative",
-                    width: { xs: 60, sm: 72 },
-                    height: { xs: 60, sm: 72 },
-                    borderRadius: 2,
-                    overflow: "hidden",
-                    flexShrink: 0,
-                    bgcolor: "rgba(15,23,42,0.05)",
-                }}
-            >
-                {sanitizeProductImageSrc(item.image) ? (
-                    <Image
-                        src={sanitizeProductImageSrc(item.image)!}
-                        alt={item.name}
-                        fill
-                        sizes="72px"
-                        style={{ objectFit: "cover" }}
-                    />
-                ) : (
-                    <Box
-                        sx={{
-                            width: "100%",
-                            height: "100%",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            background: "linear-gradient(135deg, #234F4A, #1F3A5F)",
-                            fontSize: 24,
-                        }}
-                    >
-                        🍱
-                    </Box>
-                )}
-            </Box>
-
-            {/* Name + unit price */}
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography
-                    variant="body2"
-                    fontWeight={600}
-                    noWrap
-                    color={lineInvalid ? "error.main" : "text.primary"}
-                    sx={{ fontSize: { xs: 13, sm: 14 } }}
-                >
-                    {item.name}
-                </Typography>
-                <Typography
-                    variant="caption"
-                    color={lineInvalid ? "error.main" : "text.secondary"}
-                    sx={{
-                        display: "block",
-                        textDecoration: lineInvalid ? "line-through" : undefined,
-                    }}
-                >
-                    {item.calculatedItemPrice.toLocaleString("ru-RU")} ֏ / шт.
-                </Typography>
-                {item.selectedModifiers.length > 0 && (
-                    <ModifiersList
-                        modifiers={item.selectedModifiers}
-                        sx={{ mt: 0.5 }}
-                    />
-                )}
-                {lineIssue ? (
-                    <Typography variant="caption" color="error.main" sx={{ display: "block", mt: 0.5 }}>
-                        {cartLineIssueMessage(lineIssue)}
-                    </Typography>
-                ) : null}
-            </Box>
-
-            {/* Stepper */}
-            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ flexShrink: 0 }}>
-                <IconButton
-                    size="small"
-                    onClick={onDecrease}
-                    sx={{
-                        width: 32,
-                        height: 32,
-                        border: "1px solid rgba(15,23,42,0.12)",
-                        borderRadius: "50%",
-                    }}
-                >
-                    <RemoveIcon fontSize="small" />
-                </IconButton>
-                <Typography
-                    variant="body2"
-                    fontWeight={700}
-                    sx={{ minWidth: 28, textAlign: "center" }}
-                >
-                    {item.quantity}
-                </Typography>
-                <IconButton
-                    size="small"
-                    onClick={onIncrease}
-                    sx={{
-                        width: 32,
-                        height: 32,
-                        bgcolor: "primary.main",
-                        color: "white",
-                        borderRadius: "50%",
-                        "&:hover": { bgcolor: "primary.dark" },
-                    }}
-                >
-                    <AddIcon fontSize="small" />
-                </IconButton>
-            </Stack>
-
-            {/* Line total + delete */}
-            <Stack
-                direction="row"
-                alignItems="center"
-                spacing={1}
-                sx={{ flexShrink: 0, minWidth: { xs: 72, sm: 90 }, justifyContent: "flex-end" }}
-            >
-                <Typography
-                    variant="body2"
-                    fontWeight={700}
-                    color={lineInvalid ? "text.disabled" : "text.primary"}
-                    sx={{
-                        fontSize: { xs: 13, sm: 14 },
-                        textDecoration: lineInvalid ? "line-through" : undefined,
-                    }}
-                >
-                    {(item.calculatedItemPrice * item.quantity).toLocaleString("ru-RU")} ֏
-                </Typography>
-                <IconButton size="small" color="error" onClick={onRemove}>
-                    <DeleteOutlineIcon fontSize="small" />
-                </IconButton>
-            </Stack>
-        </Box>
-    );
-}
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
@@ -296,9 +123,8 @@ export default function CartPage() {
     };
 
     return (
-        <main>
-            <PageContainer>
-                <SectionTitle>Корзина</SectionTitle>
+        <PageContainer>
+                <SectionTitle pageTitle>Корзина</SectionTitle>
 
                 {!hasItems && <EmptyCart layout="page" />}
 
@@ -322,10 +148,11 @@ export default function CartPage() {
                             )}
                             <Stack spacing={1.5}>
                                 {items.map((item) => (
-                                    <CartItemRow
+                                    <CartLineItem
                                         key={item.cartItemId}
                                         item={item}
                                         lineIssue={cartLineIssues[item.cartItemId]}
+                                        variant="page"
                                         onIncrease={() =>
                                             setItemQuantity(item.cartItemId, item.quantity + 1)
                                         }
@@ -366,7 +193,7 @@ export default function CartPage() {
                                 boxShadow: "0 12px 28px rgba(15,23,42,0.05)",
                             }}
                         >
-                            <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
+                            <Typography component="h2" variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
                                 Итог заказа
                             </Typography>
 
@@ -534,7 +361,6 @@ export default function CartPage() {
                         </Box>
                     </Stack>
                 )}
-            </PageContainer>
-        </main>
+        </PageContainer>
     );
 }

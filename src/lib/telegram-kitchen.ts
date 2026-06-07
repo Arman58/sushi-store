@@ -1,7 +1,5 @@
-import {
-    ETA_PRESET_MINUTES,
-    formatEstimatedDeliveryTime,
-} from "@/lib/order-status";
+import { timingSafeEqual } from "node:crypto";
+
 import {
     DEFAULT_FETCH_TIMEOUT_MS,
     fetchWithTimeout,
@@ -12,6 +10,10 @@ import {
     orderStatusLabel,
     orderStatusTelegramButtonLabel,
 } from "@/lib/order-service";
+import {
+    ETA_PRESET_MINUTES,
+    formatEstimatedDeliveryTime,
+} from "@/lib/order-status";
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
@@ -195,13 +197,21 @@ export function isAuthorizedKitchenChat(chatId: number | string | undefined): bo
     return String(chatId) === String(TELEGRAM_CHAT_ID);
 }
 
+function timingSafeStringEqual(a: string, b: string): boolean {
+    const aBuf = Buffer.from(a);
+    const bBuf = Buffer.from(b);
+    if (aBuf.length !== bBuf.length) return false;
+    return timingSafeEqual(aBuf, bBuf);
+}
+
 export function isTelegramWebhookAuthorized(request: Request): boolean {
-    const expected = process.env.TELEGRAM_WEBHOOK_TOKEN;
+    const expected = process.env.TELEGRAM_WEBHOOK_TOKEN?.trim();
     if (!expected) return false;
 
     const url = new URL(request.url);
-    if (url.searchParams.get("token") === expected) return true;
+    const queryToken = url.searchParams.get("token") ?? "";
+    if (queryToken && timingSafeStringEqual(queryToken, expected)) return true;
 
-    const header = request.headers.get("X-Telegram-Bot-Api-Secret-Token");
-    return header === expected;
+    const header = request.headers.get("X-Telegram-Bot-Api-Secret-Token") ?? "";
+    return header.length > 0 && timingSafeStringEqual(header, expected);
 }

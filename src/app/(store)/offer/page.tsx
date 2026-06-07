@@ -34,7 +34,7 @@ const listSx = {
 
 export default function OfferPage() {
     return (
-        <Box component="main" sx={{ bgcolor: tokens.bg, minHeight: "60vh", py: { xs: 3, md: 5 } }}>
+        <Box sx={{ bgcolor: tokens.bg, minHeight: "60vh", py: { xs: 3, md: 5 } }}>
             <PageContainer>
                 <Stack spacing={1} sx={{ maxWidth: 720 }}>
                     <Typography

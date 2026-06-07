@@ -13,8 +13,8 @@ import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { useEffect, useState } from "react";
 
 import { showAppToast } from "@/shared/lib/show-app-toast";
@@ -196,7 +196,7 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                     sx={{ position: "absolute", right: 8, top: 8 }}
                     aria-label="Закрыть"
                 >
-                    <CloseIcon />
+                    <CloseIcon aria-hidden focusable="false" />
                 </IconButton>
             </DialogTitle>
 

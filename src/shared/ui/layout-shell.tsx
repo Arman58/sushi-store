@@ -7,24 +7,22 @@ import MenuIcon from "@mui/icons-material/Menu";
 import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
+import ButtonBase from "@mui/material/ButtonBase";
+import Container from "@mui/material/Container";
 import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Snackbar from "@mui/material/Snackbar";
-import ButtonBase from "@mui/material/ButtonBase";
-import Container from "@mui/material/Container";
 import Stack from "@mui/material/Stack";
+import { alpha } from "@mui/material/styles";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
-import { alpha } from "@mui/material/styles";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import CountUp from "react-countup";
 
 import { LoginButton } from "@/features/auth";
 import { useCartStore } from "@/features/cart";
@@ -37,8 +35,11 @@ const MobileBottomNav = dynamic(
     () => import("./mobile-bottom-nav").then((m) => m.MobileBottomNav),
     { ssr: false },
 );
+const StoreFooter = dynamic(
+    () => import("./store-footer").then((m) => m.StoreFooter),
+    { ssr: false, loading: () => null },
+);
 import { tokens } from "./theme";
-import { StoreFooter } from "./store-footer";
 
 const STORE_NAV_LINKS = [
     { href: "/", label: "Главная" },
@@ -66,7 +67,7 @@ function MobileNavMenu() {
                     color: tokens.textSecondary,
                 }}
             >
-                <MenuIcon />
+                <MenuIcon aria-hidden focusable="false" />
             </IconButton>
 
             <Menu
@@ -105,11 +106,13 @@ function MobileNavMenu() {
 // ─── Cart button ──────────────────────────────────────────────────────────────
 
 function CartHeaderButton() {
+    const pathname = usePathname();
     const openCart = useCartStore((s) => s.openCart);
     const items    = useCartStore((s) => s.items);
+    const isCheckoutPage = pathname?.startsWith("/checkout") ?? false;
     const addToast = useCartStore((s) => s.addToast);
 
-    const [cartIconPulse, setCartIconPulse] = useState(0);
+    const [cartIconPulse, setCartIconPulse] = useState(false);
     const lastAddToastRef = useRef(0);
 
     const { count, total } = useMemo(
@@ -126,13 +129,21 @@ function CartHeaderButton() {
     useEffect(() => {
         if (!addToast || addToast === lastAddToastRef.current) return;
         lastAddToastRef.current = addToast;
-        setCartIconPulse((n) => n + 1);
+        queueMicrotask(() => setCartIconPulse(true));
+        const timer = window.setTimeout(() => setCartIconPulse(false), 220);
+        return () => window.clearTimeout(timer);
     }, [addToast]);
 
     return (
         <ButtonBase
-            onClick={openCart}
-            aria-label="Корзина"
+            onClick={() => {
+                if (isCheckoutPage) return;
+                openCart();
+            }}
+            aria-label={
+                isCheckoutPage ? "Корзина (на странице оформления)" : "Открыть корзину"
+            }
+            aria-disabled={isCheckoutPage}
             sx={(theme) => ({
                 display: "flex",
                 alignItems: "center",
@@ -140,6 +151,9 @@ function CartHeaderButton() {
                 px: { xs: 1.5, sm: 2 },
                 py: 1,
                 borderRadius: 2,
+                ...(isCheckoutPage
+                    ? { opacity: 0.55, cursor: "default" }
+                    : {}),
                 bgcolor: count > 0 ? tokens.brand : "background.paper",
                 border: "1px solid",
                 borderColor: count > 0 ? tokens.brand : theme.palette.divider,
@@ -157,26 +171,27 @@ function CartHeaderButton() {
                 "&:active": { transform: "scale(0.97)" },
             })}
         >
-            <motion.span
-                key={cartIconPulse}
-                style={{ display: "inline-flex", lineHeight: 0 }}
-                initial={{ scale: 1 }}
-                animate={
-                    cartIconPulse === 0
-                        ? { scale: 1 }
-                        : { scale: [1, 1.2, 1] }
-                }
-                transition={
-                    cartIconPulse === 0
-                        ? { duration: 0 }
-                        : { duration: 0.2, times: [0, 0.4, 1], ease: "easeOut" }
-                }
+            <Box
+                sx={{
+                    display: "inline-flex",
+                    lineHeight: 0,
+                    animation: cartIconPulse
+                        ? "cart-icon-pulse 0.22s ease-out"
+                        : "none",
+                    "@keyframes cart-icon-pulse": {
+                        "0%": { transform: "scale(1)" },
+                        "40%": { transform: "scale(1.2)" },
+                        "100%": { transform: "scale(1)" },
+                    },
+                }}
             >
                 <ShoppingBagOutlinedIcon
                     id="cart-icon"
+                    aria-hidden
+                    focusable="false"
                     sx={{ fontSize: 18 }}
                 />
-            </motion.span>
+            </Box>
 
             {count > 0 ? (
                 <>
@@ -195,21 +210,15 @@ function CartHeaderButton() {
                             px: 0.5,
                         }}
                     >
-                        <AnimatePresence mode="popLayout" initial={false}>
-                            <motion.span
-                                key={count}
-                                initial={{ opacity: 0, y: -5 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: 5 }}
-                                transition={{ duration: 0.16 }}
-                                style={{
-                                    fontVariantNumeric: "tabular-nums",
-                                    lineHeight: 1,
-                                }}
-                            >
-                                {count}
-                            </motion.span>
-                        </AnimatePresence>
+                        <Box
+                            component="span"
+                            sx={{
+                                fontVariantNumeric: "tabular-nums",
+                                lineHeight: 1,
+                            }}
+                        >
+                            {count}
+                        </Box>
                     </Box>
                     <Typography
                         component="span"
@@ -222,22 +231,7 @@ function CartHeaderButton() {
                             alignItems: "baseline",
                         }}
                     >
-                        <motion.span
-                            key={total}
-                            layout
-                            initial={{ scale: 0.96, opacity: 0.8 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ duration: 0.2 }}
-                            style={{ display: "inline-block" }}
-                        >
-                            <CountUp
-                                end={total}
-                                duration={0.45}
-                                separator=" "
-                                decimals={0}
-                            />
-                        </motion.span>
-                        &nbsp;֏
+                        {total.toLocaleString("ru-RU")}&nbsp;֏
                     </Typography>
                     <Box
                         sx={{
@@ -247,17 +241,7 @@ function CartHeaderButton() {
                             fontVariantNumeric: "tabular-nums",
                         }}
                     >
-                        <AnimatePresence mode="popLayout" initial={false}>
-                            <motion.span
-                                key={count}
-                                initial={{ opacity: 0, y: -4 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: 4 }}
-                                transition={{ duration: 0.16 }}
-                            >
-                                {count}
-                            </motion.span>
-                        </AnimatePresence>
+                        {count}
                     </Box>
                 </>
             ) : (
@@ -305,7 +289,7 @@ export function LayoutShell({ children }: LayoutShellProps) {
 
     return (
         <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
-            {/* ── Sticky header ── */}
+            <Box component="header">
             <AppBar
                 position="sticky"
                 elevation={0}
@@ -360,9 +344,11 @@ export function LayoutShell({ children }: LayoutShellProps) {
                             >
                                 <Image
                                     src="/east-west-logo.png"
-                                    alt="East West"
+                                    alt="East West Delivery - sushi and pizza Yerevan"
                                     fill
                                     sizes="36px"
+                                    priority
+                                    fetchPriority="high"
                                     style={{ objectFit: "cover" }}
                                 />
                             </Box>
@@ -408,6 +394,8 @@ export function LayoutShell({ children }: LayoutShellProps) {
                             }}
                         >
                             <LocationOnOutlinedIcon
+                                aria-hidden
+                                focusable="false"
                                 sx={{ fontSize: 15, color: "primary.dark" }}
                             />
                             <Typography variant="body2" fontWeight={600} sx={{ fontSize: 13 }}>
@@ -460,6 +448,7 @@ export function LayoutShell({ children }: LayoutShellProps) {
                     </Container>
                 </Toolbar>
             </AppBar>
+            </Box>
 
             <Snackbar
                     open={addToast !== 0}
@@ -505,10 +494,14 @@ export function LayoutShell({ children }: LayoutShellProps) {
                         >
                             {isErrorToast ? (
                                 <ErrorOutlineIcon
+                                    aria-hidden
+                                    focusable="false"
                                     sx={{ color: "error.main", fontSize: 20 }}
                                 />
                             ) : (
                                 <CheckCircleOutlineIcon
+                                    aria-hidden
+                                    focusable="false"
                                     sx={{
                                         color: isAppToast
                                             ? "success.main"
@@ -522,15 +515,28 @@ export function LayoutShell({ children }: LayoutShellProps) {
                     }
                 />
 
-            {/* Page content */}
-            <Box sx={{ pb: { xs: 10, sm: 4 }, display: "flex", flexDirection: "column", minHeight: "calc(100vh - 64px)" }}>
+            <Box
+                component="main"
+                id="main-content"
+                sx={{
+                    pb: {
+                        xs: "calc(72px + env(safe-area-inset-bottom))",
+                        sm: 4,
+                    },
+                    display: "flex",
+                    flexDirection: "column",
+                    minHeight: "calc(100vh - 64px)",
+                    overflowX: "clip",
+                    maxWidth: "100%",
+                }}
+            >
                 {children}
                 <StoreFooter />
             </Box>
 
             {/* Global overlays */}
             <CartDrawer />
-            <MobileBottomNav />
+            {!pathname.startsWith("/checkout") && <MobileBottomNav />}
         </Box>
     );
 }

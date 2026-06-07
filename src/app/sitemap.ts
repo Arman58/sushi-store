@@ -4,8 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { SITE_URL } from "@/lib/site-config";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+    if (!SITE_URL) return [];
+
     const now = new Date();
-    const baseUrl = SITE_URL || "https://example.com";
+    const baseUrl = SITE_URL;
 
     let categories: { slug: string }[] = [];
     try {

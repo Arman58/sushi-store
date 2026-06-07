@@ -6,9 +6,27 @@ type SectionTitleProps = {
      * Подзаголовок секции под крупным H1 страницы (ниже по иерархии, без конкуренции по размеру).
      */
     subdued?: boolean;
+    /** Единственный H1 страницы (визуально h4, семантически h1). */
+    pageTitle?: boolean;
 };
 
-export function SectionTitle({ children, subdued = false }: SectionTitleProps) {
+export function SectionTitle({
+    children,
+    subdued = false,
+    pageTitle = false,
+}: SectionTitleProps) {
+    if (pageTitle) {
+        return (
+            <Typography
+                variant="h4"
+                component="h1"
+                sx={{ mb: 3, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1.1 }}
+            >
+                {children}
+            </Typography>
+        );
+    }
+
     if (subdued) {
         return (
             <Typography

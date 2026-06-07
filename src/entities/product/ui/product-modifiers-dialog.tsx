@@ -13,8 +13,8 @@ import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import { alpha, useTheme } from "@mui/material/styles";
-import useMediaQuery from "@mui/material/useMediaQuery";
 import Typography from "@mui/material/Typography";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 
@@ -113,6 +113,7 @@ function OptionTile({
                 gap: 1.5,
                 px: 1.75,
                 py: 1.5,
+                minHeight: 44,
                 borderRadius: 2,
                 cursor: disabled ? "not-allowed" : "pointer",
                 userSelect: "none",
@@ -246,7 +247,7 @@ export function ProductModifiersDialog({
                 initial[g.id] = [];
             }
         }
-        setSelectedByGroup(initial);
+        queueMicrotask(() => setSelectedByGroup(initial));
     }, [open, modifierGroups]);
 
     const hasModifiers = modifierGroups.length > 0;

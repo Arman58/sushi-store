@@ -4,7 +4,6 @@
  * No "use client" needed — this is a server component boundary.
  */
 
-import Box from "@mui/material/Box";
 import Skeleton from "@mui/material/Skeleton";
 
 import { PageContainer } from "@/shared/ui";
@@ -12,8 +11,7 @@ import { MenuSectionSkeleton } from "@/widgets/menu-section/menu-section-skeleto
 
 export default function MenuLoading() {
     return (
-        <main>
-            <PageContainer>
+        <PageContainer>
                 {/* Hero banner skeleton */}
                 <Skeleton
                     variant="rounded"
@@ -33,7 +31,6 @@ export default function MenuLoading() {
 
                 {/* Menu grid skeleton */}
                 <MenuSectionSkeleton />
-            </PageContainer>
-        </main>
+        </PageContainer>
     );
 }

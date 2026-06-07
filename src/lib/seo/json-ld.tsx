@@ -23,6 +23,27 @@ export function JsonLd({ data }: JsonLdProps) {
     );
 }
 
+export function foodDeliveryServiceJsonLd() {
+    return {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        "@id": `${SITE_URL}/#food-delivery`,
+        name: "Food Delivery in Yerevan and Nor Hachn",
+        description: "Fast delivery of sushi, pizza and shawarma",
+        provider: {
+            "@type": "Restaurant",
+            name: SITE_NAME,
+            url: SITE_URL,
+        },
+        areaServed: [
+            { "@type": "City", name: "Yerevan" },
+            { "@type": "City", name: "Nor Hachn" },
+            { "@type": "AdministrativeArea", name: "Kotayk Region" },
+        ],
+        serviceType: "Food Delivery",
+    };
+}
+
 export function restaurantJsonLd() {
     return {
         "@context": "https://schema.org",
@@ -44,8 +65,9 @@ export function restaurantJsonLd() {
         servesCuisine: [...SERVES_CUISINE],
         hasMenu: `${SITE_URL}/menu`,
         areaServed: [
-            { "@type": "City", name: "Ереван" },
-            { "@type": "AdministrativeArea", name: "Котайк" },
+            { "@type": "City", name: "Yerevan" },
+            { "@type": "City", name: "Nor Hachn" },
+            { "@type": "AdministrativeArea", name: "Kotayk Region" },
         ],
         openingHoursSpecification: [
             {

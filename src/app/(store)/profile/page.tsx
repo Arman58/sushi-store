@@ -5,7 +5,6 @@ import Divider from "@mui/material/Divider";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import type { OrderStatus } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { ORDER_STATUS_UI } from "@/lib/order-status";
@@ -15,9 +14,9 @@ import { EmptyCart, PageContainer, SectionTitle } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
 
 import { ProfileEmailVerificationAlert } from "./profile-email-verification-alert";
+import { ProfileLoginPrompt } from "./profile-login-prompt";
 import { ProfileOrderActions } from "./profile-order-actions";
 import { ProfileSessionGuard } from "./profile-session-guard";
-import { ProfileLoginPrompt } from "./profile-login-prompt";
 import type { ProfileOrderItem } from "./types";
 
 // Личный кабинет — динамическая страница: каждый запрос проверяет сессию.
@@ -43,48 +42,78 @@ export default async function ProfilePage() {
         return <ProfileLoginPrompt reason="no_session" />;
     }
 
-    const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-            id: true,
-            name: true,
-            email: true,
-            emailVerified: true,
-            image: true,
-            phone: true,
-            createdAt: true,
-        },
-    });
+    let user;
+    let orders: Awaited<
+        ReturnType<
+            typeof prisma.order.findMany<{
+                include: {
+                    items: {
+                        select: {
+                            id: true;
+                            name: true;
+                            price: true;
+                            quantity: true;
+                            productId: true;
+                            selectedModifiers: true;
+                        };
+                    };
+                };
+            }>
+        >
+    > = [];
+
+    try {
+        user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                emailVerified: true,
+                image: true,
+                phone: true,
+                createdAt: true,
+            },
+        });
+    } catch (error) {
+        console.error("[profile] Database unavailable:", error);
+        return <ProfileLoginPrompt reason="session_expired" />;
+    }
 
     if (!user) {
         return <ProfileLoginPrompt reason="session_expired" />;
     }
 
-    const orders = await prisma.order.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: "desc" },
-        include: {
-            items: {
-                select: {
-                    id: true,
-                    name: true,
-                    price: true,
-                    quantity: true,
-                    productId: true,
-                    selectedModifiers: true,
+    try {
+        orders = await prisma.order.findMany({
+            where: { userId: user.id },
+            orderBy: { createdAt: "desc" },
+            include: {
+                items: {
+                    select: {
+                        id: true,
+                        name: true,
+                        price: true,
+                        quantity: true,
+                        productId: true,
+                        selectedModifiers: true,
+                    },
                 },
             },
-        },
-        take: 50,
-    });
+            take: 50,
+        });
+    } catch (error) {
+        console.error("[profile] Orders unavailable:", error);
+        orders = [];
+    }
 
     const displayName = (user.name ?? "").trim() || "Покупатель";
 
     return (
-        <main>
+        <>
             <ProfileSessionGuard />
             <PageContainer>
-                <SectionTitle>Личный кабинет</SectionTitle>
+                <SectionTitle pageTitle>Личный кабинет</SectionTitle>
 
                 {user.emailVerified == null && user.email ? (
                     <ProfileEmailVerificationAlert email={user.email} />
@@ -115,7 +144,7 @@ export default async function ProfilePage() {
                             {displayName.charAt(0).toUpperCase()}
                         </Avatar>
                         <Box>
-                            <Typography variant="h6" fontWeight={700}>
+                            <Typography component="p" variant="body1" fontWeight={700}>
                                 {displayName}
                             </Typography>
                             {user.email ? (
@@ -140,7 +169,7 @@ export default async function ProfilePage() {
                     </Stack>
                 </Paper>
 
-                <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 700 }}>
+                <Typography component="h2" variant="h6" sx={{ mb: 1.5, fontWeight: 700 }}>
                     История заказов
                 </Typography>
 
@@ -248,6 +277,6 @@ export default async function ProfilePage() {
                     </Stack>
                 )}
             </PageContainer>
-        </main>
+        </>
     );
 }

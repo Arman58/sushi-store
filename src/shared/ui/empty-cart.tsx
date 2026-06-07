@@ -3,8 +3,8 @@
 import TakeoutDiningOutlinedIcon from "@mui/icons-material/TakeoutDiningOutlined";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Typography from "@mui/material/Typography";
 import { alpha } from "@mui/material/styles";
+import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
 import { tokens } from "./theme";

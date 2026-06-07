@@ -19,7 +19,7 @@ import { Controller, useForm } from "react-hook-form";
 
 import { formatEstimatedDeliveryTime, ORDER_STATUS_UI } from "@/lib/order-status";
 import { ApiError, fetchOrderStatus, type OrderStatusResponse } from "@/shared/api";
-import { orderStatusSchema, type OrderStatusFormValues } from "@/shared/lib/schemas";
+import { type OrderStatusFormValues,orderStatusSchema } from "@/shared/lib/schemas";
 import { PageContainer, SectionTitle } from "@/shared/ui";
 
 // ─── Status config ─────────────────────────────────────────────────────────────
@@ -83,8 +83,7 @@ export default function OrderStatusPage() {
             : STEPS.findIndex((step) => step.key === order?.status);
 
     return (
-        <main>
-            <PageContainer>
+        <PageContainer>
                 {/* Header banner */}
                 <Box
                     sx={{
@@ -107,7 +106,7 @@ export default function OrderStatusPage() {
                         }}
                     />
                     <Box sx={{ position: "relative" }}>
-                        <SectionTitle>Статус заказа</SectionTitle>
+                        <SectionTitle pageTitle>Статус заказа</SectionTitle>
                         <Typography variant="body1" sx={{ color: "rgba(255,255,255,0.82)", maxWidth: 500 }}>
                             Отследите заказ по номеру и телефону - увидите этапы и время доставки.
                         </Typography>
@@ -242,7 +241,7 @@ export default function OrderStatusPage() {
                                         <Typography variant="overline" sx={{ opacity: 0.7 }}>
                                             Трекер заказа
                                         </Typography>
-                                        <Typography variant="h6" fontWeight={800}>
+                                        <Typography component="h2" variant="h6" fontWeight={800}>
                                             Заказ #{order.id}
                                         </Typography>
                                         <Typography variant="body2" sx={{ opacity: 0.8 }}>
@@ -380,7 +379,6 @@ export default function OrderStatusPage() {
                         </Paper>
                     )}
                 </Paper>
-            </PageContainer>
-        </main>
+        </PageContainer>
     );
 }

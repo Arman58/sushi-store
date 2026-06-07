@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import PhoneIcon from "@mui/icons-material/Phone";
@@ -10,6 +9,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { Metadata } from "next";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import {
     CONTACT_PHONE,
@@ -80,7 +80,6 @@ function ContactRow({ icon, label, value, hint }: ContactRowProps) {
 export default function ContactsPage() {
     return (
         <Box
-            component="main"
             sx={{
                 display: "flex",
                 flexDirection: "column",
@@ -140,7 +139,7 @@ export default function ContactsPage() {
                                     <Typography
                                         component="a"
                                         href={`tel:${CONTACT_PHONE}`}
-                                        variant="h5"
+                                        variant="body1"
                                         sx={{
                                             display: "inline-block",
                                             fontWeight: 800,
@@ -161,7 +160,7 @@ export default function ContactsPage() {
                                 label="Адрес самовывоза"
                                 value={
                                     <Typography
-                                        variant="h6"
+                                        variant="body1"
                                         sx={{ fontWeight: 800, color: tokens.textPrimary, lineHeight: 1.35 }}
                                     >
                                         {KITCHEN_ADDRESS.pickup}
@@ -175,7 +174,7 @@ export default function ContactsPage() {
                                 label="Время работы"
                                 value={
                                     <Typography
-                                        variant="h6"
+                                        variant="body1"
                                         sx={{ fontWeight: 800, color: tokens.textPrimary }}
                                     >
                                         {OPENING_HOURS.label}

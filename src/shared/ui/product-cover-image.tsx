@@ -17,7 +17,7 @@ type ProductCoverImageProps = {
     sizes?: string;
 };
 
-function ProductCoverPlaceholder() {
+export function ProductCoverPlaceholder() {
     return (
         <Box
             sx={{
@@ -48,10 +48,13 @@ function ProductCoverPlaceholder() {
                     width={40}
                     height={40}
                     style={{ objectFit: "cover" }}
-                    aria-hidden
                 />
             </Box>
-            <RestaurantMenuRoundedIcon sx={{ fontSize: 28, opacity: 0.35 }} />
+            <RestaurantMenuRoundedIcon
+                aria-hidden
+                focusable="false"
+                sx={{ fontSize: 28, opacity: 0.35 }}
+            />
         </Box>
     );
 }

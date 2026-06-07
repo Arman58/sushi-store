@@ -12,8 +12,7 @@ import { ProductCardSkeleton } from "@/entities/product/ui/product-card";
 
 export default function RootLoading() {
     return (
-        <main>
-            <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, pt: { xs: 3, sm: 4 } }}>
+        <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, pt: { xs: 3, sm: 4 } }}>
                 <Skeleton
                     variant="rounded"
                     animation="wave"
@@ -54,7 +53,6 @@ export default function RootLoading() {
                         <ProductCardSkeleton key={i} />
                     ))}
                 </Box>
-            </Container>
-        </main>
+        </Container>
     );
 }

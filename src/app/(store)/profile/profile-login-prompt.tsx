@@ -39,9 +39,8 @@ export function ProfileLoginPrompt({ reason }: ProfileLoginPromptProps) {
     }, [status, reason]);
 
     return (
-        <main>
-            <PageContainer>
-                <SectionTitle>Личный кабинет</SectionTitle>
+        <PageContainer>
+                <SectionTitle pageTitle>Личный кабинет</SectionTitle>
                 <Stack spacing={2.5} sx={{ maxWidth: 480 }}>
                     <Alert severity="warning">{MESSAGES[reason]}</Alert>
                     <Button
@@ -54,7 +53,6 @@ export function ProfileLoginPrompt({ reason }: ProfileLoginPromptProps) {
                     </Button>
                 </Stack>
                 <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
-            </PageContainer>
-        </main>
+        </PageContainer>
     );
 }

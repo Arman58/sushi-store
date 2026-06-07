@@ -270,12 +270,27 @@ export function HeroSection({ deliveryStat, openingHoursStat, promo }: HeroSecti
               color: tokens.textSecondary,
               fontSize: { xs: "0.9rem", sm: "1rem" },
               lineHeight: 1.65,
-              mb: 4,
+              mb: 1.5,
               maxWidth: 460,
             }}
           >
             Закажите любимую еду с быстрой доставкой по Котайку и Еревану. Свежие
             роллы, горячая пицца и сочная шаурма.
+          </Typography>
+
+          <Typography
+            component="p"
+            variant="body2"
+            sx={{
+              color: tokens.textMuted,
+              fontSize: { xs: "0.75rem", sm: "0.8rem" },
+              lineHeight: 1.55,
+              mb: 4,
+              maxWidth: 520,
+            }}
+          >
+            Hot sushi, pizza and shawarma with fast delivery in Yerevan and Nor
+            Hachn. Free delivery in Nor Hachn.
           </Typography>
 
           <Stack

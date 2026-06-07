@@ -4,8 +4,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { escapeHtml } from "@/lib/escape-html";
 import {
-    NOTIFICATION_FETCH_TIMEOUT_MS,
     fetchWithTimeout,
+    NOTIFICATION_FETCH_TIMEOUT_MS,
 } from "@/lib/fetch-with-timeout";
 import { prepareOrderItems, type VerifiedOrderItem } from "@/lib/prepare-order-items";
 import { prisma } from "@/lib/prisma";

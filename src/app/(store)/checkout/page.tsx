@@ -6,9 +6,11 @@ import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import LocalAtmOutlinedIcon from "@mui/icons-material/LocalAtmOutlined";
 import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
+import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import NotesIcon from "@mui/icons-material/Notes";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
+import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -30,7 +32,7 @@ import Typography from "@mui/material/Typography";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode,useEffect, useMemo, useRef, useState } from "react";
 import {
     Controller,
     type FieldErrors,
@@ -39,8 +41,6 @@ import {
 } from "react-hook-form";
 
 import {
-    cartLineIssueMessage,
-    ModifiersList,
     toOrderPayloadItems,
     useCartLineValidation,
     useCartStore,
@@ -56,6 +56,8 @@ import {
 import { showAppToast } from "@/shared/lib/show-app-toast";
 import { PageContainer, SectionTitle } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
+
+import { CheckoutOrderLine } from "./checkout-order-line";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -84,6 +86,30 @@ const checkoutInputRadiusSx = {
         borderRadius: `${tokens.radiusInput}px`,
     },
 } as const;
+
+const deliveryZoneSelectMenuProps = {
+    disableScrollLock: false,
+    PaperProps: {
+        sx: { maxHeight: "40vh" },
+    },
+} as const;
+
+const DELIVERY_TYPE_OPTIONS: {
+    type: DeliveryType;
+    label: string;
+    icon: ReactNode;
+}[] = [
+    {
+        type: "delivery",
+        label: "Доставка",
+        icon: <LocalShippingOutlinedIcon fontSize="small" />,
+    },
+    {
+        type: "pickup",
+        label: "Самовывоз",
+        icon: <StorefrontOutlinedIcon fontSize="small" />,
+    },
+];
 
 function CheckoutConsentCaption() {
     return (
@@ -164,6 +190,25 @@ function showCheckoutFieldError(
 
 function formatZoneDeliveryPrice(price: number): string {
     return price === 0 ? "бесплатно" : `${price.toLocaleString("ru-RU")} ֏`;
+}
+
+function formatCheckoutDeliverySummary(opts: {
+    isDelivery: boolean;
+    requiresManagerApproval: boolean;
+    zonesLoading: boolean;
+    zonesError: string | null;
+    deliveryZonesCount: number;
+    selectedZone: DeliveryZoneOption | null;
+}): string {
+    if (!opts.isDelivery) return "—";
+    if (opts.requiresManagerApproval) {
+        return "Доставка уточняется менеджером";
+    }
+    if (opts.zonesLoading) return "…";
+    if (opts.zonesError || opts.deliveryZonesCount === 0) return "—";
+    if (!opts.selectedZone) return "Рассчитывается при выборе района";
+    if (opts.selectedZone.deliveryPrice === 0) return "Бесплатно";
+    return `${opts.selectedZone.deliveryPrice.toLocaleString("ru-RU")} ֏`;
 }
 
 function phoneForOrderPayload(phone: string, delivery: DeliveryType): string {
@@ -486,6 +531,16 @@ export default function CheckoutPage() {
 
     const deliveryFee =
         isDelivery && selectedZone ? selectedZone.deliveryPrice : 0;
+    const deliverySummaryLabel = formatCheckoutDeliverySummary({
+        isDelivery,
+        requiresManagerApproval,
+        zonesLoading,
+        zonesError,
+        deliveryZonesCount: deliveryZones.length,
+        selectedZone,
+    });
+    const showDeliveryBreakdown = isDelivery && selectedZone != null;
+    const showDeliveryPendingHint = isDelivery && !selectedZone;
     const grossBeforeDiscount = cartSubtotal + deliveryFee;
     const grandTotal = Math.max(0, grossBeforeDiscount - promoDiscount);
     const belowMin =
@@ -671,11 +726,9 @@ export default function CheckoutPage() {
             setErrorMessage(fallback);
             showAppToast(fallback, "error");
         } catch (error) {
-            let errorData: unknown;
             let message: string;
 
             if (error instanceof ApiError) {
-                errorData = error.data;
                 message =
                     error.message.trim() ||
                     (error.status >= 500
@@ -694,12 +747,10 @@ export default function CheckoutPage() {
                     setApiError(true);
                 }
             } else if (error instanceof Error) {
-                errorData = { message: error.message, name: error.name };
                 message =
                     error.message.trim() ||
                     "Не удалось отправить заказ. Проверьте соединение.";
             } else {
-                errorData = error;
                 message = "Не удалось отправить заказ. Проверьте соединение.";
             }
 
@@ -712,16 +763,15 @@ export default function CheckoutPage() {
     };
 
     return (
-        <main>
-            <PageContainer>
+        <PageContainer>
                 <Box
                     sx={{
                         pb: hasItems
-                            ? { xs: "calc(96px + env(safe-area-inset-bottom))", md: 0 }
+                            ? { xs: "calc(88px + env(safe-area-inset-bottom))", md: 0 }
                             : 0,
                     }}
                 >
-                <SectionTitle>Оформление заказа</SectionTitle>
+                <SectionTitle pageTitle>Оформление заказа</SectionTitle>
 
                 {/* Info banner */}
                 <Paper
@@ -829,13 +879,14 @@ export default function CheckoutPage() {
                                     type="text"
                                     style={{ display: "none" }}
                                     tabIndex={-1}
-                                    aria-hidden
+                                    aria-hidden="true"
                                     autoComplete="off"
+                                    readOnly
                                     {...register("hp")}
                                 />
 
                                 <Paper elevation={0} sx={checkoutSectionPaperSx}>
-                                    <Typography variant="subtitle1" fontWeight={800} letterSpacing={-0.02}>
+                                    <Typography component="h2" variant="subtitle1" fontWeight={800} letterSpacing={-0.02}>
                                         Данные
                                     </Typography>
 
@@ -865,7 +916,11 @@ export default function CheckoutPage() {
                                     InputProps={{
                                         startAdornment: (
                                             <InputAdornment position="start">
-                                                <PersonOutlineOutlinedIcon sx={{ color: "action.active" }} />
+                                                <PersonOutlineOutlinedIcon
+                                                    aria-hidden
+                                                    focusable="false"
+                                                    sx={{ color: "action.active" }}
+                                                />
                                             </InputAdornment>
                                         ),
                                     }}
@@ -954,7 +1009,7 @@ export default function CheckoutPage() {
                                 </Paper>
 
                                 <Paper elevation={0} sx={checkoutSectionPaperSx}>
-                                    <Typography variant="subtitle1" fontWeight={800} letterSpacing={-0.02}>
+                                    <Typography component="h2" variant="subtitle1" fontWeight={800} letterSpacing={-0.02}>
                                         Доставка
                                     </Typography>
 
@@ -963,8 +1018,8 @@ export default function CheckoutPage() {
                                     <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
                                         Способ получения
                                     </Typography>
-                                    <Stack direction="row" spacing={1.5}>
-                                        {(["delivery", "pickup"] as DeliveryType[]).map((type) => (
+                                    <Stack direction="row" spacing={1}>
+                                        {DELIVERY_TYPE_OPTIONS.map(({ type, label, icon }) => (
                                             <Paper
                                                 key={type}
                                                 onClick={() => {
@@ -982,6 +1037,7 @@ export default function CheckoutPage() {
                                                 elevation={0}
                                                 role="radio"
                                                 aria-checked={delivery === type}
+                                                aria-label={label}
                                                 tabIndex={0}
                                                 onKeyDown={(e) => {
                                                     if (e.key === "Enter" || e.key === " ") {
@@ -999,6 +1055,7 @@ export default function CheckoutPage() {
                                                 }}
                                                 sx={{
                                                     flex: 1,
+                                                    minWidth: 0,
                                                     p: 1.5,
                                                     cursor: "pointer",
                                                     border: "1px solid",
@@ -1007,7 +1064,9 @@ export default function CheckoutPage() {
                                                     bgcolor: delivery === type ? tokens.brandDim : "background.paper",
                                                     boxShadow: "none",
                                                     transition: "all 0.15s ease",
-                                                    textAlign: "center",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
                                                     userSelect: "none",
                                                     "&:hover": {
                                                         bgcolor: delivery === type ? tokens.brandDim : tokens.surfaceHi,
@@ -1015,9 +1074,28 @@ export default function CheckoutPage() {
                                                     },
                                                 }}
                                             >
-                                                <Typography variant="body2" fontWeight={delivery === type ? 700 : 500}>
-                                                    {type === "delivery" ? "🛵  Доставка" : "🏪  Самовывоз"}
-                                                </Typography>
+                                                <Stack
+                                                    direction="row"
+                                                    spacing={0.75}
+                                                    alignItems="center"
+                                                    justifyContent="center"
+                                                >
+                                                    <Box
+                                                        sx={{
+                                                            display: "flex",
+                                                            color: delivery === type ? "primary.main" : "text.secondary",
+                                                        }}
+                                                    >
+                                                        {icon}
+                                                    </Box>
+                                                    <Typography
+                                                        variant="body2"
+                                                        fontWeight={delivery === type ? 700 : 500}
+                                                        noWrap
+                                                    >
+                                                        {label}
+                                                    </Typography>
+                                                </Stack>
                                             </Paper>
                                         ))}
                                     </Stack>
@@ -1062,6 +1140,7 @@ export default function CheckoutPage() {
                                                     labelId="checkout-delivery-zone-unavailable-label"
                                                     label="Район / зона доставки"
                                                     value=""
+                                                    MenuProps={deliveryZoneSelectMenuProps}
                                                     inputProps={{
                                                         style: { fontSize: 16 },
                                                     }}
@@ -1128,6 +1207,7 @@ export default function CheckoutPage() {
                                                                         : Number(raw),
                                                                 );
                                                             }}
+                                                            MenuProps={deliveryZoneSelectMenuProps}
                                                             inputProps={{
                                                                 style: { fontSize: 16 },
                                                             }}
@@ -1211,7 +1291,7 @@ export default function CheckoutPage() {
                                 </Paper>
 
                                 <Paper elevation={0} sx={checkoutSectionPaperSx}>
-                                    <Typography variant="subtitle1" fontWeight={800} letterSpacing={-0.02}>
+                                    <Typography component="h2" variant="subtitle1" fontWeight={800} letterSpacing={-0.02}>
                                         Оплата
                                     </Typography>
 
@@ -1267,47 +1347,48 @@ export default function CheckoutPage() {
 
                                 </Paper>
 
-                                <Button
-                                    type="submit"
-                                    variant="contained"
-                                    color="primary"
-                                    size="large"
-                                    fullWidth
-                                    disabled={hardSubmitDisabled}
-                                    sx={{
-                                        display: { xs: "none", md: "block" },
-                                        mt: 0.5,
-                                        py: 1.25,
-                                        fontWeight: 700,
-                                        fontVariantNumeric: "tabular-nums",
-                                        bgcolor: "primary.main",
-                                        boxShadow: "none",
-                                        ...(isBusySubmit
-                                            ? {
-                                                  opacity: 0.72,
-                                                  cursor: "not-allowed",
-                                              }
-                                            : softMuted
-                                              ? {
-                                                    opacity: 0.6,
-                                                    "&:hover": {
-                                                        bgcolor: "primary.main",
-                                                        boxShadow: "none",
-                                                        transform: "none",
-                                                    },
-                                                }
-                                              : {
-                                                    "&:hover": {
-                                                        bgcolor: "primary.dark",
-                                                        boxShadow: (t) =>
-                                                            `0 1px 4px ${alpha(t.palette.primary.main, 0.35)}`,
-                                                    },
-                                                }),
-                                    }}
-                                >
-                                    {submitButtonLabel}
-                                </Button>
-                                <CheckoutConsentCaption />
+                                <Box sx={{ display: { xs: "none", md: "block" } }}>
+                                    <Button
+                                        type="submit"
+                                        variant="contained"
+                                        color="primary"
+                                        size="large"
+                                        fullWidth
+                                        disabled={hardSubmitDisabled}
+                                        sx={{
+                                            mt: 0.5,
+                                            py: 1.25,
+                                            fontWeight: 700,
+                                            fontVariantNumeric: "tabular-nums",
+                                            bgcolor: "primary.main",
+                                            boxShadow: "none",
+                                            ...(isBusySubmit
+                                                ? {
+                                                      opacity: 0.72,
+                                                      cursor: "not-allowed",
+                                                  }
+                                                : softMuted
+                                                  ? {
+                                                        opacity: 0.6,
+                                                        "&:hover": {
+                                                            bgcolor: "primary.main",
+                                                            boxShadow: "none",
+                                                            transform: "none",
+                                                        },
+                                                    }
+                                                  : {
+                                                        "&:hover": {
+                                                            bgcolor: "primary.dark",
+                                                            boxShadow: (t) =>
+                                                                `0 1px 4px ${alpha(t.palette.primary.main, 0.35)}`,
+                                                        },
+                                                    }),
+                                        }}
+                                    >
+                                        {submitButtonLabel}
+                                    </Button>
+                                    <CheckoutConsentCaption />
+                                </Box>
                             </Box>
                         </Box>
 
@@ -1325,73 +1406,23 @@ export default function CheckoutPage() {
                                 boxShadow: "none",
                             }}
                         >
-                            <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 2 }}>
-                                Ваш заказ
+                            <Typography
+                                component="h2"
+                                variant="subtitle1"
+                                fontWeight={800}
+                                sx={{ mb: 2, letterSpacing: -0.02 }}
+                            >
+                                Состав заказа
                             </Typography>
 
-                            <Stack spacing={1.2} sx={{ mb: 2 }}>
-                                {items.map((item) => {
-                                    const lineIssue = cartLineIssues[item.cartItemId];
-                                    const lineInvalid = Boolean(lineIssue);
-                                    return (
-                                        <Stack
-                                            key={item.cartItemId}
-                                            spacing={0.5}
-                                            sx={{
-                                                borderRadius: `${tokens.radiusCardLg}px`,
-                                                p: lineInvalid ? 1.25 : 0,
-                                                bgcolor: lineInvalid
-                                                    ? tokens.redDim
-                                                    : undefined,
-                                                border: lineInvalid
-                                                    ? `1px solid ${alpha(tokens.red, 0.35)}`
-                                                    : undefined,
-                                            }}
-                                        >
-                                            <Stack direction="row" justifyContent="space-between">
-                                                <Typography
-                                                    variant="body2"
-                                                    color={
-                                                        lineInvalid
-                                                            ? "error.main"
-                                                            : "text.secondary"
-                                                    }
-                                                    fontWeight={lineInvalid ? 700 : 400}
-                                                >
-                                                    {item.name} × {item.quantity}
-                                                </Typography>
-                                                <Typography
-                                                    variant="body2"
-                                                    fontWeight={600}
-                                                    color={
-                                                        lineInvalid
-                                                            ? "text.disabled"
-                                                            : "text.primary"
-                                                    }
-                                                    sx={{
-                                                        fontVariantNumeric: "tabular-nums",
-                                                        textDecoration: lineInvalid
-                                                            ? "line-through"
-                                                            : undefined,
-                                                    }}
-                                                >
-                                                    {(item.calculatedItemPrice * item.quantity).toLocaleString("ru-RU")}{" "}
-                                                    ֏
-                                                </Typography>
-                                            </Stack>
-                                            {item.selectedModifiers.length > 0 && (
-                                                <ModifiersList
-                                                    modifiers={item.selectedModifiers}
-                                                />
-                                            )}
-                                            {lineIssue ? (
-                                                <Alert severity="error" sx={{ py: 0.25 }}>
-                                                    {cartLineIssueMessage(lineIssue)}
-                                                </Alert>
-                                            ) : null}
-                                        </Stack>
-                                    );
-                                })}
+                            <Stack spacing={1} sx={{ mb: 2 }}>
+                                {items.map((item) => (
+                                    <CheckoutOrderLine
+                                        key={item.cartItemId}
+                                        item={item}
+                                        lineIssue={cartLineIssues[item.cartItemId]}
+                                    />
+                                ))}
                             </Stack>
 
                             <Divider sx={{ my: 2 }} />
@@ -1409,36 +1440,36 @@ export default function CheckoutPage() {
                                 </Typography>
                             </Stack>
 
-                            <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
-                                <Typography variant="body2" color="text.secondary">
-                                    Доставка
-                                </Typography>
-                                <Typography
-                                    variant="body2"
-                                    fontWeight={600}
-                                    color={
-                                        requiresManagerApproval
-                                            ? "error.main"
-                                            : deliveryFee > 0
-                                              ? "text.primary"
-                                              : "success.main"
-                                    }
-                                    sx={{ fontVariantNumeric: "tabular-nums" }}
+                            {showDeliveryBreakdown ? (
+                                <Stack
+                                    direction="row"
+                                    justifyContent="space-between"
+                                    sx={{ mb: 1 }}
                                 >
-                                    {requiresManagerApproval
-                                        ? "Доставка уточняется менеджером"
-                                        : deliveryFee > 0
-                                          ? `${deliveryFee.toLocaleString("ru-RU")} ֏`
-                                          : isDelivery && zonesLoading
-                                            ? "…"
-                                            : isDelivery &&
-                                                !zonesLoading &&
-                                                !zonesError &&
-                                                deliveryZones.length === 0
-                                              ? "-"
-                                              : "Бесплатно"}
-                                </Typography>
-                            </Stack>
+                                    <Typography variant="body2" color="text.secondary">
+                                        Доставка
+                                    </Typography>
+                                    <Typography
+                                        variant="body2"
+                                        fontWeight={600}
+                                        color={
+                                            requiresManagerApproval
+                                                ? "error.main"
+                                                : deliveryFee === 0
+                                                  ? "success.main"
+                                                  : "text.primary"
+                                        }
+                                        sx={{
+                                            fontVariantNumeric: "tabular-nums",
+                                            textAlign: "right",
+                                            maxWidth: "55%",
+                                            wordBreak: "break-word",
+                                        }}
+                                    >
+                                        {deliverySummaryLabel}
+                                    </Typography>
+                                </Stack>
+                            ) : null}
 
                             <TextField
                                 value={promoDraft}
@@ -1531,20 +1562,34 @@ export default function CheckoutPage() {
                                 </Stack>
                             ) : null}
 
-                            <Stack direction="row" justifyContent="space-between" sx={{ mt: promoDiscount ? 0 : 0 }}>
+                            <Stack direction="row" justifyContent="space-between">
                                 <Typography variant="subtitle1" fontWeight={700}>
                                     Итого
                                 </Typography>
                                 <Typography
                                     variant="subtitle1"
-                                    fontWeight={700}
+                                    fontWeight={800}
                                     sx={{ fontVariantNumeric: "tabular-nums" }}
                                 >
                                     {grandTotal.toLocaleString("ru-RU")} ֏
                                 </Typography>
                             </Stack>
 
-                            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1.5 }}>
+                            {showDeliveryPendingHint ? (
+                                <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                    sx={{ display: "block", mt: 0.75, lineHeight: 1.45 }}
+                                >
+                                    Стоимость доставки будет рассчитана ниже
+                                </Typography>
+                            ) : null}
+
+                            <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ display: "block", mt: 1.5, lineHeight: 1.45 }}
+                            >
                                 Подтверждая заказ, вы соглашаетесь на звонок курьера.
                             </Typography>
                         </Box>
@@ -1552,7 +1597,8 @@ export default function CheckoutPage() {
 
                     <Box
                         sx={{
-                            display: { xs: "block", md: "none" },
+                            display: { xs: "flex", md: "none" },
+                            flexDirection: "column",
                             position: "fixed",
                             left: 0,
                             right: 0,
@@ -1612,7 +1658,6 @@ export default function CheckoutPage() {
                     </>
                 )}
                 </Box>
-            </PageContainer>
-        </main>
+        </PageContainer>
     );
 }

@@ -1,11 +1,8 @@
 "use client";
 
-import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import HighlightOffOutlinedIcon from "@mui/icons-material/HighlightOffOutlined";
 import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
-import RemoveIcon from "@mui/icons-material/Remove";
 import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -17,14 +14,17 @@ import { alpha, useTheme } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
-import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import CountUp from "react-countup";
 
-import { ModifiersList, useCartLineValidation, useCartStore } from "@/features/cart";
+import {
+    CartLineItem,
+    useCartLineValidation,
+    useCartStore,
+} from "@/features/cart";
 import { ApiError, validatePromo } from "@/shared/api";
-import { sanitizeProductImageSrc } from "@/shared/lib/product-cover";
 
 import { EmptyCart } from "./empty-cart";
 import { tokens } from "./theme";
@@ -42,6 +42,8 @@ const fmt = new Intl.NumberFormat("ru-RU");
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function CartDrawer() {
+    const pathname = usePathname();
+    const isCheckoutPage = pathname?.startsWith("/checkout") ?? false;
     const isCartOpen = useCartStore((s) => s.isCartOpen);
     const closeCart = useCartStore((s) => s.closeCart);
     const items = useCartStore((s) => s.items);
@@ -155,6 +157,12 @@ export function CartDrawer() {
     const theme = useTheme();
 
     useEffect(() => {
+        if (isCheckoutPage && isCartOpen) {
+            closeCart();
+        }
+    }, [isCheckoutPage, isCartOpen, closeCart]);
+
+    useEffect(() => {
         if (!isCartOpen) return;
         const prevOverflow = document.body.style.overflow;
         document.body.style.overflow = "hidden";
@@ -218,10 +226,7 @@ export function CartDrawer() {
                             maxHeight: "100dvh",
                             display: "flex",
                             flexDirection: "column",
-                            overflowX: "hidden",
-                            overflowY: "auto",
-                            overscrollBehaviorY: "contain",
-                            WebkitOverflowScrolling: "touch",
+                            overflow: "hidden",
                             bgcolor: "background.paper",
                             borderLeft: "1px solid",
                             borderColor: "divider",
@@ -262,7 +267,12 @@ export function CartDrawer() {
                                 <ShoppingBagOutlinedIcon
                                     sx={{ color: tokens.brand, fontSize: 22 }}
                                 />
-                                <Typography id="cart-drawer-title" variant="h6" fontWeight={700}>
+                                <Typography
+                                    id="cart-drawer-title"
+                                    component="h2"
+                                    variant="h6"
+                                    fontWeight={700}
+                                >
                                     Корзина
                                 </Typography>
                                 {count > 0 && (
@@ -316,6 +326,7 @@ export function CartDrawer() {
                             <IconButton
                                 onClick={closeCart}
                                 size="small"
+                                aria-label="Закрыть корзину"
                                 sx={{
                                     color: "text.secondary",
                                     bgcolor: "background.paper",
@@ -328,7 +339,7 @@ export function CartDrawer() {
                                     },
                                 }}
                             >
-                                <CloseIcon fontSize="small" />
+                                <CloseIcon fontSize="small" aria-hidden focusable="false" />
                             </IconButton>
                         </Box>
 
@@ -353,257 +364,29 @@ export function CartDrawer() {
                                 >
                                     <Stack spacing={1.5}>
                                         {items.map((item) => (
-                                            <Box
+                                            <CartLineItem
                                                 key={item.cartItemId}
-                                                sx={{
-                                                    display: "flex",
-                                                    gap: 2,
-                                                    p: 1.5,
-                                                    borderRadius: 2,
-                                                    bgcolor: "grey.100",
-                                                    border: "1px solid",
-                                                    borderColor: "divider",
-                                                    boxShadow: "none",
-                                                    transition:
-                                                        "border-color 0.15s",
-                                                    "&:hover": {
-                                                        borderColor:
-                                                            tokens.borderHi,
-                                                    },
-                                                }}
-                                            >
-                                                {/* Thumbnail */}
-                                                <Box
-                                                    sx={{
-                                                        position: "relative",
-                                                        width: 56,
-                                                        height: 56,
-                                                        borderRadius: 1.5,
-                                                        overflow: "hidden",
-                                                        flexShrink: 0,
-                                                        bgcolor:
-                                                            tokens.surfaceHi,
-                                                    }}
-                                                >
-                                                    {sanitizeProductImageSrc(
-                                                        item.image,
-                                                    ) ? (
-                                                        <Image
-                                                            src={
-                                                                sanitizeProductImageSrc(
-                                                                    item.image,
-                                                                )!
-                                                            }
-                                                            alt={item.name}
-                                                            fill
-                                                            sizes="56px"
-                                                            style={{
-                                                                objectFit:
-                                                                    "cover",
-                                                            }}
-                                                        />
-                                                    ) : (
-                                                        <Box
-                                                            sx={{
-                                                                width: "100%",
-                                                                height: "100%",
-                                                                display: "flex",
-                                                                alignItems:
-                                                                    "center",
-                                                                justifyContent:
-                                                                    "center",
-                                                                fontSize: 22,
-                                                            }}
-                                                        >
-                                                            🍱
-                                                        </Box>
-                                                    )}
-                                                </Box>
-
-                                                {/* Info */}
-                                                <Box
-                                                    sx={{
-                                                        flex: 1,
-                                                        minWidth: 0,
-                                                    }}
-                                                >
-                                                    <Typography
-                                                        variant="body2"
-                                                        fontWeight={600}
-                                                        noWrap
-                                                        sx={{ mb: 0.25 }}
-                                                    >
-                                                        {item.name}
-                                                    </Typography>
-                                                    {item.selectedModifiers.length > 0 && (
-                                                        <ModifiersList
-                                                            modifiers={item.selectedModifiers}
-                                                            sx={{ mb: 0.5 }}
-                                                        />
-                                                    )}
-                                                    <Typography
-                                                        variant="caption"
-                                                        sx={{
-                                                            color: tokens.textSecondary,
-                                                            fontVariantNumeric:
-                                                                "tabular-nums",
-                                                        }}
-                                                    >
-                                                        {fmt.format(item.calculatedItemPrice)}{" "}
-                                                        ֏ / шт.
-                                                    </Typography>
-
-                                                    {/* Stepper row */}
-                                                    <Stack
-                                                        direction="row"
-                                                        alignItems="center"
-                                                        justifyContent="space-between"
-                                                        sx={{ mt: 1 }}
-                                                    >
-                                                        <Stack
-                                                            direction="row"
-                                                            alignItems="center"
-                                                            spacing={0.5}
-                                                        >
-                                                            <IconButton
-                                                                size="small"
-                                                                onClick={() =>
-                                                                    setItemQty(
-                                                                        item.cartItemId,
-                                                                        item.quantity -
-                                                                            1,
-                                                                    )
-                                                                }
-                                                                sx={{
-                                                                    width: 44,
-                                                                    height: 44,
-                                                                    bgcolor:
-                                                                        "background.paper",
-                                                                    border: "1px solid",
-                                                                    borderColor: "divider",
-                                                                    borderRadius:
-                                                                        "50%",
-                                                                    color: tokens.textSecondary,
-                                                                    boxShadow:
-                                                                        "none",
-                                                                    "&:hover": {
-                                                                        borderColor:
-                                                                            tokens.brand,
-                                                                        color: tokens.brand,
-                                                                        bgcolor:
-                                                                            tokens.brandDim,
-                                                                    },
-                                                                }}
-                                                            >
-                                                                <RemoveIcon
-                                                                    sx={{
-                                                                        fontSize: 18,
-                                                                    }}
-                                                                />
-                                                            </IconButton>
-                                                            <Typography
-                                                                variant="body2"
-                                                                fontWeight={700}
-                                                                sx={{
-                                                                    minWidth: 22,
-                                                                    textAlign:
-                                                                        "center",
-                                                                }}
-                                                            >
-                                                                {item.quantity}
-                                                            </Typography>
-                                                            <IconButton
-                                                                size="small"
-                                                                onClick={() =>
-                                                                    setItemQty(
-                                                                        item.cartItemId,
-                                                                        item.quantity +
-                                                                            1,
-                                                                    )
-                                                                }
-                                                                sx={{
-                                                                    width: 44,
-                                                                    height: 44,
-                                                                    bgcolor:
-                                                                        "primary.main",
-                                                                    borderRadius:
-                                                                        "50%",
-                                                                    color:
-                                                                        "primary.contrastText",
-                                                                    boxShadow:
-                                                                        "none",
-                                                                    "&:hover": {
-                                                                        bgcolor:
-                                                                            tokens.brandHi,
-                                                                        boxShadow: `0 1px 4px ${alpha(tokens.brand, 0.35)}`,
-                                                                    },
-                                                                }}
-                                                            >
-                                                                <AddIcon
-                                                                    sx={{
-                                                                        fontSize: 18,
-                                                                    }}
-                                                                />
-                                                            </IconButton>
-                                                        </Stack>
-
-                                                        <Stack
-                                                            direction="row"
-                                                            alignItems="center"
-                                                            spacing={1}
-                                                        >
-                                                            <Typography
-                                                                variant="body2"
-                                                                fontWeight={700}
-                                                                sx={{
-                                                                    color: tokens.brand,
-                                                                    fontVariantNumeric:
-                                                                        "tabular-nums",
-                                                                }}
-                                                            >
-                                                                {fmt.format(
-                                                                    item.calculatedItemPrice *
-                                                                        item.quantity,
-                                                                )}{" "}
-                                                                ֏
-                                                            </Typography>
-                                                            <IconButton
-                                                                size="small"
-                                                                onClick={() =>
-                                                                    removeItem(
-                                                                        item.cartItemId,
-                                                                    )
-                                                                }
-                                                                sx={{
-                                                                    width: 44,
-                                                                    height: 44,
-                                                                    bgcolor:
-                                                                        "background.paper",
-                                                                    border: "1px solid",
-                                                                    borderColor: "divider",
-                                                                    borderRadius:
-                                                                        "50%",
-                                                                    color: "text.secondary",
-                                                                    boxShadow:
-                                                                        "none",
-                                                                    "&:hover": {
-                                                                        color: tokens.red,
-                                                                        borderColor: `${tokens.red}55`,
-                                                                        bgcolor:
-                                                                            tokens.redDim,
-                                                                    },
-                                                                }}
-                                                            >
-                                                                <DeleteOutlineIcon
-                                                                    sx={{
-                                                                        fontSize: 20,
-                                                                    }}
-                                                                />
-                                                            </IconButton>
-                                                        </Stack>
-                                                    </Stack>
-                                                </Box>
-                                            </Box>
+                                                item={item}
+                                                lineIssue={
+                                                    cartLineIssues[item.cartItemId]
+                                                }
+                                                variant="drawer"
+                                                onIncrease={() =>
+                                                    setItemQty(
+                                                        item.cartItemId,
+                                                        item.quantity + 1,
+                                                    )
+                                                }
+                                                onDecrease={() =>
+                                                    setItemQty(
+                                                        item.cartItemId,
+                                                        item.quantity - 1,
+                                                    )
+                                                }
+                                                onRemove={() =>
+                                                    removeItem(item.cartItemId)
+                                                }
+                                            />
                                         ))}
                                     </Stack>
 
@@ -696,14 +479,17 @@ export function CartDrawer() {
                                         px: 3,
                                         pt: 2,
                                         pb: {
-                                            xs: "calc(16px + env(safe-area-inset-bottom))",
+                                            xs: "calc(16px + env(safe-area-inset-bottom) + 64px)",
                                             sm: 3,
                                         },
                                         borderTop: "1px solid",
                                         borderColor: "divider",
                                         flexShrink: 0,
+                                        position: "sticky",
+                                        bottom: 0,
                                         bgcolor: "background.paper",
-                                        boxShadow: "none",
+                                        boxShadow: (t) =>
+                                            `0 -4px 12px ${alpha(t.palette.common.black, 0.06)}`,
                                     }}
                                 >
                                     {/* Breakdown */}
@@ -850,22 +636,40 @@ export function CartDrawer() {
                                     </Typography>
 
                                     {/* CTA */}
-                                    <Button
-                                        component={Link}
-                                        href="/checkout"
-                                        onClick={closeCart}
-                                        variant="contained"
-                                        fullWidth
-                                        size="large"
-                                        disabled={!canProceedToCheckout}
-                                        sx={{
-                                            fontWeight: 700,
-                                            fontSize: { xs: "1rem" },
-                                            minHeight: 48,
-                                        }}
-                                    >
-                                        Оформить заказ
-                                    </Button>
+                                    {isCheckoutPage ? (
+                                        <Button
+                                            component={Link}
+                                            href="/checkout"
+                                            onClick={closeCart}
+                                            variant="outlined"
+                                            fullWidth
+                                            size="small"
+                                            sx={{
+                                                fontWeight: 600,
+                                                fontSize: 13,
+                                                minHeight: 40,
+                                            }}
+                                        >
+                                            Вернуться к оформлению
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            component={Link}
+                                            href="/checkout"
+                                            onClick={closeCart}
+                                            variant="contained"
+                                            fullWidth
+                                            size="large"
+                                            disabled={!canProceedToCheckout}
+                                            sx={{
+                                                fontWeight: 700,
+                                                fontSize: { xs: "1rem" },
+                                                minHeight: 48,
+                                            }}
+                                        >
+                                            Оформить заказ
+                                        </Button>
+                                    )}
 
                                     {/* Clear */}
                                     <Button

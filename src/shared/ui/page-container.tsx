@@ -11,9 +11,11 @@ export function PageContainer({ children }: PageContainerProps) {
             maxWidth="lg"
             sx={{
                 width: "100%",
+                maxWidth: "100%",
                 mx: "auto",
                 px: { xs: 2, sm: 4 },
                 py: { xs: 3, md: 6 },
+                overflowX: "clip",
             }}
         >
             {children}

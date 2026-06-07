@@ -7,11 +7,12 @@ import Card from "@mui/material/Card";
 import IconButton from "@mui/material/IconButton";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
 import { alpha } from "@mui/material/styles";
+import Typography from "@mui/material/Typography";
 import { memo } from "react";
 
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
+import { buildProductImageAlt } from "@/shared/lib/product-image-alt";
 import { ProductCoverImage } from "@/shared/ui/product-cover-image";
 import { tokens } from "@/shared/ui/theme";
 
@@ -59,6 +60,7 @@ export const ProductCard = memo(function ProductCard({
     imagePriority = false,
 }: ProductCardProps) {
     const imageUrl = getProductCoverUrl({ images, mainImage });
+    const imageAlt = buildProductImageAlt(name);
 
     const hasInCart = quantity > 0;
 
@@ -102,7 +104,7 @@ export const ProductCard = memo(function ProductCard({
                 >
                     <ProductCoverImage
                         src={imageUrl}
-                        alt={name}
+                        alt={imageAlt}
                         priority={imagePriority}
                     />
                 </Box>
@@ -118,37 +120,37 @@ export const ProductCard = memo(function ProductCard({
                         minHeight: 0,
                     }}
                 >
-                    <Typography
-                        sx={{
-                            fontWeight: 700,
-                            fontSize: "0.9rem",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            color: "text.primary",
-                            lineHeight: 1.25,
-                            mb: composition?.trim() ? 0 : 1,
-                        }}
-                    >
-                        {name}
-                    </Typography>
-
-                    {composition?.trim() ? (
+                    <Box sx={{ flexGrow: 1, minHeight: 0 }}>
                         <Typography
-                            variant="caption"
-                            color="text.secondary"
                             sx={{
-                                mt: 0.5,
-                                mb: 1,
-                                display: "-webkit-box",
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: "vertical",
+                                fontWeight: 700,
+                                fontSize: "0.9rem",
+                                whiteSpace: "nowrap",
                                 overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                color: "text.primary",
+                                lineHeight: 1.25,
                             }}
                         >
-                            {composition.trim()}
+                            {name}
                         </Typography>
-                    ) : null}
+
+                        {composition?.trim() ? (
+                            <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{
+                                    mt: 0.5,
+                                    display: "-webkit-box",
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: "vertical",
+                                    overflow: "hidden",
+                                }}
+                            >
+                                {composition.trim()}
+                            </Typography>
+                        ) : null}
+                    </Box>
 
                     <Box
                         sx={{
@@ -156,8 +158,10 @@ export const ProductCard = memo(function ProductCard({
                             justifyContent: "space-between",
                             alignItems: "center",
                             mt: "auto",
+                            pt: 1,
                             gap: 1,
                             minWidth: 0,
+                            flexShrink: 0,
                         }}
                     >
                         <Typography
@@ -189,9 +193,10 @@ export const ProductCard = memo(function ProductCard({
                                         e.stopPropagation();
                                         onDecrease?.();
                                     }}
+                                    aria-label={`Уменьшить количество: ${name}`}
                                     sx={{
-                                        width: 36,
-                                        height: 36,
+                                        width: 44,
+                                        height: 44,
                                         backgroundColor: "action.hover",
                                         color: "text.secondary",
                                         transition:
@@ -232,10 +237,10 @@ export const ProductCard = memo(function ProductCard({
                                             e.stopPropagation();
                                             onIncrease?.();
                                         }}
-                                        aria-label="Добавить ещё"
+                                        aria-label={`Увеличить количество: ${name}`}
                                         sx={{
-                                            width: 36,
-                                            height: 36,
+                                            width: 44,
+                                            height: 44,
                                             backgroundColor: "action.hover",
                                             color: "text.secondary",
                                             borderRadius: "50%",
@@ -266,8 +271,8 @@ export const ProductCard = memo(function ProductCard({
                                     onClick={handleAdd}
                                     aria-label={`Добавить ${name}`}
                                     sx={{
-                                        width: 40,
-                                        height: 40,
+                                        width: 44,
+                                        height: 44,
                                         backgroundColor: "primary.main",
                                         color: "primary.contrastText",
                                         borderRadius: "50%",

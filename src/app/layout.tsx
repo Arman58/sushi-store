@@ -1,11 +1,14 @@
-// src/app/layout.tsx
 import "./globals.css";
 
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v13-appRouter";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
-import { JsonLd, restaurantJsonLd } from "@/lib/seo/json-ld";
+import {
+    foodDeliveryServiceJsonLd,
+    JsonLd,
+    restaurantJsonLd,
+} from "@/lib/seo/json-ld";
 import {
     DEFAULT_OG_IMAGE,
     SITE_NAME,
@@ -18,19 +21,20 @@ import { AppProviders } from "./providers";
 export const metadata: Metadata = {
     ...(SITE_URL ? { metadataBase: new URL(SITE_URL) } : {}),
     title: {
-        default:
-            "East West Delivery | Доставка суши, пиццы и шаурмы в Ереване и Котайке",
+        default: "Sushi & Pizza Delivery in Yerevan & Nor Hachn | East West",
         template: "%s | East West Delivery",
     },
     description:
-        "Быстрая доставка вкусной еды: суши, роллы, пицца, шаурма. Бесплатная доставка в Нор Ачин. Заказ онлайн за 1 минуту!",
+        "Best sushi, pizza and shawarma delivery in Yerevan, Nor Hachn and Kotayk. Fast 45 min delivery. Order online!",
     keywords: [
-        "доставка еды",
-        "пицца Котайк",
-        "суши Ереван",
-        "шаварма Нор Ачин",
-        "доставка роллов",
-        "восток вест доставка",
+        "sushi yerevan",
+        "sushi nor hachn",
+        "pizza yerevan",
+        "pizza nor hachn",
+        "shawarma kotayk",
+        "доставка еды Котайк",
+        "доставка суши Ереван",
+        "доставка пиццы Нор Ачин",
     ],
     robots: { index: true, follow: true },
     alternates: {
@@ -38,9 +42,9 @@ export const metadata: Metadata = {
     },
     icons: { icon: "/east-west-logo.png" },
     openGraph: {
-        title: "East West Delivery | Доставка суши, пиццы и шаурмы в Ереване и Котайке",
+        title: "Sushi & Pizza Delivery in Yerevan & Nor Hachn | East West",
         description:
-            "Быстрая доставка вкусной еды: суши, роллы, пицца, шаурма. Бесплатная доставка в Нор Ачин. Заказ онлайн за 1 минуту!",
+            "Best sushi, pizza and shawarma delivery in Yerevan, Nor Hachn and Kotayk. Fast 45 min delivery. Order online!",
         url: SITE_URL,
         siteName: SITE_NAME,
         locale: "ru_RU",
@@ -56,9 +60,9 @@ export const metadata: Metadata = {
     },
     twitter: {
         card: "summary_large_image",
-        title: "East West Delivery | Доставка суши, пиццы и шаурмы",
+        title: "Sushi & Pizza Delivery in Yerevan & Nor Hachn | East West",
         description:
-            "Быстрая доставка вкусной еды: суши, роллы, пицца, шаурма в Ереване и Котайке.",
+            "Best sushi, pizza and shawarma delivery in Yerevan, Nor Hachn and Kotayk. Fast 45 min delivery.",
         images: [DEFAULT_OG_IMAGE],
     },
 };
@@ -74,7 +78,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 suppressHydrationWarning
                 className={interFont.className}
             >
-                <JsonLd data={restaurantJsonLd()} />
+                <JsonLd
+                    data={[restaurantJsonLd(), foodDeliveryServiceJsonLd()]}
+                />
                 <AppRouterCacheProvider options={{ enableCssLayer: true }}>
                     <AppProviders>{children}</AppProviders>
                 </AppRouterCacheProvider>

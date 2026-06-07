@@ -15,16 +15,21 @@ import {
 } from "@/lib/home-product-include";
 import { prisma } from "@/lib/prisma";
 import { getOpeningHoursBadge } from "@/lib/site-config";
-import { HeroSection } from "@/widgets/hero";
-import { CategoryScroll } from "@/widgets/home/category-scroll";
-import { BannerCarousel, PopularSection } from "@/widgets/home/lazy-home-widgets";
+import {
+    BannerCarousel,
+    CategoryScroll,
+    HeroSection,
+    PopularSection,
+} from "@/widgets/home/lazy-home-widgets";
 
 export const revalidate = 60;
 
 export const metadata: Metadata = {
     title: {
-        absolute: "Доставка суши, пиццы и шаурмы | East West Delivery",
+        absolute: "Sushi & Pizza Delivery in Yerevan & Nor Hachn | East West",
     },
+    description:
+        "Best sushi, pizza and shawarma delivery in Yerevan, Nor Hachn and Kotayk. Fast 45 min delivery. Order online!",
     alternates: { canonical: "/" },
 };
 
@@ -93,7 +98,7 @@ export default async function HomePage() {
     const openingHoursStat = getOpeningHoursBadge();
 
     return (
-        <main>
+        <>
             <Container maxWidth="lg" disableGutters sx={{ px: { sm: 3 } }}>
                 <HeroSection
                     deliveryStat={heroData.deliveryStat}
@@ -134,6 +139,6 @@ export default async function HomePage() {
             )}
 
             <Box sx={{ height: { xs: 48, sm: 80 } }} />
-        </main>
+        </>
     );
 }

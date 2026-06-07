@@ -8,10 +8,10 @@ import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import { signOut, useSession } from "next-auth/react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
+import { signOut, useSession } from "next-auth/react";
 import { useState } from "react";
 
 import { tokens } from "@/shared/ui/theme";

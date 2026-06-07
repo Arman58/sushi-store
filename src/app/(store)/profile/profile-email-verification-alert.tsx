@@ -3,6 +3,8 @@
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { useState } from "react";
 
 import { handleSessionExpired } from "@/features/auth/handle-session-expired";
@@ -59,19 +61,24 @@ export function ProfileEmailVerificationAlert({
         <>
             <Alert
                 severity="warning"
-                sx={{ mb: 3, borderRadius: 2 }}
-                action={
+                sx={{ mb: 3, borderRadius: 2, py: 1, px: 1.5 }}
+            >
+                <Stack direction="column" spacing={1}>
+                    <Typography variant="body2">
+                        Подтвердите вашу почту, чтобы защитить аккаунт
+                    </Typography>
                     <Button
                         color="inherit"
                         size="small"
                         disabled={loading}
+                        onClick={() => void handleResend()}
                         sx={{
+                            alignSelf: { xs: "stretch", sm: "flex-start" },
+                            width: { xs: "100%", sm: "auto" },
                             textTransform: "none",
                             fontWeight: 600,
-                            whiteSpace: "nowrap",
-                            minWidth: 140,
+                            whiteSpace: { xs: "normal", sm: "nowrap" },
                         }}
-                        onClick={() => void handleResend()}
                     >
                         {loading ? (
                             <CircularProgress size={18} color="inherit" />
@@ -79,9 +86,7 @@ export function ProfileEmailVerificationAlert({
                             "Отправить письмо повторно"
                         )}
                     </Button>
-                }
-            >
-                Подтвердите вашу почту, чтобы защитить аккаунт
+                </Stack>
             </Alert>
             <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
         </>

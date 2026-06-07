@@ -8,8 +8,8 @@ import Badge from "@mui/material/Badge";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
 import { alpha } from "@mui/material/styles";
+import Typography from "@mui/material/Typography";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -17,6 +17,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 
 import { useCartStore } from "@/features/cart";
+
 import { tokens } from "./theme";
 
 const fmt = new Intl.NumberFormat("ru-RU");
@@ -33,7 +34,7 @@ export function MobileBottomNav() {
     useEffect(() => {
         if (!addToast || addToast === lastAddToastRef.current) return;
         lastAddToastRef.current = addToast;
-        setCartPulse((n) => n + 1);
+        queueMicrotask(() => setCartPulse((n) => n + 1));
     }, [addToast]);
 
     const totalItems = items.reduce((s, i) => s + i.quantity, 0);

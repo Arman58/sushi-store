@@ -2,12 +2,12 @@ import type { OrderStatus } from "@prisma/client";
 
 import {
     isOrderStatus,
-    orderStatusLabel,
     ORDER_STATUSES,
+    orderStatusLabel,
 } from "@/lib/order-status";
 import { prisma } from "@/lib/prisma";
 
-export { isOrderStatus, orderStatusLabel, ORDER_STATUSES };
+export { isOrderStatus, ORDER_STATUSES,orderStatusLabel };
 
 /** Статусы, доступные повару через inline-кнопки Telegram */
 export const KITCHEN_BUTTON_STATUSES = [

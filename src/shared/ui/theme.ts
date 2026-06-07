@@ -1,4 +1,4 @@
-import { createTheme, alpha } from "@mui/material/styles";
+import { alpha,createTheme } from "@mui/material/styles";
 
 // ─── Design tokens (food delivery — синхронизируй palette.primary с tokens.brand) ─
 
@@ -25,10 +25,10 @@ export const tokens = {
     green:      "#1FA97A",
     greenDim:   "rgba(31,169,122,0.12)",
 
-    // Text scale
+    // Text scale (WCAG AA 4.5:1+ on #FFFFFF; secondary не светлее #757575)
     textPrimary:   "#1C1917",
-    textSecondary: "rgba(28,25,23,0.62)",
-    textMuted:     "rgba(28,25,23,0.42)",
+    textSecondary: "#616161",
+    textMuted:     "#757575",
 
     /** Радиус мелких контролов (инпуты, чипы) — задаётся в overrides, не через shape */
     radiusInput: 8,
@@ -161,7 +161,12 @@ const theme = createTheme({
         subtitle2: { fontWeight: 650, letterSpacing: 0.03, fontSize: "0.875rem", lineHeight: 1.4 },
         body1:     { fontSize: "1rem", lineHeight: 1.65, letterSpacing: 0.01 },
         body2:     { fontSize: "0.875rem", lineHeight: 1.55 },
-        caption:   { letterSpacing: 0.02, fontSize: "0.75rem", lineHeight: 1.45 },
+        caption:   {
+            letterSpacing: 0.02,
+            fontSize: "0.75rem",
+            lineHeight: 1.45,
+            color: tokens.textSecondary,
+        },
         button: {
             textTransform: "none",
             fontWeight: 700,
@@ -173,6 +178,7 @@ const theme = createTheme({
             fontWeight: 700,
             fontSize: "0.65rem",
             lineHeight: 1.4,
+            color: tokens.textSecondary,
         },
     },
 
@@ -187,6 +193,12 @@ const theme = createTheme({
                     color: tokens.textPrimary,
                     WebkitFontSmoothing: "antialiased",
                     MozOsxFontSmoothing: "grayscale",
+                    wordBreak: "break-word",
+                    overflowWrap: "anywhere",
+                },
+                "#main-content": {
+                    overflowX: "clip",
+                    maxWidth: "100%",
                 },
                 "::-webkit-scrollbar": { width: 6 },
                 "::-webkit-scrollbar-track": { background: tokens.bg },
@@ -255,18 +267,36 @@ const theme = createTheme({
                 },
                 sizeSmall: {
                     paddingInline: 14,
-                    paddingBlock: 7,
+                    paddingBlock: 10,
+                    minHeight: 44,
                     fontSize: "0.8125rem",
                     borderRadius: tokens.radiusInput,
                 },
             },
         },
 
+        MuiSvgIcon: {
+            defaultProps: {
+                "aria-hidden": true,
+                focusable: "false",
+            },
+        },
+
         MuiIconButton: {
+            defaultProps: {
+                // WCAG / Apple HIG: минимальная зона нажатия 44×44 px
+                size: "medium",
+            },
             styleOverrides: {
                 root: {
+                    minWidth: 44,
+                    minHeight: 44,
                     transition: "background-color 0.18s ease, transform 0.15s ease",
                     "&:active": { transform: "scale(0.93)" },
+                },
+                sizeSmall: {
+                    minWidth: 44,
+                    minHeight: 44,
                 },
             },
         },
@@ -363,6 +393,8 @@ const theme = createTheme({
                 },
                 input: {
                     color: tokens.textPrimary,
+                    // iOS не зумит страницу при фокусе, если font-size ≥ 16px
+                    fontSize: "16px",
                     "&::placeholder": {
                         color: tokens.textMuted,
                         opacity: 1,
@@ -531,7 +563,26 @@ const theme = createTheme({
         },
 
         MuiFormControlLabel: {
-            styleOverrides: { label: { color: tokens.textSecondary } },
+            styleOverrides: {
+                root: { minHeight: 44, alignItems: "center" },
+                label: { color: tokens.textSecondary },
+            },
+        },
+
+        MuiMenuItem: {
+            styleOverrides: {
+                root: {
+                    minHeight: 44,
+                },
+            },
+        },
+
+        MuiCheckbox: {
+            styleOverrides: {
+                root: {
+                    padding: 10,
+                },
+            },
         },
 
         MuiBadge: {

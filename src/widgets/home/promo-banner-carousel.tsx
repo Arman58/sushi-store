@@ -83,7 +83,9 @@ function SlideContent({
                         fill
                         sizes="112px"
                         style={{ objectFit: "cover" }}
-                        {...(priority ? { priority: true } : { loading: "lazy" })}
+                        {...(priority
+                            ? { priority: true, fetchPriority: "high" as const }
+                            : { loading: "lazy" })}
                     />
                 </Box>
             )}

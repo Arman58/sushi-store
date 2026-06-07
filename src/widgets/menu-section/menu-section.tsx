@@ -1,20 +1,19 @@
-// src/widgets/menu-section/menu-section.tsx
 "use client";
 
 import RestaurantMenuOutlined from "@mui/icons-material/RestaurantMenuOutlined";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Divider from "@mui/material/Divider";
 import FormControl from "@mui/material/FormControl";
 import MenuItem from "@mui/material/MenuItem";
-import Paper from "@mui/material/Paper";
 import type { SelectChangeEvent } from "@mui/material/Select";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import { alpha, useTheme } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import Link from "next/link";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
@@ -260,20 +259,13 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
     return (
         <Box sx={{ mt: 3, display: "flex", flexDirection: "column", gap: 2 }}>
             {/* ══════════════════════════════════════════════════════
-                STICKY FILTER HEADER
+                FILTER HEADER
             ══════════════════════════════════════════════════════ */}
-            <Paper
-                elevation={0}
+            <Box
                 sx={{
-                    position: "sticky",
-                    top: { xs: 56, sm: 64 },
-                    zIndex: 10,
                     px: { xs: 2, md: 3 },
                     py: 2,
-                    mb: 2,
-                    bgcolor: "background.paper",
-                    borderBottom: "1px solid",
-                    borderColor: "divider",
+                    width: "100%",
                 }}
             >
                 <Stack
@@ -371,7 +363,8 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                         </FormControl>
                     </Stack>
                 </Stack>
-            </Paper>
+                <Divider sx={{ mt: 2 }} />
+            </Box>
 
             {/* ══════════════════════════════════════════════════════
                 PRODUCT GRID
@@ -392,7 +385,8 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                             sx={{ fontSize: 80, color: "grey.300", mb: 2 }}
                         />
                         <Typography
-                            variant="h6"
+                            component="p"
+                            variant="body1"
                             color="text.secondary"
                             fontWeight={600}
                         >
@@ -430,7 +424,7 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                         <Typography sx={{ fontSize: 52, lineHeight: 1 }}>
                             🍽
                         </Typography>
-                        <Typography variant="h6" fontWeight={700}>
+                        <Typography component="p" variant="body1" fontWeight={700}>
                             Ничего не нашлось
                         </Typography>
                         <Typography
@@ -450,6 +444,8 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                         gap: { xs: 1.5, sm: 2, md: 2.5 },
                         pt: 2,
                         pb: "100px",
+                        alignItems: "stretch",
+                        gridAutoRows: "1fr",
                         gridTemplateColumns: {
                             xs: "repeat(2, 1fr)",
                             sm: "repeat(3, 1fr)",

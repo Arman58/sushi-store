@@ -4,8 +4,8 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Typography from "@mui/material/Typography";
-import Link from "next/link";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useState } from "react";
 
 import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
@@ -78,6 +78,7 @@ function SectionHeader({
                     }}
                 />
                 <Typography
+                    component="h2"
                     variant="h5"
                     fontWeight={900}
                     sx={{

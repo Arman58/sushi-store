@@ -7,6 +7,7 @@ import Typography from "@mui/material/Typography";
 import { useState } from "react";
 
 import { useCartStore } from "@/features/cart";
+
 import { tokens } from "./theme";
 
 export function CartToast() {

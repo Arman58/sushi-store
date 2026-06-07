@@ -85,7 +85,6 @@ export default async function OrderPage({ params, searchParams }: PageProps) {
         <>
             {structuredOrder ? <JsonLd data={structuredOrder} /> : null}
             <Box
-                component="main"
                 sx={{
                     minHeight: "70vh",
                     display: "flex",

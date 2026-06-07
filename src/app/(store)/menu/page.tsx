@@ -1,14 +1,13 @@
-// src/app/menu/page.tsx
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
-import Typography from "@mui/material/Typography";
 import { alpha } from "@mui/material/styles";
+import Typography from "@mui/material/Typography";
 import type { Metadata } from "next";
 import { cache } from "react";
 
 import { prisma } from "@/lib/prisma";
-import { tokens } from "@/shared/ui/theme";
 import { PageContainer } from "@/shared/ui";
+import { tokens } from "@/shared/ui/theme";
 import { CategoryScroll } from "@/widgets/home/category-scroll";
 import { MenuSection } from "@/widgets/menu-section";
 
@@ -86,10 +85,10 @@ export async function generateMetadata({
 
     return {
         title: {
-            absolute: "Меню доставки еды | Пицца, Суши, Шаурма",
+            absolute: "Menu: Sushi, Pizza & Shawarma Delivery | East West Yerevan",
         },
         description:
-            "Актуальное меню доставки East West. Выбирайте любимые блюда с доставкой домой и в офис.",
+            "Full menu of sushi, rolls, pizza and shawarma. Delivery to Nor Hachn, Yerevan and Kotayk region.",
         alternates: { canonical: "/menu" },
     };
 }
@@ -103,8 +102,7 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
         rawCategory && validSlugs.has(rawCategory) ? rawCategory : "all";
 
     return (
-        <main>
-            <PageContainer>
+        <PageContainer>
                 <Box
                     sx={{
                         mb: 4,
@@ -184,7 +182,6 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
                 </Box>
 
                 <MenuSection categories={categories} products={products} />
-            </PageContainer>
-        </main>
+        </PageContainer>
     );
 }
