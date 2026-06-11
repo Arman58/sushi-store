@@ -1,6 +1,9 @@
 "use client";
 
 import Box from "@mui/material/Box";
+import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useMemo } from "react";
 
 import { CategoryPills } from "@/shared/ui/category-pills";
 import { tokens } from "@/shared/ui/theme";
@@ -13,9 +16,22 @@ type Props = { categories: Category[]; activeSlug?: string };
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function CategoryScroll({ categories, activeSlug }: Props) {
+export function CategoryScroll({ categories, activeSlug: activeSlugProp }: Props) {
+  const t = useTranslations("menu");
+  const searchParams = useSearchParams();
+
+  const validSlugs = useMemo(
+    () => new Set(["all", ...categories.map((c) => c.slug)]),
+    [categories],
+  );
+
+  const categoryFromUrl = searchParams.get("category");
+  const activeSlug =
+    categoryFromUrl && validSlugs.has(categoryFromUrl)
+      ? categoryFromUrl
+      : (activeSlugProp ?? "all");
   const items = [
-    { slug: "all", name: "Все" },
+    { slug: "all", name: t("categoryAll") },
     ...categories.map((c) => ({ slug: c.slug, name: c.name })),
   ];
 
@@ -50,7 +66,7 @@ export function CategoryScroll({ categories, activeSlug }: Props) {
       >
         <CategoryPills
           items={items}
-          activeSlug={activeSlug ?? "all"}
+          activeSlug={activeSlug}
         />
       </Box>
     </Box>

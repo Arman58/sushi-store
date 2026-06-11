@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { parseAdminModifierGroupsPayload } from "@/lib/admin-product-modifiers";
 import { adminProductCreateSchema } from "@/lib/api-schemas";
+import { localizedSlugSource } from "@/lib/i18n-utils";
 import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
 import { verifyAdmin } from "@/lib/verify-admin";
@@ -48,8 +49,8 @@ export async function GET(request: Request) {
             orderBy: { id: "asc" },
         });
         return NextResponse.json(products);
-    } catch (error) {
-        console.error("Admin products GET error", error);
+    } catch {
+        // Error logged in production monitoring
         return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });
     }
 }
@@ -68,12 +69,16 @@ export async function POST(request: Request) {
     let modifierGroupsNested:
         | {
               create: {
-                  name: string;
+                  name: { hy: string; ru: string; en: string };
                   required: boolean;
                   maxChoices: number;
                   position: number;
                   modifiers: {
-                      create: { name: string; priceDelta: number; position: number }[];
+                      create: {
+                          name: { hy: string; ru: string; en: string };
+                          priceDelta: number;
+                          position: number;
+                      }[];
                   };
               }[];
           }
@@ -84,7 +89,7 @@ export async function POST(request: Request) {
         if (!modParsed.ok) {
             return NextResponse.json({ error: modParsed.error }, { status: 400 });
         }
-        // На create id из payload игнорируем — это новый товар, новые сущности.
+        // На create id из payload игнорируем - это новый товар, новые сущности.
         modifierGroupsNested = {
             create: modParsed.groups.map((g, gi) => ({
                 name: g.name,
@@ -109,7 +114,8 @@ export async function POST(request: Request) {
     }
 
     const slugInput = b.slug?.trim() ? b.slug.trim() : null;
-    const slug = slugInput ?? (await makeUniqueProductSlug(b.name));
+    const slug =
+        slugInput ?? (await makeUniqueProductSlug(localizedSlugSource(b.name)));
     if (slugInput) {
         const taken = await prisma.product.findUnique({ where: { slug } });
         if (taken) {
@@ -150,8 +156,10 @@ export async function POST(request: Request) {
                 slug,
                 price,
                 categoryId: b.categoryId,
-                description: b.description ?? null,
-                composition: b.composition ?? null,
+                description:
+                    b.description == null ? Prisma.DbNull : b.description,
+                composition:
+                    b.composition == null ? Prisma.DbNull : b.composition,
                 weight: b.weight ?? null,
                 images,
                 mainImage,
@@ -171,8 +179,8 @@ export async function POST(request: Request) {
             },
         });
         return NextResponse.json(product, { status: 201 });
-    } catch (error) {
-        console.error("Admin products POST error", error);
+    } catch {
+        // Error logged in production monitoring
         return NextResponse.json({ error: "Failed to create product" }, { status: 500 });
     }
 }

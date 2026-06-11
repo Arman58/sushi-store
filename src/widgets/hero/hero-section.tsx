@@ -6,9 +6,10 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 
+import { Link } from "@/i18n/server";
 import type { HeroPromo } from "@/lib/hero-data";
 import { tokens } from "@/shared/ui/theme";
 
@@ -62,16 +63,16 @@ function ensureHeroKf() {
 
 // ─── Ticker items ─────────────────────────────────────────────────────────────
 
-const TICKER_ITEMS = [
-  "🍣  Роллы",
-  "🍕  Пицца",
-  "🌯  Шаурма",
-  "🍗  Стрипсы",
-  "🫓  Лахмаджо",
-  "🥗  Салаты",
-  "🍮  Десерты",
-  "🥤  Напитки",
-];
+const TICKER_KEYS = [
+  "rolls",
+  "pizza",
+  "shawarma",
+  "strips",
+  "lahmajo",
+  "salads",
+  "desserts",
+  "drinks",
+] as const;
 
 // ─── Floating food items (right side decoration) ──────────────────────────────
 
@@ -92,7 +93,10 @@ export type HeroSectionProps = {
 };
 
 export function HeroSection({ deliveryStat, openingHoursStat, promo }: HeroSectionProps) {
+  const t = useTranslations("hero");
   useEffect(() => { ensureHeroKf(); }, []);
+
+  const tickerItems = TICKER_KEYS.map((key) => t(`ticker.${key}`));
 
   const stats = [
     { icon: <DeliveryDiningIcon sx={{ fontSize: 15 }} />, text: deliveryStat },
@@ -225,7 +229,10 @@ export function HeroSection({ deliveryStat, openingHoursStat, promo }: HeroSecti
                 fontWeight={700}
                 sx={{ color: "primary.dark", letterSpacing: 0.3, fontSize: 11 }}
               >
-                Скидка {promo.discountValue}% на первый заказ по промокоду {promo.code}
+                {t("promoBadge", {
+                  value: promo.discountValue,
+                  code: promo.code,
+                })}
               </Typography>
             </Box>
           )}
@@ -242,10 +249,10 @@ export function HeroSection({ deliveryStat, openingHoursStat, promo }: HeroSecti
             }}
           >
             <Box component="span" sx={{ display: "block" }}>
-              Суши. Пицца.
+              {t("titleLine1")}
             </Box>
             <Box component="span" sx={{ display: "block", mt: 0.25 }}>
-              Шаурма.
+              {t("titleLine2")}
             </Box>
             <Box
               component="span"
@@ -261,7 +268,7 @@ export function HeroSection({ deliveryStat, openingHoursStat, promo }: HeroSecti
                 backgroundClip: "text",
               }}
             >
-              Горячо и быстро - у двери.
+              {t("titleLine3")}
             </Box>
           </Typography>
 
@@ -274,8 +281,7 @@ export function HeroSection({ deliveryStat, openingHoursStat, promo }: HeroSecti
               maxWidth: 460,
             }}
           >
-            Закажите любимую еду с быстрой доставкой по Котайку и Еревану. Свежие
-            роллы, горячая пицца и сочная шаурма.
+            {t("subtitle")}
           </Typography>
 
           <Typography
@@ -289,8 +295,7 @@ export function HeroSection({ deliveryStat, openingHoursStat, promo }: HeroSecti
               maxWidth: 520,
             }}
           >
-            Hot sushi, pizza and shawarma with fast delivery in Yerevan and Nor
-            Hachn. Free delivery in Nor Hachn.
+            {t("seoLine")}
           </Typography>
 
           <Stack
@@ -311,7 +316,7 @@ export function HeroSection({ deliveryStat, openingHoursStat, promo }: HeroSecti
                 borderRadius: "14px",
               }}
             >
-              Заказать сейчас →
+              {t("orderNow")}
             </Button>
           </Stack>
 
@@ -379,7 +384,7 @@ export function HeroSection({ deliveryStat, openingHoursStat, promo }: HeroSecti
             "&:hover": { animationPlayState: "paused" },
           }}
         >
-          {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, i) => (
+          {[...tickerItems, ...tickerItems].map((item, i) => (
             <Box
               key={i}
               sx={{

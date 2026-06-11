@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { validateCartLinesForCheckout } from "@/lib/prepare-order-items";
+import {
+    checkRateLimit,
+    rateLimitExceededJsonResponse,
+} from "@/lib/rate-limit";
 
 const itemSchema = z.object({
     cartItemId: z.string().min(1),
@@ -16,6 +20,11 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
+    const rateLimit = await checkRateLimit(request, "validateCart");
+    if (!rateLimit.allowed) {
+        return rateLimitExceededJsonResponse();
+    }
+
     let json: unknown;
     try {
         json = await request.json();

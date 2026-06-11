@@ -4,7 +4,8 @@ import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Typography from "@mui/material/Typography";
-import Link from "next/link";
+
+import { Link } from "@/i18n/server";
 
 export type CategoryPillItem = {
   slug: string;

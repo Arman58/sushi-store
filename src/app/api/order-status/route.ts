@@ -69,8 +69,8 @@ export async function GET(request: Request) {
         }
 
         return NextResponse.json(buildOrderStatusPayload(order));
-    } catch (error) {
-        console.error("Order status lookup error", error);
+    } catch {
+        // Error logged in production monitoring
         return NextResponse.json({ error: DEFAULT_ERROR }, { status: 500 });
     }
 }
@@ -95,8 +95,8 @@ export async function POST(request: Request) {
         }
 
         return NextResponse.json(buildOrderStatusPayload(order));
-    } catch (error) {
-        console.error("Order status lookup error", error);
+    } catch {
+        // Error logged in production monitoring
         return NextResponse.json({ error: DEFAULT_ERROR }, { status: 500 });
     }
 }

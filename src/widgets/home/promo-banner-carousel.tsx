@@ -6,10 +6,10 @@ import "swiper/css/pagination";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Image from "next/image";
-import Link from "next/link";
 import { Autoplay, Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 
+import { Link } from "@/i18n/server";
 import { isAllowedProductImageSrc } from "@/shared/lib/product-cover";
 
 export type PromoBannerSlide = {

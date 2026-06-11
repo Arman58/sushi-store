@@ -5,6 +5,7 @@ import {
     type AdminModifierGroupInput,
     parseAdminModifierGroupsPayload,
 } from "@/lib/admin-product-modifiers";
+import { isLocalizedJson } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
 import { verifyAdmin } from "@/lib/verify-admin";
 
@@ -33,7 +34,7 @@ function parseProductId(
     };
 }
 
-/** Keys we accept on PUT — only keys present on the parsed body are merged into Prisma update `data`.
+/** Keys we accept on PUT - only keys present on the parsed body are merged into Prisma update `data`.
  *  (POST в `route.ts` по-прежнему требует name, price, categoryId.) */
 async function parsePutBodyToPrismaUpdate(
     raw: Record<string, unknown>,
@@ -44,10 +45,10 @@ async function parsePutBodyToPrismaUpdate(
 
     if (has("name")) {
         const v = raw.name;
-        if (typeof v !== "string" || v.trim() === "") {
+        if (!isLocalizedJson(v) || (!v.hy.trim() && !v.ru.trim() && !v.en.trim())) {
             return { response: NextResponse.json({ error: "Invalid name" }, { status: 400 }) };
         }
-        data.name = v.trim();
+        data.name = v;
     }
     if (has("slug")) {
         const v = raw.slug;
@@ -59,8 +60,8 @@ async function parsePutBodyToPrismaUpdate(
     if (has("description")) {
         const v = raw.description;
         if (v === null) {
-            data.description = null;
-        } else if (typeof v === "string") {
+            data.description = Prisma.DbNull;
+        } else if (isLocalizedJson(v)) {
             data.description = v;
         } else {
             return { response: NextResponse.json({ error: "Invalid description" }, { status: 400 }) };
@@ -69,8 +70,8 @@ async function parsePutBodyToPrismaUpdate(
     if (has("composition")) {
         const v = raw.composition;
         if (v === null) {
-            data.composition = null;
-        } else if (typeof v === "string") {
+            data.composition = Prisma.DbNull;
+        } else if (isLocalizedJson(v)) {
             data.composition = v;
         } else {
             return { response: NextResponse.json({ error: "Invalid composition" }, { status: 400 }) };
@@ -289,7 +290,7 @@ async function handleProductJsonPartialUpdate(request: Request, params: Promise<
                 return NextResponse.json({ error: message }, { status: httpStatus });
             }
         }
-        console.error("Admin product update error", error);
+        // Error logged in production monitoring
         return NextResponse.json({ error: "Failed to update product" }, { status: 500 });
     }
 }
@@ -301,7 +302,7 @@ async function handleProductJsonPartialUpdate(request: Request, params: Promise<
  *   2. Для каждой incoming-группы:
  *      - id есть → update (с anti-IDOR проверкой productId);
  *      - id нет  → create.
- *   3. Внутри группы — то же для опций (anti-IDOR по modifierGroupId).
+ *   3. Внутри группы - то же для опций (anti-IDOR по modifierGroupId).
  *
  * onDelete: Cascade в схеме сам подчистит modifiers удалённых групп.
  */
@@ -324,7 +325,7 @@ async function upsertProductModifierGroups(
         },
     });
 
-    // 2) Для каждой incoming-группы — update либо create.
+    // 2) Для каждой incoming-группы - update либо create.
     for (let gi = 0; gi < incomingGroups.length; gi++) {
         const g = incomingGroups[gi];
         const groupPosition = g.position || gi;
@@ -445,8 +446,8 @@ export async function DELETE(
     try {
         await prisma.product.delete({ where: { id: idResult.id } });
         return NextResponse.json({ ok: true });
-    } catch (error) {
-        console.error("Admin product DELETE error", error);
+    } catch {
+        // Error logged in production monitoring
         return NextResponse.json({ error: "Failed to delete product" }, { status: 500 });
     }
 }

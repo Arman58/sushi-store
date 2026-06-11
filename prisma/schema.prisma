@@ -10,9 +10,9 @@ generator client {
 
 model Category {
   id        Int       @id @default(autoincrement())
-  name      String
+  name      Json      @db.JsonB
   slug      String    @unique
-  /** Порядок на витрине (меньше — выше). */
+  /** Порядок на витрине (меньше - выше). */
   position  Int       @default(0)
   isActive  Boolean   @default(true)
   products  Product[]
@@ -21,16 +21,16 @@ model Category {
 
 model Product {
   id             Int             @id @default(autoincrement())
-  name           String
+  name           Json            @db.JsonB
   slug           String          @unique
-  description    String?
-  composition    String?
+  description    Json?           @db.JsonB
+  composition    Json?           @db.JsonB
   price          Int
   weight         Int?
   images         Json            @default("[]")
   /** Обложка на витрине; должна совпадать с одним из URL в `images`, иначе игнорируется при сохранении. */
   mainImage      String?
-  /** На витрине: если false — гость не видит товар в меню/на главной; при заказе из сохранённой корзины — понятная ошибка. */
+  /** На витрине: если false - гость не видит товар в меню/на главной; при заказе из сохранённой корзины - понятная ошибка. */
   isActive       Boolean         @default(true)
   category       Category?       @relation(fields: [categoryId], references: [id])
   categoryId     Int?
@@ -41,7 +41,7 @@ model Product {
 /** Группа опций к товару (размер, добавки). maxChoices: 0 = без верхней границы. */
 model ModifierGroup {
   id         Int        @id @default(autoincrement())
-  name       String
+  name       Json       @db.JsonB
   productId  Int
   product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
   required   Boolean    @default(false)
@@ -55,7 +55,7 @@ model ModifierGroup {
 
 model Modifier {
   id              Int           @id @default(autoincrement())
-  name            String
+  name            Json          @db.JsonB
   /** Дельта к цене товара. Может быть 0 или отрицательной (скидка за «без сыра» и т.п.). */
   priceDelta      Int           @default(0)
   modifierGroupId Int
@@ -106,14 +106,14 @@ model PromoCode {
 
 model DeliveryZone {
   id             Int      @id @default(autoincrement())
-  /** Порядок в админке и на витрине (меньше — выше) */
+  /** Порядок в админке и на витрине (меньше - выше) */
   position       Int      @default(0)
-  name           String
+  name           Json     @db.JsonB
   deliveryPrice  Int
   minOrderAmount Int
   /** Пояснение на чекауте (напр. плавающая цена доставки) */
-  description    String?  @default("")
-  /** true — оформление как заявка, менеджер перезванивает для уточнения */
+  description    Json?    @default("{}") @db.JsonB
+  /** true - оформление как заявка, менеджер перезванивает для уточнения */
   requiresManagerApproval Boolean @default(false)
   isActive       Boolean  @default(true)
   orders         Order[]
@@ -131,7 +131,7 @@ model Order {
   payment          PaymentMethod
   delivery         DeliveryType
   status           OrderStatus   @default(NEW)
-  /** Ожидаемое время готовности/доставки — задаёт кухня (Telegram / админка). */
+  /** Ожидаемое время готовности/доставки - задаёт кухня (Telegram / админка). */
   estimatedDeliveryAt DateTime?
   /** Сумма позиций (без доставки), на момент оформления */
   subtotalBeforeDiscount Int @default(0)

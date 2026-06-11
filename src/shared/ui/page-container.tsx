@@ -15,7 +15,7 @@ export function PageContainer({ children }: PageContainerProps) {
                 mx: "auto",
                 px: { xs: 2, sm: 4 },
                 py: { xs: 3, md: 6 },
-                overflowX: "clip",
+                overflow: "visible",
             }}
         >
             {children}

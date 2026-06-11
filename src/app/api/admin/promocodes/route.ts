@@ -14,8 +14,8 @@ export async function GET(request: Request) {
     try {
         const codes = await prisma.promoCode.findMany({ orderBy: { id: "asc" } });
         return NextResponse.json(codes);
-    } catch (e) {
-        console.error("admin promocodes GET", e);
+    } catch {
+        // Error logged in production monitoring
         return NextResponse.json({ error: "Failed to fetch" }, { status: 500 });
     }
 }

@@ -1,6 +1,8 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 
 import { deliveryZonesData } from "./ensure-delivery-zones";
+import { L, LToJson } from "./localized-seed";
+import { getProductI18n } from "./product-translations";
 
 const prisma = new PrismaClient();
 
@@ -8,7 +10,7 @@ type CategorySlug = "pizza" | "sushi" | "shawarma" | "snacks" | "drinks";
 
 type ProductSeed = {
     name: string;
-    /** Если не задан — генерируется через slugify(name). */
+    /** Если не задан - генерируется через slugify(name). */
     slug?: string;
     description: string;
     composition: string;
@@ -86,7 +88,7 @@ const productsData: ProductSeed[] = [
     {
         name: "Маргарита",
         slug: "margarita",
-        description: "Нежная пицца с томатами, моцареллой и базиликом — итальянская классика.",
+        description: "Нежная пицца с томатами, моцареллой и базиликом - итальянская классика.",
         composition: "Тесто, соус, моцарелла, томаты",
         price: 4000,
         weight: 400,
@@ -96,7 +98,7 @@ const productsData: ProductSeed[] = [
     {
         name: "4 сыра",
         slug: "four-cheese",
-        description: "Сливочная пицца с четырьмя видами сыра — насыщенный сырный вкус.",
+        description: "Сливочная пицца с четырьмя видами сыра - насыщенный сырный вкус.",
         composition: "Моцарелла, пармезан, дор блю, чеддер",
         price: 5000,
         weight: 420,
@@ -106,7 +108,7 @@ const productsData: ProductSeed[] = [
     {
         name: "Гавайская",
         slug: "hawaiian",
-        description: "Сладкий ананас и ветчина в мягком тесте — любимый семейный вариант.",
+        description: "Сладкий ананас и ветчина в мягком тесте - любимый семейный вариант.",
         composition: "Ветчина, ананас, моцарелла",
         price: 4800,
         weight: 430,
@@ -116,7 +118,7 @@ const productsData: ProductSeed[] = [
     {
         name: "Мясная",
         slug: "myasnaya",
-        description: "Сытная пицца с говядиной, курицей и ветчиной — для большого аппетита.",
+        description: "Сытная пицца с говядиной, курицей и ветчиной - для большого аппетита.",
         composition: "Говядина, курица, ветчина",
         price: 5500,
         weight: 500,
@@ -136,7 +138,7 @@ const productsData: ProductSeed[] = [
     {
         name: "Вегетарианская",
         slug: "vegetarian",
-        description: "Свежие овощи и оливки на тонком тесте — лёгкий и сбалансированный вариант.",
+        description: "Свежие овощи и оливки на тонком тесте - лёгкий и сбалансированный вариант.",
         composition: "Перец, оливки, томаты",
         price: 4200,
         weight: 400,
@@ -146,7 +148,7 @@ const productsData: ProductSeed[] = [
     {
         name: "Лахмаджо",
         slug: "lahmajo",
-        description: "Тонкое тесто с ароматным фаршем и специями — армянская классика доставки.",
+        description: "Тонкое тесто с ароматным фаршем и специями - армянская классика доставки.",
         composition: "Тонкое тесто, фарш, томаты, специи",
         price: 3500,
         weight: 300,
@@ -178,7 +180,7 @@ const productsData: ProductSeed[] = [
     {
         name: "Унаги ролл",
         slug: "unagi-roll",
-        description: "Копчёный угорь с соусом унаги — сладкий и насыщенный вкус.",
+        description: "Копчёный угорь с соусом унаги - сладкий и насыщенный вкус.",
         composition: "Угорь, соус унаги, кунжут",
         price: 5000,
         weight: 220,
@@ -218,7 +220,7 @@ const productsData: ProductSeed[] = [
     {
         name: "Онигири лосось",
         slug: "onigiri-salmon",
-        description: "Японский рисовый треугольник с лососем — удобный перекус.",
+        description: "Японский рисовый треугольник с лососем - удобный перекус.",
         composition: "Рис, лосось, нори",
         price: 1500,
         weight: 120,
@@ -228,7 +230,7 @@ const productsData: ProductSeed[] = [
     {
         name: "Сашими лосось",
         slug: "sashimi-salmon",
-        description: "Свежее филе лосося без риса — для ценителей чистого вкуса рыбы.",
+        description: "Свежее филе лосося без риса - для ценителей чистого вкуса рыбы.",
         composition: "Филе лосося",
         price: 4000,
         weight: 100,
@@ -250,7 +252,7 @@ const productsData: ProductSeed[] = [
     {
         name: "Острая куриная",
         slug: "spicy-chicken",
-        description: "Курица с халапеньо и острым соусом — для любителей пикантного.",
+        description: "Курица с халапеньо и острым соусом - для любителей пикантного.",
         composition: "Курица, халапеньо, острый соус",
         price: 2700,
         weight: 350,
@@ -282,7 +284,7 @@ const productsData: ProductSeed[] = [
     {
         name: "Картофель фри",
         slug: "french-fries",
-        description: "Золотистая хрустящая картошка — идеальное дополнение к любому заказу.",
+        description: "Золотистая хрустящая картошка - идеальное дополнение к любому заказу.",
         composition: "Картофель, масло, соль",
         price: 1500,
         weight: 150,
@@ -302,7 +304,7 @@ const productsData: ProductSeed[] = [
     {
         name: "Стрипсы 9 шт",
         slug: "chicken-strips-9",
-        description: "Девять полосок куриного филе в панировке — порция на компанию.",
+        description: "Девять полосок куриного филе в панировке - порция на компанию.",
         composition: "Филе курочки в панировке",
         price: 3500,
         weight: 300,
@@ -322,7 +324,7 @@ const productsData: ProductSeed[] = [
     {
         name: "Луковые кольца",
         slug: "onion-rings",
-        description: "Хрустящие кольца лука в кляре — классика к шаурме и пицце.",
+        description: "Хрустящие кольца лука в кляре - классика к шаурме и пицце.",
         composition: "Лук в кляре",
         price: 1800,
         weight: 180,
@@ -332,7 +334,7 @@ const productsData: ProductSeed[] = [
     {
         name: "Соус чесночный",
         slug: "garlic-sauce",
-        description: "Ароматный чесночный соус с зеленью — к картофелю и стрипсам.",
+        description: "Ароматный чесночный соус с зеленью - к картофелю и стрипсам.",
         composition: "Чеснок, майонез, зелень",
         price: 300,
         weight: 50,
@@ -344,7 +346,7 @@ const productsData: ProductSeed[] = [
     {
         name: "Кола 0.5 л",
         slug: "cola-05",
-        description: "Coca-Cola 0,5 л — освежающая классика к любому блюду.",
+        description: "Coca-Cola 0,5 л - освежающая классика к любому блюду.",
         composition: "Coca-Cola",
         price: 600,
         weight: 500,
@@ -354,7 +356,7 @@ const productsData: ProductSeed[] = [
     {
         name: "Кола 1 л",
         slug: "cola-1",
-        description: "Coca-Cola 1 л — большая бутылка на компанию.",
+        description: "Coca-Cola 1 л - большая бутылка на компанию.",
         composition: "Coca-Cola",
         price: 1000,
         weight: 1000,
@@ -364,7 +366,7 @@ const productsData: ProductSeed[] = [
     {
         name: "Тан 0.5 л",
         slug: "tan-05",
-        description: "Армянский тан 0,5 л — идеален к шаурме и пицце.",
+        description: "Армянский тан 0,5 л - идеален к шаурме и пицце.",
         composition: "Армянский тан",
         price: 500,
         weight: 500,
@@ -374,7 +376,7 @@ const productsData: ProductSeed[] = [
     {
         name: "Тан 1 л",
         slug: "tan-1",
-        description: "Армянский тан 1 л — большая порция кисломолочного напитка.",
+        description: "Армянский тан 1 л - большая порция кисломолочного напитка.",
         composition: "Армянский тан",
         price: 800,
         weight: 1000,
@@ -384,7 +386,7 @@ const productsData: ProductSeed[] = [
     {
         name: "Лимонад Дюшес",
         slug: "lemonade-dushes",
-        description: "Грушевый лимонад Дюшес — знакомый вкус из детства.",
+        description: "Грушевый лимонад Дюшес - знакомый вкус из детства.",
         composition: "Лимонад Дюшес",
         price: 800,
         weight: 500,
@@ -394,7 +396,7 @@ const productsData: ProductSeed[] = [
     {
         name: "Вода Аква 0.5 л",
         slug: "water-05",
-        description: "Питьевая вода 0,5 л — чистая и освежающая.",
+        description: "Питьевая вода 0,5 л - чистая и освежающая.",
         composition: "Питьевая вода",
         price: 300,
         weight: 500,
@@ -414,14 +416,22 @@ async function addSizeModifier(productId: number): Promise<void> {
     await prisma.modifierGroup.create({
         data: {
             productId,
-            name: "Размер",
+            name: LToJson(L("Размер", "Չափս", "Size")),
             required: true,
             maxChoices: 1,
             position: 0,
             modifiers: {
                 create: [
-                    { name: "30 см", priceDelta: 0, position: 0 },
-                    { name: "45 см", priceDelta: 2000, position: 1 },
+                    {
+                        name: LToJson(L("30 см", "30 սմ", "30 cm")),
+                        priceDelta: 0,
+                        position: 0,
+                    },
+                    {
+                        name: LToJson(L("45 см", "45 սմ", "45 cm")),
+                        priceDelta: 2000,
+                        position: 1,
+                    },
                 ],
             },
         },
@@ -441,18 +451,33 @@ async function main() {
     await prisma.deliveryZone.deleteMany();
 
     const categoriesData = [
-        { slug: "pizza", name: "Пицца" },
-        { slug: "sushi", name: "Суши и роллы" },
-        { slug: "shawarma", name: "Шаурма" },
-        { slug: "snacks", name: "Закуски" },
-        { slug: "drinks", name: "Напитки" },
+        {
+            slug: "pizza",
+            name: L("Пицца", "Պիցցա", "Pizza"),
+        },
+        {
+            slug: "sushi",
+            name: L("Суши и роллы", "Սուշի և ռոլեր", "Sushi & rolls"),
+        },
+        {
+            slug: "shawarma",
+            name: L("Шаурма", "Շաուրմա", "Shawarma"),
+        },
+        {
+            slug: "snacks",
+            name: L("Закуски", "Նախուտեստներ", "Snacks"),
+        },
+        {
+            slug: "drinks",
+            name: L("Напитки", "Խմիչքներ", "Drinks"),
+        },
     ] as const;
 
     const categories = await Promise.all(
         categoriesData.map((c, position) =>
             prisma.category.create({
                 data: {
-                    name: c.name,
+                    name: LToJson(c.name),
                     slug: c.slug,
                     position,
                     isActive: true,
@@ -483,12 +508,13 @@ async function main() {
     for (const p of productsData) {
         const slug = p.slug ?? slugify(p.name);
         const images = [p.image] as Prisma.InputJsonArray;
+        const i18n = getProductI18n(slug, p);
         const created = await prisma.product.create({
             data: {
-                name: p.name,
+                name: LToJson(i18n.name),
                 slug,
-                description: p.description,
-                composition: p.composition,
+                description: LToJson(i18n.description),
+                composition: LToJson(i18n.composition),
                 price: p.price,
                 weight: p.weight,
                 images,
@@ -518,7 +544,13 @@ async function main() {
 
     await prisma.deliveryZone.createMany({
         data: deliveryZonesData.map((z) => ({
-            ...z,
+            name: LToJson(z.name),
+            deliveryPrice: z.deliveryPrice,
+            minOrderAmount: z.minOrderAmount,
+            description:
+                z.description === "" ? {} : LToJson(z.description),
+            requiresManagerApproval: z.requiresManagerApproval,
+            position: z.position,
             isActive: true,
         })),
     });

@@ -1,5 +1,5 @@
 /**
- * Zod-схемы для API-роутов — единый источник валидации входящих данных.
+ * Zod-схемы для API-роутов - единый источник валидации входящих данных.
  */
 
 import { z } from "zod";
@@ -80,29 +80,50 @@ export const telegramWebhookBodySchema = z.object({
         .optional(),
 });
 
+// ─── Localized JSON fields ───────────────────────────────────────────────────
+
+export const localizedStringSchema = z.object({
+    hy: z.string(),
+    ru: z.string(),
+    en: z.string(),
+});
+
+export const localizedRequiredSchema = localizedStringSchema.superRefine(
+    (data, ctx) => {
+        if (!data.hy.trim() && !data.ru.trim() && !data.en.trim()) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "name is required",
+            });
+        }
+    },
+);
+
+export const localizedOptionalSchema = localizedStringSchema.optional();
+
 // ─── Admin: categories ────────────────────────────────────────────────────────
 
 export const adminCategoryCreateSchema = z.object({
-    name: z.string().trim().min(1, "name is required"),
+    name: localizedRequiredSchema,
 });
 
 // ─── Admin: delivery zones ────────────────────────────────────────────────────
 
 export const adminDeliveryZoneCreateSchema = z.object({
-    name: z.string().trim().min(1, "name is required"),
+    name: localizedRequiredSchema,
     deliveryPrice: nonNegativeIntSchema,
     minOrderAmount: nonNegativeIntSchema,
-    description: z.string().optional().default(""),
+    description: localizedStringSchema.optional().default({ hy: "", ru: "", en: "" }),
     requiresManagerApproval: z.boolean().optional().default(false),
     isActive: z.boolean().optional().default(true),
 });
 
 export const adminDeliveryZonePatchSchema = z
     .object({
-        name: z.string().trim().min(1).optional(),
+        name: localizedRequiredSchema.optional(),
         deliveryPrice: nonNegativeIntSchema.optional(),
         minOrderAmount: nonNegativeIntSchema.optional(),
-        description: z.string().optional(),
+        description: localizedStringSchema.optional(),
         requiresManagerApproval: z.boolean().optional(),
         isActive: z.boolean().optional(),
         position: nonNegativeIntSchema.optional(),
@@ -136,11 +157,11 @@ export const adminPromoPatchSchema = z
 // ─── Admin: products ──────────────────────────────────────────────────────────
 
 export const adminProductCreateSchema = z.object({
-    name: z.string().trim().min(1, "name is required"),
+    name: localizedRequiredSchema,
     price: nonNegativeIntSchema,
     categoryId: positiveIntSchema,
-    description: z.string().nullable().optional(),
-    composition: z.string().nullable().optional(),
+    description: localizedStringSchema.nullable().optional(),
+    composition: localizedStringSchema.nullable().optional(),
     weight: positiveIntSchema.nullable().optional(),
     images: z.array(z.string()).optional(),
     mainImage: z.string().nullable().optional(),
@@ -151,11 +172,11 @@ export const adminProductCreateSchema = z.object({
 
 export const adminProductPatchSchema = z
     .object({
-        name: z.string().trim().min(1).optional(),
+        name: localizedRequiredSchema.optional(),
         price: positiveIntSchema.optional(),
         categoryId: positiveIntSchema.nullable().optional(),
-        description: z.string().nullable().optional(),
-        composition: z.string().nullable().optional(),
+        description: localizedStringSchema.nullable().optional(),
+        composition: localizedStringSchema.nullable().optional(),
         weight: positiveIntSchema.nullable().optional(),
         images: z.array(z.string()).optional(),
         mainImage: z.string().nullable().optional(),

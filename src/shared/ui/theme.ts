@@ -1,9 +1,9 @@
 import { alpha,createTheme } from "@mui/material/styles";
 
-// ─── Design tokens (food delivery — синхронизируй palette.primary с tokens.brand) ─
+// ─── Design tokens (food delivery - синхронизируй palette.primary с tokens.brand) ─
 
 export const tokens = {
-    // Surfaces — тёплый «кремовый» офф-белый контраст к карточкам
+    // Surfaces - тёплый «кремовый» офф-белый контраст к карточкам
     bg:         "#F6F4F1",
     surface:    "#FFFFFF",
     surfaceUp:  "#FFFFFF",
@@ -11,7 +11,7 @@ export const tokens = {
     border:     "#EBE7E3",
     borderHi:   "#DED8D3",
 
-    // Brand — свежий аппетитный зелёный (food-delivery 2025–2026)
+    // Brand - свежий аппетитный зелёный (food-delivery 2025–2026)
     brand:      "#00B341",
     brandHi:    "#2BC760",
     brandDim:   "rgba(0, 179, 65, 0.10)",
@@ -21,7 +21,7 @@ export const tokens = {
     red:        "#E53935",
     redDim:     "rgba(229,57,53,0.12)",
 
-    // Success — чуть более «мягкий» зелёный для сумм / «бесплатно»
+    // Success - чуть более «мягкий» зелёный для сумм / «бесплатно»
     green:      "#1FA97A",
     greenDim:   "rgba(31,169,122,0.12)",
 
@@ -30,7 +30,7 @@ export const tokens = {
     textSecondary: "#616161",
     textMuted:     "#757575",
 
-    /** Радиус мелких контролов (инпуты, чипы) — задаётся в overrides, не через shape */
+    /** Радиус мелких контролов (инпуты, чипы) - задаётся в overrides, не через shape */
     radiusInput: 8,
     radiusCardLg: 12,
 
@@ -55,7 +55,7 @@ export const skeletonShimmerSx = {
 
 const primaryMain = tokens.brand;
 
-/** Secondary: тёплая бирюза как контрапт к аппетитному primary — CTA/snackbar вторичный */
+/** Secondary: тёплая бирюза как контрапт к аппетитному primary - CTA/snackbar вторичный */
 const secondaryMain = "#1BA89A";
 
 const focusVisibleRing = {
@@ -66,7 +66,7 @@ const focusVisibleRing = {
     },
 } as const;
 
-/** Мягкая тень для карточек продукта / Paper — без жёсткого «дефолтного MUI». */
+/** Мягкая тень для карточек продукта / Paper - без жёсткого «дефолтного MUI». */
 const cardElevationShadow =
     `0 1px 2px ${alpha(tokens.textPrimary, 0.04)}, 0 4px 14px ${alpha(tokens.textPrimary, 0.07)}`;
 
@@ -197,7 +197,7 @@ const theme = createTheme({
                     wordBreak: "break-word",
                 },
                 "#main-content": {
-                    overflowX: "clip",
+                    overflow: "visible",
                     maxWidth: "100%",
                 },
                 "::-webkit-scrollbar": { width: 6 },

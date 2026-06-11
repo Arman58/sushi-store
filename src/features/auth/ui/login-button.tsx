@@ -9,11 +9,11 @@ import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import dynamic from "next/dynamic";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { Link, useRouter } from "@/i18n/server";
 import { tokens } from "@/shared/ui/theme";
 
 const LoginDialog = dynamic(
@@ -24,6 +24,8 @@ const LoginDialog = dynamic(
 export function LoginButton() {
     const { data: session, status } = useSession();
     const router = useRouter();
+    const t = useTranslations("auth");
+    const tNav = useTranslations("nav");
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
@@ -59,13 +61,17 @@ export function LoginButton() {
                         textTransform: "none",
                     }}
                 >
-                    Войти
+                    {t("login")}
                 </Button>
                 <IconButton
                     onClick={() => setDialogOpen(true)}
-                    aria-label="Войти"
+                    aria-label={t("aria.login")}
                     sx={{
                         display: { xs: "inline-flex", sm: "none" },
+                        flexShrink: 0,
+                        minWidth: 40,
+                        width: 40,
+                        height: 40,
                         border: `1px solid ${tokens.border}`,
                         bgcolor: tokens.surface,
                     }}
@@ -81,9 +87,13 @@ export function LoginButton() {
         <>
             <IconButton
                 onClick={handleClick}
-                aria-label="Меню профиля"
+                aria-label={t("aria.profileMenu")}
                 sx={{
                     p: 0.25,
+                    flexShrink: 0,
+                    minWidth: 40,
+                    width: 40,
+                    height: 40,
                     border: `1px solid ${tokens.border}`,
                     bgcolor: tokens.surface,
                     "&:hover": { bgcolor: tokens.surfaceHi },
@@ -91,7 +101,7 @@ export function LoginButton() {
             >
                 <Avatar
                     src={avatarSrc}
-                    alt={displayName || "Профиль"}
+                    alt={displayName || tNav("profile")}
                     sx={{
                         width: 32,
                         height: 32,
@@ -108,6 +118,7 @@ export function LoginButton() {
                 anchorEl={menuAnchor}
                 open={Boolean(menuAnchor)}
                 onClose={() => setMenuAnchor(null)}
+                disablePortal
                 anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
                 transformOrigin={{ vertical: "top", horizontal: "right" }}
                 PaperProps={{ sx: { mt: 0.5, minWidth: 200, borderRadius: 2 } }}
@@ -119,7 +130,7 @@ export function LoginButton() {
                     sx={{ gap: 1 }}
                 >
                     <ReceiptLongOutlinedIcon sx={{ fontSize: 18 }} />
-                    Профиль
+                    {tNav("profile")}
                 </MenuItem>
                 <MenuItem
                     onClick={async () => {
@@ -130,7 +141,7 @@ export function LoginButton() {
                     sx={{ gap: 1 }}
                 >
                     <LogoutOutlinedIcon sx={{ fontSize: 18 }} />
-                    Выйти
+                    {t("logout")}
                 </MenuItem>
             </Menu>
         </>

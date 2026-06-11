@@ -11,6 +11,8 @@
 
 import { z } from "zod";
 
+import { localizedRequiredSchema } from "@/lib/api-schemas";
+
 const PositiveInt = z.number().int().positive();
 const NonNegativeInt = z.number().int().nonnegative();
 const SignedInt = z.number().int();
@@ -18,13 +20,10 @@ const SignedInt = z.number().int();
 // ─── Modifier (option) ────────────────────────────────────────────────────────
 
 export const adminModifierSchema = z.object({
-    /** Если задан — update; если нет — create. */
+    /** Если задан - update; если нет - create. */
     id: PositiveInt.optional(),
-    name: z
-        .string()
-        .transform((v) => v.trim())
-        .pipe(z.string().min(1, "Название опции обязательно")),
-    /** Может быть отрицательной — например, скидка за «без сыра». */
+    name: localizedRequiredSchema,
+    /** Может быть отрицательной - например, скидка за «без сыра». */
     priceDelta: SignedInt.default(0),
     position: NonNegativeInt.default(0),
 });
@@ -35,10 +34,7 @@ export type AdminModifierOptionInput = z.infer<typeof adminModifierSchema>;
 
 export const adminModifierGroupSchema = z.object({
     id: PositiveInt.optional(),
-    name: z
-        .string()
-        .transform((v) => v.trim())
-        .pipe(z.string().min(1, "Название группы обязательно")),
+    name: localizedRequiredSchema,
     required: z.boolean().default(false),
     /** 0 = без верхней границы. */
     maxChoices: NonNegativeInt.default(1),

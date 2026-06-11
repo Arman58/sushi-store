@@ -1,0 +1,528 @@
+{
+    "common": {
+        "loading": "Loading",
+        "loadingEllipsis": "…",
+        "networkError": "Network unavailable. Please try again.",
+        "brandName": "East West",
+        "brandTagline": "Delivery",
+        "logoAlt": "East West Delivery - sushi and pizza Yerevan",
+        "location": {
+            "city": "Yerevan",
+            "deliveryEta": "· 45-60 min"
+        },
+        "address": {
+            "full": "Nor Hachn, 19 Charents St., Kotayk, Armenia",
+            "pickup": "Nor Hachn, 19 Charents St."
+        },
+        "hours": {
+            "label": "Daily 12:00 - 00:00",
+            "openUntil": "Open until {time}",
+            "opensAt": "Opens at {time}"
+        },
+        "aria": {
+            "close": "Close",
+            "mainNav": "Main navigation",
+            "mobileNavMenu": "Navigation menu",
+            "openCart": "Open cart",
+            "cartOnCheckout": "Cart (on checkout page)"
+        },
+        "toast": {
+            "added": "Added to cart",
+            "addedNamed": "{name} added to cart",
+            "sessionExpired": "Session expired, please sign in again"
+        }
+    },
+    "languageSwitcher": {
+        "label": "Language",
+        "localeHy": "Հայերեն",
+        "localeRu": "Русский",
+        "localeEn": "English"
+    },
+    "nav": {
+        "home": "Home",
+        "menu": "Menu",
+        "contacts": "Contacts",
+        "cart": "Cart",
+        "profile": "Profile"
+    },
+    "hero": {
+        "promoBadge": "{value}% off your first order with promo {code}",
+        "titleLine1": "Sushi. Pizza.",
+        "titleLine2": "Shawarma.",
+        "titleLine3": "Hot and fast - at your door.",
+        "subtitle": "Order your favorite food with fast delivery across Kotayk and Yerevan. Fresh rolls, hot pizza, and juicy shawarma.",
+        "seoLine": "Hot sushi, pizza and shawarma with fast delivery in Yerevan and Nor Hachn. Free delivery in Nor Hachn.",
+        "orderNow": "Order now →",
+        "stats": {
+            "fastDelivery": "Fast delivery",
+            "freeDeliveryIn": "Free delivery in {zone}",
+            "deliveryFrom": "Delivery from {price} ֏"
+        },
+        "ticker": {
+            "rolls": "🍣  Rolls",
+            "pizza": "🍕  Pizza",
+            "shawarma": "🌯  Shawarma",
+            "strips": "🍗  Strips",
+            "lahmajo": "🫓  Lahmajo",
+            "salads": "🥗  Salads",
+            "desserts": "🍮  Desserts",
+            "drinks": "🥤  Drinks"
+        }
+    },
+    "home": {
+        "newArrivals": "✨ New arrivals",
+        "seeAll": "See all",
+        "popular": "Popular",
+        "promo_sets_subtitle": "PERFECT FOR SHARING",
+        "promo_sets_title": "Evening Sets",
+        "promo_sets_btn": "Choose a set",
+        "promo_hot_subtitle": "HOT AND CRISPY",
+        "promo_hot_title": "From the oven to your door",
+        "promo_hot_btn": "Order pizza",
+        "promo_fresh_subtitle": "ONLY THE BEST",
+        "promo_fresh_title": "Fresh fish every day",
+        "promo_fresh_btn": "View menu",
+        "feature_fast_title": "Super fast delivery",
+        "feature_fast_desc": "45-60 minutes to your door",
+        "feature_big_title": "Generous portions",
+        "feature_big_desc": "Every roll is a feast",
+        "feature_quality_title": "Always fresh",
+        "feature_quality_desc": "Made from quality ingredients",
+        "feature_support_title": "We are in touch",
+        "feature_support_desc": "24/7 support in Telegram"
+    },
+    "menu": {
+        "title": "Menu",
+        "search": "Search...",
+        "filters": "Filters",
+        "filters_title": "Filters & Sort",
+        "sort_default": "Default",
+        "sort_popular": "By popularity",
+        "sort_price_asc": "Price: low to high",
+        "sort_price_desc": "Price: high to low",
+        "reset_filters": "Reset",
+        "show_results": "Show results",
+        "show_results_count": "Show {count} results",
+        "filter_category": "Categories",
+        "all_categories": "All",
+        "sort_discount": "By discount",
+        "price_range": "Price",
+        "price_from": "From",
+        "price_to": "To",
+        "reset_all": "Reset all",
+        "sort_by": "Sort by",
+        "filter_by_price": "Filter by price",
+        "less_than_3000": "Less than 3000 ֏",
+        "less_than_5000": "Less than 5000 ֏",
+        "more_than_5000": "More than 5000 ֏",
+        "categoryAll": "All",
+        "sort": {
+            "name": "Alphabetical",
+            "priceAsc": "Price ↑"
+        },
+        "price": {
+            "all": "All prices"
+        },
+        "aria": {
+            "catalog": "Food catalog"
+        },
+        "stickyCart": {
+            "label": "Cart: {count} pcs"
+        },
+        "emptyCategory": {
+            "title": "Nothing here yet",
+            "subtitle": "We're preparing dishes for this category. They'll appear soon!",
+            "cta": "Browse other dishes"
+        },
+        "noResults": {
+            "title": "Nothing found",
+            "subtitle": "Try a different search or reset filters"
+        },
+        "hero": {
+            "chip": "Peak season - delivered without delay",
+            "title": "Delivery menu",
+            "subtitle": "Pick a dish while we heat the ovens and warm up the wok.",
+            "description": "Popular picks: rolls, pizza, shawarma, salads and desserts. Sort by price, category, or start with trending items."
+        },
+        "load_error": "Could not load the menu. Please try again in a moment.",
+        "retry": "Try again"
+    },
+    "product": {
+        "perUnit": "֏/pc",
+        "aria": {
+            "decrease": "Decrease quantity: {name}",
+            "increase": "Increase quantity: {name}",
+            "add": "Add {name}"
+        },
+        "modifiers": {
+            "fromPrice": "from {price} ֏",
+            "required": "Required",
+            "maxChoices": "Up to {n} pcs",
+            "unlimited": "No limit",
+            "total": "Total",
+            "addToCart": "Add to cart"
+        }
+    },
+    "cart": {
+        "pageTitle": "Cart",
+        "items": "Items",
+        "delivery": "Delivery",
+        "deliveryAtCheckout": "at checkout",
+        "deliveryFree": "Free",
+        "total": "Total",
+        "checkout": "Checkout",
+        "clear": "Clear cart",
+        "returnToCheckout": "Return to checkout",
+        "minOrderHint": "Minimum order amount depends on the delivery zone and will be calculated at checkout",
+        "validating": "Checking cart freshness…",
+        "validation_unavailable": "Could not verify your cart. Check your internet connection or try again later.",
+        "drawer_validation_unavailable": "Could not verify cart freshness. Try again before checkout.",
+        "item_unavailable": "Unavailable",
+        "remove_unavailable": "Remove unavailable items",
+        "lineProblems": {
+            "removeBeforeCheckout": "Remove unavailable items before checkout",
+            "pageAlert": "Some items are unavailable or changed in price. Remove highlighted lines before checkout."
+        },
+        "empty": {
+            "title": "Cart is empty",
+            "subtitle": "Add something tasty!",
+            "cta": "Go to menu"
+        },
+        "summary": {
+            "title": "Order total",
+            "itemsCount": "Items ({n} pcs)",
+            "toPay": "To pay",
+            "nextStepHint": "Address and payment - on the next step"
+        },
+        "promo": {
+            "placeholder": "Promo code",
+            "applied": "Applied: {code}",
+            "apply": "Apply",
+            "reset": "Reset",
+            "discountLine": "Discount ({code})",
+            "invalid": "Promo code is invalid",
+            "checkFailed": "Could not verify promo code",
+            "enterCode": "Enter a promo code",
+            "notFound": "Promo code not found",
+            "aria": {
+                "remove": "Remove promo code"
+            }
+        },
+        "aria": {
+            "close": "Close cart",
+            "remove": "Remove from cart: {name}"
+        },
+        "validation": {
+            "unavailable": "Item is no longer available. Remove it from the cart.",
+            "priceChanged": "Price changed. Now {price} ֏ per unit.",
+            "priceChangedGeneric": "Price changed. Remove the line or rebuild your order.",
+            "modifiersChanged": "Item options changed. Remove and add it again."
+        }
+    },
+    "checkout": {
+        "title": "Checkout",
+        "delivery_type": "Delivery method",
+        "delivery_label": "Delivery",
+        "pickup": "Pickup",
+        "contact_info": "Contact details",
+        "name": "Your name",
+        "phone": "Phone",
+        "email": "Email",
+        "address": "Delivery address",
+        "street": "Street, house, apartment",
+        "comment": "Order comment",
+        "payment_method": "Payment method",
+        "cash": "Cash",
+        "card": "Card to courier",
+        "submit_label": "Place order",
+        "order_summary": "Your order",
+        "total": "Total",
+        "delivery_price": "Delivery fee",
+        "pageTitle": "Checkout",
+        "emptyCart": "Your cart is empty. Add items before placing an order.",
+        "phoneTemplate": "+374 (___) __-__-__",
+        "pickupLocation": "Pickup from East West restaurant: {address}.",
+        "banner": {
+            "chip": "Delivery in 45-60 minutes",
+            "text": "The courier will call to confirm. We are open {hours}."
+        },
+        "missingItem": {
+            "prefix": "Prices may have changed or an item is unavailable:",
+            "fallback": "item temporarily unavailable",
+            "suffix": ". Remove it from the cart and try again."
+        },
+        "priceMismatch": {
+            "message": "Item prices have been updated. Rebuild your cart.",
+            "action": "Refresh cart"
+        },
+        "cartLineProblems": "Some items are unavailable or changed in price. Remove highlighted lines or return to the menu - checkout is blocked until the cart matches the menu.",
+        "cartValidating": "Checking cart freshness…",
+        "apiError": "Could not place the order - a server error occurred. Try again later or refresh the page.",
+        "submit": {
+            "sending": "Sending…",
+            "requestApproval": "Send request for confirmation",
+            "placeOrder": "Place order - {total} ֏"
+        },
+        "consent": {
+            "caption": "By placing an order you agree to the <offer>terms of service</offer> and <privacy>privacy policy</privacy>."
+        },
+        "contact": {
+            "title": "Contact details",
+            "name": "Your name",
+            "email": "Email",
+            "phone": "Phone",
+            "phoneRequiredDelivery": "Required for delivery",
+            "phoneOptionalPickup": "Optional for pickup"
+        },
+        "delivery": {
+            "title": "Delivery",
+            "methodLabel": "Delivery method",
+            "type": {
+                "delivery": "Delivery",
+                "pickup": "Pickup"
+            },
+            "paymentNote": "Pay only in cash or by card to the courier on delivery. Online payment is not available on the website.",
+            "zonesLoading": "Loading delivery zones…",
+            "zonesUnavailable": "Delivery is temporarily unavailable. Choose pickup or try again later.",
+            "zoneLabel": "Area / delivery zone",
+            "noActiveZones": "No active zones",
+            "selectZone": "Select a zone",
+            "zoneHelper": "Delivery price and minimum order depend on the area.",
+            "zoneOption": "{name} - delivery {delivery} · from {min} ֏",
+            "belowMin": "Minimum order for «{zone}» is {min} ֏ (currently {current} ֏).",
+            "managerApprovalWarning": "Delivery to this area requires confirmation. Our manager will call you to clarify the cost and timing.",
+            "address": "Delivery address",
+            "free": "free",
+            "freeCapitalized": "Free",
+            "managerApprovalSummary": "Delivery confirmed by manager",
+            "pendingZoneSelection": "Calculated when area is selected",
+            "zonesLoadFailed": "Failed to load zones ({status})",
+            "zonesTimeout": "Server response timed out. Check your connection and refresh the page.",
+            "zonesGenericError": "Failed to load delivery zones",
+            "promoInvalid": "Promo code is invalid",
+            "promoCheckFailed": "Could not verify promo code",
+            "promoEnterCode": "Enter a promo code",
+            "promoMinOrderFirst": "Reach the minimum order for the delivery zone first"
+        },
+        "payment": {
+            "title": "Payment",
+            "methodLabel": "Payment method",
+            "managerApprovalNote": "Pay the courier / by phone after the manager confirms your order.",
+            "cash": "Cash",
+            "cashSublabel": "To courier on delivery",
+            "card": "Card to courier",
+            "cardSublabel": "Terminal on delivery, not on website",
+            "comment": "Order comment"
+        },
+        "summary": {
+            "title": "Your order",
+            "items": "Items",
+            "delivery": "Delivery fee",
+            "promoPlaceholder": "Promo code",
+            "promoApplied": "Applied: {code}",
+            "promoReset": "Reset",
+            "promoApply": "Apply",
+            "promoDiscount": "Promo discount",
+            "total": "Total",
+            "deliveryPendingHint": "Delivery cost will be calculated below",
+            "courierNote": "By confirming the order you agree to a call from the courier."
+        },
+        "form": {
+            "validationFallback": "Please check the form data",
+            "serverNotConfirmed": "Server did not confirm the order. Please try again.",
+            "serverError": "Internal server error ({status})",
+            "requestError": "Request error ({status})",
+            "submitConnectionError": "Could not submit the order. Check your connection."
+        }
+    },
+    "order": {
+        "checkStatus": "Track order",
+        "repeat": "Repeat order",
+        "details": "Details",
+        "reorder": {
+            "validating": "Checking items…",
+            "success": "Items added to cart",
+            "partial_success": "Some items are unavailable and were not added",
+            "failed": "Could not repeat this order — items are no longer available"
+        },
+        "payment": {
+            "cash": "Cash",
+            "card": "Card"
+        },
+        "status": {
+            "pageTitle": "Order status",
+            "subtitle": "Track your order by number and phone - see stages and delivery time.",
+            "chipLive": "Live updates",
+            "chipEta": "Average delivery 45 min",
+            "orderId": "Order number",
+            "phone": "Phone",
+            "searching": "Searching…",
+            "submit": "Track",
+            "notFound": "Order not found",
+            "trackerLabel": "Order tracker",
+            "orderNumber": "Order #{id}",
+            "readyOrDelivered": "Order ready / delivered",
+            "etaUntil": "Expected by ~{time}",
+            "etaPending": "⏳ Prep time is being confirmed with the kitchen...",
+            "stepsLabel": "Progress",
+            "itemsLabel": "Order items",
+            "details": "Details",
+            "address": "Address: {address}",
+            "amount": "Amount",
+            "new": "Order received",
+            "cooking": "Preparing",
+            "delivering": "On the way",
+            "done": "Delivered",
+            "cancelled": "Cancelled"
+        },
+        "tracker": {
+            "overdue": "Delivery time is slightly delayed...",
+            "remainingMin": "{n} min left",
+            "orderNumber": "Order №{id}",
+            "cancelled": "Order cancelled",
+            "tracking": "Tracking order",
+            "cancelledMessage": "Unfortunately, your order was cancelled. Contact us if you have questions.",
+            "itemsTitle": "Order contents",
+            "deliveryInfo": "Delivery information",
+            "name": "Name",
+            "phone": "Phone",
+            "address": "Address",
+            "deliveryType": "Pickup method",
+            "payment": "Payment"
+        },
+        "success": {
+            "title": "Thank you for your order!",
+            "body": "We received your order and sent it to the kitchen. A courier will call you to confirm.",
+            "hint": "Usually the tracking page opens after checkout. You can also check status anytime.",
+            "homeCta": "Back to home"
+        }
+    },
+    "profile": {
+        "pageTitle": "Profile",
+        "defaultName": "Customer",
+        "phoneMissing": "Phone number not set (add it when placing an order)",
+        "memberSince": "With us since {date}",
+        "orderHistory": "Order history",
+        "orderNumber": "Order №{id}",
+        "empty": {
+            "title": "No orders yet",
+            "subtitle": "Your order history will appear here after your first purchase.",
+            "cta": "Go to menu"
+        },
+        "login": {
+            "noSession": "Sign in to see your order history",
+            "sessionExpired": "Your session expired, please sign in again"
+        },
+        "email": {
+            "verifyPrompt": "Verify your email to protect your account",
+            "resend": "Resend email",
+            "resendFailed": "Could not send email. Try again later.",
+            "resendSuccess": "Email sent to your inbox"
+        }
+    },
+    "auth": {
+        "login": "Sign in",
+        "logout": "Log out",
+        "register": "Create account",
+        "aria": {
+            "login": "Sign in",
+            "profileMenu": "Profile menu"
+        },
+        "dialog": {
+            "title": "Sign in to your account",
+            "subtitle": "Save order history and repeat orders in one click"
+        },
+        "tabs": {
+            "login": "Sign in",
+            "register": "Register"
+        },
+        "fields": {
+            "email": "Email",
+            "password": "Password",
+            "name": "Name",
+            "passwordHint": "At least 8 characters"
+        },
+        "errors": {
+            "credentialsRequired": "Enter email and password",
+            "invalidCredentials": "Invalid email or password",
+            "nameTooShort": "Name must be at least 2 characters",
+            "invalidEmail": "Enter a valid email",
+            "passwordTooShort": "Password must be at least 8 characters",
+            "registerFailed": "Could not create account",
+            "registerAutoLoginFailed": "Account created but sign-in failed. Try the Sign in tab."
+        },
+        "toast": {
+            "welcome": "Welcome!",
+            "registerSuccess": "Registration successful! You are signed in"
+        }
+    },
+    "contacts": {
+        "pageTitle": "Contacts",
+        "intro": "Call us, pick up in person, or order delivery across Yerevan and Kotayk.",
+        "phone": "Phone",
+        "pickupAddress": "Pickup address",
+        "hours": "Opening hours",
+        "phoneHint": "For orders and delivery time inquiries.",
+        "addressHint": "Pickup and delivery hub for Nor Hachn, Kotayk and Yerevan.",
+        "hoursHint": "We take orders every day, no days off.",
+        "call": "Call"
+    },
+    "footer": {
+        "tagline": "Sushi, pizza and shawarma delivery in Yerevan and Kotayk. Fresh food - fast to your door.",
+        "contactsHeading": "Contacts",
+        "infoHeading": "Information",
+        "copyright": "© {year} {site}. All rights reserved.",
+        "aria": {
+            "contactsNav": "Contacts and documents",
+            "legalNav": "Legal information"
+        },
+        "links": {
+            "contacts": "Contacts",
+            "menu": "Menu",
+            "offer": "Terms of service",
+            "privacy": "Privacy policy"
+        }
+    },
+    "errors": {
+        "phone": {
+            "required": "Enter phone number",
+            "invalid": "Enter a valid number (e.g. XX XX XX XX)",
+            "requiredForDelivery": "Enter phone for courier contact"
+        },
+        "name": {
+            "required": "Enter your name",
+            "tooShort": "At least 2 characters"
+        },
+        "email": {
+            "invalid": "Invalid email"
+        },
+        "address": {
+            "required": "Enter delivery address"
+        },
+        "zone": {
+            "required": "Select a delivery zone"
+        },
+        "orderId": {
+            "required": "Enter order number",
+            "invalid": "Number must be greater than 0"
+        }
+    },
+    "metadata": {
+        "home": {
+            "title": "Sushi & Pizza Delivery in Yerevan & Nor Hachn | East West",
+            "description": "Best sushi, pizza and shawarma delivery in Yerevan, Nor Hachn and Kotayk. Fast 45 min delivery. Order online!"
+        },
+        "menu": {
+            "title": "Menu: Sushi, Pizza & Shawarma Delivery | East West Yerevan",
+            "description": "Full menu of sushi, rolls, pizza and shawarma with delivery in Yerevan and Kotayk.",
+            "categoryTitle": "{category} delivery",
+            "categoryDescription": "Order {name} with delivery in Yerevan and Kotayk."
+        },
+        "contacts": {
+            "description": "Phone, kitchen address and opening hours for East West Delivery."
+        },
+        "orderSuccess": {
+            "title": "Thank you for your order | East West"
+        }
+    }
+}

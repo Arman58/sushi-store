@@ -1,14 +1,15 @@
+"use client";
+
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
 
+import { Link } from "@/i18n/server";
 import {
     CONTACT_PHONE,
     CONTACT_PHONE_DISPLAY,
-    KITCHEN_ADDRESS,
-    OPENING_HOURS,
     SITE_NAME,
 } from "@/lib/site-config";
 
@@ -23,7 +24,17 @@ const footerLinkSx = {
     "&:hover": { color: tokens.textPrimary },
 } as const;
 
+const FOOTER_LINKS = [
+    { href: "/contacts", key: "contacts" },
+    { href: "/menu", key: "menu" },
+    { href: "/offer", key: "offer" },
+    { href: "/privacy", key: "privacy" },
+] as const;
+
 export function StoreFooter() {
+    const t = useTranslations("footer");
+    const tCommon = useTranslations("common");
+
     return (
         <Box
             component="footer"
@@ -46,14 +57,13 @@ export function StoreFooter() {
                             {SITE_NAME}
                         </Typography>
                         <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 320 }}>
-                            Доставка суши, пиццы и шаурмы в Ереване и Котайке. Свежие блюда -
-                            быстро до вашей двери.
+                            {t("tagline")}
                         </Typography>
                     </Box>
 
-                    <Box component="nav" aria-label="Контакты и документы">
+                    <Box component="nav" aria-label={t("aria.contactsNav")}>
                         <Typography variant="overline" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-                            Контакты
+                            {t("contactsHeading")}
                         </Typography>
                         <Stack spacing={0.75}>
                             <Typography
@@ -66,25 +76,20 @@ export function StoreFooter() {
                                 {CONTACT_PHONE_DISPLAY}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                                {KITCHEN_ADDRESS.full}
+                                {tCommon("address.full")}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                                {OPENING_HOURS.label}
+                                {tCommon("hours.label")}
                             </Typography>
                         </Stack>
                     </Box>
 
-                    <Box component="nav" aria-label="Юридическая информация">
+                    <Box component="nav" aria-label={t("aria.legalNav")}>
                         <Typography variant="overline" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-                            Информация
+                            {t("infoHeading")}
                         </Typography>
                         <Stack spacing={0.75}>
-                            {[
-                                { href: "/contacts", label: "Контакты" },
-                                { href: "/menu", label: "Меню" },
-                                { href: "/offer", label: "Публичная оферта" },
-                                { href: "/privacy", label: "Политика конфиденциальности" },
-                            ].map(({ href, label }) => (
+                            {FOOTER_LINKS.map(({ href, key }) => (
                                 <Typography
                                     key={href}
                                     component={Link}
@@ -92,7 +97,7 @@ export function StoreFooter() {
                                     variant="body2"
                                     sx={footerLinkSx}
                                 >
-                                    {label}
+                                    {t(`links.${key}`)}
                                 </Typography>
                             ))}
                         </Stack>
@@ -104,7 +109,7 @@ export function StoreFooter() {
                     color="text.secondary"
                     sx={{ display: "block", mt: 3 }}
                 >
-                    © {new Date().getFullYear()} {SITE_NAME}. Все права защищены.
+                    {t("copyright", { year: new Date().getFullYear(), site: SITE_NAME })}
                 </Typography>
             </Container>
         </Box>

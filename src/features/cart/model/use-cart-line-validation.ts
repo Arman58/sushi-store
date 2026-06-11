@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { CartItem } from "./types";
@@ -23,18 +24,31 @@ function isAbortError(e: unknown): boolean {
     );
 }
 
-export function cartLineIssueMessage(issue: CartLineIssue): string {
+/** 422/409 на validate-cart — бизнес-ответ, не сбой транспорта. */
+function isValidationBusinessError(status: number): boolean {
+    return status === 422 || status === 409;
+}
+
+export function cartLineIssueMessage(
+    issue: CartLineIssue,
+    t: (key: string, values?: Record<string, string | number>) => string,
+): string {
     switch (issue.reason) {
         case "inactive":
         case "not_found":
-            return "Товар больше недоступен. Удалите позицию из корзины.";
+            return t("unavailable");
         case "price_mismatch":
             return issue.serverUnitPrice != null
-                ? `Цена изменилась. Сейчас ${issue.serverUnitPrice.toLocaleString("ru-RU")} ֏ за единицу.`
-                : "Цена изменилась. Удалите строку или пересоберите заказ.";
+                ? t("priceChanged", { price: issue.serverUnitPrice.toLocaleString() })
+                : t("priceChangedGeneric");
         default:
-            return "Опции товара изменились. Удалите позицию и добавьте её заново.";
+            return t("modifiersChanged");
     }
+}
+
+export function useCartLineIssueMessage() {
+    const t = useTranslations("cart.validation");
+    return (issue: CartLineIssue) => cartLineIssueMessage(issue, t);
 }
 
 export function useCartLineValidation(items: CartItem[]) {
@@ -42,12 +56,14 @@ export function useCartLineValidation(items: CartItem[]) {
         Record<string, CartLineIssue>
     >({});
     const [cartValidatePending, setCartValidatePending] = useState(false);
+    const [validationUnavailable, setValidationUnavailable] = useState(false);
     const cartValidateGenRef = useRef(0);
 
     useEffect(() => {
         if (items.length === 0) {
             setCartLineIssues({});
             setCartValidatePending(false);
+            setValidationUnavailable(false);
             return;
         }
 
@@ -76,7 +92,14 @@ export function useCartLineValidation(items: CartItem[]) {
                         signal: ac.signal,
                     });
                     if (cartValidateGenRef.current !== gen) return;
-                    if (!res.ok) return;
+
+                    if (!res.ok) {
+                        if (!isValidationBusinessError(res.status)) {
+                            setValidationUnavailable(true);
+                        }
+                        return;
+                    }
+
                     const data = (await res.json()) as {
                         items: Array<{
                             cartItemId: string;
@@ -86,6 +109,7 @@ export function useCartLineValidation(items: CartItem[]) {
                         }>;
                     };
                     if (cartValidateGenRef.current !== gen) return;
+
                     const next: Record<string, CartLineIssue> = {};
                     for (const row of data.items) {
                         if (!row.ok && row.reason) {
@@ -96,9 +120,10 @@ export function useCartLineValidation(items: CartItem[]) {
                         }
                     }
                     setCartLineIssues(next);
+                    setValidationUnavailable(false);
                 } catch (e) {
                     if (!isAbortError(e) && cartValidateGenRef.current === gen) {
-                        setCartLineIssues({});
+                        setValidationUnavailable(true);
                     }
                 } finally {
                     if (cartValidateGenRef.current === gen) {
@@ -119,6 +144,14 @@ export function useCartLineValidation(items: CartItem[]) {
         [items, cartLineIssues],
     );
 
+    const problematicCartItemIds = useMemo(
+        () =>
+            items
+                .filter((item) => Boolean(cartLineIssues[item.cartItemId]))
+                .map((item) => item.cartItemId),
+        [items, cartLineIssues],
+    );
+
     const validSubtotal = useMemo(
         () =>
             items.reduce((sum, item) => {
@@ -131,7 +164,9 @@ export function useCartLineValidation(items: CartItem[]) {
     return {
         cartLineIssues,
         cartValidatePending,
+        validationUnavailable,
         hasCartLineProblems,
+        problematicCartItemIds,
         validSubtotal,
     };
 }

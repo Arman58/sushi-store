@@ -5,13 +5,15 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import { alpha } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+
+import { Link } from "@/i18n/server";
 
 import { tokens } from "./theme";
 
 export type EmptyCartProps = {
     onNavigate?: () => void;
-    /** Внутри drawer — строка на всю высоту; на странице — компактный блок */
+    /** Внутри drawer - строка на всю высоту; на странице - компактный блок */
     layout?: "drawer" | "page";
     title?: string;
     subtitle?: string;
@@ -23,12 +25,16 @@ export type EmptyCartProps = {
 export function EmptyCart({
     onNavigate,
     layout = "drawer",
-    title = "Корзина пуста",
-    subtitle = "Добавьте что-нибудь вкусное!",
+    title,
+    subtitle,
     ctaHref = "/menu",
-    ctaLabel = "Перейти в меню",
+    ctaLabel,
 }: EmptyCartProps) {
+    const t = useTranslations("cart");
     const isPage = layout === "page";
+    const resolvedTitle = title ?? t("empty.title");
+    const resolvedSubtitle = subtitle ?? t("empty.subtitle");
+    const resolvedCtaLabel = ctaLabel ?? t("empty.cta");
 
     return (
         <Box
@@ -73,10 +79,10 @@ export function EmptyCart({
                     letterSpacing={-0.02}
                     sx={{ mb: 0.75, color: tokens.textPrimary }}
                 >
-                    {title}
+                    {resolvedTitle}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.55 }}>
-                    {subtitle}
+                    {resolvedSubtitle}
                 </Typography>
             </Box>
             <Button
@@ -92,7 +98,7 @@ export function EmptyCart({
                     px: 3,
                 }}
             >
-                {ctaLabel}
+                {resolvedCtaLabel}
             </Button>
         </Box>
     );

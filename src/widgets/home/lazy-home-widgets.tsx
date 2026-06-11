@@ -36,13 +36,15 @@ export const PopularSection = dynamic(
     },
 );
 
-export type { PromoBannerSlide } from "@/widgets/home/promo-banner-carousel";
-
-export const BannerCarousel = dynamic(
+export const PromoCarousel = dynamic(
     () =>
-        import("@/widgets/home/promo-banner-carousel").then(
-            (m) => m.PromoBannerCarousel,
-        ),
+        import("@/widgets/promo-carousel").then((m) => m.PromoCarousel),
+    { ssr: false },
+);
+
+export const FeaturesBlock = dynamic(
+    () =>
+        import("@/widgets/features-block").then((m) => m.FeaturesBlock),
     { ssr: false },
 );
 

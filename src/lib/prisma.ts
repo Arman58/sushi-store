@@ -61,7 +61,7 @@ function resolvePrismaClient(): PrismaClient {
  * Ленивый доступ через Proxy: после `prisma generate` без перезапуска dev первый запрос
  * получит клиент с актуальными моделями.
  *
- * Важно: у Reflect.get третий аргумент — реальный клиент, не Proxy; иначе у Prisma
+ * Важно: у Reflect.get третий аргумент - реальный клиент, не Proxy; иначе у Prisma
  * делегаты вроде `deliveryZone` оказываются undefined → `.findMany` падает.
  */
 export const prisma = new Proxy({} as PrismaClient, {

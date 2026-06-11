@@ -4,11 +4,20 @@ import {
     getAdminAuthCookieSettings,
     signAdminSessionToken,
 } from "@/lib/admin-session";
+import {
+    checkRateLimit,
+    rateLimitExceededPlainResponse,
+} from "@/lib/rate-limit";
 
 const ADMIN_USER = process.env.ADMIN_USER;
 const ADMIN_PASS = process.env.ADMIN_PASS;
 
 export async function POST(request: Request) {
+    const rateLimit = await checkRateLimit(request, "adminLogin");
+    if (!rateLimit.allowed) {
+        return rateLimitExceededPlainResponse();
+    }
+
     if (!ADMIN_USER || !ADMIN_PASS) {
         return new NextResponse("Admin auth is not configured", { status: 401 });
     }

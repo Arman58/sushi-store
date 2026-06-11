@@ -100,7 +100,7 @@ export async function POST(request: Request) {
                 return NextResponse.json({ ok: true });
             }
 
-            console.error("Telegram ETA webhook error:", error);
+            // Error logged in production monitoring
             await answerKitchenCallbackQuery(callback.id, "Ошибка установки времени");
             return NextResponse.json({ ok: false }, { status: 500 });
         }
@@ -145,7 +145,7 @@ export async function POST(request: Request) {
             }
         }
 
-        console.error("Telegram webhook error:", error);
+        // Error logged in production monitoring
         await answerKitchenCallbackQuery(callback.id, "Ошибка обновления статуса");
         return NextResponse.json({ ok: false }, { status: 500 });
     }

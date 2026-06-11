@@ -2,7 +2,6 @@
 
 import CloseIcon from "@mui/icons-material/Close";
 import Alert from "@mui/material/Alert";
-import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
@@ -11,13 +10,14 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
+import { useRouter } from "@/i18n/server";
 import { showAppToast } from "@/shared/lib/show-app-toast";
+import { AppButton, AppInput } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
 
 type AuthTab = "login" | "register";
@@ -53,6 +53,8 @@ export type LoginDialogProps = {
 
 export function LoginDialog({ open, onClose }: LoginDialogProps) {
     const router = useRouter();
+    const t = useTranslations("auth");
+    const tCommon = useTranslations("common");
     const [tab, setTab] = useState<AuthTab>("login");
     const [loginEmail, setLoginEmail] = useState("");
     const [loginPassword, setLoginPassword] = useState("");
@@ -78,7 +80,7 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
         setError(null);
         const email = loginEmail.trim().toLowerCase();
         if (!email || !loginPassword) {
-            const msg = "Введите email и пароль";
+            const msg = t("errors.credentialsRequired");
             setError(msg);
             showAppToast(msg, "error");
             return;
@@ -93,17 +95,17 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
             });
 
             if (result?.error) {
-                const msg = "Неверный email или пароль";
+                const msg = t("errors.invalidCredentials");
                 setError(msg);
                 showAppToast(msg, "error");
                 return;
             }
 
-            showAppToast("Добро пожаловать!");
+            showAppToast(t("toast.welcome"));
             onClose();
             router.refresh();
         } catch {
-            const msg = "Сеть недоступна. Попробуйте ещё раз.";
+            const msg = tCommon("networkError");
             setError(msg);
             showAppToast(msg, "error");
         } finally {
@@ -117,19 +119,19 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
         const name = regName.trim();
 
         if (name.length < 2) {
-            const msg = "Имя должно быть не короче 2 символов";
+            const msg = t("errors.nameTooShort");
             setError(msg);
             showAppToast(msg, "error");
             return;
         }
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            const msg = "Введите корректный email";
+            const msg = t("errors.invalidEmail");
             setError(msg);
             showAppToast(msg, "error");
             return;
         }
         if (regPassword.length < 8) {
-            const msg = "Пароль должен быть не короче 8 символов";
+            const msg = t("errors.passwordTooShort");
             setError(msg);
             showAppToast(msg, "error");
             return;
@@ -144,7 +146,7 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
             });
 
             if (!res.ok) {
-                const msg = await readJsonError(res, "Не удалось создать аккаунт");
+                const msg = await readJsonError(res, t("errors.registerFailed"));
                 setError(msg);
                 showAppToast(msg, "error");
                 return;
@@ -157,8 +159,7 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
             });
 
             if (signInResult?.error) {
-                const msg =
-                    "Аккаунт создан, но не удалось войти. Попробуйте вкладку «Вход».";
+                const msg = t("errors.registerAutoLoginFailed");
                 setError(msg);
                 showAppToast(msg, "error");
                 setTab("login");
@@ -166,11 +167,11 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                 return;
             }
 
-            showAppToast("Регистрация успешна! Вы вошли в аккаунт");
+            showAppToast(t("toast.registerSuccess"));
             onClose();
             router.refresh();
         } catch {
-            const msg = "Сеть недоступна. Попробуйте ещё раз.";
+            const msg = tCommon("networkError");
             setError(msg);
             showAppToast(msg, "error");
         } finally {
@@ -189,12 +190,12 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
             }}
         >
             <DialogTitle sx={{ pr: 6, fontWeight: 700, pb: 0 }}>
-                Войти в аккаунт
+                {t("dialog.title")}
                 <IconButton
                     onClick={onClose}
                     disabled={loading}
                     sx={{ position: "absolute", right: 8, top: 8 }}
-                    aria-label="Закрыть"
+                    aria-label={tCommon("aria.close")}
                 >
                     <CloseIcon aria-hidden focusable="false" />
                 </IconButton>
@@ -206,7 +207,7 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                     color="text.secondary"
                     sx={{ mb: 2, lineHeight: 1.5 }}
                 >
-                    Сохраняйте историю заказов и повторяйте их в один клик
+                    {t("dialog.subtitle")}
                 </Typography>
 
                 <Tabs
@@ -230,14 +231,14 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                         },
                     }}
                 >
-                    <Tab label="Вход" value="login" />
-                    <Tab label="Регистрация" value="register" />
+                    <Tab label={t("tabs.login")} value="login" />
+                    <Tab label={t("tabs.register")} value="register" />
                 </Tabs>
 
                 {tab === "login" ? (
                     <Stack spacing={2}>
-                        <TextField
-                            label="Email"
+                        <AppInput
+                            label={t("fields.email")}
                             type="email"
                             autoComplete="email"
                             value={loginEmail}
@@ -246,8 +247,8 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                             sx={authFieldSx}
                             inputProps={{ style: { fontSize: 16 } }}
                         />
-                        <TextField
-                            label="Пароль"
+                        <AppInput
+                            label={t("fields.password")}
                             type="password"
                             autoComplete="current-password"
                             value={loginPassword}
@@ -260,7 +261,7 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                             }}
                         />
                         {error ? <Alert severity="error">{error}</Alert> : null}
-                        <Button
+                        <AppButton
                             variant="contained"
                             color="primary"
                             disabled={loading}
@@ -275,14 +276,14 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                             {loading ? (
                                 <CircularProgress size={22} color="inherit" />
                             ) : (
-                                "Войти"
+                                t("login")
                             )}
-                        </Button>
+                        </AppButton>
                     </Stack>
                 ) : (
                     <Stack spacing={2}>
-                        <TextField
-                            label="Имя"
+                        <AppInput
+                            label={t("fields.name")}
                             autoComplete="name"
                             value={regName}
                             onChange={(e) => setRegName(e.target.value)}
@@ -290,8 +291,8 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                             sx={authFieldSx}
                             inputProps={{ style: { fontSize: 16 } }}
                         />
-                        <TextField
-                            label="Email"
+                        <AppInput
+                            label={t("fields.email")}
                             type="email"
                             autoComplete="email"
                             value={regEmail}
@@ -300,13 +301,13 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                             sx={authFieldSx}
                             inputProps={{ style: { fontSize: 16 } }}
                         />
-                        <TextField
-                            label="Пароль"
+                        <AppInput
+                            label={t("fields.password")}
                             type="password"
                             autoComplete="new-password"
                             value={regPassword}
                             onChange={(e) => setRegPassword(e.target.value)}
-                            helperText="Минимум 8 символов"
+                            helperText={t("fields.passwordHint")}
                             fullWidth
                             sx={authFieldSx}
                             inputProps={{ style: { fontSize: 16 } }}
@@ -315,7 +316,7 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                             }}
                         />
                         {error ? <Alert severity="error">{error}</Alert> : null}
-                        <Button
+                        <AppButton
                             variant="contained"
                             color="primary"
                             disabled={loading}
@@ -330,9 +331,9 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                             {loading ? (
                                 <CircularProgress size={22} color="inherit" />
                             ) : (
-                                "Создать аккаунт"
+                                t("register")
                             )}
-                        </Button>
+                        </AppButton>
                     </Stack>
                 )}
             </DialogContent>

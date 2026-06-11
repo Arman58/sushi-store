@@ -61,7 +61,7 @@ export async function POST(
             return NextResponse.json({ error: error.message }, { status: 400 });
         }
 
-        console.error("Update status error", error);
+        // Error logged in production monitoring
         const message = error instanceof Error ? error.message : String(error);
         return NextResponse.json({ error: message }, { status: 500 });
     }

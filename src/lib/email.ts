@@ -9,19 +9,19 @@ import { SITE_URL } from "@/lib/site-config";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 
-/** Локальная разработка — Resend sandbox принимает только этот отправитель. */
+/** Локальная разработка - Resend sandbox принимает только этот отправитель. */
 const DEV_FROM = "East West Delivery <onboarding@resend.dev>";
 
-/** Ленивая инициализация — не падаем при сборке без ключа. */
+/** Ленивая инициализация - не падаем при сборке без ключа. */
 function getResendClient(): Resend | null {
     if (!resendApiKey?.trim()) return null;
     return new Resend(resendApiKey);
 }
 
 /**
- * RESEND_FROM — верифицированный отправитель на проде
+ * RESEND_FROM - верифицированный отправитель на проде
  * (например East West Delivery <no-reply@eastwestnh.com>).
- * Без переменной — onboarding@resend.dev для локальной разработки.
+ * Без переменной - onboarding@resend.dev для локальной разработки.
  */
 function getFromAddress(): string {
     const configured = process.env.RESEND_FROM?.trim();
@@ -31,7 +31,7 @@ function getFromAddress(): string {
 
 /**
  * Resend в тестовом режиме доставляет письма только на email владельца аккаунта.
- * RESEND_DEV_REDIRECT_TO — inbox для локальной разработки (ваш email в Resend).
+ * RESEND_DEV_REDIRECT_TO - inbox для локальной разработки (ваш email в Resend).
  */
 function resolveRecipient(to: string): {
     recipient: string;

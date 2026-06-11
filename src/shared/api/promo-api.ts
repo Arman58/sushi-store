@@ -1,5 +1,5 @@
 /**
- * Promo validation — POST /api/validate-promo
+ * Promo validation - POST /api/validate-promo
  */
 
 import { apiPost } from "./client";

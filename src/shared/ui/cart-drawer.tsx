@@ -4,6 +4,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import HighlightOffOutlinedIcon from "@mui/icons-material/HighlightOffOutlined";
 import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
 import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
@@ -14,8 +15,7 @@ import { alpha, useTheme } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import CountUp from "react-countup";
 
@@ -24,16 +24,15 @@ import {
     useCartLineValidation,
     useCartStore,
 } from "@/features/cart";
+import { Link, usePathname } from "@/i18n/server";
 import { ApiError, validatePromo } from "@/shared/api";
 
+import { AppButton } from "./AppButton";
 import { EmptyCart } from "./empty-cart";
 import { tokens } from "./theme";
 
 const DRAWER_WIDTH = 420;
 const MotionBox = motion.create(Box);
-
-const MIN_ORDER_HINT =
-    "Минимальная сумма заказа зависит от зоны доставки и будет рассчитана при оформлении";
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
@@ -42,6 +41,8 @@ const fmt = new Intl.NumberFormat("ru-RU");
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function CartDrawer() {
+    const t = useTranslations("cart");
+    const tCommon = useTranslations("common");
     const pathname = usePathname();
     const isCheckoutPage = pathname?.startsWith("/checkout") ?? false;
     const isCartOpen = useCartStore((s) => s.isCartOpen);
@@ -56,7 +57,9 @@ export function CartDrawer() {
     const {
         cartLineIssues,
         cartValidatePending,
+        validationUnavailable,
         hasCartLineProblems,
+        problematicCartItemIds,
     } = useCartLineValidation(items);
 
     const [promoInput, setPromoInput] = useState("");
@@ -72,11 +75,11 @@ export function CartDrawer() {
     );
     const total = Math.max(0, subtotal - promoDiscount);
     const count = items.reduce((s, i) => s + i.quantity, 0);
-    const hasAtLeastOneValidItem = items.some(
-        (item) => !cartLineIssues[item.cartItemId],
-    );
     const canProceedToCheckout =
-        hasAtLeastOneValidItem && !cartValidatePending;
+        hasItems &&
+        !cartValidatePending &&
+        !validationUnavailable &&
+        !hasCartLineProblems;
 
     useEffect(() => {
         if (appliedPromoCode) setPromoInput(appliedPromoCode);
@@ -105,8 +108,8 @@ export function CartDrawer() {
                     setAppliedPromoCode(null);
                     setPromoError(
                         e instanceof ApiError
-                            ? e.message || "Промокод недействителен"
-                            : "Не удалось проверить промокод",
+                            ? e.message || t("promo.invalid")
+                            : t("promo.checkFailed"),
                     );
                 }
             }
@@ -115,13 +118,13 @@ export function CartDrawer() {
         return () => {
             cancelled = true;
         };
-    }, [appliedPromoCode, hasItems, subtotal, setAppliedPromoCode]);
+    }, [appliedPromoCode, hasItems, subtotal, setAppliedPromoCode, t]);
 
     const applyPromo = async () => {
         setPromoError("");
         const code = promoInput.trim().replace(/\s+/g, "").toUpperCase();
         if (!code) {
-            setPromoError("Введите промокод");
+            setPromoError(t("promo.enterCode"));
             return;
         }
         if (!hasItems) return;
@@ -139,8 +142,8 @@ export function CartDrawer() {
             setAppliedPromoCode(null);
             setPromoError(
                 e instanceof ApiError
-                    ? e.message || "Промокод не найден"
-                    : "Не удалось проверить промокод",
+                    ? e.message || t("promo.notFound")
+                    : t("promo.checkFailed"),
             );
         } finally {
             setPromoApplying(false);
@@ -274,7 +277,7 @@ export function CartDrawer() {
                                     variant="h6"
                                     fontWeight={700}
                                 >
-                                    Корзина
+                                    {t("pageTitle")}
                                 </Typography>
                                 {count > 0 && (
                                     <motion.div
@@ -327,7 +330,7 @@ export function CartDrawer() {
                             <IconButton
                                 onClick={closeCart}
                                 size="small"
-                                aria-label="Закрыть корзину"
+                                aria-label={t("aria.close")}
                                 sx={{
                                     color: "text.secondary",
                                     bgcolor: "background.paper",
@@ -363,6 +366,17 @@ export function CartDrawer() {
                                         py: 2,
                                     }}
                                 >
+                                    {validationUnavailable && (
+                                        <Alert severity="warning" sx={{ mb: 2 }}>
+                                            {t("drawer_validation_unavailable")}
+                                        </Alert>
+                                    )}
+                                    {hasCartLineProblems &&
+                                        !validationUnavailable && (
+                                            <Alert severity="error" sx={{ mb: 2 }}>
+                                                {t("lineProblems.pageAlert")}
+                                            </Alert>
+                                        )}
                                     <Stack spacing={0} divider={null}>
                                         {items.map((item, index) => (
                                             <CartLineItem
@@ -371,6 +385,9 @@ export function CartDrawer() {
                                                 lineIssue={
                                                     cartLineIssues[item.cartItemId]
                                                 }
+                                                showUnavailableBadge={problematicCartItemIds.includes(
+                                                    item.cartItemId,
+                                                )}
                                                 variant="drawer"
                                                 showDivider={index < items.length - 1}
                                                 onIncrease={() =>
@@ -407,7 +424,7 @@ export function CartDrawer() {
                                                     void applyPromo();
                                                 }
                                             }}
-                                            placeholder="Промокод"
+                                            placeholder={t("promo.placeholder")}
                                             size="small"
                                             fullWidth
                                             disabled={!hasItems || promoApplying}
@@ -415,7 +432,7 @@ export function CartDrawer() {
                                             helperText={
                                                 promoError ||
                                                 (appliedPromoCode && !promoError
-                                                    ? `Применён: ${appliedPromoCode}`
+                                                    ? t("promo.applied", { code: appliedPromoCode })
                                                     : undefined)
                                             }
                                             FormHelperTextProps={{
@@ -445,7 +462,7 @@ export function CartDrawer() {
                                                         {appliedPromoCode ? (
                                                             <IconButton
                                                                 size="small"
-                                                                aria-label="Удалить промокод"
+                                                                aria-label={t("promo.aria.remove")}
                                                                 onClick={clearPromo}
                                                                 edge="end"
                                                                 sx={{
@@ -466,7 +483,7 @@ export function CartDrawer() {
                                                                 fontSize: 12,
                                                             }}
                                                         >
-                                                            {promoApplying ? "…" : "Применить"}
+                                                            {promoApplying ? tCommon("loadingEllipsis") : t("promo.apply")}
                                                         </Button>
                                                     </InputAdornment>
                                                 ),
@@ -506,7 +523,7 @@ export function CartDrawer() {
                                                 color="text.secondary"
                                                 sx={{ minWidth: 0, flex: 1, pr: 1 }}
                                             >
-                                                Товары
+                                                {t("items")}
                                             </Typography>
                                             <Typography
                                                 variant="body2"
@@ -538,7 +555,7 @@ export function CartDrawer() {
                                                         whiteSpace: "nowrap",
                                                     }}
                                                 >
-                                                    Скидка ({appliedPromoCode})
+                                                    {t("promo.discountLine", { code: appliedPromoCode })}
                                                 </Typography>
                                                 <Typography
                                                     variant="body2"
@@ -565,7 +582,7 @@ export function CartDrawer() {
                                                 color="text.secondary"
                                                 sx={{ minWidth: 0, flex: 1, pr: 1 }}
                                             >
-                                                Доставка
+                                                {t("delivery")}
                                             </Typography>
                                             <Typography
                                                 variant="body2"
@@ -573,7 +590,7 @@ export function CartDrawer() {
                                                 fontWeight={500}
                                                 sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
                                             >
-                                                при оформлении
+                                                {t("deliveryAtCheckout")}
                                             </Typography>
                                         </Stack>
                                     </Stack>
@@ -598,7 +615,7 @@ export function CartDrawer() {
                                             fontWeight={700}
                                             sx={{ minWidth: 0, flex: 1, pr: 1 }}
                                         >
-                                            Итого
+                                            {t("total")}
                                         </Typography>
                                         <motion.div
                                             key={total}
@@ -640,7 +657,7 @@ export function CartDrawer() {
                                                 lineHeight: 1.45,
                                             }}
                                         >
-                                            Удалите недоступные позиции перед оформлением
+                                            {t("lineProblems.removeBeforeCheckout")}
                                         </Typography>
                                     )}
 
@@ -654,12 +671,12 @@ export function CartDrawer() {
                                             lineHeight: 1.45,
                                         }}
                                     >
-                                        {MIN_ORDER_HINT}
+                                        {t("minOrderHint")}
                                     </Typography>
 
                                     {/* CTA */}
                                     {isCheckoutPage ? (
-                                        <Button
+                                        <AppButton
                                             component={Link}
                                             href="/checkout"
                                             onClick={closeCart}
@@ -672,10 +689,10 @@ export function CartDrawer() {
                                                 minHeight: 40,
                                             }}
                                         >
-                                            Вернуться к оформлению
-                                        </Button>
+                                            {t("returnToCheckout")}
+                                        </AppButton>
                                     ) : (
-                                        <Button
+                                        <AppButton
                                             component={Link}
                                             href="/checkout"
                                             onClick={closeCart}
@@ -689,12 +706,12 @@ export function CartDrawer() {
                                                 minHeight: 48,
                                             }}
                                         >
-                                            Оформить заказ
-                                        </Button>
+                                            {t("checkout")}
+                                        </AppButton>
                                     )}
 
                                     {/* Clear */}
-                                    <Button
+                                    <AppButton
                                         onClick={clearCart}
                                         variant="text"
                                         fullWidth
@@ -706,8 +723,8 @@ export function CartDrawer() {
                                             "&:hover": { color: tokens.red },
                                         }}
                                     >
-                                        Очистить корзину
-                                    </Button>
+                                        {t("clear")}
+                                    </AppButton>
                                 </Box>
                             </>
                         )}

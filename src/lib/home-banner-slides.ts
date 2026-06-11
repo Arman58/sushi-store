@@ -1,5 +1,6 @@
 import type { DiscountType, PromoCode } from "@prisma/client";
 
+import { getLocalizedField } from "@/lib/i18n-utils";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import type { PromoBannerSlide } from "@/widgets/home/promo-banner-carousel";
 
@@ -36,10 +37,10 @@ function promoToSlide(promo: PromoCode): PromoBannerSlide {
     };
 }
 
-function productToSlide(product: HomeProductPayload): PromoBannerSlide {
+function productToSlide(product: HomeProductPayload, locale: string): PromoBannerSlide {
     const cover = getProductCoverUrl(product);
     return {
-        title: product.name,
+        title: getLocalizedField(product.name, locale),
         subtitle: `${product.price.toLocaleString("ru-RU")} ֏`,
         gradient: "linear-gradient(135deg, #1e3a5f 0%, #2d6a4f 100%)",
         href: "/menu",
@@ -50,6 +51,7 @@ function productToSlide(product: HomeProductPayload): PromoBannerSlide {
 export function buildHomeBannerSlides(
     promos: PromoCode[],
     featuredProducts: HomeProductPayload[],
+    locale = "hy",
 ): PromoBannerSlide[] {
     const slides: PromoBannerSlide[] = [DEFAULT_SLIDE];
 
@@ -59,7 +61,7 @@ export function buildHomeBannerSlides(
 
     if (slides.length === 1 && featuredProducts.length > 0) {
         for (const product of featuredProducts.slice(0, 3)) {
-            slides.push(productToSlide(product));
+            slides.push(productToSlide(product, locale));
         }
     }
 

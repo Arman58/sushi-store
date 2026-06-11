@@ -2,7 +2,7 @@ export const DEFAULT_FETCH_TIMEOUT_MS = 10_000;
 export const NOTIFICATION_FETCH_TIMEOUT_MS = 5_000;
 
 /**
- * fetch с AbortController — сторонние API (Telegram, Resend HTTP и т.д.)
+ * fetch с AbortController - сторонние API (Telegram, Resend HTTP и т.д.)
  * не могут висеть дольше timeoutMs.
  */
 export async function fetchWithTimeout(

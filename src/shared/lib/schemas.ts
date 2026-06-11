@@ -38,7 +38,7 @@ export const checkoutSchema = z
             .string()
             .min(1, "Введите имя")
             .min(2, "Минимум 2 символа"),
-        /** Для авторизованных — подставляется из профиля; не уходит в заказ. */
+        /** Для авторизованных - подставляется из профиля; не уходит в заказ. */
         email: z
             .string()
             .default("")
@@ -46,7 +46,7 @@ export const checkoutSchema = z
                 (v) => v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
                 "Некорректный email",
             ),
-        /** Обязателен при доставке; при самовывозе — опционально. */
+        /** Обязателен при доставке; при самовывозе - опционально. */
         phone: z.string().default(""),
         delivery: z.enum(["delivery", "pickup"]),
         address: z.string().default(""),
@@ -54,7 +54,7 @@ export const checkoutSchema = z
         payment: z.enum(["cash", "card"]).default("cash"),
         /** Обязательна при delivery; для pickup не используется */
         deliveryZoneId: z.number().int().positive().optional(),
-        hp: z.string().default(""),   // honeypot — must stay empty
+        hp: z.string().default(""),   // honeypot - must stay empty
     })
     .superRefine((data, ctx) => {
         const phoneDigits = checkoutPhoneDigits(data.phone);

@@ -1,5 +1,3 @@
-"use client";
-
 import Box from "@mui/material/Box";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
@@ -33,23 +31,22 @@ export function MenuSectionSkeleton() {
             </Stack>
 
             {/* Search + filter bar skeleton */}
-            <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
+            <Stack direction="row" spacing={1.5} sx={{ mb: 3 }}>
                 <Skeleton
                     variant="rounded"
                     animation="wave"
-                    height={40}
+                    height={44}
                     sx={{
                         flex: 1,
-                        maxWidth: 260,
                         borderRadius: 2,
                     }}
                 />
                 <Skeleton
                     variant="rounded"
                     animation="wave"
-                    width={260}
-                    height={40}
-                    sx={{ borderRadius: 2 }}
+                    width={120}
+                    height={44}
+                    sx={{ borderRadius: 2, flexShrink: 0 }}
                 />
             </Stack>
 

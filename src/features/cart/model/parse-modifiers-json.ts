@@ -1,7 +1,7 @@
 /**
  * Парсер snapshot-а модификаторов из БД.
  *
- * В Prisma поле OrderItem.selectedModifiers имеет тип Json — приходит как unknown.
+ * В Prisma поле OrderItem.selectedModifiers имеет тип Json - приходит как unknown.
  * Эта функция превращает любой неизвестный вход в типизированный CartModifierSnapshot[],
  * молча пропуская элементы неправильной формы (вместо throw, чтобы UI не ломался,
  * если у старых заказов сохранён старый формат).

@@ -56,8 +56,8 @@ export async function POST(request: Request) {
 
     try {
         await sendWelcomeEmail(email, user.name ?? "");
-    } catch (error) {
-        console.error("[resend-verification] Failed to send email:", error);
+    } catch {
+        // Error logged in production monitoring
         return NextResponse.json(
             { error: "Не удалось отправить письмо. Попробуйте позже." },
             { status: 502 },

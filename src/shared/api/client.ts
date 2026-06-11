@@ -3,7 +3,22 @@
  * Centralises error handling, JSON parsing, and Content-Type headers.
  */
 
-const SESSION_EXPIRED_TOAST = "Сессия истекла, войдите заново";
+import { type AppLocale, routing } from "@/i18n/routing";
+import { extractApiErrorCode, type ApiErrorCode } from "@/shared/lib/api-error";
+
+function resolveClientLocale(): AppLocale {
+    if (typeof window === "undefined") return routing.defaultLocale;
+    const match = window.location.pathname.match(/^\/(hy|en|ru)(?=\/|$)/);
+    return (match?.[1] as AppLocale | undefined) ?? routing.defaultLocale;
+}
+
+async function getSessionExpiredToastMessage(): Promise<string> {
+    const locale = resolveClientLocale();
+    const messages = (await import(`@/messages/${locale}.json`)).default as {
+        common: { toast: { sessionExpired: string } };
+    };
+    return messages.common.toast.sessionExpired;
+}
 
 let unauthorizedHandling: Promise<void> | null = null;
 
@@ -17,7 +32,7 @@ async function handleUnauthorized(): Promise<void> {
                 import("@/shared/lib/show-app-toast"),
             ]);
             await signOut({ redirect: false });
-            showAppToast(SESSION_EXPIRED_TOAST, "error");
+            showAppToast(await getSessionExpiredToastMessage(), "error");
         })().finally(() => {
             unauthorizedHandling = null;
         });
@@ -28,6 +43,7 @@ async function handleUnauthorized(): Promise<void> {
 
 export class ApiError extends Error {
     readonly data: unknown;
+    readonly code: ApiErrorCode | undefined;
 
     constructor(
         public readonly status: number,
@@ -37,6 +53,7 @@ export class ApiError extends Error {
         super(message);
         this.name = "ApiError";
         this.data = data ?? { error: message, status };
+        this.code = extractApiErrorCode(data ?? { error: message, status });
     }
 }
 

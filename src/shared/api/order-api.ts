@@ -1,6 +1,6 @@
 /**
- * Order API — typed wrappers for /api/order and /api/order-status.
- * All server communication goes through apiPost — never raw fetch in pages.
+ * Order API - typed wrappers for /api/order and /api/order-status.
+ * All server communication goes through apiPost - never raw fetch in pages.
  */
 
 import { apiPost } from "./client";
@@ -29,14 +29,15 @@ export type PlaceOrderRequest = {
     delivery: "delivery" | "pickup";
     items: OrderItemPayload[];
     totalPrice: number;
-    /** Сумма товаров без доставки — сверка с сервером */
+    /** Сумма товаров без доставки - сверка с сервером */
     subtotalBeforeDiscount?: number;
-    /** Сумма скидки по промокоду — сверка с сервером */
+    /** Сумма скидки по промокоду - сверка с сервером */
     discountAmount?: number;
-    /** Для доставки — id активной зоны (сверяется на сервере) */
+    /** Для доставки - id активной зоны (сверяется на сервере) */
     deliveryZoneId?: number;
     hp: string;
     promoCode?: string;
+    locale?: "hy" | "ru" | "en";
 };
 
 export type PlaceOrderResponse = {
@@ -55,7 +56,7 @@ export type OrderStatusResponse = {
     payment: "CASH" | "CARD";
     totalPrice: number;
     createdAt: string;
-    /** ISO-строка или null — задаётся кухней */
+    /** ISO-строка или null - задаётся кухней */
     estimatedDeliveryAt: string | null;
     address?: string | null;
     deliveryZoneName?: string | null;

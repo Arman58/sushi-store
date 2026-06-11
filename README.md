@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# East West Delivery
 
-## Getting Started
+Онлайн-витрина доставки суши, пиццы и шаурмы в Нор Ачне (Армения). Заказ через корзину, оформление с доставкой или самовывозом, админ-панель для меню и заказов.
 
-First, run the development server:
+## Стек
+
+- **Next.js 16** (App Router)
+- **Prisma** + PostgreSQL
+- **MUI 7** + Emotion
+- **next-intl** (hy / ru / en)
+- **NextAuth** (клиентские аккаунты)
+- **Zustand** (корзина), **React Hook Form** + **Zod** (чекаут)
+
+## Быстрый старт
 
 ```bash
+npm install
+cp .env.example .env.local
+# Заполните переменные в .env.local
+
+npm run prisma:migrate
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Откройте [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Полезные команды
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Команда | Описание |
+|---------|----------|
+| `npm run dev` | Dev-сервер |
+| `npm run build` | Миграции + generate + production build |
+| `npm run build:local` | Build с `.env.local` (локально) |
+| `npm run prisma:seed` | Наполнение БД демо-данными |
+| `npm run lint` | ESLint |
 
-## Learn More
+## Production
 
-To learn more about Next.js, take a look at the following resources:
+Сайт: [eastwestnh.com](https://eastwestnh.com)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+На Vercel задайте все переменные из `.env.example`. Для production:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `NEXTAUTH_URL=https://eastwestnh.com`
+- `NEXT_PUBLIC_SITE_URL=https://eastwestnh.com`
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Скрипт `build` автоматически выполняет `prisma migrate deploy` и `prisma generate` перед `next build`.

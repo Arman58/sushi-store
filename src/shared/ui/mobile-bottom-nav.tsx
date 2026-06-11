@@ -11,18 +11,20 @@ import Stack from "@mui/material/Stack";
 import { alpha } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { motion } from "framer-motion";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
 import { useCartStore } from "@/features/cart";
+import { Link, usePathname } from "@/i18n/server";
 
 import { tokens } from "./theme";
 
 const fmt = new Intl.NumberFormat("ru-RU");
 
 export function MobileBottomNav() {
+    const t = useTranslations("nav");
+    const tAuth = useTranslations("auth");
     const pathname  = usePathname();
     const openCart  = useCartStore((s) => s.openCart);
     const items     = useCartStore((s) => s.items);
@@ -104,7 +106,7 @@ export function MobileBottomNav() {
                             lineHeight: 1,
                         }}
                     >
-                        Главная
+                        {t("home")}
                     </Typography>
                 </ButtonBase>
 
@@ -134,7 +136,7 @@ export function MobileBottomNav() {
                             lineHeight: 1,
                         }}
                     >
-                        Меню
+                        {t("menu")}
                     </Typography>
                 </ButtonBase>
 
@@ -167,11 +169,11 @@ export function MobileBottomNav() {
                             lineHeight: 1,
                         }}
                     >
-                        {status === "authenticated" ? "Профиль" : "Войти"}
+                        {status === "authenticated" ? t("profile") : tAuth("login")}
                     </Typography>
                 </ButtonBase>
 
-                {/* Cart — opens drawer */}
+                {/* Cart - opens drawer */}
                 <ButtonBase
                     onClick={openCart}
                     sx={{
@@ -239,7 +241,7 @@ export function MobileBottomNav() {
                             fontVariantNumeric: "tabular-nums",
                         }}
                     >
-                        {totalItems > 0 ? `${fmt.format(cartTotal)} ֏` : "Корзина"}
+                        {totalItems > 0 ? `${fmt.format(cartTotal)} ֏` : t("cart")}
                     </Typography>
                 </ButtonBase>
             </Stack>

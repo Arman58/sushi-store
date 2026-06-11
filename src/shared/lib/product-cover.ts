@@ -21,7 +21,7 @@ function siteHostname(): string | null {
 
 /**
  * Можно ли передать URL в next/image (локальные пути и разрешённые remote).
- * Блокирует домены вне allowlist — защита от Runtime Error в next/image.
+ * Блокирует домены вне allowlist - защита от Runtime Error в next/image.
  */
 export function isAllowedProductImageSrc(src: string | null | undefined): boolean {
     const trimmed = src?.trim();

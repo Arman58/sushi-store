@@ -26,6 +26,7 @@ import {
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 
+import { getLocalizedField } from "@/lib/i18n-utils";
 import { getProductCoverUrl, getProductImageUrls } from "@/shared/lib/product-cover";
 import { PageContainer, SectionTitle } from "@/shared/ui";
 
@@ -33,16 +34,16 @@ import { ProductFormDialog, type ProductSavePayload } from "./product-form-dialo
 
 type ProductRow = {
     id: number;
-    name: string;
-    description: string | null;
-    composition: string | null;
+    name: unknown;
+    description: unknown;
+    composition: unknown;
     price: number;
     weight: number | null;
     images?: unknown;
     mainImage?: string | null;
     isActive: boolean;
     categoryId: number | null;
-    category: { name: string } | null;
+    category: { name: unknown } | null;
     modifierGroups?: {
         id: number;
         name: string;
@@ -58,7 +59,7 @@ type ProductRow = {
     }[];
 };
 
-/** `null` — форма закрыта; `{}` — создание; `ProductRow` — редактирование */
+/** `null` - форма закрыта; `{}` - создание; `ProductRow` - редактирование */
 type EditingProduct = null | Record<string, never> | ProductRow;
 
 const MAX_COMP_LEN = 80;
@@ -591,7 +592,7 @@ export default function AdminProductsPage() {
                                                             {thumb ? (
                                                                 <Image
                                                                     src={thumb}
-                                                                    alt={product.name}
+                                                                    alt={getLocalizedField(product.name, "hy")}
                                                                     width={50}
                                                                     height={50}
                                                                     style={{ objectFit: "cover" }}
@@ -614,7 +615,9 @@ export default function AdminProductsPage() {
                                                             )}
                                                         </Box>
                                                     </TableCell>
-                                                    <TableCell>{product.name}</TableCell>
+                                                    <TableCell>
+                                                        {getLocalizedField(product.name, "hy")}
+                                                    </TableCell>
                                                     <TableCell
                                                         sx={{
                                                             maxWidth: 280,
@@ -622,10 +625,20 @@ export default function AdminProductsPage() {
                                                             wordBreak: "break-word",
                                                         }}
                                                     >
-                                                        {trimComposition(product.composition)}
+                                                        {trimComposition(
+                                                            getLocalizedField(
+                                                                product.composition,
+                                                                "hy",
+                                                            ) || null,
+                                                        )}
                                                     </TableCell>
                                                     <TableCell>
-                                                        {product.category?.name ?? "-"}
+                                                        {product.category
+                                                            ? getLocalizedField(
+                                                                  product.category.name,
+                                                                  "hy",
+                                                              )
+                                                            : "-"}
                                                     </TableCell>
                                                     <TableCell align="right">
                                                         {product.price.toLocaleString("ru-RU")} ֏
@@ -743,7 +756,7 @@ export default function AdminProductsPage() {
                                                     src={imageUrl ?? undefined}
                                                     variant="rounded"
                                                     sx={{ width: 56, height: 56 }}
-                                                    alt={product.name}
+                                                    alt={getLocalizedField(product.name, "hy")}
                                                 />
                                             ) : (
                                                 <Avatar
@@ -759,7 +772,7 @@ export default function AdminProductsPage() {
                                             )}
                                             <Box sx={{ flex: 1, minWidth: 0 }}>
                                                 <Typography noWrap sx={{ fontWeight: 600 }}>
-                                                    {product.name}
+                                                    {getLocalizedField(product.name, "hy")}
                                                 </Typography>
                                                 <Typography
                                                     sx={{
@@ -768,7 +781,12 @@ export default function AdminProductsPage() {
                                                     }}
                                                     noWrap
                                                 >
-                                                    {product.category?.name ?? "-"}
+                                                    {product.category
+                                                        ? getLocalizedField(
+                                                              product.category.name,
+                                                              "hy",
+                                                          )
+                                                        : "-"}
                                                 </Typography>
                                             </Box>
                                             <Box sx={{ textAlign: "right", flexShrink: 0 }}>

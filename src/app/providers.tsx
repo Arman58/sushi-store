@@ -18,7 +18,7 @@ export function AppProviders({ children }: AppProvidersProps) {
             new QueryClient({
                 defaultOptions: {
                     queries: {
-                        staleTime: 60 * 1_000, // 1 min — menu data rarely changes mid-session
+                        staleTime: 60 * 1_000, // 1 min - menu data rarely changes mid-session
                         gcTime: 5 * 60 * 1_000, // keep cache 5 min after last subscriber
                         retry: 2,
                         refetchOnWindowFocus: false,

@@ -2,9 +2,9 @@ import Box from "@mui/material/Box";
 import type { ReactNode } from "react";
 
 /**
- * Корневой layout /admin/* — изолирован от витрины.
+ * Корневой layout /admin/* - изолирован от витрины.
  * LayoutShell подключается только в src/app/(store)/layout.tsx.
- * Каркас: sidebar + контент — в AdminShell (admin/(dashboard)/layout.tsx).
+ * Каркас: sidebar + контент - в AdminShell (admin/(dashboard)/layout.tsx).
  */
 export default function AdminRootLayout({ children }: { children: ReactNode }) {
     return (

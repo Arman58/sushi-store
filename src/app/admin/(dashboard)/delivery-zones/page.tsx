@@ -29,28 +29,48 @@ import {
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import {
+    emptyLocalizedJson,
+    getLocalizedField,
+    type LocalizedJson,
+    parseLocalizedJson,
+} from "@/lib/i18n-utils";
 import { PageContainer, SectionTitle } from "@/shared/ui";
+import { LocalizedTextFields } from "@/shared/ui/localized-text-fields";
 import { tokens } from "@/shared/ui/theme";
 
 type ZoneRow = {
     id: number;
     position: number;
-    name: string;
+    name: unknown;
     deliveryPrice: number;
     minOrderAmount: number;
-    description?: string | null;
+    description?: unknown;
     requiresManagerApproval: boolean;
     isActive: boolean;
 };
 
-const emptyCreate = () => ({
-    name: "",
+type ZoneFormState = {
+    name: LocalizedJson;
+    deliveryPrice: string;
+    minOrderAmount: string;
+    description: LocalizedJson;
+    requiresManagerApproval: boolean;
+    isActive: boolean;
+};
+
+const emptyCreate = (): ZoneFormState => ({
+    name: emptyLocalizedJson(),
     deliveryPrice: "",
     minOrderAmount: "",
-    description: "",
+    description: emptyLocalizedJson(),
     requiresManagerApproval: false,
     isActive: true,
 });
+
+function hasLocalizedText(value: LocalizedJson): boolean {
+    return Boolean(value.hy.trim() || value.ru.trim() || value.en.trim());
+}
 
 function formatRub(v: number) {
     return `${v.toLocaleString("ru-RU")} ֏`;
@@ -113,10 +133,10 @@ export default function AdminDeliveryZonesPage() {
     function openEdit(row: ZoneRow) {
         setEditId(row.id);
         setForm({
-            name: row.name,
+            name: parseLocalizedJson(row.name),
             deliveryPrice: String(row.deliveryPrice),
             minOrderAmount: String(row.minOrderAmount),
-            description: row.description ?? "",
+            description: parseLocalizedJson(row.description),
             requiresManagerApproval: row.requiresManagerApproval,
             isActive: row.isActive,
         });
@@ -124,11 +144,11 @@ export default function AdminDeliveryZonesPage() {
     }
 
     async function submitForm() {
-        const name = form.name.trim();
+        const name = form.name;
         const dp = Number(form.deliveryPrice);
         const minA = Number(form.minOrderAmount);
         if (
-            !name ||
+            !hasLocalizedText(name) ||
             !Number.isInteger(dp) ||
             dp < 0 ||
             !Number.isInteger(minA) ||
@@ -141,7 +161,7 @@ export default function AdminDeliveryZonesPage() {
             name,
             deliveryPrice: dp,
             minOrderAmount: minA,
-            description: form.description.trim(),
+            description: form.description,
             requiresManagerApproval: form.requiresManagerApproval,
             isActive: form.isActive,
         };
@@ -308,7 +328,7 @@ export default function AdminDeliveryZonesPage() {
                                         <TableRow key={r.id} hover>
                                             <TableCell>
                                                 <Typography fontWeight={600}>
-                                                    {r.name}
+                                                    {getLocalizedField(r.name, "hy")}
                                                 </Typography>
                                             </TableCell>
                                             <TableCell>
@@ -342,7 +362,7 @@ export default function AdminDeliveryZonesPage() {
                                                         void handleToggleActive(r, checked)
                                                     }
                                                     inputProps={{
-                                                        "aria-label": `${r.isActive ? "Выключить" : "Включить"} зону ${r.name}`,
+                                                        "aria-label": `${r.isActive ? "Выключить" : "Включить"} зону ${getLocalizedField(r.name, "hy")}`,
                                                     }}
                                                 />
                                             </TableCell>
@@ -387,14 +407,11 @@ export default function AdminDeliveryZonesPage() {
                     <DialogTitle>{title}</DialogTitle>
                     <DialogContent>
                         <Stack spacing={2} sx={{ mt: 1 }}>
-                            <TextField
+                            <LocalizedTextFields
                                 label="Название"
                                 required
                                 value={form.name}
-                                onChange={(e) =>
-                                    setForm((f) => ({ ...f, name: e.target.value }))
-                                }
-                                fullWidth
+                                onChange={(name) => setForm((f) => ({ ...f, name }))}
                             />
                             <TextField
                                 label="Стоимость доставки"
@@ -434,19 +451,14 @@ export default function AdminDeliveryZonesPage() {
                                 }}
                                 inputProps={{ step: 1, min: 0 }}
                             />
-                            <TextField
+                            <LocalizedTextFields
                                 label="Описание"
                                 value={form.description}
-                                onChange={(e) =>
-                                    setForm((f) => ({
-                                        ...f,
-                                        description: e.target.value,
-                                    }))
+                                onChange={(description) =>
+                                    setForm((f) => ({ ...f, description }))
                                 }
-                                fullWidth
                                 multiline
                                 minRows={2}
-                                placeholder="Пояснение для клиента на чекауте (необязательно)"
                             />
                             <FormControlLabel
                                 control={
@@ -488,7 +500,7 @@ export default function AdminDeliveryZonesPage() {
                             onClick={() => void submitForm()}
                             disabled={
                                 saving ||
-                                !form.name.trim() ||
+                                !hasLocalizedText(form.name) ||
                                 !Number.isInteger(Number(form.deliveryPrice)) ||
                                 !Number.isInteger(Number(form.minOrderAmount))
                             }

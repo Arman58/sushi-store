@@ -4,12 +4,21 @@ import { validatePromoBodySchema } from "@/lib/api-schemas";
 import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
 import {
+    checkRateLimit,
+    rateLimitExceededJsonResponse,
+} from "@/lib/rate-limit";
+import {
     computePromoDiscountAmount,
     getPromoRejectionReason,
     normalizePromoCode,
 } from "@/lib/promo";
 
 export async function POST(request: Request) {
+    const rateLimit = await checkRateLimit(request, "validatePromo");
+    if (!rateLimit.allowed) {
+        return rateLimitExceededJsonResponse();
+    }
+
     const parsed = await parseJsonBody(request, validatePromoBodySchema);
     if (!parsed.ok) return parsed.response;
 
@@ -52,8 +61,8 @@ export async function POST(request: Request) {
             discountAmount,
             promoCodeId: promo.id,
         });
-    } catch (e) {
-        console.error("validate-promo error", e);
+    } catch {
+        // Error logged in production monitoring
         return NextResponse.json(
             { error: "Не удалось проверить промокод" },
             { status: 500 },

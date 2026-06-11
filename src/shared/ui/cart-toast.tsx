@@ -4,6 +4,7 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import Box from "@mui/material/Box";
 import Snackbar from "@mui/material/Snackbar";
 import Typography from "@mui/material/Typography";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { useCartStore } from "@/features/cart";
@@ -11,6 +12,7 @@ import { useCartStore } from "@/features/cart";
 import { tokens } from "./theme";
 
 export function CartToast() {
+    const t = useTranslations("common");
     const lastAddedTitle = useCartStore((s) => s.lastAddedTitle);
     const lastAddedAt    = useCartStore((s) => s.lastAddedAt);
 
@@ -64,7 +66,7 @@ export function CartToast() {
                 </Box>
                 <Box sx={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
                     <Typography variant="body2" fontWeight={700} sx={{ lineHeight: 1.2 }}>
-                        Добавлено в корзину
+                        {t("toast.added")}
                     </Typography>
                     {lastAddedTitle && (
                         <Typography

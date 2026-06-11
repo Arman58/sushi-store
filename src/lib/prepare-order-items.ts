@@ -1,8 +1,11 @@
 import { Prisma } from "@prisma/client";
 
 import type { OrderItemPayload } from "@/app/api/order/_schema";
+import type { InvalidCartPayloadReason } from "@/lib/backend-i18n";
+import { getLocalizedField } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
 import { resolveOrderLinePrice } from "@/lib/resolve-order-line-price";
+import { type ApiErrorCode } from "@/shared/lib/api-error";
 
 /**
  * Внутренний формат item-а после серверного пересчёта: цена и snapshot
@@ -16,9 +19,17 @@ export type VerifiedOrderItem = {
     selectedModifiers: Prisma.InputJsonValue;
 };
 
+export type PrepareItemsFailure = {
+    ok: false;
+    httpStatus: number;
+    code: ApiErrorCode;
+    params?: Record<string, string | number>;
+    invalidReason?: InvalidCartPayloadReason;
+};
+
 export type PrepareItemsResult =
     | { ok: true; items: VerifiedOrderItem[]; total: number }
-    | { ok: false; message: string; httpStatus: number };
+    | PrepareItemsFailure;
 
 /**
  * Сверяет позиции корзины с БД, проверяет правила модификаторов
@@ -26,6 +37,7 @@ export type PrepareItemsResult =
  */
 export async function prepareOrderItems(
     items: OrderItemPayload[],
+    locale = "hy",
 ): Promise<PrepareItemsResult> {
     const uniqueIds = Array.from(new Set(items.map((item) => item.productId)));
 
@@ -63,15 +75,19 @@ export async function prepareOrderItems(
             return {
                 ok: false,
                 httpStatus: 409,
-                message: `Товар «${item.name}» недоступен. Удалите его из корзины.`,
+                code: "ITEM_UNAVAILABLE",
+                params: { name: item.name },
             };
         }
+
+        const productName = getLocalizedField(product.name, locale);
 
         if (!product.isActive) {
             return {
                 ok: false,
                 httpStatus: 409,
-                message: `Товар «${product.name}» сейчас недоступен. Удалите его из корзины.`,
+                code: "ITEM_UNAVAILABLE",
+                params: { name: productName },
             };
         }
 
@@ -82,16 +98,23 @@ export async function prepareOrderItems(
                 modifierGroups: product.modifierGroups,
             },
             item.selectedModifierIds,
+            locale,
         );
 
         if (!priced.ok) {
             const httpStatus = priced.code === "invalid_payload" ? 400 : 422;
-            return { ok: false, httpStatus, message: priced.message };
+            return {
+                ok: false,
+                httpStatus,
+                code: priced.apiCode,
+                params: priced.params,
+                invalidReason: priced.invalidReason,
+            };
         }
 
         validatedItems.push({
             productId: product.id,
-            name: product.name,
+            name: productName,
             price: priced.unitPrice,
             quantity: item.quantity,
             selectedModifiers:
@@ -134,6 +157,7 @@ export type CartLineInput = {
  */
 export async function validateCartLinesForCheckout(
     lines: CartLineInput[],
+    locale = "hy",
 ): Promise<CartLineValidation[]> {
     if (lines.length === 0) return [];
 
@@ -182,6 +206,7 @@ export async function validateCartLinesForCheckout(
                 modifierGroups: product.modifierGroups,
             },
             line.selectedModifierIds ?? [],
+            locale,
         );
 
         if (!priced.ok) {

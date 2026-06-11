@@ -4,23 +4,24 @@ import RestaurantMenuOutlined from "@mui/icons-material/RestaurantMenuOutlined";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
-import FormControl from "@mui/material/FormControl";
-import MenuItem from "@mui/material/MenuItem";
-import type { SelectChangeEvent } from "@mui/material/Select";
-import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import { alpha, useTheme } from "@mui/material/styles";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import dynamic from "next/dynamic";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
 import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
 import { ProductCard } from "@/entities/product/ui/product-card";
 import { buildCartItemId, useCartStore } from "@/features/cart";
+import {
+    FilterDrawer,
+    FilterTriggerButton,
+    useMenuFilters,
+} from "@/features/filter";
+import { Link } from "@/i18n/server";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
+import { AppInput } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
 
 const ProductModifiersDialog = dynamic(
@@ -54,83 +55,41 @@ export type MenuProduct = {
 type MenuSectionProps = {
     categories: MenuCategory[];
     products: MenuProduct[];
-};
-
-// ─── Price filter config ──────────────────────────────────────────────────────
-
-type PriceFilter = "all" | "lt3" | "lt5" | "gt5";
-
-type SortBy = "name" | "price_asc";
-
-const SORT_LABELS: Record<SortBy, string> = {
-    name: "По алфавиту",
-    price_asc: "Цена ↑",
-};
-
-const PRICE_LABELS: Record<PriceFilter, string> = {
-    all: "Все цены",
-    lt3: "< 3000֏",
-    lt5: "< 5000֏",
-    gt5: "> 5000֏",
+    minPrice: number;
+    maxPrice: number;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function MenuSection({ categories, products }: MenuSectionProps) {
+export function MenuSection({
+    categories,
+    products,
+    minPrice,
+    maxPrice,
+}: MenuSectionProps) {
+    const t = useTranslations("menu");
+    const locale = useLocale();
     const theme = useTheme();
-    const searchParams = useSearchParams();
-
-    const filterSelectMenuProps = useMemo(
-        () => ({
-            PaperProps: {
-                sx: {
-                    borderRadius: 2,
-                    mt: 0.5,
-                    border: `1px solid ${theme.palette.divider}`,
-                    boxShadow: `0 4px 15px ${alpha(theme.palette.common.black, 0.08)}`,
-                },
-            },
-        }),
-        [theme],
+    const allSlugs = useMemo(
+        () => ["all", ...categories.map((c) => c.slug)],
+        [categories],
     );
 
-    const filterMenuItemSx = useMemo(
-        () =>
-            ({
-                color: "text.primary",
-                fontSize: "0.85rem",
-                py: 0.8,
-                borderRadius: 1,
-                mx: 0.5,
-                "&:hover": { backgroundColor: "action.hover" },
-            }) as const,
-        [],
-    );
-
-    const filterSelectSx = useMemo(
-        () =>
-            ({
-                borderRadius: 50,
-                px: 2.5,
-                py: 1.2,
-                height: 40,
-                fontSize: "0.85rem",
-                textTransform: "none" as const,
-                backgroundColor: theme.palette.action.hover,
-                "& .MuiOutlinedInput-notchedOutline": { border: "none" },
-                "& .MuiSvgIcon-root": { color: "text.secondary" },
-                "&:hover": { backgroundColor: theme.palette.grey[100] },
-                "&.Mui-focused": {
-                    boxShadow: `0 0 0 2px ${tokens.brand}`,
-                },
-                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                    border: "none",
-                },
-            }) as const,
-        [theme],
-    );
-
-
+    const {
+        categorySlug,
+        priceRange,
+        setCategorySlug,
+        setPriceRange,
+        resetFilters,
+        hasActiveFilters,
+        filterByCategory,
+        filterByPriceRange,
+    } = useMenuFilters({
+        validCategorySlugs: allSlugs,
+        minPrice,
+        maxPrice,
+    });
+    const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
     const addItem = useCartStore((s) => s.addItem);
     const setItemQuantity = useCartStore((s) => s.setItemQuantity);
     const decrementFirstLineForProduct = useCartStore(
@@ -141,31 +100,10 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
         null,
     );
     const [search, setSearch] = useState("");
-    const [sort, setSort] = useState<SortBy>("name");
-    const [priceFilter, setPriceFilter] = useState<PriceFilter>("all");
-
-    const allSlugs = useMemo(
-        () => ["all", ...categories.map((c) => c.slug)],
-        [categories],
-    );
-    const categoryFromUrl = searchParams.get("category") ?? undefined;
-    const activeSlug =
-        categoryFromUrl && allSlugs.includes(categoryFromUrl)
-            ? categoryFromUrl
-            : "all";
 
     const filteredProducts = useMemo(() => {
-        const base =
-            activeSlug === "all"
-                ? products
-                : products.filter((p) => p.category?.slug === activeSlug);
-
-        const byPrice = base.filter((p) => {
-            if (priceFilter === "lt3") return p.price < 3000;
-            if (priceFilter === "lt5") return p.price < 5000;
-            if (priceFilter === "gt5") return p.price >= 5000;
-            return true;
-        });
+        const base = filterByCategory(products, categorySlug);
+        const byPrice = filterByPriceRange(base, priceRange);
 
         const query = search.trim().toLowerCase();
         const withSearch =
@@ -177,20 +115,26 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                           (p.description ?? "").toLowerCase().includes(query),
                   );
 
-        return [...withSearch].sort((a, b) => {
-            if (sort === "price_asc") return a.price - b.price;
-            return a.name.localeCompare(b.name, "ru");
-        });
-    }, [activeSlug, priceFilter, products, search, sort]);
+        return [...withSearch].sort((a, b) =>
+            a.name.localeCompare(b.name, locale, { sensitivity: "base" }),
+        );
+    }, [
+        categorySlug,
+        filterByCategory,
+        filterByPriceRange,
+        locale,
+        priceRange,
+        products,
+        search,
+    ]);
 
     const productsInActiveCategory = useMemo(() => {
-        if (activeSlug === "all") return products;
-        return products.filter((p) => p.category?.slug === activeSlug);
-    }, [activeSlug, products]);
+        return filterByCategory(products, categorySlug);
+    }, [categorySlug, filterByCategory, products]);
 
     /** Категория выбрана, но в ней ещё нет ни одного товара (не «ничего не нашлось» по поиску). */
     const isEmptyCategoryShelf =
-        activeSlug !== "all" && productsInActiveCategory.length === 0;
+        categorySlug !== "all" && productsInActiveCategory.length === 0;
 
     const { totalCount, totalPrice } = useMemo(
         () => ({
@@ -246,16 +190,6 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
         decrementFirstLineForProduct(productId);
     };
 
-    const selectedPrice = priceFilter;
-
-    const handleSortChange = (e: SelectChangeEvent<SortBy>) => {
-        setSort(e.target.value as SortBy);
-    };
-
-    const handlePriceFilterChange = (e: SelectChangeEvent<PriceFilter>) => {
-        setPriceFilter(e.target.value as PriceFilter);
-    };
-
     return (
         <Box sx={{ mt: 3, display: "flex", flexDirection: "column", gap: 2 }}>
             {/* ══════════════════════════════════════════════════════
@@ -266,106 +200,50 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                     px: { xs: 2, md: 3 },
                     py: 2,
                     width: "100%",
+                    overflow: "visible",
                 }}
             >
                 <Stack
-                    direction={{ xs: "column", sm: "row" }}
-                    spacing={{ xs: 1.5, sm: 2 }}
+                    direction="row"
+                    gap={1.5}
                     alignItems="center"
-                    justifyContent="space-between"
                     sx={{ minWidth: 0 }}
                 >
-                    <TextField
+                    <AppInput
                         fullWidth
-                        variant="outlined"
-                        size="small"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Поиск..."
+                        placeholder={t("search")}
                         sx={{
-                            flex: { xs: 1, sm: "unset" },
-                            minWidth: { sm: 220 },
+                            flex: 1,
+                            minWidth: 0,
                             "& .MuiOutlinedInput-root": {
                                 borderRadius: `${tokens.radiusInput}px`,
                             },
                         }}
                     />
 
-                    <Stack
-                        direction={{ xs: "column", sm: "row" }}
-                        spacing={{ xs: 1.5, sm: 2 }}
-                        alignItems="stretch"
-                        sx={{ width: { xs: "100%", sm: "auto" } }}
-                    >
-                        <FormControl
-                            size="small"
-                            sx={{ minWidth: 150 }}
-                            variant="outlined"
-                        >
-                            <Select<SortBy>
-                                displayEmpty
-                                value={sort}
-                                onChange={handleSortChange}
-                                variant="outlined"
-                                inputProps={{
-                                    "aria-label": "Сортировка",
-                                }}
-                                renderValue={(value) =>
-                                    (value &&
-                                        SORT_LABELS[value as SortBy]) ||
-                                    "Сортировка"
-                                }
-                                MenuProps={filterSelectMenuProps}
-                                sx={filterSelectSx}
-                            >
-                                <MenuItem value="name" sx={filterMenuItemSx}>
-                                    По алфавиту
-                                </MenuItem>
-                                <MenuItem value="price_asc" sx={filterMenuItemSx}>
-                                    Цена ↑
-                                </MenuItem>
-                            </Select>
-                        </FormControl>
-
-                        <FormControl
-                            size="small"
-                            sx={{ minWidth: 150 }}
-                            variant="outlined"
-                        >
-                            <Select<PriceFilter>
-                                displayEmpty
-                                value={selectedPrice}
-                                onChange={handlePriceFilterChange}
-                                variant="outlined"
-                                inputProps={{
-                                    "aria-label": "Цена",
-                                }}
-                                renderValue={(value) =>
-                                    (value &&
-                                        PRICE_LABELS[value as PriceFilter]) ||
-                                    "Цена"
-                                }
-                                MenuProps={filterSelectMenuProps}
-                                sx={filterSelectSx}
-                            >
-                                <MenuItem value="all" sx={filterMenuItemSx}>
-                                    Все цены
-                                </MenuItem>
-                                <MenuItem value="lt3" sx={filterMenuItemSx}>
-                                    &lt; 3000֏
-                                </MenuItem>
-                                <MenuItem value="lt5" sx={filterMenuItemSx}>
-                                    &lt; 5000֏
-                                </MenuItem>
-                                <MenuItem value="gt5" sx={filterMenuItemSx}>
-                                    &gt; 5000֏
-                                </MenuItem>
-                            </Select>
-                        </FormControl>
-                    </Stack>
+                    <FilterTriggerButton
+                        onClick={() => setFilterDrawerOpen(true)}
+                        hasActiveFilters={hasActiveFilters}
+                    />
                 </Stack>
                 <Divider sx={{ mt: 2 }} />
             </Box>
+
+            <FilterDrawer
+                isOpen={filterDrawerOpen}
+                onClose={() => setFilterDrawerOpen(false)}
+                categories={categories}
+                categorySlug={categorySlug}
+                priceRange={priceRange}
+                minPrice={minPrice}
+                maxPrice={maxPrice}
+                resultCount={filteredProducts.length}
+                onCategoryChange={setCategorySlug}
+                onPriceRangeChange={setPriceRange}
+                onReset={resetFilters}
+            />
 
             {/* ══════════════════════════════════════════════════════
                 PRODUCT GRID
@@ -391,15 +269,14 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                             color="text.secondary"
                             fontWeight={600}
                         >
-                            Здесь пока пусто
+                            {t("emptyCategory.title")}
                         </Typography>
                         <Typography
                             variant="body2"
                             color="text.disabled"
                             sx={{ mt: 1, maxWidth: 250 }}
                         >
-                            Мы уже готовим блюда для этой категории. Скоро они
-                            появятся!
+                            {t("emptyCategory.subtitle")}
                         </Typography>
                         <Button
                             component={Link}
@@ -408,7 +285,7 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                             color="primary"
                             sx={{ mt: 3, borderRadius: `${tokens.radiusCardLg}px` }}
                         >
-                            Посмотреть другие блюда
+                            {t("emptyCategory.cta")}
                         </Button>
                     </Box>
                 ) : (
@@ -426,20 +303,20 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                             🍽
                         </Typography>
                         <Typography component="p" variant="body1" fontWeight={700}>
-                            Ничего не нашлось
+                            {t("noResults.title")}
                         </Typography>
                         <Typography
                             variant="body2"
                             sx={{ color: tokens.textSecondary }}
                         >
-                            Попробуйте другой запрос или сбросьте фильтры
+                            {t("noResults.subtitle")}
                         </Typography>
                     </Box>
                 )
             ) : (
                 <Box
                     component="section"
-                    aria-label="Каталог блюд"
+                    aria-label={t("aria.catalog")}
                     sx={{
                         display: "grid",
                         width: "100%",
@@ -475,7 +352,7 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                                     composition={
                                         product.composition ||
                                         product.description ||
-                                        ""
+                                        undefined
                                     }
                                     price={product.price}
                                     weight={product.weight ?? undefined}
@@ -548,7 +425,7 @@ export function MenuSection({ categories, products }: MenuSectionProps) {
                                     width: "100%",
                                 }}
                             >
-                                Корзина: {totalCount} шт
+                                {t("stickyCart.label", { count: totalCount })}
                             </Typography>
                             <Typography
                                 sx={{

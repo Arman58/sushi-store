@@ -1,5 +1,7 @@
 import type { Prisma } from "@prisma/client";
 
+import { getLocalizedField, toStorefrontModifierGroups } from "@/lib/i18n-utils";
+
 /** Единый include для карточек товара на главной и в меню. */
 export const homeProductInclude = {
     category: true,
@@ -17,27 +19,22 @@ export type HomeProductPayload = Prisma.ProductGetPayload<{
     include: typeof homeProductInclude;
 }>;
 
-export function mapProductToPopular(p: HomeProductPayload) {
+export function mapProductToPopular(p: HomeProductPayload, locale = "hy") {
     return {
         id: p.id,
-        name: p.name,
-        description: p.description,
+        name: getLocalizedField(p.name, locale),
+        description: getLocalizedField(p.description, locale) || null,
         price: p.price,
         weight: p.weight,
         images: p.images,
         mainImage: p.mainImage,
-        category: p.category ? { name: p.category.name } : null,
-        composition: p.composition ?? undefined,
-        modifierGroups: (p.modifierGroups ?? []).map((g) => ({
-            id: g.id,
-            name: g.name,
-            required: g.required,
-            maxChoices: g.maxChoices,
-            modifiers: g.modifiers.map((m) => ({
-                id: m.id,
-                name: m.name,
-                priceDelta: m.priceDelta,
-            })),
-        })),
+        category: p.category
+            ? { name: getLocalizedField(p.category.name, locale) }
+            : null,
+        composition: getLocalizedField(p.composition, locale) || undefined,
+        modifierGroups: toStorefrontModifierGroups(
+            (p.modifierGroups ?? []) as unknown as Record<string, unknown>[],
+            locale,
+        ),
     };
 }

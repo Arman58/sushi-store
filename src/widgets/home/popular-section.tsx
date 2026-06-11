@@ -5,13 +5,14 @@ import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Typography from "@mui/material/Typography";
 import dynamic from "next/dynamic";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
 import type { ProductBadge } from "@/entities/product/ui/product-card";
 import { ProductCard } from "@/entities/product/ui/product-card";
 import { buildCartItemId, useCartStore } from "@/features/cart";
+import { Link } from "@/i18n/server";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { tokens } from "@/shared/ui/theme";
 
@@ -43,6 +44,7 @@ type Props = {
     title?: string;
     badge?: ProductBadge;
     seeAllHref?: string;
+    seeAllLabel?: string;
     /** First product tile image optimized for LCP (home hero row). */
     prioritizeFirstImage?: boolean;
 };
@@ -52,9 +54,11 @@ type Props = {
 function SectionHeader({
     title,
     seeAllHref,
+    seeAllLabel = "See all",
 }: {
     title: string;
     seeAllHref?: string;
+    seeAllLabel?: string;
 }) {
     return (
         <Box
@@ -130,7 +134,7 @@ function SectionHeader({
                             letterSpacing: 0.2,
                         }}
                     >
-                        Все
+                        {seeAllLabel}
                     </Typography>
                     <ArrowForwardIcon sx={{ fontSize: 13, color: "inherit" }} />
                 </ButtonBase>
@@ -143,11 +147,14 @@ function SectionHeader({
 
 export function PopularSection({
     products,
-    title = "Популярное",
+    title,
     badge,
     seeAllHref = "/menu",
+    seeAllLabel,
     prioritizeFirstImage = false,
 }: Props) {
+    const t = useTranslations("home");
+    const sectionTitle = title ?? t("popular");
     const addItem = useCartStore((s) => s.addItem);
     const setItemQty = useCartStore((s) => s.setItemQuantity);
     const decrementFirstLineForProduct = useCartStore(
@@ -202,7 +209,11 @@ export function PopularSection({
 
     return (
         <Box component="section">
-            <SectionHeader title={title} seeAllHref={seeAllHref} />
+            <SectionHeader
+                title={sectionTitle}
+                seeAllHref={seeAllHref}
+                seeAllLabel={seeAllLabel}
+            />
 
             <Box
                 sx={{

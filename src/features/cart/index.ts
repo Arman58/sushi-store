@@ -9,6 +9,7 @@ export * from "./model/types";
 export {
     type CartLineIssue,
     cartLineIssueMessage,
+    useCartLineIssueMessage,
     useCartLineValidation,
 } from "./model/use-cart-line-validation";
 export { CartButton, CartLineItem, ModifiersList } from "./ui";

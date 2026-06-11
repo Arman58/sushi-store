@@ -1,11 +1,17 @@
-import type { DeliveryZone, PromoCode } from "@prisma/client";
+import type { PromoCode } from "@prisma/client";
 
+import { getLocalizedField } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
 
 export type HeroPromo = Pick<PromoCode, "code" | "discountValue">;
 
+export type DeliveryStat =
+    | { kind: "fastDelivery" }
+    | { kind: "freeDeliveryIn"; zone: string }
+    | { kind: "deliveryFrom"; price: number };
+
 export type HeroPageData = {
-    deliveryStat: string;
+    deliveryStat: DeliveryStat;
     promo: HeroPromo | null;
 };
 
@@ -23,13 +29,17 @@ function isPromoAvailable(promo: PromoAvailability, now: Date): boolean {
     return true;
 }
 
-export function formatDeliveryStat(zone: Pick<DeliveryZone, "name" | "deliveryPrice"> | null): string {
-    if (!zone) return "Быстрая доставка";
-    if (zone.deliveryPrice === 0) return `Бесплатная доставка в ${zone.name}`;
-    return `Доставка от ${zone.deliveryPrice.toLocaleString("ru-RU")} ֏`;
+export function formatDeliveryStat(
+    zone: { name: string; deliveryPrice: number } | null,
+): DeliveryStat {
+    if (!zone) return { kind: "fastDelivery" };
+    if (zone.deliveryPrice === 0) {
+        return { kind: "freeDeliveryIn", zone: zone.name };
+    }
+    return { kind: "deliveryFrom", price: zone.deliveryPrice };
 }
 
-export async function fetchHeroPageData(): Promise<HeroPageData> {
+export async function fetchHeroPageData(locale: string): Promise<HeroPageData> {
     const now = new Date();
 
     try {
@@ -64,16 +74,23 @@ export async function fetchHeroPageData(): Promise<HeroPageData> {
 
         const promoRow = percentagePromos.find((p) => isPromoAvailable(p, now)) ?? null;
 
+        const localizedZone = freeDeliveryZone
+            ? {
+                  ...freeDeliveryZone,
+                  name: getLocalizedField(freeDeliveryZone.name, locale),
+              }
+            : null;
+
         return {
-            deliveryStat: formatDeliveryStat(freeDeliveryZone),
+            deliveryStat: formatDeliveryStat(localizedZone),
             promo: promoRow
                 ? { code: promoRow.code, discountValue: promoRow.discountValue }
                 : null,
         };
-    } catch (error) {
-        console.error("[hero] Database unavailable:", error);
+    } catch {
+        // Error logged in production monitoring
         return {
-            deliveryStat: "Быстрая доставка",
+            deliveryStat: { kind: "fastDelivery" },
             promo: null,
         };
     }

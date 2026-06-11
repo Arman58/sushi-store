@@ -13,19 +13,18 @@ import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Snackbar from "@mui/material/Snackbar";
-import Stack from "@mui/material/Stack";
 import { alpha } from "@mui/material/styles";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { LoginButton } from "@/features/auth";
 import { useCartStore } from "@/features/cart";
+import { Link, usePathname } from "@/i18n/server";
 
 const CartDrawer = dynamic(
     () => import("./cart-drawer").then((m) => m.CartDrawer),
@@ -39,18 +38,62 @@ const StoreFooter = dynamic(
     () => import("./store-footer").then((m) => m.StoreFooter),
     { ssr: false, loading: () => null },
 );
+import LanguageSwitcher from "./LanguageSwitcher";
 import { tokens } from "./theme";
 
-const STORE_NAV_LINKS = [
-    { href: "/", label: "Главная" },
-    { href: "/menu", label: "Меню" },
-    { href: "/contacts", label: "Контакты" },
+const HEADER_ACTION_SLOT_SX = {
+    flexShrink: 0,
+    minWidth: 40,
+    display: "flex",
+    alignItems: "center",
+} as const;
+
+const STORE_NAV_HREFS = [
+    { href: "/", key: "home" },
+    { href: "/menu", key: "menu" },
+    { href: "/contacts", key: "contacts" },
 ] as const;
+
+// ─── Desktop nav link ───────────────────────────────────────────────────────────
+
+function NavLink({
+    href,
+    labelKey,
+}: {
+    href: (typeof STORE_NAV_HREFS)[number]["href"];
+    labelKey: (typeof STORE_NAV_HREFS)[number]["key"];
+}) {
+    const t = useTranslations("nav");
+
+    return (
+        <ButtonBase
+            component={Link}
+            href={href}
+            sx={{
+                px: 1.5,
+                py: 0.75,
+                borderRadius: 1.5,
+                color: tokens.textSecondary,
+                fontSize: 14,
+                fontWeight: 600,
+                transition: "background-color 0.15s, color 0.15s",
+                "&:hover": {
+                    color: tokens.textPrimary,
+                    bgcolor: tokens.surfaceHi,
+                },
+            }}
+        >
+            {t(labelKey)}
+        </ButtonBase>
+    );
+}
 
 // ─── Mobile nav menu ────────────────────────────────────────────────────────────
 
 function MobileNavMenu() {
     const pathname = usePathname();
+    const t = useTranslations("nav");
+    const tCommon = useTranslations("common");
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
 
@@ -58,9 +101,13 @@ function MobileNavMenu() {
         <>
             <IconButton
                 onClick={(e) => setAnchorEl(e.currentTarget)}
-                aria-label="Меню навигации"
+                aria-label={tCommon("aria.mobileNavMenu")}
                 sx={{
                     display: { xs: "inline-flex", sm: "none" },
+                    flexShrink: 0,
+                    minWidth: 40,
+                    width: 40,
+                    height: 40,
                     border: "1px solid",
                     borderColor: "divider",
                     bgcolor: "background.paper",
@@ -74,6 +121,7 @@ function MobileNavMenu() {
                 anchorEl={anchorEl}
                 open={open}
                 onClose={() => setAnchorEl(null)}
+                disablePortal
                 anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
                 transformOrigin={{ vertical: "top", horizontal: "right" }}
                 PaperProps={{
@@ -86,7 +134,7 @@ function MobileNavMenu() {
                     },
                 }}
             >
-                {STORE_NAV_LINKS.map(({ href, label }) => (
+                {STORE_NAV_HREFS.map(({ href, key }) => (
                     <MenuItem
                         key={href}
                         component={Link}
@@ -95,7 +143,7 @@ function MobileNavMenu() {
                         selected={pathname === href}
                         sx={{ fontWeight: pathname === href ? 700 : 500 }}
                     >
-                        {label}
+                        {t(key)}
                     </MenuItem>
                 ))}
             </Menu>
@@ -107,6 +155,8 @@ function MobileNavMenu() {
 
 function CartHeaderButton() {
     const pathname = usePathname();
+    const tNav = useTranslations("nav");
+    const tCommon = useTranslations("common");
     const openCart = useCartStore((s) => s.openCart);
     const items    = useCartStore((s) => s.items);
     const isCheckoutPage = pathname?.startsWith("/checkout") ?? false;
@@ -141,13 +191,17 @@ function CartHeaderButton() {
                 openCart();
             }}
             aria-label={
-                isCheckoutPage ? "Корзина (на странице оформления)" : "Открыть корзину"
+                isCheckoutPage
+                    ? tCommon("aria.cartOnCheckout")
+                    : tCommon("aria.openCart")
             }
             aria-disabled={isCheckoutPage}
             sx={(theme) => ({
                 display: "flex",
                 alignItems: "center",
                 gap: 1,
+                flexShrink: 0,
+                minWidth: 40,
                 px: { xs: 1.5, sm: 2 },
                 py: 1,
                 borderRadius: 2,
@@ -249,7 +303,7 @@ function CartHeaderButton() {
                     variant="body2"
                     sx={{ display: { xs: "none", sm: "block" } }}
                 >
-                    Корзина
+                    {tNav("cart")}
                 </Typography>
             )}
         </ButtonBase>
@@ -262,6 +316,7 @@ type LayoutShellProps = { children: ReactNode };
 
 export function LayoutShell({ children }: LayoutShellProps) {
     const pathname = usePathname();
+    const tCommon = useTranslations("common");
     const isAdminRoute =
         typeof pathname === "string" && pathname.startsWith("/admin");
 
@@ -271,7 +326,7 @@ export function LayoutShell({ children }: LayoutShellProps) {
     const appToastMessage    = useCartStore((state) => state.appToastMessage);
     const appToastSeverity   = useCartStore((state) => state.appToastSeverity);
 
-    /** Админка — отдельный layout (src/app/admin), без витринного хедера и корзины. */
+    /** Админка - отдельный layout (src/app/admin), без витринного хедера и корзины. */
     if (isAdminRoute) {
         return <>{children}</>;
     }
@@ -282,8 +337,8 @@ export function LayoutShell({ children }: LayoutShellProps) {
     const snackbarMessage = isAppToast
         ? appToastMessage
         : lastAddedTitle
-          ? `${lastAddedTitle} добавлен в корзину`
-          : "Добавлено в корзину";
+          ? tCommon("toast.addedNamed", { name: lastAddedTitle })
+          : tCommon("toast.added");
 
     const snackbarDuration = isAppToast ? 3500 : 1500;
 
@@ -294,17 +349,17 @@ export function LayoutShell({ children }: LayoutShellProps) {
                 position="sticky"
                 elevation={0}
                 color="transparent"
-                sx={{ color: tokens.textPrimary }}
+                sx={{ color: tokens.textPrimary, overflow: "visible" }}
             >
                 <Toolbar
                     disableGutters
                     sx={{
-                        minHeight: { xs: 56, sm: 64 },
-                        pt: "env(safe-area-inset-top)",
-                        height: {
+                        minHeight: {
                             xs: "calc(56px + env(safe-area-inset-top))",
                             sm: 64,
                         },
+                        pt: "env(safe-area-inset-top)",
+                        overflow: "visible",
                     }}
                 >
                     <Container
@@ -312,10 +367,11 @@ export function LayoutShell({ children }: LayoutShellProps) {
                         sx={{
                             display: "flex",
                             alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: 2,
+                            gap: { xs: 1, sm: 2 },
                             minWidth: 0,
+                            width: "100%",
                             px: { xs: 2, sm: 3 },
+                            overflow: "visible",
                         }}
                     >
                         {/* Logo */}
@@ -327,7 +383,10 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                 alignItems: "center",
                                 gap: 1.25,
                                 textDecoration: "none",
-                                flexShrink: 0,
+                                minWidth: 0,
+                                flex: "0 1 auto",
+                                maxWidth: { xs: "38%", sm: "none" },
+                                overflow: "hidden",
                             }}
                         >
                             <Box
@@ -345,7 +404,7 @@ export function LayoutShell({ children }: LayoutShellProps) {
                             >
                                 <Image
                                     src="/east-west-logo.png"
-                                    alt="East West Delivery - sushi and pizza Yerevan"
+                                    alt={tCommon("logoAlt")}
                                     fill
                                     sizes="36px"
                                     priority
@@ -369,18 +428,18 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                         WebkitTextFillColor: "transparent",
                                     }}
                                 >
-                                    East West
+                                    {tCommon("brandName")}
                                 </Typography>
                                 <Typography
                                     variant="caption"
                                     sx={{ color: tokens.textMuted, display: "block", lineHeight: 1.2 }}
                                 >
-                                    Delivery
+                                    {tCommon("brandTagline")}
                                 </Typography>
                             </Box>
                         </Box>
 
-                        {/* Location indicator — desktop only */}
+                        {/* Location indicator - desktop only */}
                         <Box
                             sx={{
                                 display: { xs: "none", md: "flex" },
@@ -392,6 +451,9 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                 bgcolor: "background.paper",
                                 border: "1px solid",
                                 borderColor: "divider",
+                                flex: "0 1 auto",
+                                minWidth: 0,
+                                mx: { md: "auto" },
                             }}
                         >
                             <LocationOnOutlinedIcon
@@ -400,52 +462,53 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                 sx={{ fontSize: 15, color: "primary.dark" }}
                             />
                             <Typography variant="body2" fontWeight={600} sx={{ fontSize: 13 }}>
-                                Ереван
+                                {tCommon("location.city")}
                             </Typography>
                             <Typography
                                 variant="caption"
                                 sx={{ color: tokens.textMuted }}
                             >
-                                · 45-60 мин
+                                · {tCommon("location.deliveryEta")}
                             </Typography>
                         </Box>
 
                         {/* Right actions */}
-                        <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
-                            {/* Nav links — desktop */}
+                        <Box
+                            sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                                flexShrink: 0,
+                                ml: "auto",
+                            }}
+                        >
                             <Box
                                 component="nav"
-                                aria-label="Основная навигация"
-                                sx={{ display: { xs: "none", sm: "flex" }, gap: 0.5 }}
+                                aria-label={tCommon("aria.mainNav")}
+                                sx={{
+                                    display: { xs: "none", sm: "flex" },
+                                    gap: 0.5,
+                                    flexShrink: 0,
+                                }}
                             >
-                                {STORE_NAV_LINKS.map(({ href, label }) => (
-                                    <ButtonBase
-                                        key={href}
-                                        component={Link}
-                                        href={href}
-                                        sx={{
-                                            px: 1.5,
-                                            py: 0.75,
-                                            borderRadius: 1.5,
-                                            color: tokens.textSecondary,
-                                            fontSize: 14,
-                                            fontWeight: 600,
-                                            transition: "background-color 0.15s, color 0.15s",
-                                            "&:hover": {
-                                                color: tokens.textPrimary,
-                                                bgcolor: tokens.surfaceHi,
-                                            },
-                                        }}
-                                    >
-                                        {label}
-                                    </ButtonBase>
+                                {STORE_NAV_HREFS.map(({ href, key }) => (
+                                    <NavLink key={href} href={href} labelKey={key} />
                                 ))}
                             </Box>
 
-                            <MobileNavMenu />
-                            <LoginButton />
-                            <CartHeaderButton />
-                        </Stack>
+                            <Box sx={HEADER_ACTION_SLOT_SX}>
+                                <LanguageSwitcher />
+                            </Box>
+                            <Box sx={HEADER_ACTION_SLOT_SX}>
+                                <MobileNavMenu />
+                            </Box>
+                            <Box sx={HEADER_ACTION_SLOT_SX}>
+                                <LoginButton />
+                            </Box>
+                            <Box sx={HEADER_ACTION_SLOT_SX}>
+                                <CartHeaderButton />
+                            </Box>
+                        </Box>
                     </Container>
                 </Toolbar>
             </AppBar>
@@ -520,14 +583,18 @@ export function LayoutShell({ children }: LayoutShellProps) {
                 component="main"
                 id="main-content"
                 sx={{
+                    flex: 1,
                     pb: {
-                        xs: "calc(72px + env(safe-area-inset-bottom))",
+                        xs: "calc(80px + env(safe-area-inset-bottom))",
                         sm: 4,
                     },
                     display: "flex",
                     flexDirection: "column",
-                    minHeight: "calc(100vh - 64px)",
-                    overflowX: "clip",
+                    minHeight: {
+                        xs: "calc(100vh - 56px - env(safe-area-inset-top))",
+                        sm: "calc(100vh - 64px)",
+                    },
+                    overflow: "visible",
                     maxWidth: "100%",
                 }}
             >

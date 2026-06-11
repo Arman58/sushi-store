@@ -2,7 +2,10 @@ import "./globals.css";
 
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v13-appRouter";
 import type { Metadata } from "next";
+import { getLocale } from "next-intl/server";
 import type { ReactNode } from "react";
+
+import { routing } from "@/i18n/routing";
 
 import {
     foodDeliveryServiceJsonLd,
@@ -47,14 +50,14 @@ export const metadata: Metadata = {
             "Best sushi, pizza and shawarma delivery in Yerevan, Nor Hachn and Kotayk. Fast 45 min delivery. Order online!",
         url: SITE_URL,
         siteName: SITE_NAME,
-        locale: "ru_RU",
+        locale: "hy_AM",
         type: "website",
         images: [
             {
                 url: DEFAULT_OG_IMAGE,
                 width: 1200,
                 height: 630,
-                alt: "East West Delivery - суши, пицца и шаурма с доставкой",
+                alt: "East West Delivery - sushi, pizza and shawarma delivery",
             },
         ],
     },
@@ -67,10 +70,17 @@ export const metadata: Metadata = {
     },
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+    let locale: string = routing.defaultLocale;
+    try {
+        locale = await getLocale();
+    } catch {
+        // /admin и прочие маршруты без next-intl контекста
+    }
+
     return (
         <html
-            lang="ru"
+            lang={locale}
             className={interFont.variable}
             data-scroll-behavior="smooth"
         >

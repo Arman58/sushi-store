@@ -4,22 +4,24 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import RemoveIcon from "@mui/icons-material/Remove";
 import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import { alpha } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 
 import type { CartItem } from "@/features/cart/model/types";
 import {
     type CartLineIssue,
-    cartLineIssueMessage,
+    useCartLineIssueMessage,
 } from "@/features/cart/model/use-cart-line-validation";
+import { formatStorePrice } from "@/shared/lib/format-price";
 import { sanitizeProductImageSrc } from "@/shared/lib/product-cover";
 import { ProductCoverPlaceholder } from "@/shared/ui/product-cover-image";
 import { tokens } from "@/shared/ui/theme";
 
-const fmt = new Intl.NumberFormat("ru-RU");
 const IMAGE_SIZE = 56;
 
 const stepperButtonSx = {
@@ -38,10 +40,12 @@ type CartLineItemProps = {
     onIncrease: () => void;
     onDecrease: () => void;
     onRemove: () => void;
-    /** Drawer — компактная строка; page — строка страницы корзины. */
+    /** Drawer - компактная строка; page - строка страницы корзины. */
     variant?: "drawer" | "page";
-    /** Разделитель снизу (последняя строка — false). */
+    /** Разделитель снизу (последняя строка - false). */
     showDivider?: boolean;
+    /** Компактная плашка «Недоступен» в drawer. */
+    showUnavailableBadge?: boolean;
 };
 
 function modifiersLabel(item: CartItem): string | null {
@@ -57,7 +61,11 @@ export function CartLineItem({
     onRemove,
     variant = "page",
     showDivider = true,
+    showUnavailableBadge = false,
 }: CartLineItemProps) {
+    const tProduct = useTranslations("product");
+    const tCart = useTranslations("cart");
+    const formatLineIssue = useCartLineIssueMessage();
     const lineInvalid = Boolean(lineIssue);
     const lineTotal = item.calculatedItemPrice * item.quantity;
     const isDrawer = variant === "drawer";
@@ -69,6 +77,11 @@ export function CartLineItem({
             sx={{
                 py: isDrawer ? 1.5 : 2,
                 bgcolor: lineInvalid ? tokens.redDim : "transparent",
+                border: lineInvalid
+                    ? `1px solid ${alpha(tokens.red, 0.35)}`
+                    : "none",
+                borderRadius: lineInvalid ? 2 : 0,
+                px: lineInvalid ? 1 : 0,
                 borderBottom: showDivider
                     ? `1px solid ${alpha("#000", 0.08)}`
                     : "none",
@@ -110,19 +123,43 @@ export function CartLineItem({
 
                 {/* 2. Text */}
                 <Box sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
-                    <Typography
-                        variant="body2"
-                        fontWeight={700}
-                        color={lineInvalid ? "error.main" : "text.primary"}
-                        sx={{
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            lineHeight: 1.3,
-                        }}
+                    <Stack
+                        direction="row"
+                        spacing={0.75}
+                        alignItems="center"
+                        sx={{ minWidth: 0 }}
                     >
-                        {item.name}
-                    </Typography>
+                        <Typography
+                            variant="body2"
+                            fontWeight={700}
+                            color={lineInvalid ? "error.main" : "text.primary"}
+                            sx={{
+                                flex: 1,
+                                minWidth: 0,
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                lineHeight: 1.3,
+                            }}
+                        >
+                            {item.name}
+                        </Typography>
+                        {showUnavailableBadge && isDrawer ? (
+                            <Chip
+                                label={tCart("item_unavailable")}
+                                size="small"
+                                color="error"
+                                variant="outlined"
+                                sx={{
+                                    height: 20,
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    flexShrink: 0,
+                                    "& .MuiChip-label": { px: 0.75 },
+                                }}
+                            />
+                        ) : null}
+                    </Stack>
 
                     {modifiersText ? (
                         <Typography
@@ -155,7 +192,7 @@ export function CartLineItem({
                             textDecoration: lineInvalid ? "line-through" : undefined,
                         }}
                     >
-                        {fmt.format(item.calculatedItemPrice)} ֏/шт
+                        {formatStorePrice(item.calculatedItemPrice)} {tProduct("perUnit")}
                     </Typography>
 
                     {lineIssue ? (
@@ -171,7 +208,7 @@ export function CartLineItem({
                                 textOverflow: "ellipsis",
                             }}
                         >
-                            {cartLineIssueMessage(lineIssue)}
+                            {formatLineIssue(lineIssue)}
                         </Typography>
                     ) : null}
                 </Box>
@@ -193,7 +230,7 @@ export function CartLineItem({
                             textDecoration: lineInvalid ? "line-through" : undefined,
                         }}
                     >
-                        {fmt.format(lineTotal)} ֏
+                        {formatStorePrice(lineTotal)} ֏
                     </Typography>
 
                     <Stack
@@ -203,7 +240,7 @@ export function CartLineItem({
                         sx={{ flexShrink: 0 }}
                     >
                         <IconButton
-                            aria-label={`Уменьшить количество: ${item.name}`}
+                            aria-label={tProduct("aria.decrease", { name: item.name })}
                             onClick={onDecrease}
                             sx={{
                                 ...stepperButtonSx,
@@ -236,7 +273,7 @@ export function CartLineItem({
                         </Typography>
 
                         <IconButton
-                            aria-label={`Увеличить количество: ${item.name}`}
+                            aria-label={tProduct("aria.increase", { name: item.name })}
                             onClick={onIncrease}
                             sx={{
                                 ...stepperButtonSx,
@@ -253,7 +290,7 @@ export function CartLineItem({
 
                     <IconButton
                         size="small"
-                        aria-label={`Удалить из корзины: ${item.name}`}
+                        aria-label={tCart("aria.remove", { name: item.name })}
                         onClick={onRemove}
                         sx={{
                             width: 32,

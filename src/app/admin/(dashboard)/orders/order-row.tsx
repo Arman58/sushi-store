@@ -58,7 +58,7 @@ async function readApiErrorMessage(res: Response, fallback: string): Promise<str
             return detail;
         }
     } catch {
-        // ответ не JSON — покажем как есть
+        // ответ не JSON - покажем как есть
     }
 
     return text;

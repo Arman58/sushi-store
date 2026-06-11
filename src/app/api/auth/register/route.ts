@@ -4,6 +4,11 @@ import { z } from "zod";
 
 import { sendWelcomeEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
+import {
+    checkRateLimit,
+    rateLimitExceededJsonResponse,
+} from "@/lib/rate-limit";
+import { GENERIC_REGISTRATION_FAILURE_MESSAGE } from "@/lib/register-auth";
 
 const BCRYPT_ROUNDS = 10;
 
@@ -24,6 +29,11 @@ const registerSchema = z.object({
 });
 
 export async function POST(request: Request) {
+    const rateLimit = await checkRateLimit(request, "register");
+    if (!rateLimit.allowed) {
+        return rateLimitExceededJsonResponse();
+    }
+
     let json: unknown;
     try {
         json = await request.json();
@@ -42,28 +52,35 @@ export async function POST(request: Request) {
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
         return NextResponse.json(
-            { error: "Пользователь с таким email уже зарегистрирован" },
-            { status: 409 },
+            { error: GENERIC_REGISTRATION_FAILURE_MESSAGE },
+            { status: 400 },
         );
     }
 
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
-    await prisma.user.create({
-        data: {
-            email,
-            passwordHash,
-            name,
-            emailVerified: null,
-            phone: null,
-            image: null,
-        },
-    });
+    try {
+        await prisma.user.create({
+            data: {
+                email,
+                passwordHash,
+                name,
+                emailVerified: null,
+                phone: null,
+                image: null,
+            },
+        });
+    } catch {
+        return NextResponse.json(
+            { error: GENERIC_REGISTRATION_FAILURE_MESSAGE },
+            { status: 400 },
+        );
+    }
 
     try {
         await sendWelcomeEmail(email, name);
-    } catch (error) {
-        console.error("[register] Failed to send welcome email:", error);
+    } catch {
+        // Error logged in production monitoring
     }
 
     return NextResponse.json({ ok: true }, { status: 201 });

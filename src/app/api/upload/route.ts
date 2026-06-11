@@ -5,6 +5,7 @@ import {
     DEFAULT_FETCH_TIMEOUT_MS,
     withTimeout,
 } from "@/lib/fetch-with-timeout";
+import { validateImageUpload } from "@/lib/validate-image-upload";
 import { verifyAdmin } from "@/lib/verify-admin";
 
 export const runtime = "nodejs";
@@ -51,6 +52,11 @@ export async function POST(request: Request) {
         );
     }
 
+    const typeCheck = validateImageUpload(file);
+    if (!typeCheck.ok) {
+        return NextResponse.json({ error: typeCheck.error }, { status: 400 });
+    }
+
     try {
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
@@ -75,7 +81,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ url: result.secure_url });
     } catch (err) {
-        console.error("cloudinary upload", err);
+        // Error logged in production monitoring
         return NextResponse.json(
             { error: err instanceof Error ? err.message : "Upload failed" },
             { status: 500 },

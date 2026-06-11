@@ -16,13 +16,13 @@ import { alpha, useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
 import type { CartModifierSnapshot } from "@/features/cart/model/types";
+import { storePriceFormatter } from "@/shared/lib/format-price";
 import { tokens } from "@/shared/ui/theme";
-
-const fmt = new Intl.NumberFormat("ru-RU");
 
 const MotionPaper = motion.create(Paper);
 
@@ -68,7 +68,7 @@ function selectionValid(
  * Цена опции:
  *   priceDelta > 0 → «+300 ֏» жирным primary
  *   priceDelta < 0 → «−50 ֏» жирным success
- *   priceDelta = 0 → не выводится (по UX-договорённости — без «Бесплатно»)
+ *   priceDelta = 0 → не выводится (по UX-договорённости - без «Бесплатно»)
  *
  * a11y: role="radio"/"checkbox", aria-checked, активация по Space/Enter,
  * обводка focus-visible.
@@ -80,6 +80,7 @@ function OptionTile({
     disabled = false,
     mode,
     onClick,
+    fmt,
 }: {
     name: string;
     priceDelta: number;
@@ -87,6 +88,7 @@ function OptionTile({
     disabled?: boolean;
     mode: "radio" | "checkbox";
     onClick: () => void;
+    fmt: Intl.NumberFormat;
 }) {
     return (
         <Box
@@ -233,6 +235,9 @@ export function ProductModifiersDialog({
     modifierGroups,
     onConfirm,
 }: ProductModifiersDialogProps) {
+    const t = useTranslations("product.modifiers");
+    const tCommon = useTranslations("common");
+    const fmt = storePriceFormatter;
     const [selectedByGroup, setSelectedByGroup] = useState<
         Record<number, number[]>
     >({});
@@ -284,7 +289,7 @@ export function ProductModifiersDialog({
 
     /**
      * Радио-режим (maxChoices === 1).
-     * Если группа НЕ обязательная и кликнули по уже выбранной опции — снимаем выбор
+     * Если группа НЕ обязательная и кликнули по уже выбранной опции - снимаем выбор
      * (UX, более естественный, чем отдельная плитка «Не выбирать»).
      */
     const toggleRadio = (group: MenuModifierGroup, modifierId: number) => {
@@ -299,7 +304,7 @@ export function ProductModifiersDialog({
 
     /**
      * Чекбокс-режим (maxChoices !== 1).
-     * При попытке превысить maxChoices — клик молча игнорируется,
+     * При попытке превысить maxChoices - клик молча игнорируется,
      * UI отключает невыбранные плитки через `disabled` ниже.
      */
     const toggleMulti = (group: MenuModifierGroup, modifierId: number) => {
@@ -429,12 +434,12 @@ export function ProductModifiersDialog({
                             color="text.secondary"
                             sx={{ mt: 0.5, fontVariantNumeric: "tabular-nums" }}
                         >
-                            от {fmt.format(basePrice)} ֏
+                            {t("fromPrice", { price: fmt.format(basePrice) })}
                         </Typography>
                     </Stack>
                     <IconButton
                         onClick={onClose}
-                        aria-label="Закрыть"
+                        aria-label={tCommon("aria.close")}
                         size="small"
                         sx={{ flexShrink: 0 }}
                     >
@@ -486,7 +491,7 @@ export function ProductModifiersDialog({
                                     </Typography>
                                     {group.required ? (
                                         <Chip
-                                            label="Обязательно"
+                                            label={t("required")}
                                             size="small"
                                             color="error"
                                             variant="outlined"
@@ -502,7 +507,7 @@ export function ProductModifiersDialog({
                                     ) : null}
                                     {group.maxChoices > 1 ? (
                                         <Chip
-                                            label={`До ${String(group.maxChoices)} шт`}
+                                            label={t("maxChoices", { n: group.maxChoices })}
                                             size="small"
                                             variant="outlined"
                                             sx={{
@@ -517,7 +522,7 @@ export function ProductModifiersDialog({
                                     ) : null}
                                     {!useRadio && group.maxChoices === 0 ? (
                                         <Chip
-                                            label="Без лимита"
+                                            label={t("unlimited")}
                                             size="small"
                                             variant="outlined"
                                             sx={{
@@ -546,6 +551,7 @@ export function ProductModifiersDialog({
                                                 name={m.name}
                                                 priceDelta={m.priceDelta}
                                                 selected={selected}
+                                                fmt={fmt}
                                                 mode={
                                                     useRadio
                                                         ? "radio"
@@ -604,7 +610,7 @@ export function ProductModifiersDialog({
                             color="text.secondary"
                             sx={{ lineHeight: 1.2 }}
                         >
-                            Итого
+                            {t("total")}
                         </Typography>
                         <Typography
                             variant="h5"
@@ -632,7 +638,7 @@ export function ProductModifiersDialog({
                             fontSize: "1rem",
                         }}
                     >
-                        В корзину
+                        {t("addToCart")}
                     </Button>
                 </Stack>
             </DialogActions>

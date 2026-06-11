@@ -17,7 +17,7 @@ export function normalizePhoneToE164Digits(input: string): string {
         return `374${digits}`;
     }
 
-    // 11 цифр и начинается с 374 — уже E.164 без «+»
+    // 11 цифр и начинается с 374 - уже E.164 без «+»
     if (digits.length === 11 && digits.startsWith("374")) {
         return digits;
     }

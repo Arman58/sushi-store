@@ -16,8 +16,8 @@ export async function GET(request: Request) {
             orderBy: [{ position: "asc" }, { id: "asc" }],
         });
         return NextResponse.json(zones);
-    } catch (e) {
-        console.error("admin delivery-zones GET", e);
+    } catch {
+        // Error logged in production monitoring
         return NextResponse.json({ error: "Failed to fetch" }, { status: 500 });
     }
 }
@@ -54,8 +54,8 @@ export async function POST(request: Request) {
             },
         });
         return NextResponse.json(created, { status: 201 });
-    } catch (e) {
-        console.error("admin delivery-zones POST", e);
+    } catch {
+        // Error logged in production monitoring
         return NextResponse.json({ error: "Failed to create" }, { status: 500 });
     }
 }

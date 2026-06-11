@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 const isProduction = process.env.NODE_ENV === "production";
 
 /**
- * Без явного domain — куки привязаны к текущему хосту (localhost или eastwestnh.com).
+ * Без явного domain - куки привязаны к текущему хосту (localhost или eastwestnh.com).
  * secure только на проде, чтобы dev на http://localhost работал без HTTPS.
  */
 const sessionCookieOptions = {

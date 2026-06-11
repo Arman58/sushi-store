@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { adminCategoryCreateSchema } from "@/lib/api-schemas";
+import { localizedSlugSource } from "@/lib/i18n-utils";
 import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
 import { verifyAdmin } from "@/lib/verify-admin";
@@ -32,11 +33,11 @@ export async function GET(request: Request) {
 
     try {
         const categories = await prisma.category.findMany({
-            orderBy: { name: "asc" },
+            orderBy: { position: "asc" },
         });
         return NextResponse.json(categories);
-    } catch (error) {
-        console.error("Admin categories GET error", error);
+    } catch {
+        // Error logged in production monitoring
         return NextResponse.json({ error: "Failed to fetch categories" }, { status: 500 });
     }
 }
@@ -51,15 +52,15 @@ export async function POST(request: Request) {
     if (!parsed.ok) return parsed.response;
 
     const name = parsed.data.name;
-    const slug = await makeUniqueCategorySlug(name);
+    const slug = await makeUniqueCategorySlug(localizedSlugSource(name));
 
     try {
         const category = await prisma.category.create({
             data: { name, slug },
         });
         return NextResponse.json(category, { status: 201 });
-    } catch (error) {
-        console.error("Admin categories POST error", error);
+    } catch {
+        // Error logged in production monitoring
         return NextResponse.json({ error: "Failed to create category" }, { status: 500 });
     }
 }

@@ -302,7 +302,7 @@ export const useCartStore = create<CartState>()(
                 }
                 return state;
             },
-            // Only persist data — never persist UI state like isCartOpen
+            // Only persist data - never persist UI state like isCartOpen
             partialize: (state) => ({
                 items: state.items,
                 hasPriceMismatch: state.hasPriceMismatch,

@@ -2,17 +2,32 @@ import { DeliveryType, PaymentMethod, Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
+import {
+    getInvalidCartPayloadMessage,
+    localizedApiErrorJsonResponse,
+    resolveOrderRequestLocale,
+} from "@/lib/backend-i18n";
 import { escapeHtml } from "@/lib/escape-html";
 import {
     fetchWithTimeout,
     NOTIFICATION_FETCH_TIMEOUT_MS,
 } from "@/lib/fetch-with-timeout";
+import { getLocalizedField } from "@/lib/i18n-utils";
+import {
+    ORDER_ACCESS_COOKIE_MAX_AGE_SEC,
+    orderAccessCookieName,
+} from "@/lib/order-access";
 import { prepareOrderItems, type VerifiedOrderItem } from "@/lib/prepare-order-items";
 import { prisma } from "@/lib/prisma";
 import {
     computePromoDiscountAmount,
     getPromoRejectionReason,
 } from "@/lib/promo";
+import {
+    checkRateLimit,
+    rateLimitExceededJsonResponse,
+} from "@/lib/rate-limit";
+import { API_ERROR_CODES, type ApiErrorCode } from "@/shared/lib/api-error";
 import {
     buildKitchenStatusKeyboard,
     isKitchenTelegramConfigured,
@@ -30,38 +45,7 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 const telegramNotifyEnabled = isKitchenTelegramConfigured();
 
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX = 5;
-
-const rateLimitStore = new Map<string, number[]>();
-
 const DEFAULT_ERROR_MESSAGE = "Не удалось оформить заказ. Попробуйте ещё раз.";
-
-// ─── Rate limit ────────────────────────────────────────────────────────────────
-
-function getClientIp(request: Request) {
-    const xff = request.headers.get("x-forwarded-for");
-    if (xff) return xff.split(",")[0].trim();
-    const realIp = request.headers.get("x-real-ip");
-    if (realIp) return realIp;
-    return "unknown";
-}
-
-function isRateLimited(ip: string): boolean {
-    const now = Date.now();
-    const windowStart = now - RATE_LIMIT_WINDOW_MS;
-    const timestamps =
-        rateLimitStore.get(ip)?.filter((ts) => ts > windowStart) ?? [];
-
-    if (timestamps.length >= RATE_LIMIT_MAX) {
-        rateLimitStore.set(ip, timestamps);
-        return true;
-    }
-
-    timestamps.push(now);
-    rateLimitStore.set(ip, timestamps);
-    return false;
-}
 
 type KitchenTelegramPayload = {
     orderId: number;
@@ -188,31 +172,27 @@ async function notifyKitchenTelegram(payload: KitchenTelegramPayload): Promise<v
     );
 
     if (!telegramResponse.ok) {
-        const errorText = await telegramResponse.text().catch(() => "");
-        console.error("Telegram error:", telegramResponse.status, errorText);
+        // Telegram notification failed; order still proceeds
+        void telegramResponse.text().catch(() => "");
     }
 }
 
 // ─── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
-    const clientIp = getClientIp(request);
-
-    if (isRateLimited(clientIp)) {
-        return NextResponse.json(
-            { error: "Слишком много запросов. Попробуйте позже." },
-            { status: 429 },
-        );
+    const rateLimit = await checkRateLimit(request, "order");
+    if (!rateLimit.allowed) {
+        return rateLimitExceededJsonResponse();
     }
 
-    // Авторизованный — привяжем к userId. Гостевые остаются гостевыми.
+    // Авторизованный - привяжем к userId. Гостевые остаются гостевыми.
     const session = await auth();
     const sessionUserIdRaw =
         session?.user?.id != null && Number.isFinite(session.user.id)
             ? Number(session.user.id)
             : null;
 
-    /** Привязываем только к существующему User (Int), иначе null — без FK-ошибки. */
+    /** Привязываем только к существующему User (Int), иначе null - без FK-ошибки. */
     const sessionUserId =
         sessionUserIdRaw != null
             ? (
@@ -254,7 +234,10 @@ export async function POST(request: Request) {
         discountAmount: declaredDiscount,
         deliveryZoneId,
         promoCode: promoCodeRaw,
+        locale: payloadLocale,
     } = payload;
+
+    const locale = resolveOrderRequestLocale(request, payloadLocale);
 
     // ── Сверка позиций с БД (пересчёт цен, snapshot, правила групп) ──────────
     const declaredItemsTotal = items.reduce(
@@ -262,12 +245,29 @@ export async function POST(request: Request) {
         0,
     );
 
-    const verifiedItemsResult = await prepareOrderItems(items);
+    const verifiedItemsResult = await prepareOrderItems(items, locale);
 
     if (!verifiedItemsResult.ok) {
-        return NextResponse.json(
-            { error: verifiedItemsResult.message },
-            { status: verifiedItemsResult.httpStatus },
+        if (
+            verifiedItemsResult.code === API_ERROR_CODES.INVALID_CART_PAYLOAD &&
+            verifiedItemsResult.invalidReason
+        ) {
+            return NextResponse.json(
+                {
+                    error: getInvalidCartPayloadMessage(
+                        verifiedItemsResult.invalidReason,
+                        locale,
+                    ),
+                    code: verifiedItemsResult.code,
+                },
+                { status: verifiedItemsResult.httpStatus },
+            );
+        }
+        return localizedApiErrorJsonResponse(
+            verifiedItemsResult.code,
+            locale,
+            verifiedItemsResult.httpStatus,
+            verifiedItemsResult.params,
         );
     }
 
@@ -275,12 +275,10 @@ export async function POST(request: Request) {
     const verifiedTotal = verifiedItemsResult.total;
 
     if (verifiedTotal !== declaredItemsTotal) {
-        return NextResponse.json(
-            {
-                error:
-                    "Цены на некоторые позиции обновились. Соберите заказ заново, чтобы увидеть актуальную сумму.",
-            },
-            { status: 409 },
+        return localizedApiErrorJsonResponse(
+            API_ERROR_CODES.PRICE_MISMATCH,
+            locale,
+            409,
         );
     }
 
@@ -320,7 +318,7 @@ export async function POST(request: Request) {
 
         deliveryFee = zone.deliveryPrice;
         zoneIdForDb = zone.id;
-        zoneNameSnapshot = zone.name;
+        zoneNameSnapshot = getLocalizedField(zone.name, locale);
     }
 
     const grandBeforePay = verifiedTotal + deliveryFee;
@@ -350,21 +348,17 @@ export async function POST(request: Request) {
     const payableTotal = verifiedTotal - discountAmt + deliveryFee;
 
     if (declaredSubtotal !== undefined && declaredSubtotal !== verifiedTotal) {
-        return NextResponse.json(
-            {
-                error:
-                    "Сумма товаров не совпадает с расчётом сервера. Обновите страницу.",
-            },
-            { status: 409 },
+        return localizedApiErrorJsonResponse(
+            API_ERROR_CODES.SUBTOTAL_MISMATCH,
+            locale,
+            409,
         );
     }
     if (declaredDiscount !== undefined && declaredDiscount !== discountAmt) {
-        return NextResponse.json(
-            {
-                error:
-                    "Сумма скидки не совпадает с расчётом сервера. Обновите страницу.",
-            },
-            { status: 409 },
+        return localizedApiErrorJsonResponse(
+            API_ERROR_CODES.DISCOUNT_MISMATCH,
+            locale,
+            409,
         );
     }
 
@@ -388,27 +382,25 @@ export async function POST(request: Request) {
                 );
 
                 if (bumped.length === 0) {
-                    throw Object.assign(
-                        new Error("Промокод больше нельзя применить"),
-                        { httpStatus: 409 },
-                    );
+                    throw Object.assign(new Error(API_ERROR_CODES.PROMO_UNAVAILABLE), {
+                        httpStatus: 409,
+                        code: API_ERROR_CODES.PROMO_UNAVAILABLE,
+                    });
                 }
             }
 
             if (payableTotal !== totalPrice) {
-                throw Object.assign(
-                    new Error(
-                        "Сумма заказа не совпадает с расчётом позиций, доставки и скидки. Обновите страницу и попробуйте снова.",
-                    ),
-                    { httpStatus: 409 },
-                );
+                throw Object.assign(new Error(API_ERROR_CODES.TOTAL_MISMATCH), {
+                    httpStatus: 409,
+                    code: API_ERROR_CODES.TOTAL_MISMATCH,
+                });
             }
 
             const phoneForDb =
                 countPhoneDigits(phone) >= 8
                     ? phone
                     : delivery === "pickup"
-                      ? "—"
+                      ? "-"
                       : phone;
 
             const created = await tx.order.create({
@@ -458,10 +450,27 @@ export async function POST(request: Request) {
             typeof (error as { httpStatus?: unknown }).httpStatus === "number"
                 ? (error as { httpStatus: number }).httpStatus
                 : 500;
+        const code =
+            typeof error === "object" &&
+            error !== null &&
+            "code" in error &&
+            typeof (error as { code?: unknown }).code === "string"
+                ? (error as { code: string }).code
+                : undefined;
         if (httpStatus >= 400 && httpStatus < 500) {
+            if (
+                code &&
+                Object.values(API_ERROR_CODES).includes(code as ApiErrorCode)
+            ) {
+                return localizedApiErrorJsonResponse(
+                    code as ApiErrorCode,
+                    locale,
+                    httpStatus,
+                );
+            }
             return NextResponse.json({ error: msg }, { status: httpStatus });
         }
-        console.error("Prisma order create error:", error);
+        // Error logged in production monitoring
         return NextResponse.json(
             { error: DEFAULT_ERROR_MESSAGE },
             { status: 500 },
@@ -484,16 +493,29 @@ export async function POST(request: Request) {
             promoCodeRaw: promoCodeRaw ?? undefined,
             payableForNotify,
             grandBeforePay,
-        }).catch((error) => {
-            console.error("Telegram request failed:", error);
+        }).catch(() => {
+            // Telegram notification failed; order still created
         });
     }
 
-    return NextResponse.json(
+    const response = NextResponse.json(
         {
             ok: true,
             order: { id: createdOrderId, accessToken: createdAccessToken },
         },
         { status: 201 },
     );
+
+    // HttpOnly cookie: гость видит трекер без ?key= в URL (см. order-access.ts).
+    response.cookies.set({
+        name: orderAccessCookieName(createdOrderId),
+        value: createdAccessToken,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: ORDER_ACCESS_COOKIE_MAX_AGE_SEC,
+        path: "/",
+    });
+
+    return response;
 }

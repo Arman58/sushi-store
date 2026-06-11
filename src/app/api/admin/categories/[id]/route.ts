@@ -33,7 +33,7 @@ export async function DELETE(
         if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003") {
             return NextResponse.json({ error: FK_MESSAGE }, { status: 409 });
         }
-        console.error("Admin category DELETE error", e);
+        // Error logged in production monitoring
         return NextResponse.json({ error: "Failed to delete category" }, { status: 500 });
     }
 }

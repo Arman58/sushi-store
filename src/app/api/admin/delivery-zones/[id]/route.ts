@@ -26,15 +26,7 @@ export async function PATCH(
     const parsed = await parseJsonBody(request, adminDeliveryZonePatchSchema);
     if (!parsed.ok) return parsed.response;
 
-    const data = {
-        ...parsed.data,
-        ...(parsed.data.name !== undefined
-            ? { name: parsed.data.name.trim() }
-            : {}),
-        ...(parsed.data.description !== undefined
-            ? { description: parsed.data.description.trim() }
-            : {}),
-    };
+    const data = { ...parsed.data };
 
     try {
         const updated = await prisma.deliveryZone.update({

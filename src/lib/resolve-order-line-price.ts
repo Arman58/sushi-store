@@ -1,3 +1,7 @@
+import type { InvalidCartPayloadReason } from "@/lib/backend-i18n";
+import { getLocalizedField } from "@/lib/i18n-utils";
+import { API_ERROR_CODES, type ApiErrorCode } from "@/shared/lib/api-error";
+
 export type OrderLineModifierSnapshot = {
     id: number;
     name: string;
@@ -9,10 +13,10 @@ export type ProductForOrderPricing = {
     price: number;
     modifierGroups: Array<{
         id: number;
-        name: string;
+        name: unknown;
         required: boolean;
         maxChoices: number;
-        modifiers: Array<{ id: number; name: string; priceDelta: number }>;
+        modifiers: Array<{ id: number; name: unknown; priceDelta: number }>;
     }>;
 };
 
@@ -22,14 +26,13 @@ export type ProductForOrderPricing = {
  *   дубль в одной позиции, опции для товара без групп.
  * - "rule_violation"  → 422. Бизнес-правила групп: required без выбора,
  *   превышен maxChoices.
- *
- * Конфликты состояния (товар неактивен, итоговая цена не сошлась) обрабатываются
- * выше по стеку — это 409, отдельная зона ответственности.
  */
 export type OrderLinePriceError = {
     ok: false;
     code: "invalid_payload" | "rule_violation";
-    message: string;
+    apiCode: ApiErrorCode;
+    params?: Record<string, string | number>;
+    invalidReason?: InvalidCartPayloadReason;
 };
 
 export type OrderLinePriceOk = {
@@ -40,31 +43,28 @@ export type OrderLinePriceOk = {
 
 /**
  * Проверяет выбор модификаторов по правилам групп и считает цену строки из БД (база + сумма priceDelta).
- *
- * Серверный пересчёт — единственный источник истины: клиентская цена в финале только сверяется.
  */
 export function resolveOrderLinePrice(
     product: ProductForOrderPricing,
     selectedModifierIds: number[],
+    locale = "hy",
 ): OrderLinePriceOk | OrderLinePriceError {
-    // 1) Дубль в одной позиции — это уже подозрительно (UI такого не порождает).
     const seen = new Set<number>();
     for (const id of selectedModifierIds) {
         if (seen.has(id)) {
             return {
                 ok: false,
                 code: "invalid_payload",
-                message: "Повтор модификатора в одной позиции",
+                apiCode: API_ERROR_CODES.INVALID_CART_PAYLOAD,
+                invalidReason: "duplicate_modifier",
             };
         }
         seen.add(id);
     }
 
-    // 2) Карта id → модификатор по всем группам товара. Защищает от подмены
-    //    «чужими» id (Modifier из другого товара).
     const idToModifier = new Map<
         number,
-        { groupId: number; name: string; priceDelta: number }
+        { groupId: number; name: unknown; priceDelta: number }
     >();
 
     for (const g of product.modifierGroups) {
@@ -82,35 +82,32 @@ export function resolveOrderLinePrice(
             return {
                 ok: false,
                 code: "invalid_payload",
-                message:
-                    "В заказе указаны недопустимые опции. Обновите корзину и оформите заказ снова.",
+                apiCode: API_ERROR_CODES.INVALID_CART_PAYLOAD,
+                invalidReason: "foreign_modifier",
             };
         }
     }
 
-    // 3) У товара нет групп, но клиент прислал опции — однозначная подмена.
     if (product.modifierGroups.length === 0 && selectedModifierIds.length > 0) {
         return {
             ok: false,
             code: "invalid_payload",
-            message:
-                "Для этого товара нет опций. Обновите корзину и оформите заказ снова.",
+            apiCode: API_ERROR_CODES.INVALID_CART_PAYLOAD,
+            invalidReason: "unexpected_modifiers",
         };
     }
 
-    // 4) Правила групп.
-    //    required=true  → picked.length >= 1
-    //    maxChoices > 0 → picked.length <= maxChoices
-    //    maxChoices = 0 → без верхней границы
     for (const g of product.modifierGroups) {
         const groupModIdSet = new Set(g.modifiers.map((m) => m.id));
         const picked = selectedModifierIds.filter((id) => groupModIdSet.has(id));
+        const groupLabel = getLocalizedField(g.name, locale);
 
         if (g.required && picked.length === 0) {
             return {
                 ok: false,
                 code: "rule_violation",
-                message: `Выберите опцию: «${g.name}»`,
+                apiCode: API_ERROR_CODES.REQUIRED_MODIFIER_MISSING,
+                params: { group: groupLabel },
             };
         }
 
@@ -118,13 +115,12 @@ export function resolveOrderLinePrice(
             return {
                 ok: false,
                 code: "rule_violation",
-                message: `Слишком много опций в группе «${g.name}»`,
+                apiCode: API_ERROR_CODES.MODIFIER_LIMIT_EXCEEDED,
+                params: { group: groupLabel },
             };
         }
     }
 
-    // 5) Snapshot и пересчёт цены — в порядке групп/опций из БД,
-    //    чтобы он стабильно отображался в админке и истории.
     const snapshot: OrderLineModifierSnapshot[] = [];
     let delta = 0;
 
@@ -133,7 +129,7 @@ export function resolveOrderLinePrice(
             if (seen.has(m.id)) {
                 snapshot.push({
                     id: m.id,
-                    name: m.name,
+                    name: getLocalizedField(m.name, locale),
                     priceDelta: m.priceDelta,
                 });
                 delta += m.priceDelta;

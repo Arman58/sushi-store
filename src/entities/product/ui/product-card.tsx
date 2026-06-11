@@ -9,8 +9,10 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import { alpha } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
+import { useTranslations } from "next-intl";
 import { memo } from "react";
 
+import { formatStorePrice } from "@/shared/lib/format-price";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { buildProductImageAlt } from "@/shared/lib/product-image-alt";
 import { ProductCoverImage } from "@/shared/ui/product-cover-image";
@@ -36,11 +38,9 @@ export type ProductCardProps = {
     onIncrease?: () => void;
     onDecrease?: () => void;
     index?: number;
-    /** Prefer preloading this card image — use once per viewport for LCP (e.g. first tile on home). */
+    /** Prefer preloading this card image - use once per viewport for LCP (e.g. first tile on home). */
     imagePriority?: boolean;
 };
-
-const fmt = new Intl.NumberFormat("ru-RU");
 
 const cardHoverShadow =
     `0 8px 24px ${alpha(tokens.textPrimary, 0.08)}, 0 22px 52px ${alpha(tokens.textPrimary, 0.14)}`;
@@ -73,6 +73,7 @@ export const ProductCard = memo(function ProductCard({
     onDecrease,
     imagePriority = false,
 }: ProductCardProps) {
+    const t = useTranslations("product");
     const imageUrl = getProductCoverUrl({ images, mainImage });
     const imageAlt = buildProductImageAlt(name);
 
@@ -107,7 +108,7 @@ export const ProductCard = memo(function ProductCard({
                     },
                 }}
             >
-                {/* 1. Image — fixed aspect ratio, never stretches the card */}
+                {/* 1. Image - fixed aspect ratio, never stretches the card */}
                 <Box
                     sx={{
                         position: "relative",
@@ -125,7 +126,7 @@ export const ProductCard = memo(function ProductCard({
                     />
                 </Box>
 
-                {/* 2. Content — name + description, grows within card */}
+                {/* 2. Content - name + description, grows within card */}
                 <Box
                     sx={{
                         flex: 1,
@@ -170,7 +171,7 @@ export const ProductCard = memo(function ProductCard({
                     ) : null}
                 </Box>
 
-                {/* 3. Footer — price truncates before action controls */}
+                {/* 3. Footer - price truncates before action controls */}
                 <Box
                     sx={{
                         display: "flex",
@@ -204,7 +205,7 @@ export const ProductCard = memo(function ProductCard({
                             fontVariantNumeric: "tabular-nums",
                         }}
                     >
-                        {fmt.format(price)}&thinsp;֏
+                        {formatStorePrice(price)}&thinsp;֏
                     </Typography>
 
                     {hasInCart ? (
@@ -220,7 +221,7 @@ export const ProductCard = memo(function ProductCard({
                                     e.stopPropagation();
                                     onDecrease?.();
                                 }}
-                                aria-label={`Уменьшить количество: ${name}`}
+                                aria-label={t("aria.decrease", { name })}
                                 sx={{
                                     ...stepperButtonSx,
                                     bgcolor: "action.hover",
@@ -253,7 +254,7 @@ export const ProductCard = memo(function ProductCard({
                                     e.stopPropagation();
                                     onIncrease?.();
                                 }}
-                                aria-label={`Увеличить количество: ${name}`}
+                                aria-label={t("aria.increase", { name })}
                                 sx={{
                                     ...stepperButtonSx,
                                     bgcolor: "action.hover",
@@ -269,7 +270,7 @@ export const ProductCard = memo(function ProductCard({
                         <IconButton
                             size="small"
                             onClick={handleAdd}
-                            aria-label={`Добавить ${name}`}
+                            aria-label={t("aria.add", { name })}
                             sx={{
                                 ...stepperButtonSx,
                                 flexShrink: 0,

@@ -39,13 +39,20 @@ import {
 } from "react-hook-form";
 
 import type { AdminModifierGroupInput } from "@/lib/admin-product-modifiers";
+import {
+    emptyLocalizedJson,
+    getLocalizedField,
+    type LocalizedJson,
+    parseLocalizedJson,
+} from "@/lib/i18n-utils";
+import { LocalizedTextFields } from "@/shared/ui/localized-text-fields";
 
 export type ProductSavePayload = {
-    name: string;
+    name: LocalizedJson;
     price: number;
     categoryId: number;
-    composition: string | null;
-    description: string | null;
+    composition: LocalizedJson | null;
+    description: LocalizedJson | null;
     weight: number | null;
     images: string[];
     modifierGroups: AdminModifierGroupInput[];
@@ -53,25 +60,25 @@ export type ProductSavePayload = {
 
 type ProductRow = {
     id: number;
-    name: string;
-    description: string | null;
-    composition: string | null;
+    name: unknown;
+    description: unknown;
+    composition: unknown;
     price: number;
     weight: number | null;
     images?: unknown;
     mainImage?: string | null;
     isActive: boolean;
     categoryId: number | null;
-    category: { name: string } | null;
+    category: { name: unknown } | null;
     modifierGroups?: {
         id: number;
-        name: string;
+        name: unknown;
         required: boolean;
         maxChoices: number;
         position: number;
         modifiers: {
             id: number;
-            name: string;
+            name: unknown;
             priceDelta: number;
             position: number;
         }[];
@@ -81,26 +88,42 @@ type ProductRow = {
 type EditingProduct = null | Record<string, never> | ProductRow;
 
 type ProductDialogFormValues = {
-    name: string;
+    name: LocalizedJson;
     price: string;
     weight: string;
     categoryId: string;
-    composition: string;
-    description: string;
+    composition: LocalizedJson;
+    description: LocalizedJson;
     images: string[];
     modifierGroups: {
         /** id присутствует для существующих групп; undefined для новых, добавленных в UI. */
         id?: number;
-        name: string;
+        name: LocalizedJson;
         required: boolean;
         maxChoices: number;
         modifiers: {
             id?: number;
-            name: string;
+            name: LocalizedJson;
             priceDelta: number;
         }[];
     }[];
 };
+
+function hasLocalizedText(value: LocalizedJson): boolean {
+    return Boolean(value.hy.trim() || value.ru.trim() || value.en.trim());
+}
+
+function toLocalizedPayload(value: LocalizedJson): {
+    hy: string;
+    ru: string;
+    en: string;
+} {
+    return {
+        hy: value.hy ?? "",
+        ru: value.ru ?? "",
+        en: value.en ?? "",
+    };
+}
 
 const TEXT_FIELD_FOCUS_SX = {
     "& .MuiOutlinedInput-root": {
@@ -110,12 +133,12 @@ const TEXT_FIELD_FOCUS_SX = {
 
 function emptyProductDialogForm(): ProductDialogFormValues {
     return {
-        name: "",
+        name: emptyLocalizedJson(),
         price: "",
         weight: "",
         categoryId: "",
-        composition: "",
-        description: "",
+        composition: emptyLocalizedJson(),
+        description: emptyLocalizedJson(),
         images: [],
         modifierGroups: [],
     };
@@ -132,23 +155,23 @@ function productDialogDefaults(editingProduct: EditingProduct): ProductDialogFor
         (a, b) => a.position - b.position || a.id - b.id,
     );
     return {
-        name: p.name,
+        name: parseLocalizedJson(p.name),
         price: String(p.price),
         weight: p.weight != null ? String(p.weight) : "",
         categoryId: p.categoryId != null ? String(p.categoryId) : "",
-        composition: p.composition ?? "",
-        description: p.description ?? "",
+        composition: parseLocalizedJson(p.composition),
+        description: parseLocalizedJson(p.description),
         images: Array.isArray(p.images) ? (p.images as string[]) : [],
         modifierGroups: sortedGroups.map((g) => ({
             id: g.id,
-            name: g.name,
+            name: parseLocalizedJson(g.name),
             required: g.required,
             maxChoices: g.maxChoices,
             modifiers: [...(g.modifiers ?? [])]
                 .sort((a, b) => a.position - b.position || a.id - b.id)
                 .map((m) => ({
                     id: m.id,
-                    name: m.name,
+                    name: parseLocalizedJson(m.name),
                     priceDelta: m.priceDelta,
                 })),
         })),
@@ -161,17 +184,17 @@ function buildModifierPayload(
     const modifierGroups: AdminModifierGroupInput[] = [];
     for (let gi = 0; gi < groups.length; gi++) {
         const g = groups[gi];
-        const name = g.name.trim();
+        const name = g.name;
         const modifiers = g.modifiers
-            .filter((m) => m.name.trim() !== "")
+            .filter((m) => hasLocalizedText(m.name))
             .map((m, mi) => ({
                 ...(typeof m.id === "number" ? { id: m.id } : {}),
-                name: m.name.trim(),
+                name: toLocalizedPayload(m.name),
                 priceDelta: Math.round(Number(m.priceDelta)) || 0,
                 position: mi,
             }));
-        if (name === "" && modifiers.length === 0) continue;
-        if (name === "") {
+        if (!hasLocalizedText(name) && modifiers.length === 0) continue;
+        if (!hasLocalizedText(name)) {
             return {
                 ok: false,
                 message: `Группа ${String(gi + 1)}: укажите название (или удалите опции).`,
@@ -183,7 +206,7 @@ function buildModifierPayload(
         }
         modifierGroups.push({
             ...(typeof g.id === "number" ? { id: g.id } : {}),
-            name,
+            name: toLocalizedPayload(name),
             required: Boolean(g.required),
             maxChoices,
             position: gi,
@@ -193,7 +216,7 @@ function buildModifierPayload(
     return { ok: true, modifierGroups };
 }
 
-type AdminCategory = { id: number; name: string };
+type AdminCategory = { id: number; name: unknown };
 
 function ModifierGroupAccordion(props: {
     control: Control<ProductDialogFormValues>;
@@ -226,8 +249,8 @@ function ModifierGroupAccordion(props: {
     });
 
     const summaryTitle =
-        typeof groupName === "string" && groupName.trim() !== ""
-            ? groupName.trim()
+        groupName != null && hasLocalizedText(groupName)
+            ? getLocalizedField(groupName, "hy") || getLocalizedField(groupName, "ru")
             : `Группа ${String(groupIndex + 1)}`;
 
     const maxN =
@@ -302,13 +325,18 @@ function ModifierGroupAccordion(props: {
                                 v === "" || v == null ? undefined : Number(v),
                         })}
                     />
-                    <TextField
-                        {...control.register(`modifierGroups.${groupIndex}.name`)}
-                        fullWidth
-                        size="small"
-                        label="Название группы"
-                        disabled={disabled}
-                        sx={TEXT_FIELD_FOCUS_SX}
+                    <Controller
+                        name={`modifierGroups.${groupIndex}.name`}
+                        control={control}
+                        render={({ field }) => (
+                            <LocalizedTextFields
+                                label="Название группы"
+                                value={field.value}
+                                onChange={field.onChange}
+                                disabled={disabled}
+                                required
+                            />
+                        )}
                     />
                     <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" useFlexGap>
                         <Controller
@@ -361,15 +389,21 @@ function ModifierGroupAccordion(props: {
                                         },
                                     )}
                                 />
-                                <TextField
-                                    {...control.register(
-                                        `modifierGroups.${groupIndex}.modifiers.${optIndex}.name`,
-                                    )}
-                                    size="small"
-                                    label="Название"
-                                    disabled={disabled}
-                                    sx={{ flex: 1, minWidth: 0, ...TEXT_FIELD_FOCUS_SX }}
-                                />
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                    <Controller
+                                        name={`modifierGroups.${groupIndex}.modifiers.${optIndex}.name`}
+                                        control={control}
+                                        render={({ field }) => (
+                                            <LocalizedTextFields
+                                                label="Название"
+                                                value={field.value}
+                                                onChange={field.onChange}
+                                                disabled={disabled}
+                                                required
+                                            />
+                                        )}
+                                    />
+                                </Box>
                                 <TextField
                                     {...control.register(
                                         `modifierGroups.${groupIndex}.modifiers.${optIndex}.priceDelta`,
@@ -429,7 +463,7 @@ function ModifierGroupAccordion(props: {
                         disabled={disabled}
                         onClick={() =>
                             appendOption({
-                                name: "",
+                                name: emptyLocalizedJson(),
                                 priceDelta: 0,
                             })
                         }
@@ -472,7 +506,7 @@ export function ProductFormDialog(props: {
     }, [editingProduct, formKey, reset]);
 
     const [categories, setCategories] = useState<AdminCategory[]>([]);
-    const [newCategoryName, setNewCategoryName] = useState("");
+    const [newCategoryName, setNewCategoryName] = useState(emptyLocalizedJson);
     const [addCategoryLoading, setAddCategoryLoading] = useState(false);
     const [uploadLoading, setUploadLoading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -489,13 +523,12 @@ export function ProductFormDialog(props: {
                     setCategories(
                         data
                             .filter(
-                                (c): c is AdminCategory & { name: string } =>
+                                (c): c is AdminCategory =>
                                     c !== null &&
                                     typeof c === "object" &&
                                     "id" in c &&
                                     "name" in c &&
-                                    typeof (c as { id: unknown }).id === "number" &&
-                                    typeof (c as { name: unknown }).name === "string"
+                                    typeof (c as { id: unknown }).id === "number"
                             )
                             .map((c) => ({ id: c.id, name: c.name })),
                     );
@@ -577,8 +610,10 @@ export function ProductFormDialog(props: {
     };
 
     const handleAddCategory = async () => {
-        const name = newCategoryName.trim();
-        if (!name || addCategoryLoading) return;
+        const name = newCategoryName;
+        const hasName =
+            name.hy.trim() || name.ru.trim() || name.en.trim();
+        if (!hasName || addCategoryLoading) return;
         setAddCategoryLoading(true);
         try {
             const res = await fetch("/api/admin/categories", {
@@ -598,14 +633,19 @@ export function ProductFormDialog(props: {
                 alert(msg);
                 return;
             }
-            const created = (await res.json()) as { id: number; name: string };
+            const created = (await res.json()) as { id: number; name: unknown };
             setCategories((prev) => {
                 const next = [...prev, { id: created.id, name: created.name }];
-                next.sort((a, b) => a.name.localeCompare(b.name, "ru"));
+                next.sort((a, b) =>
+                    getLocalizedField(a.name, "hy").localeCompare(
+                        getLocalizedField(b.name, "hy"),
+                        "hy",
+                    ),
+                );
                 return next;
             });
             setValue("categoryId", String(created.id), { shouldDirty: true });
-            setNewCategoryName("");
+            setNewCategoryName(emptyLocalizedJson());
         } catch {
             alert("Ошибка сети при создании категории");
         } finally {
@@ -614,7 +654,7 @@ export function ProductFormDialog(props: {
     };
 
     const onValid = async (values: ProductDialogFormValues) => {
-        const name = values.name.trim();
+        const name = values.name;
         const price = Number.parseFloat(values.price);
         const categoryId = Number.parseInt(values.categoryId, 10);
         const weightStr = values.weight.trim();
@@ -628,8 +668,8 @@ export function ProductFormDialog(props: {
             weight = Math.round(w);
         }
 
-        if (!name) {
-            alert("Укажите название");
+        if (!name.hy.trim() && !name.ru.trim() && !name.en.trim()) {
+            alert("Укажите название хотя бы на одном языке");
             return;
         }
         if (Number.isNaN(price) || !Number.isFinite(price) || price < 0) {
@@ -647,15 +687,27 @@ export function ProductFormDialog(props: {
             return;
         }
 
-        const composition = values.composition.trim();
-        const description = values.description.trim();
+        const composition = values.composition;
+        const description = values.description;
+        const compositionPayload =
+            !composition.hy.trim() &&
+            !composition.ru.trim() &&
+            !composition.en.trim()
+                ? null
+                : composition;
+        const descriptionPayload =
+            !description.hy.trim() &&
+            !description.ru.trim() &&
+            !description.en.trim()
+                ? null
+                : description;
 
         const payload: ProductSavePayload = {
             name,
             price: Math.round(price),
             categoryId,
-            composition: composition || null,
-            description: description || null,
+            composition: compositionPayload,
+            description: descriptionPayload,
             weight,
             images: values.images,
             modifierGroups: modParsed.modifierGroups,
@@ -706,13 +758,18 @@ export function ProductFormDialog(props: {
                     </DialogTitle>
                     <DialogContent sx={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
                         <Stack spacing={2} sx={{ pt: 1 }}>
-                            <TextField
-                                {...register("name")}
-                                required
-                                fullWidth
-                                label="Название"
-                                disabled={submitLoading}
-                                sx={TEXT_FIELD_FOCUS_SX}
+                            <Controller
+                                name="name"
+                                control={control}
+                                render={({ field }) => (
+                                    <LocalizedTextFields
+                                        label="Название"
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        disabled={submitLoading}
+                                        required
+                                    />
+                                )}
                             />
                             <TextField
                                 {...register("price")}
@@ -744,7 +801,9 @@ export function ProductFormDialog(props: {
                                 size="small"
                                 fullWidth
                                 options={categories}
-                                getOptionLabel={(option) => option.name}
+                                getOptionLabel={(option) =>
+                                    getLocalizedField(option.name, "hy")
+                                }
                                 value={
                                     categoryIdWatch
                                         ? (categories.find((c) => String(c.id) === categoryIdWatch) ??
@@ -783,13 +842,15 @@ export function ProductFormDialog(props: {
                                                 width: "100%",
                                             }}
                                         >
-                                            <span>{option.name}</span>
+                                            <span>
+                                                {getLocalizedField(option.name, "hy")}
+                                            </span>
                                             <IconButton
                                                 type="button"
                                                 size="small"
                                                 tabIndex={-1}
                                                 disabled={submitLoading}
-                                                aria-label={`Удалить категорию ${option.name}`}
+                                                aria-label={`Удалить категорию ${getLocalizedField(option.name, "hy")}`}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     e.preventDefault();
@@ -802,23 +863,15 @@ export function ProductFormDialog(props: {
                                     );
                                 }}
                             />
-                            <Stack direction="row" spacing={1} alignItems="center">
-                                <TextField
-                                    size="small"
-                                    fullWidth
-                                    placeholder="Новая категория"
-                                    value={newCategoryName}
-                                    onChange={(e) => setNewCategoryName(e.target.value)}
-                                    disabled={submitLoading || addCategoryLoading}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter") {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            void handleAddCategory();
-                                        }
-                                    }}
-                                    sx={TEXT_FIELD_FOCUS_SX}
-                                />
+                            <Stack direction="row" spacing={1} alignItems="flex-end">
+                                <Box sx={{ flex: 1 }}>
+                                    <LocalizedTextFields
+                                        label="Новая категория"
+                                        value={newCategoryName}
+                                        onChange={setNewCategoryName}
+                                        disabled={submitLoading || addCategoryLoading}
+                                    />
+                                </Box>
                                 <Button
                                     type="button"
                                     size="small"
@@ -826,27 +879,36 @@ export function ProductFormDialog(props: {
                                     onClick={() => void handleAddCategory()}
                                     disabled={submitLoading || addCategoryLoading}
                                     aria-label="Добавить категорию"
+                                    sx={{ mb: 0.5 }}
                                 >
                                     +
                                 </Button>
                             </Stack>
-                            <TextField
-                                {...register("composition")}
-                                multiline
-                                rows={2}
-                                fullWidth
-                                label="Состав"
-                                disabled={submitLoading}
-                                sx={TEXT_FIELD_FOCUS_SX}
+                            <Controller
+                                name="composition"
+                                control={control}
+                                render={({ field }) => (
+                                    <LocalizedTextFields
+                                        label="Состав"
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        disabled={submitLoading}
+                                        multiline
+                                    />
+                                )}
                             />
-                            <TextField
-                                {...register("description")}
-                                multiline
-                                rows={2}
-                                fullWidth
-                                label="Описание"
-                                disabled={submitLoading}
-                                sx={TEXT_FIELD_FOCUS_SX}
+                            <Controller
+                                name="description"
+                                control={control}
+                                render={({ field }) => (
+                                    <LocalizedTextFields
+                                        label="Описание"
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        disabled={submitLoading}
+                                        multiline
+                                    />
+                                )}
                             />
 
                             <Box>
@@ -874,7 +936,7 @@ export function ProductFormDialog(props: {
                                     disabled={submitLoading}
                                     onClick={() =>
                                         appendGroup({
-                                            name: "",
+                                            name: emptyLocalizedJson(),
                                             required: false,
                                             maxChoices: 1,
                                             modifiers: [],

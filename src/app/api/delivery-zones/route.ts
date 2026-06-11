@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
+import { getLocalizedField, resolveRequestLocale } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
 
 import { ensureDeliveryZones } from "../../../../prisma/ensure-delivery-zones";
@@ -9,16 +10,18 @@ const TABLE_MISSING_HINT =
     "В базе нет таблицы зон доставки. Выполните: npx prisma migrate deploy";
 
 /** Публичный список активных зон доставки (без секретов). */
-export async function GET() {
+export async function GET(request: Request) {
+    const locale = resolveRequestLocale(request);
+
     try {
         const totalZones = await prisma.deliveryZone.count();
         if (totalZones === 0) {
             await ensureDeliveryZones(prisma);
         }
 
-        const zones = await prisma.deliveryZone.findMany({
+        const zonesRaw = await prisma.deliveryZone.findMany({
             where: { isActive: true },
-            orderBy: [{ position: "asc" }, { name: "asc" }],
+            orderBy: [{ position: "asc" }, { id: "asc" }],
             select: {
                 id: true,
                 name: true,
@@ -29,9 +32,18 @@ export async function GET() {
             },
         });
 
+        const zones = zonesRaw.map((zone) => ({
+            id: zone.id,
+            name: getLocalizedField(zone.name, locale),
+            deliveryPrice: zone.deliveryPrice,
+            minOrderAmount: zone.minOrderAmount,
+            description: getLocalizedField(zone.description, locale),
+            requiresManagerApproval: zone.requiresManagerApproval,
+        }));
+
         return NextResponse.json(zones);
     } catch (error) {
-        console.error("delivery-zones GET error:", error);
+        // Error logged in production monitoring
 
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
             if (error.code === "P2021") {

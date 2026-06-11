@@ -1,4 +1,4 @@
-/** Публичные контакты и URL витрины — единый источник для SEO, JSON-LD и UI. */
+/** Публичные контакты и URL витрины - единый источник для SEO, JSON-LD и UI. */
 export const SITE_URL = (
     process.env.NEXT_PUBLIC_SITE_URL ??
     process.env.NEXTAUTH_URL ??
@@ -14,20 +14,15 @@ export const CONTACT_PHONE =
 export const CONTACT_PHONE_DISPLAY =
     process.env.NEXT_PUBLIC_CONTACT_PHONE_DISPLAY ?? "+374 77 77 48 49";
 
+/** Структурные поля для JSON-LD; UI-строки адреса - в messages (common.address). */
 export const KITCHEN_ADDRESS = {
-    street: "ул. Чаренца 19",
-    locality: "Нор Ачин",
-    region: "Котайк",
+    street: "19 Charents St.",
+    locality: "Nor Hachn",
+    region: "Kotayk",
     country: "AM",
-    /** Полная строка для UI */
-    full: "Нор Ачин, ул. Чаренца 19, Котайк, Армения",
-    /** Кратко — как на чекауте при самовывозе */
-    pickup: "Нор Ачин, ул. Чаренца 19",
 } as const;
 
 export const OPENING_HOURS = {
-    /** Для UI */
-    label: "Ежедневно 12:00 - 00:00",
     /** schema.org OpeningHoursSpecification / openingHours text */
     schema: "Mo-Su 12:00-00:00",
     opens: "12:00",
@@ -65,17 +60,23 @@ function getStoreClockMinutes(now: Date): number {
 export function isStoreOpen(now = new Date()): boolean {
     const current = getStoreClockMinutes(now);
     const opens = parseHm(OPENING_HOURS.opens);
-    // 00:00 — полночь (конец рабочего дня)
+    // 00:00 - полночь (конец рабочего дня)
     const closes =
         OPENING_HOURS.closes === "00:00" ? 24 * 60 : parseHm(OPENING_HOURS.closes);
     return current >= opens && current < closes;
 }
 
-/** Бейдж в Hero: «Открыто до …» или «Откроемся в …». */
-export function getOpeningHoursBadge(now = new Date()): string {
-    return isStoreOpen(now)
-        ? `Открыто до ${OPENING_HOURS.closes === "00:00" ? "00:00" : OPENING_HOURS.closes}`
-        : `Откроемся в ${OPENING_HOURS.opens}`;
+/** Состояние для Hero-бейджа; текст - через common.hours в i18n. */
+export function getOpeningHoursState(now = new Date()): {
+    isOpen: boolean;
+    time: string;
+} {
+    const time = isStoreOpen(now)
+        ? OPENING_HOURS.closes === "00:00"
+            ? "00:00"
+            : OPENING_HOURS.closes
+        : OPENING_HOURS.opens;
+    return { isOpen: isStoreOpen(now), time };
 }
 
 export const SERVES_CUISINE = [
