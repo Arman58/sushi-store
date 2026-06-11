@@ -67,11 +67,14 @@ export function LoginButton() {
                     onClick={() => setDialogOpen(true)}
                     aria-label={t("aria.login")}
                     sx={{
-                        display: { xs: "inline-flex", sm: "none" },
+                        display: { xs: "flex", sm: "none" },
                         flexShrink: 0,
                         minWidth: 40,
+                        minHeight: 40,
                         width: 40,
                         height: 40,
+                        alignItems: "center",
+                        justifyContent: "center",
                         border: `1px solid ${tokens.border}`,
                         bgcolor: tokens.surface,
                     }}
@@ -92,8 +95,12 @@ export function LoginButton() {
                     p: 0.25,
                     flexShrink: 0,
                     minWidth: 40,
+                    minHeight: 40,
                     width: 40,
                     height: 40,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                     border: `1px solid ${tokens.border}`,
                     bgcolor: tokens.surface,
                     "&:hover": { bgcolor: tokens.surfaceHi },
@@ -118,7 +125,6 @@ export function LoginButton() {
                 anchorEl={menuAnchor}
                 open={Boolean(menuAnchor)}
                 onClose={() => setMenuAnchor(null)}
-                disablePortal
                 anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
                 transformOrigin={{ vertical: "top", horizontal: "right" }}
                 PaperProps={{ sx: { mt: 0.5, minWidth: 200, borderRadius: 2 } }}

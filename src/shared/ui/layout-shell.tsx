@@ -44,8 +44,10 @@ import { tokens } from "./theme";
 const HEADER_ACTION_SLOT_SX = {
     flexShrink: 0,
     minWidth: 40,
+    minHeight: 40,
     display: "flex",
     alignItems: "center",
+    justifyContent: "center",
 } as const;
 
 const STORE_NAV_HREFS = [
