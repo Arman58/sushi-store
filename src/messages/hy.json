@@ -157,6 +157,7 @@
         "modifiers": {
             "fromPrice": "սկսած {price} ֏",
             "required": "Պարտադիր",
+            "optional": "Ըստ ցանկության",
             "maxChoices": "Մինչև {n} հատ",
             "unlimited": "Անսահման",
             "total": "Ընդհանուր",

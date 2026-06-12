@@ -6,6 +6,7 @@ import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
 import StorefrontIcon from "@mui/icons-material/Storefront";
+import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
@@ -21,7 +22,7 @@ import Typography from "@mui/material/Typography";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 const DRAWER_WIDTH = 260;
 
@@ -47,6 +48,13 @@ const NAV_ITEMS = [
         icon: DiscountIcon,
     },
 ] as const;
+
+function resolvePageTitle(pathname: string): string {
+    const item = NAV_ITEMS.find(
+        ({ href }) => pathname === href || pathname.startsWith(`${href}/`),
+    );
+    return item?.label ?? "Админка";
+}
 
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
     const pathname = usePathname();
@@ -216,7 +224,9 @@ type AdminShellProps = {
 };
 
 export function AdminShell({ children }: AdminShellProps) {
+    const pathname = usePathname();
     const [mobileOpen, setMobileOpen] = useState(false);
+    const pageTitle = useMemo(() => resolvePageTitle(pathname), [pathname]);
 
     return (
         <Box
@@ -271,28 +281,48 @@ export function AdminShell({ children }: AdminShellProps) {
                     flexGrow: 1,
                     width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
                     minHeight: "100vh",
+                    minWidth: 0,
                 }}
             >
-                <Toolbar
+                <AppBar
+                    position="sticky"
+                    elevation={0}
+                    color="default"
                     sx={{
-                        display: { md: "none" },
-                        px: 2,
+                        display: { xs: "block", md: "none" },
                         borderBottom: 1,
                         borderColor: "divider",
                         bgcolor: "background.paper",
                     }}
                 >
-                    <IconButton
-                        edge="start"
-                        onClick={() => setMobileOpen(true)}
-                        aria-label="Открыть меню"
+                    <Toolbar
+                        sx={{
+                            minHeight: {
+                                xs: "calc(56px + env(safe-area-inset-top))",
+                                sm: 64,
+                            },
+                            pt: "env(safe-area-inset-top)",
+                            px: { xs: 1.5, sm: 2 },
+                        }}
                     >
-                        <MenuIcon />
-                    </IconButton>
-                    <Typography variant="subtitle1" fontWeight={700} sx={{ ml: 1 }}>
-                        Админка
-                    </Typography>
-                </Toolbar>
+                        <IconButton
+                            edge="start"
+                            onClick={() => setMobileOpen(true)}
+                            aria-label="Открыть меню"
+                            sx={{ flexShrink: 0 }}
+                        >
+                            <MenuIcon />
+                        </IconButton>
+                        <Typography
+                            variant="subtitle1"
+                            fontWeight={700}
+                            noWrap
+                            sx={{ ml: 1, flex: 1, minWidth: 0 }}
+                        >
+                            {pageTitle}
+                        </Typography>
+                    </Toolbar>
+                </AppBar>
 
                 <Box
                     sx={{

@@ -157,6 +157,7 @@
         "modifiers": {
             "fromPrice": "from {price} ֏",
             "required": "Required",
+            "optional": "Optional",
             "maxChoices": "Up to {n} pcs",
             "unlimited": "No limit",
             "total": "Total",

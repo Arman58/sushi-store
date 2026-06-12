@@ -459,6 +459,7 @@ export function MenuSection({
                 open={modifierProduct !== null}
                 onClose={() => setModifierProduct(null)}
                 productName={modifierProduct?.name ?? ""}
+                description={modifierProduct?.description}
                 basePrice={modifierProduct?.price ?? 0}
                 modifierGroups={modifierProduct?.modifierGroups ?? []}
                 onConfirm={({ selectedModifiers, calculatedItemPrice }) => {

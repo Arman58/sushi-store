@@ -7,7 +7,10 @@ import {
     Alert,
     Box,
     Button,
+    Card,
+    CardContent,
     Checkbox,
+    Chip,
     Container,
     Dialog,
     DialogActions,
@@ -25,6 +28,8 @@ import {
     TableRow,
     TextField,
     Typography,
+    useMediaQuery,
+    useTheme,
 } from "@mui/material";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -64,6 +69,8 @@ const emptyCreate = () => ({
 });
 
 export default function AdminPromoCodesPage() {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down("md"));
     const [rows, setRows] = useState<PromoRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -226,7 +233,11 @@ export default function AdminPromoCodesPage() {
         <PageContainer>
             <Box sx={{ pb: 4 }}>
                 <Container maxWidth="lg" disableGutters>
-                <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap" }}>
+                <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{ mb: 2, flexWrap: "wrap", display: { xs: "none", md: "flex" } }}
+                >
                     <Button variant="text" component={Link} href="/admin/orders">
                         Заказы
                     </Button>
@@ -258,6 +269,7 @@ export default function AdminPromoCodesPage() {
                 </Button>
 
                 <Paper variant="outlined" sx={{ overflow: "auto" }}>
+                    <Box sx={{ display: { xs: "none", md: "block" } }}>
                     <Table size="small">
                         <TableHead>
                             <TableRow>
@@ -333,6 +345,68 @@ export default function AdminPromoCodesPage() {
                             )}
                         </TableBody>
                     </Table>
+                    </Box>
+
+                    <Stack spacing={1.5} sx={{ display: { xs: "flex", md: "none" }, p: 1.5 }}>
+                        {loading ? (
+                            <Typography color="text.secondary" sx={{ p: 2 }}>
+                                Загрузка…
+                            </Typography>
+                        ) : rows.length === 0 ? (
+                            <Typography color="text.secondary" sx={{ p: 2 }}>
+                                Пока пусто
+                            </Typography>
+                        ) : (
+                            rows.map((r) => (
+                                <Card key={r.id} variant="outlined" sx={{ borderRadius: 2 }}>
+                                    <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+                                        <Stack spacing={1.25}>
+                                            <Stack
+                                                direction="row"
+                                                justifyContent="space-between"
+                                                alignItems="center"
+                                            >
+                                                <Typography fontWeight={800}>{r.code}</Typography>
+                                                <Chip
+                                                    label={r.isActive ? "Активен" : "Выключен"}
+                                                    size="small"
+                                                    color={r.isActive ? "success" : "default"}
+                                                />
+                                            </Stack>
+                                            <Typography variant="body2" color="text.secondary">
+                                                {r.discountType === "PERCENTAGE"
+                                                    ? `Скидка ${r.discountValue}%`
+                                                    : `Скидка ${r.discountValue.toLocaleString("ru-RU")} ֏`}
+                                            </Typography>
+                                            <Typography variant="body2">
+                                                Использовано:{" "}
+                                                {r.maxUsages != null
+                                                    ? `${r.timesUsed} / ${r.maxUsages}`
+                                                    : `${r.timesUsed} / ∞`}
+                                            </Typography>
+                                            <Stack direction="row" justifyContent="flex-end" spacing={0.5}>
+                                                <IconButton
+                                                    aria-label="Редактировать"
+                                                    color="primary"
+                                                    onClick={() => openEdit(r)}
+                                                >
+                                                    <EditIcon />
+                                                </IconButton>
+                                                <IconButton
+                                                    aria-label="Удалить"
+                                                    color="error"
+                                                    disabled={deleteLoadingId === r.id}
+                                                    onClick={() => void handleDelete(r.id)}
+                                                >
+                                                    <DeleteIcon />
+                                                </IconButton>
+                                            </Stack>
+                                        </Stack>
+                                    </CardContent>
+                                </Card>
+                            ))
+                        )}
+                    </Stack>
                 </Paper>
             </Container>
 
@@ -341,6 +415,7 @@ export default function AdminPromoCodesPage() {
                 onClose={() => setDialogOpen(false)}
                 maxWidth="sm"
                 fullWidth
+                fullScreen={isMobile}
             >
                 <DialogTitle>{title}</DialogTitle>
                 <DialogContent>
@@ -435,8 +510,18 @@ export default function AdminPromoCodesPage() {
                         />
                     </Stack>
                 </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setDialogOpen(false)}>Отмена</Button>
+                <DialogActions
+                    sx={{
+                        flexDirection: isMobile ? "column-reverse" : "row",
+                        gap: isMobile ? 1 : 0,
+                        px: isMobile ? 2 : 3,
+                        pb: 2,
+                        "& .MuiButton-root": isMobile ? { width: "100%", m: 0 } : undefined,
+                    }}
+                >
+                    <Button onClick={() => setDialogOpen(false)} size={isMobile ? "large" : "medium"}>
+                        Отмена
+                    </Button>
                     <Button
                         variant="contained"
                         onClick={() => void submitForm()}
@@ -445,6 +530,7 @@ export default function AdminPromoCodesPage() {
                             !form.code.trim() ||
                             !Number.isInteger(Number(form.discountValue))
                         }
+                        size={isMobile ? "large" : "medium"}
                     >
                         Сохранить
                     </Button>

@@ -3,14 +3,10 @@
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
+import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import { alpha, useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
@@ -22,19 +18,21 @@ import { useEffect, useMemo, useState } from "react";
 import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
 import type { CartModifierSnapshot } from "@/features/cart/model/types";
 import { storePriceFormatter } from "@/shared/lib/format-price";
-import { tokens } from "@/shared/ui/theme";
+import { AppButton } from "@/shared/ui/AppButton";
 
-const MotionPaper = motion.create(Paper);
+const MotionBox = motion.create(Box);
 
-const bottomSheetTransition = {
-    duration: 0.3,
-    ease: [0.32, 0.72, 0, 1] as [number, number, number, number],
+const desktopPaperTransition = {
+    duration: 0.22,
+    ease: [0.33, 1, 0.68, 1] as [number, number, number, number],
 };
 
 export type ProductModifiersDialogProps = {
     open: boolean;
     onClose: () => void;
     productName: string;
+    /** Краткое описание блюда (опционально). */
+    description?: string | null;
     basePrice: number;
     modifierGroups: MenuModifierGroup[];
     onConfirm: (payload: {
@@ -42,8 +40,6 @@ export type ProductModifiersDialogProps = {
         calculatedItemPrice: number;
     }) => void;
 };
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function selectionValid(
     groups: MenuModifierGroup[],
@@ -57,22 +53,6 @@ function selectionValid(
     return true;
 }
 
-// ─── OptionTile: универсальная плитка для radio и checkbox режимов ────────────
-
-/**
- * Кликабельная плитка с подсветкой при выборе.
- *
- * - mode="radio"     → без чекмарка; выбор выражается рамкой и фоном.
- * - mode="checkbox"  → круглый чекмарк в углу; визуально подтверждает мульти-выбор.
- *
- * Цена опции:
- *   priceDelta > 0 → «+300 ֏» жирным primary
- *   priceDelta < 0 → «−50 ֏» жирным success
- *   priceDelta = 0 → не выводится (по UX-договорённости - без «Бесплатно»)
- *
- * a11y: role="radio"/"checkbox", aria-checked, активация по Space/Enter,
- * обводка focus-visible.
- */
 function OptionTile({
     name,
     priceDelta,
@@ -112,30 +92,32 @@ function OptionTile({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                gap: 1.5,
+                gap: 2,
+                width: "100%",
                 minWidth: 0,
-                px: 1.75,
-                py: 1.5,
-                minHeight: 44,
-                borderRadius: 2,
+                px: 2,
+                py: 1.75,
+                minHeight: 48,
+                borderRadius: 2.5,
                 cursor: disabled ? "not-allowed" : "pointer",
                 userSelect: "none",
                 opacity: disabled ? 0.45 : 1,
-                border: "1.5px solid",
+                border: "2px solid",
                 borderColor: selected
                     ? theme.palette.primary.main
                     : theme.palette.divider,
                 bgcolor: selected
-                    ? alpha(theme.palette.primary.main, 0.06)
+                    ? alpha(theme.palette.primary.main, 0.08)
                     : "background.paper",
+                boxShadow: selected
+                    ? `0 0 0 1px ${alpha(theme.palette.primary.main, 0.12)}`
+                    : "none",
                 transition:
-                    "border-color 120ms ease, background-color 120ms ease",
-                "&:hover": disabled
+                    "border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease",
+                "&:active": disabled
                     ? {}
                     : {
-                          borderColor: selected
-                              ? theme.palette.primary.main
-                              : theme.palette.text.disabled,
+                          transform: "scale(0.99)",
                       },
                 "&:focus-visible": {
                     outline: "2px solid",
@@ -145,16 +127,15 @@ function OptionTile({
             })}
         >
             <Typography
-                variant="body2"
+                variant="body1"
                 sx={{
                     flex: 1,
                     minWidth: 0,
                     fontWeight: selected ? 700 : 500,
-                    lineHeight: 1.3,
+                    lineHeight: 1.35,
                     pr: 1,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
+                    whiteSpace: "normal",
+                    wordBreak: "break-word",
                 }}
             >
                 {name}
@@ -164,7 +145,7 @@ function OptionTile({
                 direction="row"
                 alignItems="center"
                 spacing={1.25}
-                sx={{ flexShrink: 0 }}
+                sx={{ flexShrink: 0, ml: "auto" }}
             >
                 {priceDelta > 0 ? (
                     <Typography
@@ -196,13 +177,13 @@ function OptionTile({
                 {mode === "checkbox" ? (
                     <Box
                         sx={(theme) => ({
-                            width: 22,
-                            height: 22,
+                            width: 24,
+                            height: 24,
                             borderRadius: "50%",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            border: "1.5px solid",
+                            border: "2px solid",
                             borderColor: selected
                                 ? theme.palette.primary.main
                                 : theme.palette.divider,
@@ -210,13 +191,11 @@ function OptionTile({
                                 ? theme.palette.primary.main
                                 : "transparent",
                             color: selected ? "primary.contrastText" : "transparent",
-                            transition:
-                                "background-color 120ms ease, border-color 120ms ease",
                             flexShrink: 0,
                         })}
                     >
                         {selected ? (
-                            <CheckIcon sx={{ fontSize: 14 }} />
+                            <CheckIcon sx={{ fontSize: 15 }} />
                         ) : null}
                     </Box>
                 ) : null}
@@ -225,12 +204,11 @@ function OptionTile({
     );
 }
 
-// ─── Dialog ───────────────────────────────────────────────────────────────────
-
 export function ProductModifiersDialog({
     open,
     onClose,
     productName,
+    description,
     basePrice,
     modifierGroups,
     onConfirm,
@@ -238,16 +216,13 @@ export function ProductModifiersDialog({
     const t = useTranslations("product.modifiers");
     const tCommon = useTranslations("common");
     const fmt = storePriceFormatter;
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
     const [selectedByGroup, setSelectedByGroup] = useState<
         Record<number, number[]>
     >({});
 
-    /**
-     * Инициализация при открытии:
-     *   required && modifiers.length > 0 → предвыбираем первую опцию;
-     *   иначе → пустой выбор.
-     * Зависим от modifierGroups для случая переоткрытия с другим товаром.
-     */
     useEffect(() => {
         if (!open) return;
         const initial: Record<number, number[]> = {};
@@ -287,11 +262,6 @@ export function ProductModifiersDialog({
     const canSubmit =
         hasModifiers && selectionValid(modifierGroups, selectedByGroup);
 
-    /**
-     * Радио-режим (maxChoices === 1).
-     * Если группа НЕ обязательная и кликнули по уже выбранной опции - снимаем выбор
-     * (UX, более естественный, чем отдельная плитка «Не выбирать»).
-     */
     const toggleRadio = (group: MenuModifierGroup, modifierId: number) => {
         const cur = selectedByGroup[group.id] ?? [];
         const isCurrentlySelected = cur[0] === modifierId;
@@ -302,11 +272,6 @@ export function ProductModifiersDialog({
         setSelectedByGroup((prev) => ({ ...prev, [group.id]: [modifierId] }));
     };
 
-    /**
-     * Чекбокс-режим (maxChoices !== 1).
-     * При попытке превысить maxChoices - клик молча игнорируется,
-     * UI отключает невыбранные плитки через `disabled` ниже.
-     */
     const toggleMulti = (group: MenuModifierGroup, modifierId: number) => {
         const cur = selectedByGroup[group.id] ?? [];
         const idx = cur.indexOf(modifierId);
@@ -330,134 +295,77 @@ export function ProductModifiersDialog({
         onClose();
     };
 
-    const theme = useTheme();
-    const isBottomSheet = useMediaQuery(theme.breakpoints.down("md"));
-
-    return (
-        <Dialog
-            open={open}
-            onClose={onClose}
-            fullWidth
-            maxWidth="sm"
-            sx={
-                isBottomSheet
-                    ? {
-                          "& .MuiDialog-container": {
-                              alignItems: "flex-end",
-                          },
-                      }
-                    : undefined
-            }
-            slots={{ paper: MotionPaper }}
-            slotProps={{
-                paper: {
-                    elevation: 24,
-                    initial: isBottomSheet
-                        ? { y: "100%", opacity: 1 }
-                        : { opacity: 0, scale: 0.96, y: 14 },
-                    animate: open
-                        ? { y: 0, opacity: 1, scale: 1 }
-                        : isBottomSheet
-                          ? { y: "100%", opacity: 1 }
-                          : { opacity: 0, scale: 0.96, y: 14 },
-                    transition: isBottomSheet
-                        ? bottomSheetTransition
-                        : { duration: 0.22, ease: [0.33, 1, 0.68, 1] },
-                    sx: {
-                        ...(isBottomSheet
-                            ? {
-                                  m: 0,
-                                  maxWidth: "100%",
-                                  width: "100%",
-                                  maxHeight: "min(92dvh, 920px)",
-                                  borderRadius: "24px 24px 0 0",
-                                  border: `1px solid ${tokens.border}`,
-                                  borderBottom: "none",
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  overflow: "hidden",
-                              }
-                            : {
-                                  borderRadius: { xs: 2, sm: 3 },
-                                  m: { xs: 2, sm: 4 },
-                                  maxHeight: {
-                                      xs: "calc(100vh - 24px)",
-                                      sm: "calc(100% - 64px)",
-                                  },
-                              }),
-                    },
-                // Framer motion props on Paper slot
-                } as object,
+    const dialogBody = (
+        <Box
+            sx={{
+                display: "flex",
+                flexDirection: "column",
+                height: "100%",
+                minHeight: 0,
+                overflow: "hidden",
             }}
         >
-            {isBottomSheet ? (
-                <Box
-                    sx={{
-                        pt: 1,
-                        pb: 0.25,
-                        flexShrink: 0,
-                        bgcolor: "background.paper",
-                    }}
-                >
-                    <Box
-                        aria-hidden
-                        sx={{
-                            width: 40,
-                            height: 4,
-                            borderRadius: 999,
-                            bgcolor: alpha(theme.palette.grey[500], 0.45),
-                            mx: "auto",
-                            boxShadow: `inset 0 1px 2px ${alpha(theme.palette.common.black, 0.08)}`,
-                        }}
-                    />
-                </Box>
-            ) : null}
-            {/* ── Title: имя товара + базовая цена + кнопка закрытия ── */}
-            <DialogTitle sx={{ pr: 1.5, pb: 1.5, pt: isBottomSheet ? 0.5 : undefined }}>
-                <Stack
-                    direction="row"
-                    alignItems="flex-start"
-                    justifyContent="space-between"
-                    gap={2}
-                >
-                    <Stack sx={{ minWidth: 0, pt: 0.25 }}>
-                        <Typography
-                            component="span"
-                            variant="h6"
-                            fontWeight={800}
-                            sx={{ lineHeight: 1.2 }}
-                        >
-                            {productName}
-                        </Typography>
-                        <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{ mt: 0.5, fontVariantNumeric: "tabular-nums" }}
-                        >
-                            {t("fromPrice", { price: fmt.format(basePrice) })}
-                        </Typography>
-                    </Stack>
-                    <IconButton
-                        onClick={onClose}
-                        aria-label={tCommon("aria.close")}
-                        size="small"
-                        sx={{ flexShrink: 0 }}
-                    >
-                        <CloseIcon />
-                    </IconButton>
-                </Stack>
-            </DialogTitle>
-
-            {/* ── Body: группы с плитками-опциями ── */}
-            <DialogContent
-                dividers
+            {/* Top bar: close */}
+            <Box
                 sx={{
-                    py: 2.5,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-end",
+                    flexShrink: 0,
+                    px: { xs: 1, md: 2 },
+                    pt: isMobile ? "env(safe-area-inset-top)" : 1,
+                    pb: 0.5,
+                }}
+            >
+                <IconButton
+                    onClick={onClose}
+                    aria-label={tCommon("aria.close")}
+                    size="large"
+                    sx={{ flexShrink: 0 }}
+                >
+                    <CloseIcon />
+                </IconButton>
+            </Box>
+
+            {/* Scrollable content */}
+            <Box
+                sx={{
                     flex: 1,
                     minHeight: 0,
                     overflowY: "auto",
+                    WebkitOverflowScrolling: "touch",
+                    px: { xs: 2, md: 3 },
+                    pb: 2,
                 }}
             >
+                <Typography
+                    variant={isMobile ? "h5" : "h6"}
+                    fontWeight={800}
+                    sx={{ lineHeight: 1.2, mb: description ? 1 : 0.5 }}
+                >
+                    {productName}
+                </Typography>
+
+                {description?.trim() ? (
+                    <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ mb: 1, lineHeight: 1.5 }}
+                    >
+                        {description.trim()}
+                    </Typography>
+                ) : null}
+
+                <Typography
+                    variant="body1"
+                    color="text.secondary"
+                    sx={{ fontVariantNumeric: "tabular-nums", mb: 2 }}
+                >
+                    {t("fromPrice", { price: fmt.format(basePrice) })}
+                </Typography>
+
+                <Divider sx={{ mb: 3 }} />
+
                 <Stack spacing={3}>
                     {modifierGroups.map((group) => {
                         const picked = selectedByGroup[group.id] ?? [];
@@ -472,20 +380,20 @@ export function ProductModifiersDialog({
                                 key={group.id}
                                 role="group"
                                 aria-label={group.name}
+                                sx={{ my: { xs: 0.5, md: 0 } }}
                             >
-                                {/* ── Заголовок группы: название + бейджи ── */}
                                 <Stack
                                     direction="row"
                                     alignItems="center"
                                     spacing={1}
-                                    sx={{ mb: 1.25 }}
+                                    sx={{ mb: 1.5 }}
                                     flexWrap="wrap"
                                     useFlexGap
                                 >
                                     <Typography
                                         variant="subtitle1"
                                         fontWeight={700}
-                                        sx={{ lineHeight: 1.25 }}
+                                        sx={{ lineHeight: 1.3 }}
                                     >
                                         {group.name}
                                     </Typography>
@@ -496,27 +404,34 @@ export function ProductModifiersDialog({
                                             color="error"
                                             variant="outlined"
                                             sx={{
-                                                height: 22,
-                                                fontSize: "0.7rem",
+                                                height: 24,
+                                                fontSize: "0.75rem",
                                                 fontWeight: 600,
-                                                "& .MuiChip-label": {
-                                                    px: 0.875,
-                                                },
                                             }}
                                         />
-                                    ) : null}
-                                    {group.maxChoices > 1 ? (
+                                    ) : (
                                         <Chip
-                                            label={t("maxChoices", { n: group.maxChoices })}
+                                            label={t("optional")}
                                             size="small"
                                             variant="outlined"
                                             sx={{
-                                                height: 22,
-                                                fontSize: "0.7rem",
+                                                height: 24,
+                                                fontSize: "0.75rem",
                                                 color: "text.secondary",
-                                                "& .MuiChip-label": {
-                                                    px: 0.875,
-                                                },
+                                            }}
+                                        />
+                                    )}
+                                    {group.maxChoices > 1 ? (
+                                        <Chip
+                                            label={t("maxChoices", {
+                                                n: group.maxChoices,
+                                            })}
+                                            size="small"
+                                            variant="outlined"
+                                            sx={{
+                                                height: 24,
+                                                fontSize: "0.75rem",
+                                                color: "text.secondary",
                                             }}
                                         />
                                     ) : null}
@@ -526,18 +441,14 @@ export function ProductModifiersDialog({
                                             size="small"
                                             variant="outlined"
                                             sx={{
-                                                height: 22,
-                                                fontSize: "0.7rem",
+                                                height: 24,
+                                                fontSize: "0.75rem",
                                                 color: "text.secondary",
-                                                "& .MuiChip-label": {
-                                                    px: 0.875,
-                                                },
                                             }}
                                         />
                                     ) : null}
                                 </Stack>
 
-                                {/* ── Плитки опций ── */}
                                 <Stack
                                     spacing={1}
                                     role={useRadio ? "radiogroup" : undefined}
@@ -557,8 +468,6 @@ export function ProductModifiersDialog({
                                                         ? "radio"
                                                         : "checkbox"
                                                 }
-                                                // Disabled только для невыбранных плиток в чекбокс-режиме при достижении лимита.
-                                                // Это даёт явный визуальный сигнал, что лимит исчерпан.
                                                 disabled={
                                                     !selected && limitReached
                                                 }
@@ -581,21 +490,25 @@ export function ProductModifiersDialog({
                         );
                     })}
                 </Stack>
-            </DialogContent>
+            </Box>
 
-            {/* ── Sticky footer: крупная итоговая цена + большая CTA ── */}
-            <DialogActions
+            {/* Sticky footer */}
+            <Box
                 sx={{
-                    px: { xs: 2, sm: 3 },
-                    py: 2,
-                    borderTop: "1px solid",
-                    borderColor: "divider",
-                    bgcolor: "background.paper",
                     flexShrink: 0,
+                    position: "sticky",
+                    bottom: 0,
+                    bgcolor: "background.paper",
+                    borderTop: 1,
+                    borderColor: "divider",
+                    px: { xs: 2, md: 3 },
+                    py: 2,
                     pb: {
                         xs: "calc(16px + env(safe-area-inset-bottom))",
-                        sm: 2,
+                        md: 2,
                     },
+                    boxShadow: (t) =>
+                        `0 -8px 24px ${alpha(t.palette.common.black, 0.06)}`,
                 }}
             >
                 <Stack
@@ -608,12 +521,12 @@ export function ProductModifiersDialog({
                         <Typography
                             variant="caption"
                             color="text.secondary"
-                            sx={{ lineHeight: 1.2 }}
+                            sx={{ lineHeight: 1.2, textTransform: "uppercase" }}
                         >
                             {t("total")}
                         </Typography>
                         <Typography
-                            variant="h5"
+                            variant={isMobile ? "h5" : "h6"}
                             fontWeight={800}
                             sx={{
                                 color: "primary.main",
@@ -624,24 +537,80 @@ export function ProductModifiersDialog({
                             {fmt.format(computed.unitPrice)} ֏
                         </Typography>
                     </Stack>
-                    <Button
+                    <AppButton
                         variant="contained"
+                        color="primary"
                         disabled={!canSubmit}
                         onClick={handleConfirm}
                         size="large"
                         sx={{
-                            minWidth: { xs: 140, sm: 200 },
-                            py: 1.25,
-                            borderRadius: 2,
+                            flexShrink: 0,
+                            minWidth: { xs: 148, sm: 200 },
+                            minHeight: 48,
+                            px: 3,
+                            borderRadius: 2.5,
                             textTransform: "none",
-                            fontWeight: 700,
+                            fontWeight: 800,
                             fontSize: "1rem",
                         }}
                     >
                         {t("addToCart")}
-                    </Button>
+                    </AppButton>
                 </Stack>
-            </DialogActions>
+            </Box>
+        </Box>
+    );
+
+    if (isMobile) {
+        return (
+            <Dialog
+                open={open}
+                onClose={onClose}
+                fullScreen
+                sx={{
+                    "& .MuiDialog-paper": {
+                        bgcolor: "background.paper",
+                    },
+                }}
+            >
+                {dialogBody}
+            </Dialog>
+        );
+    }
+
+    return (
+        <Dialog
+            open={open}
+            onClose={onClose}
+            fullWidth
+            maxWidth="sm"
+            slotProps={{
+                paper: {
+                    sx: {
+                        borderRadius: 3,
+                        overflow: "hidden",
+                        maxHeight: "calc(100% - 64px)",
+                    },
+                },
+            }}
+        >
+            <MotionBox
+                initial={{ opacity: 0, scale: 0.96, y: 14 }}
+                animate={
+                    open
+                        ? { opacity: 1, scale: 1, y: 0 }
+                        : { opacity: 0, scale: 0.96, y: 14 }
+                }
+                transition={desktopPaperTransition}
+                sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    height: "100%",
+                    maxHeight: "min(720px, calc(100vh - 64px))",
+                }}
+            >
+                {dialogBody}
+            </MotionBox>
         </Dialog>
     );
 }

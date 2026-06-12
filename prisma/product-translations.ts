@@ -400,6 +400,297 @@ export const PRODUCT_I18N: Record<string, ProductI18n> = {
         ),
         composition: L("Питьевая вода", "Խմելու ջուր", "Drinking water"),
     },
+    "dragon-roll": {
+        name: L("Дракон", "Վիշապ", "Dragon Roll"),
+        description: L(
+            "Угорь, авокадо и соус унаги — сладкий насыщенный вкус.",
+            "Կամբարա, ավոկադո և ունագի սոուս՝ քաղցր և հարուստ համով։",
+            "Eel, avocado and unagi sauce — sweet and rich flavor.",
+        ),
+        composition: L(
+            "Угорь, авокадо, рис, нори",
+            "Կամբարա, ավոկադո, բրինձ, նորի",
+            "Eel, avocado, rice, nori",
+        ),
+    },
+    "shawarma-falafel": {
+        name: L("Фалафель", "Ֆալաֆել", "Falafel"),
+        description: L(
+            "Хрустящий фалафель с овощами и тахини.",
+            "Խրթխրթան ֆալաֆել բանջարեղենով և թահինիով։",
+            "Crispy falafel with vegetables and tahini.",
+        ),
+        composition: L(
+            "Фалафель, овощи, тахини, лаваш",
+            "Ֆալաֆել, բանջարեղեն, թահինի, լավաշ",
+            "Falafel, vegetables, tahini, lavash",
+        ),
+    },
+    "shawarma-mixed": {
+        name: L("Микс курица + говядина", "Հավ + տավար", "Chicken & Beef Mix"),
+        description: L(
+            "Комбо из курицы и говядины с фирменным соусом.",
+            "Հավի և տավարի համադրություն ֆիրմային սոուսով։",
+            "Combo of chicken and beef with house sauce.",
+        ),
+        composition: L(
+            "Курица, говядина, овощи, соус",
+            "Հավ, տավար, բանջարեղեն, սոուս",
+            "Chicken, beef, vegetables, sauce",
+        ),
+    },
+    "shawarma-bbq": {
+        name: L("BBQ куриная", "BBQ հավով", "BBQ Chicken"),
+        description: L(
+            "Курица в дымном BBQ-соусе с хрустящим луком.",
+            "Հավ կծու BBQ սոուսով և խրթխրթան սոխով։",
+            "Chicken in smoky BBQ sauce with crispy onion.",
+        ),
+        composition: L(
+            "Курица, BBQ-соус, лук, лаваш",
+            "Հավ, BBQ սոուս, սոխ, լավաշ",
+            "Chicken, BBQ sauce, onion, lavash",
+        ),
+    },
+    "lahmajo-classic": {
+        name: L("Классический", "Դասական", "Classic"),
+        description: L(
+            "Тонкое тесто с ароматным фаршем и специями.",
+            "Բարակ խմոր բուրավետ ֆարշով և համեմունքներով։",
+            "Thin dough with seasoned minced meat and spices.",
+        ),
+        composition: L(
+            "Тесто, фарш, томаты, специи",
+            "Խմոր, ֆարշ, լոլիկ, համեմունքներ",
+            "Dough, minced meat, tomatoes, spices",
+        ),
+    },
+    "lahmajo-spicy": {
+        name: L("Острый", "Սուր", "Spicy"),
+        description: L(
+            "Лахмаджо с перцем чили и острыми специями.",
+            "Լահմաջո չիլի պղպեղով և կծու համեմունքներով։",
+            "Lahmajo with chili pepper and hot spices.",
+        ),
+        composition: L(
+            "Фарш, перец чili, специи",
+            "Ֆարշ, չիլի, համեմունքներ",
+            "Minced meat, chili, spices",
+        ),
+    },
+    "lahmajo-egg": {
+        name: L("С яйцом", "Ձվով", "With Egg"),
+        description: L(
+            "Лахмаджо с яйцом на верху — сытный вариант.",
+            "Լահմաջո ձվով վերևում՝ հագեցնող տարբերակ։",
+            "Lahmajo topped with egg — a hearty option.",
+        ),
+        composition: L(
+            "Фарш, яйцо, специи, тесто",
+            "Ֆարշ, ձու, համեմունքներ, խմոր",
+            "Minced meat, egg, spices, dough",
+        ),
+    },
+    "lahmajo-mini": {
+        name: L("Мини (2 шт)", "Մինի (2 հատ)", "Mini (2 pcs)"),
+        description: L(
+            "Две мини-лахмаджо — удобно на перекус.",
+            "Երկու մինի լահմաջո՝ հարմար նախուտեստի համար։",
+            "Two mini lahmajo — perfect for a snack.",
+        ),
+        composition: L(
+            "Тонкое тесто, фарш, специи",
+            "Բարակ խմոր, ֆարշ, համեմունքներ",
+            "Thin dough, minced meat, spices",
+        ),
+    },
+    "lahmajo-veggie": {
+        name: L("Овощной", "Բուսական", "Vegetable"),
+        description: L(
+            "Лахмаджо с овощной начинкой без мяса.",
+            "Լահմաջո բանջարեղena լրացumով առanc mса.",
+            "Lahmajo with vegetable filling, no meat.",
+        ),
+        composition: L(
+            "Овощи, томаты, специи, тесто",
+            "Բanջarեղen, լոլիկ, համemunq, խmor",
+            "Vegetables, tomatoes, spices, dough",
+        ),
+    },
+    "lahmajo-combo": {
+        name: L("Комбо с таном", "Թan-ov kombo", "Combo with Tan"),
+        description: L(
+            "Лахмаджо + армянский тан 0,5 л.",
+            "Լahmajo + 0,5 l haykakan tan.",
+            "Lahmajo + 0.5 L Armenian tan.",
+        ),
+        composition: L("Лахмаджо, тан", "Lahmajo, tan", "Lahmajo, tan"),
+    },
+    "lahmajo-family": {
+        name: L("Семейный XL", "Ըntanekan XL", "Family XL"),
+        description: L(
+            "Большой лахмаджо на компанию из 3–4 человек.",
+            "Mec lahmajo 3–4 hogow hamar.",
+            "Large lahmajo for 3–4 people.",
+        ),
+        composition: L(
+            "Фарш, тесто, специи",
+            "Farsh, xmor, hameumunqner",
+            "Minced meat, dough, spices",
+        ),
+    },
+    "fries-large": {
+        name: L("Большая порция", "Մեծ բաժին", "Large Portion"),
+        description: L(
+            "Увеличенная порция картофеля фри.",
+            "Մեծացված կարտոֆիլ ֆրի բաժին։",
+            "Extra-large portion of french fries.",
+        ),
+        composition: L(
+            "Картофель, масло, соль",
+            "Կարտոֆիլ, յուղ, աղ",
+            "Potatoes, oil, salt",
+        ),
+    },
+    "fries-cheese": {
+        name: L("С сыром", "Պanրով", "Cheese Fries"),
+        description: L(
+            "Фри с расплавленным сыром чеддер.",
+            "Ֆրի հալած չեդեր պanրով։",
+            "Fries with melted cheddar cheese.",
+        ),
+        composition: L(
+            "Картофель, сыр чеддер",
+            "Կartofil, չeder",
+            "Potatoes, cheddar cheese",
+        ),
+    },
+    "fries-spicy": {
+        name: L("Острый", "Սուր", "Spicy"),
+        description: L(
+            "Картофель фри с острым перцем и папrikой.",
+            "Կartofil ֆri կծu պghpeghov.",
+            "Fries with hot pepper and paprika.",
+        ),
+        composition: L(
+            "Картофель, перец, пaprika",
+            "Kartofil, պghpegh, paprika",
+            "Potatoes, pepper, paprika",
+        ),
+    },
+    "fries-sweet": {
+        name: L("Из батата", "Բatata-ից", "Sweet Potato"),
+        description: L(
+            "Хрустящий бatata с лёгкой сладостью.",
+            "Խrhstящ batata лёгкой сладостью.",
+            "Crispy sweet potato fries.",
+        ),
+        composition: L(
+            "Бatata, масло, соль",
+            "Batata, յուղ, աղ",
+            "Sweet potato, oil, salt",
+        ),
+    },
+    "fries-combo": {
+        name: L("Комбо с соусом", "Combo սоусov", "Combo with Sauce"),
+        description: L(
+            "Фри + чесночный соус.",
+            "Fri + սխdorov соус.",
+            "Fries + garlic sauce.",
+        ),
+        composition: L(
+            "Картофель, чесночный соус",
+            "Kartofil, սխdorov соус",
+            "Potatoes, garlic sauce",
+        ),
+    },
+    "fries-wedges": {
+        name: L("Картофельные дольки", "Kartofil дolkեր", "Potato Wedges"),
+        description: L(
+            "Дольки картофеля с травами.",
+            "Kartofil дolkեր травами.",
+            "Potato wedges with herbs.",
+        ),
+        composition: L(
+            "Картофель, травы, масло",
+            "Kartofil, травы, յուղ",
+            "Potatoes, herbs, oil",
+        ),
+    },
+    "strips-4": {
+        name: L("Стрипсы 4 шт", "Սtրիպս 4 հատ", "Strips 4 pcs"),
+        description: L(
+            "Четыре полоски куриного филе в панировке.",
+            "Չորս հատ հav filе пanировkoy.",
+            "Four breaded chicken fillet strips.",
+        ),
+        composition: L(
+            "Куриное филе, пanировka",
+            "Hav filе, пanировka",
+            "Chicken fillet, breading",
+        ),
+    },
+    "strips-spicy": {
+        name: L("Острые стрипсы", "Սուր սtրիպս", "Spicy Strips"),
+        description: L(
+            "Стрипсы в острой пanировke.",
+            "Strips սուր пanировkoy.",
+            "Strips in spicy breading.",
+        ),
+        composition: L(
+            "Курица, острые специи, пanировka",
+            "Hav, սուր համemunq, пanировka",
+            "Chicken, hot spices, breading",
+        ),
+    },
+    "strips-combo": {
+        name: L("Комбо стрипсы + фри", "Combo strips + fri", "Strips & Fries Combo"),
+        description: L(
+            "6 стрипсов и порция картофеля фри.",
+            "6 strips + kartofil fri.",
+            "6 strips and a portion of fries.",
+        ),
+        composition: L(
+            "Стрипсы, картофель фри",
+            "Strips, kartofil fri",
+            "Strips, french fries",
+        ),
+    },
+    "tenders-box": {
+        name: L("Тендеры XL", "Tenders XL", "Tenders XL"),
+        description: L(
+            "Большая коробка куриных тenderов с соусом.",
+            "Mec tenders корobka соусov.",
+            "Large box of chicken tenders with sauce.",
+        ),
+        composition: L(
+            "Куриные тenderы, соус",
+            "Hav tenders, соус",
+            "Chicken tenders, sauce",
+        ),
+    },
+    "juice-orange": {
+        name: L("Сок апельсин 0.5 л", "Portokal sok 0.5 L", "Orange Juice 0.5 L"),
+        description: L(
+            "Натуральный апельсиновый сок.",
+            "Bnatir portokal sok.",
+            "Natural orange juice.",
+        ),
+        composition: L(
+            "Апельсиновый сок",
+            "Portokal sok",
+            "Orange juice",
+        ),
+    },
+    "ayran-05": {
+        name: L("Айran 0.5 л", "Ayran 0.5 L", "Ayran 0.5 L"),
+        description: L(
+            "Освежающий айran с солью.",
+            "Tazatvogh ayran.",
+            "Refreshing salted ayran.",
+        ),
+        composition: L("Айran", "Ayran", "Ayran"),
+    },
 };
 
 export function getProductI18n(

@@ -28,6 +28,8 @@ import {
     Switch,
     TextField,
     Typography,
+    useMediaQuery,
+    useTheme,
 } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -717,6 +719,8 @@ export function ProductFormDialog(props: {
     };
 
     const images = watch("images");
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
     return (
         <Dialog
@@ -726,6 +730,7 @@ export function ProductFormDialog(props: {
                 if (!submitLoading) onClose();
             }}
             fullWidth
+            fullScreen={isMobile}
             maxWidth="md"
             disableScrollLock={false}
             sx={{
@@ -863,7 +868,11 @@ export function ProductFormDialog(props: {
                                     );
                                 }}
                             />
-                            <Stack direction="row" spacing={1} alignItems="flex-end">
+                            <Stack
+                                direction={{ xs: "column", md: "row" }}
+                                spacing={1}
+                                alignItems={{ xs: "stretch", md: "flex-end" }}
+                            >
                                 <Box sx={{ flex: 1 }}>
                                     <LocalizedTextFields
                                         label="Новая категория"
@@ -1017,8 +1026,19 @@ export function ProductFormDialog(props: {
                             </Box>
                         </Stack>
                     </DialogContent>
-                    <DialogActions sx={{ p: 2, borderTop: "1px solid #eee", flexShrink: 0 }}>
-                        <Button onClick={onClose} disabled={submitLoading}>
+                    <DialogActions
+                        sx={{
+                            p: 2,
+                            borderTop: "1px solid #eee",
+                            flexShrink: 0,
+                            flexDirection: isMobile ? "column-reverse" : "row",
+                            gap: isMobile ? 1 : 0,
+                            "& .MuiButton-root": isMobile
+                                ? { width: "100%", m: 0 }
+                                : undefined,
+                        }}
+                    >
+                        <Button onClick={onClose} disabled={submitLoading} size={isMobile ? "large" : "medium"}>
                             Отмена
                         </Button>
                         <Button
@@ -1026,6 +1046,7 @@ export function ProductFormDialog(props: {
                             variant="contained"
                             color="primary"
                             disabled={submitLoading}
+                            size={isMobile ? "large" : "medium"}
                         >
                             {submitLoading
                                 ? isEdit

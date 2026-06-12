@@ -1,6 +1,7 @@
 import {
     Box,
     Paper,
+    Stack,
     Table,
     TableBody,
     TableCell,
@@ -108,105 +109,124 @@ export function OrdersTable({
     buildSortHref,
     empty,
 }: OrdersTableProps) {
+    if (empty) {
+        return (
+            <Typography color="text.secondary" sx={{ py: 4, textAlign: "center" }}>
+                Нет заказов по текущим фильтрам.
+            </Typography>
+        );
+    }
+
     return (
-        <TableContainer
-            component={Paper}
-            elevation={0}
-            sx={{
-                mt: 1,
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: 2,
-                overflow: "auto",
-                minHeight: 360,
-                bgcolor: "background.paper",
-            }}
-        >
-            <Table
-                size="medium"
+        <>
+            <TableContainer
+                component={Paper}
+                elevation={0}
                 sx={{
-                    minWidth: 760,
-                    tableLayout: "fixed",
-                    "& .MuiTableCell-root": {
-                        verticalAlign: "middle",
-                    },
+                    mt: 1,
+                    display: { xs: "none", md: "block" },
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 2,
+                    overflow: "auto",
+                    minHeight: 360,
+                    bgcolor: "background.paper",
                 }}
             >
-                <TableHead>
-                    <TableRow sx={{ bgcolor: "grey.50" }}>
-                        <TableCell sx={{ ...TABLE_HEAD_CELL_SX, width: 88 }}>
-                            {renderSortLabel(
-                                "ID",
-                                "id",
-                                sortField,
-                                sortDir,
-                                buildSortHref("id"),
-                            )}
-                        </TableCell>
+                <Table
+                    size="medium"
+                    sx={{
+                        minWidth: 760,
+                        tableLayout: "fixed",
+                        "& .MuiTableCell-root": {
+                            verticalAlign: "middle",
+                        },
+                    }}
+                >
+                    <TableHead>
+                        <TableRow sx={{ bgcolor: "grey.50" }}>
+                            <TableCell sx={{ ...TABLE_HEAD_CELL_SX, width: 88 }}>
+                                {renderSortLabel(
+                                    "ID",
+                                    "id",
+                                    sortField,
+                                    sortDir,
+                                    buildSortHref("id"),
+                                )}
+                            </TableCell>
 
-                        <TableCell sx={{ ...TABLE_HEAD_CELL_SX, width: 132 }}>
-                            {renderSortLabel(
-                                "Дата",
-                                "date",
-                                sortField,
-                                sortDir,
-                                buildSortHref("date"),
-                            )}
-                        </TableCell>
+                            <TableCell sx={{ ...TABLE_HEAD_CELL_SX, width: 132 }}>
+                                {renderSortLabel(
+                                    "Дата",
+                                    "date",
+                                    sortField,
+                                    sortDir,
+                                    buildSortHref("date"),
+                                )}
+                            </TableCell>
 
-                        <TableCell sx={{ ...TABLE_HEAD_CELL_SX, width: "28%" }}>
-                            {renderSortLabel(
-                                "Имя клиента",
-                                "name",
-                                sortField,
-                                sortDir,
-                                buildSortHref("name"),
-                            )}
-                        </TableCell>
+                            <TableCell sx={{ ...TABLE_HEAD_CELL_SX, width: "28%" }}>
+                                {renderSortLabel(
+                                    "Имя клиента",
+                                    "name",
+                                    sortField,
+                                    sortDir,
+                                    buildSortHref("name"),
+                                )}
+                            </TableCell>
 
-                        <TableCell
-                            align="right"
-                            sx={{ ...TABLE_HEAD_CELL_SX, width: 124 }}
-                        >
-                            {renderSortLabel(
-                                "Сумма",
-                                "total",
-                                sortField,
-                                sortDir,
-                                buildSortHref("total"),
-                            )}
-                        </TableCell>
+                            <TableCell
+                                align="right"
+                                sx={{ ...TABLE_HEAD_CELL_SX, width: 124 }}
+                            >
+                                {renderSortLabel(
+                                    "Сумма",
+                                    "total",
+                                    sortField,
+                                    sortDir,
+                                    buildSortHref("total"),
+                                )}
+                            </TableCell>
 
-                        <TableCell sx={{ ...TABLE_HEAD_CELL_SX, width: 132 }}>
-                            Статус
-                        </TableCell>
+                            <TableCell sx={{ ...TABLE_HEAD_CELL_SX, width: 132 }}>
+                                Статус
+                            </TableCell>
 
-                        <TableCell sx={{ ...TABLE_HEAD_CELL_SX, width: 116 }}>
-                            Оплата
-                        </TableCell>
-                    </TableRow>
-                </TableHead>
-
-                <TableBody>
-                    {empty ? (
-                        <TableRow>
-                            <TableCell colSpan={6} sx={{ py: 6, textAlign: "center" }}>
-                                <Typography color="text.secondary">
-                                    Нет заказов по текущим фильтрам.
-                                </Typography>
+                            <TableCell sx={{ ...TABLE_HEAD_CELL_SX, width: 116 }}>
+                                Оплата
                             </TableCell>
                         </TableRow>
-                    ) : (
-                        orders.map((order) => (
+                    </TableHead>
+
+                    <TableBody>
+                        {orders.map((order) => (
                             <OrderRow
                                 key={order.id}
                                 order={order}
                                 searchQuery={searchQuery}
+                                variant="table"
                             />
-                        ))
-                    )}
-                </TableBody>
-            </Table>
-        </TableContainer>
+                        ))}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+
+            <Stack
+                spacing={1.5}
+                sx={{
+                    mt: 1,
+                    display: { xs: "flex", md: "none" },
+                }}
+            >
+                {orders.map((order) => (
+                    <OrderRow
+                        key={order.id}
+                        order={order}
+                        searchQuery={searchQuery}
+                        variant="card"
+                    />
+                ))}
+            </Stack>
+        </>
     );
 }

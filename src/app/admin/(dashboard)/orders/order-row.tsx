@@ -1,9 +1,12 @@
 "use client";
 
 import CloseIcon from "@mui/icons-material/Close";
+import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
 import {
     Box,
     Button,
+    Card,
+    CardContent,
     Chip,
     Dialog,
     DialogActions,
@@ -17,6 +20,8 @@ import {
     TableCell,
     TableRow,
     Typography,
+    useMediaQuery,
+    useTheme,
 } from "@mui/material";
 import type { ChipProps } from "@mui/material/Chip";
 import type { SelectChangeEvent } from "@mui/material/Select";
@@ -115,6 +120,7 @@ type OrderRowProps = {
         estimatedDeliveryAt?: string | null;
     };
     searchQuery: string;
+    variant?: "table" | "card";
 };
 
 function highlight(text: string, query: string) {
@@ -200,7 +206,9 @@ export function OrderPaymentChip({
     );
 }
 
-export function OrderRow({ order, searchQuery }: OrderRowProps) {
+export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProps) {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down("md"));
     const [open, setOpen] = useState(false);
     const [localStatus, setLocalStatus] = useState(order.status);
     const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -347,8 +355,28 @@ export function OrderRow({ order, searchQuery }: OrderRowProps) {
         return formatEstimatedDeliveryTime(date);
     }, [localEta]);
 
+    const telHref = order.phone.replace(/[^\d+]/g, "") ? `tel:${order.phone.replace(/[^\d+]/g, "")}` : undefined;
+
+    const statusSelect = (
+        <Select
+            value={localStatus}
+            size={isMobile ? "medium" : "small"}
+            fullWidth
+            disabled={updatingStatus}
+            onChange={onSelectStatus}
+            onClick={(e) => e.stopPropagation()}
+        >
+            <MenuItem value="NEW">{orderStatusLabel("NEW")}</MenuItem>
+            <MenuItem value="COOKING">{orderStatusLabel("COOKING")}</MenuItem>
+            <MenuItem value="DELIVERING">{orderStatusLabel("DELIVERING")}</MenuItem>
+            <MenuItem value="DONE">{orderStatusLabel("DONE")}</MenuItem>
+            <MenuItem value="CANCELLED">{orderStatusLabel("CANCELLED")}</MenuItem>
+        </Select>
+    );
+
     return (
         <>
+            {variant === "table" ? (
             <TableRow
                 hover
                 onClick={() => setOpen(true)}
@@ -410,11 +438,108 @@ export function OrderRow({ order, searchQuery }: OrderRowProps) {
                     />
                 </TableCell>
             </TableRow>
+            ) : (
+                <Card
+                    variant="outlined"
+                    sx={{
+                        borderRadius: 2,
+                        cursor: "pointer",
+                        "&:active": { bgcolor: "action.hover" },
+                    }}
+                    onClick={() => setOpen(true)}
+                >
+                    <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+                        <Stack spacing={1.25}>
+                            <Stack
+                                direction="row"
+                                alignItems="center"
+                                justifyContent="space-between"
+                                gap={1}
+                            >
+                                <Typography variant="subtitle1" fontWeight={800}>
+                                    #{highlight(String(order.id), searchQuery)}
+                                </Typography>
+                                <OrderStatusChip label={statusLabel} status={localStatus} />
+                            </Stack>
+
+                            <Typography variant="body2" color="text.secondary">
+                                {order.createdAtFormatted}
+                            </Typography>
+
+                            <Typography variant="body1" fontWeight={600}>
+                                {highlight(order.name, searchQuery)}
+                            </Typography>
+
+                            {telHref ? (
+                                <Typography
+                                    component="a"
+                                    href={telHref}
+                                    variant="body2"
+                                    onClick={(e) => e.stopPropagation()}
+                                    sx={{
+                                        color: "primary.main",
+                                        fontWeight: 600,
+                                        textDecoration: "none",
+                                    }}
+                                >
+                                    {highlight(order.phone, searchQuery)}
+                                </Typography>
+                            ) : (
+                                <Typography variant="body2">
+                                    {highlight(order.phone, searchQuery)}
+                                </Typography>
+                            )}
+
+                            <Stack
+                                direction="row"
+                                alignItems="center"
+                                justifyContent="space-between"
+                                flexWrap="wrap"
+                                gap={1}
+                            >
+                                <Typography variant="body1" fontWeight={800}>
+                                    {order.totalPrice.toLocaleString("ru-RU")} ֏
+                                </Typography>
+                                <OrderPaymentChip
+                                    label={order.paymentLabel}
+                                    payment={order.payment}
+                                />
+                            </Stack>
+
+                            <Stack
+                                direction={{ xs: "column", sm: "row" }}
+                                spacing={1}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <Box sx={{ flex: 1, minWidth: 0 }}>{statusSelect}</Box>
+                                {telHref ? (
+                                    <Button
+                                        component="a"
+                                        href={telHref}
+                                        variant="outlined"
+                                        size="large"
+                                        startIcon={<PhoneOutlinedIcon />}
+                                        sx={{ flexShrink: 0, textTransform: "none" }}
+                                    >
+                                        Позвонить
+                                    </Button>
+                                ) : null}
+                            </Stack>
+                            {statusError && (
+                                <Typography variant="caption" color="error">
+                                    {statusError}
+                                </Typography>
+                            )}
+                        </Stack>
+                    </CardContent>
+                </Card>
+            )}
 
             <Dialog
                 open={open}
                 onClose={() => setOpen(false)}
                 fullWidth
+                fullScreen={isMobile}
                 maxWidth="sm"
             >
                 <DialogTitle
@@ -478,7 +603,7 @@ export function OrderRow({ order, searchQuery }: OrderRowProps) {
                             </Typography>
                             <Select
                                 value={localStatus}
-                                size="small"
+                                size={isMobile ? "medium" : "small"}
                                 fullWidth
                                 disabled={updatingStatus}
                                 sx={{ mt: 0.75 }}
@@ -552,13 +677,18 @@ export function OrderRow({ order, searchQuery }: OrderRowProps) {
                                 )}
                             </Box>
 
-                            <Stack direction="row" spacing={1} flexWrap="wrap">
+                            <Stack
+                                direction="row"
+                                spacing={1}
+                                flexWrap="wrap"
+                                useFlexGap
+                            >
                                 {ETA_PRESET_MINUTES.map((minutes) => {
                                     const isActive = activeEtaMinutes === minutes;
                                     return (
                                         <Button
                                             key={minutes}
-                                            size="small"
+                                            size={isMobile ? "large" : "small"}
                                             variant={isActive ? "contained" : "outlined"}
                                             color={isActive ? "primary" : "inherit"}
                                             disabled={updatingEta}
@@ -566,7 +696,8 @@ export function OrderRow({ order, searchQuery }: OrderRowProps) {
                                             sx={{
                                                 textTransform: "none",
                                                 fontWeight: 700,
-                                                minWidth: 72,
+                                                minWidth: isMobile ? 80 : 72,
+                                                flex: isMobile ? "1 1 calc(50% - 8px)" : undefined,
                                                 boxShadow: isActive ? "none" : undefined,
                                             }}
                                         >
@@ -706,11 +837,36 @@ export function OrderRow({ order, searchQuery }: OrderRowProps) {
                         </Stack>
                     </Stack>
                 </DialogContent>
-                <DialogActions sx={{ px: 3, py: 2 }}>
-                    <Button onClick={() => setOpen(false)}>Закрыть</Button>
-                    <Button variant="outlined" onClick={handleRepeat}>
+                <DialogActions
+                    sx={{
+                        px: 3,
+                        py: 2,
+                        flexDirection: isMobile ? "column" : "row",
+                        gap: isMobile ? 1 : 0,
+                        "& .MuiButton-root": isMobile ? { width: "100%", m: 0 } : undefined,
+                    }}
+                >
+                    <Button onClick={() => setOpen(false)} size={isMobile ? "large" : "medium"}>
+                        Закрыть
+                    </Button>
+                    <Button
+                        variant="outlined"
+                        onClick={handleRepeat}
+                        size={isMobile ? "large" : "medium"}
+                    >
                         Повторить заказ
                     </Button>
+                    {telHref ? (
+                        <Button
+                            component="a"
+                            href={telHref}
+                            variant="contained"
+                            size={isMobile ? "large" : "medium"}
+                            startIcon={<PhoneOutlinedIcon />}
+                        >
+                            Позвонить
+                        </Button>
+                    ) : null}
                 </DialogActions>
             </Dialog>
         </>

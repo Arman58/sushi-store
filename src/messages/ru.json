@@ -157,6 +157,7 @@
         "modifiers": {
             "fromPrice": "от {price} ֏",
             "required": "Обязательно",
+            "optional": "По желанию",
             "maxChoices": "До {n} шт",
             "unlimited": "Без лимита",
             "total": "Итого",

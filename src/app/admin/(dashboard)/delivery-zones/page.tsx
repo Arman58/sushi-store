@@ -7,6 +7,8 @@ import {
     Alert,
     Box,
     Button,
+    Card,
+    CardContent,
     Container,
     Dialog,
     DialogActions,
@@ -25,6 +27,8 @@ import {
     TableRow,
     TextField,
     Typography,
+    useMediaQuery,
+    useTheme,
 } from "@mui/material";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -77,6 +81,8 @@ function formatRub(v: number) {
 }
 
 export default function AdminDeliveryZonesPage() {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down("md"));
     const [rows, setRows] = useState<ZoneRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -263,7 +269,7 @@ export default function AdminDeliveryZonesPage() {
                     <Stack
                         direction="row"
                         spacing={1}
-                        sx={{ mb: 2, flexWrap: "wrap" }}
+                        sx={{ mb: 2, flexWrap: "wrap", display: { xs: "none", md: "flex" } }}
                     >
                         <Button variant="text" component={Link} href="/admin/orders">
                             Заказы
@@ -303,6 +309,7 @@ export default function AdminDeliveryZonesPage() {
                             borderColor: tokens.border,
                         }}
                     >
+                        <Box sx={{ display: { xs: "none", md: "block" } }}>
                         <Table size="small">
                             <TableHead>
                                 <TableRow>
@@ -389,6 +396,71 @@ export default function AdminDeliveryZonesPage() {
                                 )}
                             </TableBody>
                         </Table>
+                        </Box>
+
+                        <Stack spacing={1.5} sx={{ display: { xs: "flex", md: "none" }, p: 1.5 }}>
+                            {loading ? (
+                                <Typography color="text.secondary" sx={{ p: 2 }}>
+                                    Загрузка…
+                                </Typography>
+                            ) : rows.length === 0 ? (
+                                <Typography color="text.secondary" sx={{ p: 2 }}>
+                                    Пока пусто
+                                </Typography>
+                            ) : (
+                                rows.map((r) => (
+                                    <Card key={r.id} variant="outlined" sx={{ borderRadius: 2 }}>
+                                        <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+                                            <Stack spacing={1.25}>
+                                                <Typography fontWeight={800}>
+                                                    {getLocalizedField(r.name, "hy")}
+                                                </Typography>
+                                                <Typography variant="body2">
+                                                    Доставка: {formatRub(r.deliveryPrice)}
+                                                </Typography>
+                                                <Typography variant="body2">
+                                                    Мин. заказ: {formatRub(r.minOrderAmount)}
+                                                </Typography>
+                                                <Stack
+                                                    direction="row"
+                                                    alignItems="center"
+                                                    justifyContent="space-between"
+                                                >
+                                                    <Typography variant="body2" color="text.secondary">
+                                                        Активна
+                                                    </Typography>
+                                                    <Switch
+                                                        checked={r.isActive}
+                                                        disabled={toggleLoadingId === r.id}
+                                                        color="primary"
+                                                        onChange={(_, checked) =>
+                                                            void handleToggleActive(r, checked)
+                                                        }
+                                                    />
+                                                </Stack>
+                                                <Stack direction="row" justifyContent="flex-end" spacing={0.5}>
+                                                    <IconButton
+                                                        aria-label="Редактировать"
+                                                        color="primary"
+                                                        onClick={() => openEdit(r)}
+                                                    >
+                                                        <EditIcon />
+                                                    </IconButton>
+                                                    <IconButton
+                                                        aria-label="Удалить"
+                                                        color="error"
+                                                        disabled={deleteLoadingId === r.id}
+                                                        onClick={() => void handleDelete(r.id)}
+                                                    >
+                                                        <DeleteIcon />
+                                                    </IconButton>
+                                                </Stack>
+                                            </Stack>
+                                        </CardContent>
+                                    </Card>
+                                ))
+                            )}
+                        </Stack>
                     </Paper>
                 </Container>
 
@@ -397,10 +469,11 @@ export default function AdminDeliveryZonesPage() {
                     onClose={() => setDialogOpen(false)}
                     maxWidth="sm"
                     fullWidth
+                    fullScreen={isMobile}
                     PaperProps={{
                         sx: {
-                            borderRadius: `${tokens.radiusCardLg}px`,
-                            border: `1px solid ${tokens.border}`,
+                            borderRadius: isMobile ? 0 : `${tokens.radiusCardLg}px`,
+                            border: isMobile ? "none" : `1px solid ${tokens.border}`,
                         },
                     }}
                 >
@@ -492,8 +565,18 @@ export default function AdminDeliveryZonesPage() {
                             />
                         </Stack>
                     </DialogContent>
-                    <DialogActions sx={{ px: 3, pb: 2 }}>
-                        <Button onClick={() => setDialogOpen(false)}>Отмена</Button>
+                    <DialogActions
+                        sx={{
+                            px: 3,
+                            pb: 2,
+                            flexDirection: isMobile ? "column-reverse" : "row",
+                            gap: isMobile ? 1 : 0,
+                            "& .MuiButton-root": isMobile ? { width: "100%", m: 0 } : undefined,
+                        }}
+                    >
+                        <Button onClick={() => setDialogOpen(false)} size={isMobile ? "large" : "medium"}>
+                            Отмена
+                        </Button>
                         <Button
                             variant="contained"
                             color="primary"
@@ -504,6 +587,7 @@ export default function AdminDeliveryZonesPage() {
                                 !Number.isInteger(Number(form.deliveryPrice)) ||
                                 !Number.isInteger(Number(form.minOrderAmount))
                             }
+                            size={isMobile ? "large" : "medium"}
                         >
                             Сохранить
                         </Button>

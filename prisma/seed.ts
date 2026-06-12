@@ -6,432 +6,630 @@ import { getProductI18n } from "./product-translations";
 
 const prisma = new PrismaClient();
 
-type CategorySlug = "pizza" | "sushi" | "shawarma" | "snacks" | "drinks";
+const IMG = {
+    pizza: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=80",
+    sushi: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=800&q=80",
+    shawarma: "https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800&q=80",
+    lahmajo: "https://images.unsplash.com/photo-1598514982901-ae62764ae75e?w=800&q=80",
+    fries: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=800&q=80",
+    strips: "https://images.unsplash.com/photo-1562967914-608f82629710?w=800&q=80",
+    drinks: "https://images.unsplash.com/photo-1581636625402-29b2a704ef13?w=800&q=80",
+} as const;
+
+type CategorySlug =
+    | "pizza"
+    | "sushi"
+    | "shawarma"
+    | "lahmajo"
+    | "fries"
+    | "strips"
+    | "drinks";
 
 type ProductSeed = {
-    name: string;
-    /** Если не задан - генерируется через slugify(name). */
-    slug?: string;
-    description: string;
-    composition: string;
+    slug: string;
     price: number;
     weight: number;
     image: string;
     categorySlug: CategorySlug;
+    name: string;
+    description: string;
+    composition: string;
 };
 
-const CYRILLIC_TO_LATIN: Record<string, string> = {
-    а: "a",
-    б: "b",
-    в: "v",
-    г: "g",
-    д: "d",
-    е: "e",
-    ё: "yo",
-    ж: "zh",
-    з: "z",
-    и: "i",
-    й: "y",
-    к: "k",
-    л: "l",
-    м: "m",
-    н: "n",
-    о: "o",
-    п: "p",
-    р: "r",
-    с: "s",
-    т: "t",
-    у: "u",
-    ф: "f",
-    х: "kh",
-    ц: "ts",
-    ч: "ch",
-    ш: "sh",
-    щ: "shch",
-    ъ: "",
-    ы: "y",
-    ь: "",
-    э: "e",
-    ю: "yu",
-    я: "ya",
-};
-
-/** Транслитерация кириллицы → латиница для slug. */
-function transliterate(text: string): string {
-    return text
-        .toLowerCase()
-        .split("")
-        .map((ch) => CYRILLIC_TO_LATIN[ch] ?? ch)
-        .join("");
-}
-
-/** slug из названия: транслит + нормализация. */
-function slugify(name: string): string {
-    return transliterate(name)
-        .trim()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-}
+const CATEGORIES: { slug: CategorySlug; name: ReturnType<typeof L>; position: number }[] =
+    [
+        { slug: "pizza", name: L("Пицца", "Պիցցա", "Pizza"), position: 0 },
+        {
+            slug: "sushi",
+            name: L("Суши и роллы", "Սուշի և ռոլներ", "Sushi & Rolls"),
+            position: 1,
+        },
+        { slug: "shawarma", name: L("Шаурма", "Շաուրմա", "Shawarma"), position: 2 },
+        { slug: "lahmajo", name: L("Лахмаджо", "Լահմաջո", "Lahmajo"), position: 3 },
+        {
+            slug: "fries",
+            name: L("Картофель фри", "Կարտոֆիլ ֆրի", "French Fries"),
+            position: 4,
+        },
+        {
+            slug: "strips",
+            name: L("Стрипсы", "Սթրիփսներ", "Chicken Strips"),
+            position: 5,
+        },
+        { slug: "drinks", name: L("Напитки", "Ըմպելիքներ", "Drinks"), position: 6 },
+    ];
 
 const productsData: ProductSeed[] = [
-    // ─── Пицца (8) ────────────────────────────────────────────────────────────
+    // Пицца (7)
     {
-        name: "Пепперони",
         slug: "pepperoni",
-        description: "Классическая пицца с острой колбасой пепперони и расплавленной моцареллой.",
-        composition: "Тесто, соус, моцарелла, пепперони",
-        price: 4500,
+        price: 5500,
         weight: 450,
-        image: "https://images.unsplash.com/photo-1565299624946-b28f00a0ec4e?w=800&q=80",
+        image: IMG.pizza,
         categorySlug: "pizza",
+        name: "Пепперони",
+        description: "Классическая пицца с острой колбасой пепперони и моцареллой.",
+        composition: "Тесто, соус, моцарелла, пепперони",
     },
     {
-        name: "Маргарита",
         slug: "margarita",
-        description: "Нежная пицца с томатами, моцареллой и базиликом - итальянская классика.",
-        composition: "Тесто, соус, моцарелла, томаты",
-        price: 4000,
-        weight: 400,
-        image: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=800&q=80",
-        categorySlug: "pizza",
-    },
-    {
-        name: "4 сыра",
-        slug: "four-cheese",
-        description: "Сливочная пицца с четырьмя видами сыра - насыщенный сырный вкус.",
-        composition: "Моцарелла, пармезан, дор блю, чеддер",
         price: 5000,
         weight: 420,
+        image: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=800&q=80",
+        categorySlug: "pizza",
+        name: "Маргарита",
+        description: "Нежная пицца с томатами, моцареллой и базиликом.",
+        composition: "Тесто, соус, моцарелла, томаты, базилик",
+    },
+    {
+        slug: "four-cheese",
+        price: 6200,
+        weight: 430,
         image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&q=80",
         categorySlug: "pizza",
+        name: "4 сыра",
+        description: "Сливочная пицца с четырьмя видами сыра.",
+        composition: "Моцарелла, пармезан, дор блю, чеддер",
     },
     {
-        name: "Гавайская",
         slug: "hawaiian",
-        description: "Сладкий ананас и ветчина в мягком тесте - любимый семейный вариант.",
-        composition: "Ветчина, ананас, моцарелла",
-        price: 4800,
-        weight: 430,
+        price: 5800,
+        weight: 440,
         image: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=800&q=80",
         categorySlug: "pizza",
+        name: "Гавайская",
+        description: "Ананас и ветчина в мягком тесте — семейный любимец.",
+        composition: "Ветчина, ананас, моцарелла",
     },
     {
-        name: "Мясная",
         slug: "myasnaya",
-        description: "Сытная пицца с говядиной, курицей и ветчиной - для большого аппетита.",
-        composition: "Говядина, курица, ветчина",
-        price: 5500,
+        price: 7200,
         weight: 500,
         image: "https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?w=800&q=80",
         categorySlug: "pizza",
+        name: "Мясная",
+        description: "Сытная пицца с говядиной, курицей и ветчиной.",
+        composition: "Говядина, курица, ветчина, моцарелла",
     },
     {
-        name: "С курицей и грибами",
         slug: "chicken-mushroom",
-        description: "Нежное куриное филе и шампиньоны на сливочной основе.",
-        composition: "Курица, шампиньоны",
-        price: 4700,
+        price: 5900,
         weight: 440,
         image: "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?w=800&q=80",
         categorySlug: "pizza",
+        name: "С курицей и грибами",
+        description: "Куриное филе и шампиньоны на сливочной основе.",
+        composition: "Курица, шампиньоны, моцарелла",
     },
     {
-        name: "Вегетарианская",
         slug: "vegetarian",
-        description: "Свежие овощи и оливки на тонком тесте - лёгкий и сбалансированный вариант.",
-        composition: "Перец, оливки, томаты",
-        price: 4200,
+        price: 5400,
         weight: 400,
         image: "https://images.unsplash.com/photo-1571407970349-bc81e7e96d47?w=800&q=80",
         categorySlug: "pizza",
-    },
-    {
-        name: "Лахмаджо",
-        slug: "lahmajo",
-        description: "Тонкое тесто с ароматным фаршем и специями - армянская классика доставки.",
-        composition: "Тонкое тесто, фарш, томаты, специи",
-        price: 3500,
-        weight: 300,
-        image: "https://images.unsplash.com/photo-1565299507177-b0acbac7ea41?w=800&q=80",
-        categorySlug: "pizza",
+        name: "Вегетарианская",
+        description: "Свежие овощи и оливки на тонком тесте.",
+        composition: "Перец, оливки, томаты, моцарелла",
     },
 
-    // ─── Суши и роллы (8) ─────────────────────────────────────────────────────
+    // Суши и роллы (7)
     {
-        name: "Филадельфия",
         slug: "philadelphia",
-        description: "Легендарный ролл с лососем и сливочным сыром.",
-        composition: "Лосось, сливочный сыр, нори",
-        price: 5500,
+        price: 6500,
         weight: 250,
-        image: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=800&q=80",
+        image: IMG.sushi,
         categorySlug: "sushi",
+        name: "Филадельфия",
+        description: "Ролл с лососем и сливочным сыром.",
+        composition: "Лосось, сливочный сыр, нори, рис",
     },
     {
-        name: "Калифорния",
         slug: "california",
-        description: "Ролл с крабом, авокадо и огурцом в кунжуте.",
-        composition: "Краб, авокадо, огурец, кунжут",
-        price: 4500,
+        price: 5500,
         weight: 240,
         image: "https://images.unsplash.com/photo-1553621042-f6e147245754?w=800&q=80",
         categorySlug: "sushi",
+        name: "Калифорния",
+        description: "Ролл с крабом, авокадо и огурцом в кунжуте.",
+        composition: "Краб, авокадо, огурец, кунжут",
     },
     {
-        name: "Унаги ролл",
-        slug: "unagi-roll",
-        description: "Копчёный угорь с соусом унаги - сладкий и насыщенный вкус.",
-        composition: "Угорь, соус унаги, кунжут",
-        price: 5000,
-        weight: 220,
+        slug: "dragon-roll",
+        price: 7200,
+        weight: 260,
         image: "https://images.unsplash.com/photo-1617196034796-73dfa7b1fd56?w=800&q=80",
         categorySlug: "sushi",
+        name: "Дракон",
+        description: "Угорь, авокадо и соус унаги — сладкий насыщенный вкус.",
+        composition: "Угорь, авокадо, рис, нори",
     },
     {
-        name: "Эби ролл",
         slug: "ebi-roll",
-        description: "Тигровая креветка и авокадо в классическом японском стиле.",
-        composition: "Тигровая креветка, авокадо",
-        price: 4800,
-        weight: 210,
+        price: 6000,
+        weight: 220,
         image: "https://images.unsplash.com/photo-1580822184713-fc5400e7fe10?w=800&q=80",
         categorySlug: "sushi",
+        name: "Эби ролл",
+        description: "Тигровая креветка и авокадо в классическом стиле.",
+        composition: "Креветка, авокадо, рис, нори",
     },
     {
-        name: 'Сет "Восток" 32 шт',
         slug: "set-vostok",
-        description: "Большой сет из 32 штук: Филадельфия, Калифорния, Унаги и Эби.",
-        composition: "Филадельфия, Калифорния, Унаги, Эби",
-        price: 15000,
+        price: 12000,
         weight: 900,
         image: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800&q=80",
         categorySlug: "sushi",
+        name: 'Сет "Восток" 32 шт',
+        description: "Большой сет: Филадельфия, Калифорния, Дракон и Эби.",
+        composition: "4 вида роллов, 32 штуки",
     },
     {
-        name: 'Сет "Запад" 24 шт',
         slug: "set-zapad",
-        description: "Сет из 24 штук: Калифорния, Тамаго и Каппа маки.",
-        composition: "Калифорния, Тамаго, Каппа маки",
-        price: 12000,
-        weight: 650,
+        price: 9500,
+        weight: 680,
         image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80",
         categorySlug: "sushi",
+        name: 'Сет "Запад" 24 шт',
+        description: "Сет из 24 штук: Калифорния, Тамаго и Каппа маки.",
+        composition: "3 вида роллов, 24 штуки",
     },
     {
-        name: "Онигири лосось",
-        slug: "onigiri-salmon",
-        description: "Японский рисовый треугольник с лососем - удобный перекус.",
-        composition: "Рис, лосось, нори",
-        price: 1500,
-        weight: 120,
-        image: "https://images.unsplash.com/photo-1590301157890-4810edc726a6?w=800&q=80",
-        categorySlug: "sushi",
-    },
-    {
-        name: "Сашими лосось",
         slug: "sashimi-salmon",
-        description: "Свежее филе лосося без риса - для ценителей чистого вкуса рыбы.",
-        composition: "Филе лосося",
-        price: 4000,
-        weight: 100,
+        price: 4500,
+        weight: 120,
         image: "https://images.unsplash.com/photo-1534256958597-1fe87b6a17b6?w=800&q=80",
         categorySlug: "sushi",
+        name: "Сашими лосось",
+        description: "Свежее филе лосося без риса.",
+        composition: "Филе лосося",
     },
 
-    // ─── Шаурма (4) ───────────────────────────────────────────────────────────
+    // Шаурма (7)
     {
-        name: "Классическая куриная",
         slug: "classic-chicken",
-        description: "Сочная курица, свежие овощи и фирменный соус в тёплом лаваше.",
+        price: 1800,
+        weight: 350,
+        image: IMG.shawarma,
+        categorySlug: "shawarma",
+        name: "Классическая куриная",
+        description: "Сочная курица, овощи и фирменный соус в лаваше.",
         composition: "Курица, лаваш, капуста, морковь, соус",
-        price: 2500,
+    },
+    {
+        slug: "spicy-chicken",
+        price: 2000,
         weight: 350,
         image: "https://images.unsplash.com/photo-1561651188-d207bbec4ec3?w=800&q=80",
         categorySlug: "shawarma",
-    },
-    {
         name: "Острая куриная",
-        slug: "spicy-chicken",
-        description: "Курица с халапеньо и острым соусом - для любителей пикантного.",
+        description: "Курица с халапеньо и острым соусом.",
         composition: "Курица, халапеньо, острый соус",
-        price: 2700,
-        weight: 350,
-        image: "https://images.unsplash.com/photo-1529006557810-275b8360b5e5?w=800&q=80",
-        categorySlug: "shawarma",
     },
     {
-        name: "С сыром",
-        slug: "shawarma-cheese",
-        description: "Курица с расплавленным сулугуни и свежими овощами.",
-        composition: "Курица, сулугуни, овощи",
-        price: 3000,
-        weight: 380,
-        image: "https://images.unsplash.com/photo-1551782450-21344efb0a9b?w=800&q=80",
-        categorySlug: "shawarma",
-    },
-    {
-        name: "Мясная (Говядина)",
         slug: "shawarma-beef",
-        description: "Нежная говядина с овощами и специями в ароматном лаваше.",
-        composition: "Говядина, овощи, специи",
-        price: 3500,
+        price: 2400,
         weight: 400,
         image: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=800&q=80",
         categorySlug: "shawarma",
+        name: "Мясная (говядина)",
+        description: "Нежная говядина с овощами и специями.",
+        composition: "Говядина, овощи, специи, лаваш",
+    },
+    {
+        slug: "shawarma-cheese",
+        price: 2200,
+        weight: 380,
+        image: "https://images.unsplash.com/photo-1551782450-21344efb0a9b?w=800&q=80",
+        categorySlug: "shawarma",
+        name: "С сыром",
+        description: "Курица с сулугуни и свежими овощами.",
+        composition: "Курица, сулугуни, овощи",
+    },
+    {
+        slug: "shawarma-falafel",
+        price: 1700,
+        weight: 320,
+        image: "https://images.unsplash.com/photo-1529006557810-275b8360b5e5?w=800&q=80",
+        categorySlug: "shawarma",
+        name: "Фалафель",
+        description: "Хрустящий фалафель с овощами и тахини.",
+        composition: "Фалафель, овощи, тахини, лаваш",
+    },
+    {
+        slug: "shawarma-mixed",
+        price: 2300,
+        weight: 390,
+        image: IMG.shawarma,
+        categorySlug: "shawarma",
+        name: "Микс курица + говядина",
+        description: "Комбо из курицы и говядины с фирменным соусом.",
+        composition: "Курица, говядина, овощи, соус",
+    },
+    {
+        slug: "shawarma-bbq",
+        price: 2100,
+        weight: 360,
+        image: IMG.shawarma,
+        categorySlug: "shawarma",
+        name: "BBQ куриная",
+        description: "Курица в дымном BBQ-соусе с хрустящим луком.",
+        composition: "Курица, BBQ-соус, лук, лаваш",
     },
 
-    // ─── Закуски (6) ──────────────────────────────────────────────────────────
+    // Лахмаджо (7)
     {
-        name: "Картофель фри",
-        slug: "french-fries",
-        description: "Золотистая хрустящая картошка - идеальное дополнение к любому заказу.",
-        composition: "Картофель, масло, соль",
-        price: 1500,
-        weight: 150,
-        image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=800&q=80",
-        categorySlug: "snacks",
-    },
-    {
-        name: "Стрипсы 6 шт",
-        slug: "chicken-strips-6",
-        description: "Шесть полосок куриного филе в хрустящей панировке.",
-        composition: "Филе курочки в панировке",
+        slug: "lahmajo-classic",
         price: 2500,
-        weight: 200,
-        image: "https://images.unsplash.com/photo-1562967914-608f82629710?w=800&q=80",
-        categorySlug: "snacks",
-    },
-    {
-        name: "Стрипсы 9 шт",
-        slug: "chicken-strips-9",
-        description: "Девять полосок куриного филе в панировке - порция на компанию.",
-        composition: "Филе курочки в панировке",
-        price: 3500,
         weight: 300,
-        image: "https://images.unsplash.com/photo-1562967914-608f82629710?w=800&q=80",
-        categorySlug: "snacks",
+        image: IMG.lahmajo,
+        categorySlug: "lahmajo",
+        name: "Классический",
+        description: "Тонкое тесто с ароматным фаршем и специями.",
+        composition: "Тесто, фарш, томаты, специи",
     },
     {
-        name: "Наггетсы 9 шт",
-        slug: "nuggets-9",
-        description: "Девять куриных наггетсов в золотистой панировке.",
-        composition: "Куриные наггетсы",
-        price: 2500,
-        weight: 200,
-        image: "https://images.unsplash.com/photo-1585325701956-60dd9c8553bc?w=800&q=80",
-        categorySlug: "snacks",
+        slug: "lahmajo-spicy",
+        price: 2700,
+        weight: 300,
+        image: IMG.lahmajo,
+        categorySlug: "lahmajo",
+        name: "Острый",
+        description: "Лахмаджо с перцем чили и острыми специями.",
+        composition: "Фарш, перец чili, специи",
     },
     {
-        name: "Луковые кольца",
-        slug: "onion-rings",
-        description: "Хрустящие кольца лука в кляре - классика к шаурме и пицце.",
-        composition: "Лук в кляре",
+        slug: "lahmajo-egg",
+        price: 2800,
+        weight: 320,
+        image: IMG.lahmajo,
+        categorySlug: "lahmajo",
+        name: "С яйцом",
+        description: "Лахмаджо с яйцом на верху — сытный вариант.",
+        composition: "Фарш, яйцо, специи, тесто",
+    },
+    {
+        slug: "lahmajo-mini",
         price: 1800,
-        weight: 180,
-        image: "https://images.unsplash.com/photo-1639024471283-03518883512d?w=800&q=80",
-        categorySlug: "snacks",
+        weight: 240,
+        image: IMG.lahmajo,
+        categorySlug: "lahmajo",
+        name: "Мини (2 шт)",
+        description: "Две мини-лахмаджо — удобно на перекус.",
+        composition: "Тонкое тесто, фарш, специи",
     },
     {
-        name: "Соус чесночный",
-        slug: "garlic-sauce",
-        description: "Ароматный чесночный соус с зеленью - к картофелю и стрипсам.",
-        composition: "Чеснок, майонез, зелень",
-        price: 300,
-        weight: 50,
-        image: "https://images.unsplash.com/photo-1472476443507-c7a594877720?w=800&q=80",
-        categorySlug: "snacks",
+        slug: "lahmajo-veggie",
+        price: 2200,
+        weight: 280,
+        image: IMG.lahmajo,
+        categorySlug: "lahmajo",
+        name: "Овощной",
+        description: "Лахмаджо с овощной начинкой без мяса.",
+        composition: "Овощи, томаты, специи, тесто",
+    },
+    {
+        slug: "lahmajo-combo",
+        price: 3200,
+        weight: 350,
+        image: IMG.lahmajo,
+        categorySlug: "lahmajo",
+        name: "Комбо с таном",
+        description: "Лахмаджо + армянский тан 0,5 л.",
+        composition: "Лахмаджо, тан",
+    },
+    {
+        slug: "lahmajo-family",
+        price: 3500,
+        weight: 550,
+        image: IMG.lahmajo,
+        categorySlug: "lahmajo",
+        name: "Семейный XL",
+        description: "Большой лахмаджо на компанию из 3–4 человек.",
+        composition: "Фарш, тесто, специи",
     },
 
-    // ─── Напитки (6) ──────────────────────────────────────────────────────────
+    // Картофель фри (7)
     {
-        name: "Кола 0.5 л",
+        slug: "french-fries",
+        price: 1200,
+        weight: 150,
+        image: IMG.fries,
+        categorySlug: "fries",
+        name: "Классический",
+        description: "Золотистая хрустящая картошка с солью.",
+        composition: "Картофель, масло, соль",
+    },
+    {
+        slug: "fries-large",
+        price: 1800,
+        weight: 250,
+        image: IMG.fries,
+        categorySlug: "fries",
+        name: "Большая порция",
+        description: "Увеличенная порция картофеля фри.",
+        composition: "Картофель, масло, соль",
+    },
+    {
+        slug: "fries-cheese",
+        price: 2200,
+        weight: 200,
+        image: IMG.fries,
+        categorySlug: "fries",
+        name: "С сыром",
+        description: "Фри с расплавленным сыром чеддер.",
+        composition: "Картофель, сыр чеддер",
+    },
+    {
+        slug: "fries-spicy",
+        price: 1500,
+        weight: 160,
+        image: IMG.fries,
+        categorySlug: "fries",
+        name: "Острый",
+        description: "Картофель фри с острым перцем и паприкой.",
+        composition: "Картофель, перец, папrika",
+    },
+    {
+        slug: "fries-sweet",
+        price: 2000,
+        weight: 170,
+        image: IMG.fries,
+        categorySlug: "fries",
+        name: "Из батата",
+        description: "Хрустящий батат с лёгкой сладостью.",
+        composition: "Батат, масло, соль",
+    },
+    {
+        slug: "fries-combo",
+        price: 1600,
+        weight: 180,
+        image: IMG.fries,
+        categorySlug: "fries",
+        name: "Комбо с соусом",
+        description: "Фри + чесночный соус.",
+        composition: "Картофель, чесночный соус",
+    },
+    {
+        slug: "fries-wedges",
+        price: 1700,
+        weight: 190,
+        image: IMG.fries,
+        categorySlug: "fries",
+        name: "Картофельные дольки",
+        description: "Дольки картофеля с травами.",
+        composition: "Картофель, травы, масло",
+    },
+
+    // Стрипсы (7)
+    {
+        slug: "strips-4",
+        price: 2500,
+        weight: 180,
+        image: IMG.strips,
+        categorySlug: "strips",
+        name: "Стрипсы 4 шт",
+        description: "Четыре полоски куриного филе в панировке.",
+        composition: "Куриное филе, панировка",
+    },
+    {
+        slug: "chicken-strips-6",
+        price: 3500,
+        weight: 260,
+        image: IMG.strips,
+        categorySlug: "strips",
+        name: "Стрипсы 6 шт",
+        description: "Шесть полосок куриного филе в панировке.",
+        composition: "Куриное филе, панировка",
+    },
+    {
+        slug: "chicken-strips-9",
+        price: 4800,
+        weight: 380,
+        image: IMG.strips,
+        categorySlug: "strips",
+        name: "Стрипсы 9 шт",
+        description: "Девять полосок — порция на компанию.",
+        composition: "Куриное филе, панировка",
+    },
+    {
+        slug: "strips-spicy",
+        price: 3800,
+        weight: 280,
+        image: IMG.strips,
+        categorySlug: "strips",
+        name: "Острые стрипсы",
+        description: "Стрипсы в острой панировке.",
+        composition: "Курица, острые специи, панировка",
+    },
+    {
+        slug: "strips-combo",
+        price: 5200,
+        weight: 420,
+        image: IMG.strips,
+        categorySlug: "strips",
+        name: "Комбо стрипсы + фри",
+        description: "6 стрипсов и порция картофеля фри.",
+        composition: "Стрипсы, картофель фри",
+    },
+    {
+        slug: "nuggets-9",
+        price: 2800,
+        weight: 220,
+        image: "https://images.unsplash.com/photo-1585325701956-60dd9c8553bc?w=800&q=80",
+        categorySlug: "strips",
+        name: "Наггетсы 9 шт",
+        description: "Девять куриных наггетсов в золотистой панировке.",
+        composition: "Куриное мясо, панировка",
+    },
+    {
+        slug: "tenders-box",
+        price: 4500,
+        weight: 400,
+        image: IMG.strips,
+        categorySlug: "strips",
+        name: "Тендеры XL",
+        description: "Большая коробка куриных тenderов с соусом.",
+        composition: "Куриные тenderы, соус",
+    },
+
+    // Напитки (8)
+    {
         slug: "cola-05",
-        description: "Coca-Cola 0,5 л - освежающая классика к любому блюду.",
-        composition: "Coca-Cola",
         price: 600,
         weight: 500,
-        image: "https://images.unsplash.com/photo-1554866585-cd94860890b7?w=800&q=80",
+        image: IMG.drinks,
         categorySlug: "drinks",
+        name: "Кола 0.5 л",
+        description: "Coca-Cola 0,5 л — освежающая классика.",
+        composition: "Coca-Cola",
     },
     {
-        name: "Кола 1 л",
         slug: "cola-1",
-        description: "Coca-Cola 1 л - большая бутылка на компанию.",
-        composition: "Coca-Cola",
         price: 1000,
         weight: 1000,
-        image: "https://images.unsplash.com/photo-1554866585-cd94860890b7?w=800&q=80",
+        image: IMG.drinks,
         categorySlug: "drinks",
+        name: "Кола 1 л",
+        description: "Coca-Cola 1 л — на компанию.",
+        composition: "Coca-Cola",
     },
     {
-        name: "Тан 0.5 л",
         slug: "tan-05",
-        description: "Армянский тан 0,5 л - идеален к шаурме и пицце.",
-        composition: "Армянский тан",
         price: 500,
         weight: 500,
         image: "https://images.unsplash.com/photo-1544145945-f90425340c06?w=800&q=80",
         categorySlug: "drinks",
+        name: "Тан 0.5 л",
+        description: "Армянский тан 0,5 л — идеален к шaурme.",
+        composition: "Тан",
     },
     {
-        name: "Тан 1 л",
         slug: "tan-1",
-        description: "Армянский тан 1 л - большая порция кисломолочного напитка.",
-        composition: "Армянский тан",
         price: 800,
         weight: 1000,
         image: "https://images.unsplash.com/photo-1544145945-f90425340c06?w=800&q=80",
         categorySlug: "drinks",
+        name: "Тан 1 л",
+        description: "Армянский тan 1 л.",
+        composition: "Тан",
     },
     {
-        name: "Лимонад Дюшес",
         slug: "lemonade-dushes",
-        description: "Грушевый лимонад Дюшес - знакомый вкус из детства.",
-        composition: "Лимонад Дюшес",
         price: 800,
         weight: 500,
         image: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=800&q=80",
         categorySlug: "drinks",
+        name: "Лимонад Дюшес",
+        description: "Грушевый лимonad Дюшes.",
+        composition: "Лимonad",
     },
     {
-        name: "Вода Аква 0.5 л",
         slug: "water-05",
-        description: "Питьевая вода 0,5 л - чистая и освежающая.",
-        composition: "Питьевая вода",
         price: 300,
         weight: 500,
         image: "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=800&q=80",
         categorySlug: "drinks",
+        name: "Вода 0.5 л",
+        description: "Питьевая вода 0,5 л.",
+        composition: "Вода",
+    },
+    {
+        slug: "juice-orange",
+        price: 900,
+        weight: 500,
+        image: IMG.drinks,
+        categorySlug: "drinks",
+        name: "Сок апельсин 0.5 л",
+        description: "Натуральный апельсиновый сок.",
+        composition: "Апельсиновый сок",
+    },
+    {
+        slug: "ayran-05",
+        price: 700,
+        weight: 500,
+        image: IMG.drinks,
+        categorySlug: "drinks",
+        name: "Айran 0.5 л",
+        description: "Освежающий айran с солью.",
+        composition: "Айran",
     },
 ];
 
-/** Пиццы с модификатором «Размер»: 30 см (0 ֏) / 45 см (+2000 ֏). */
-const PIZZA_SIZE_MODIFIER_SLUGS = new Set([
-    "pepperoni",
-    "four-cheese",
-    "myasnaya",
-]);
+const MOD_SIZE = L("Размер", "Չափս", "Size");
+const MOD_SAUCE = L("Соус", "Սոուս", "Sauce");
+const OPT_30 = L("30 см", "30 սմ", "30 cm");
+const OPT_45 = L("45 см", "45 սմ", "45 cm");
+const OPT_SMALL = L("Маленькая", "Փոքր", "Small");
+const OPT_LARGE = L("Большая", "Մեծ", "Large");
+const OPT_SPICY = L("Острая", "Սուր", "Spicy");
+const OPT_GARLIC = L("Чесночная", "Սխտորով", "Garlic");
 
-async function addSizeModifier(productId: number): Promise<void> {
+async function addPizzaSizeModifier(productId: number): Promise<void> {
     await prisma.modifierGroup.create({
         data: {
             productId,
-            name: LToJson(L("Размер", "Չափս", "Size")),
+            name: LToJson(MOD_SIZE),
             required: true,
             maxChoices: 1,
             position: 0,
             modifiers: {
                 create: [
-                    {
-                        name: LToJson(L("30 см", "30 սմ", "30 cm")),
-                        priceDelta: 0,
-                        position: 0,
-                    },
-                    {
-                        name: LToJson(L("45 см", "45 սմ", "45 cm")),
-                        priceDelta: 2000,
-                        position: 1,
-                    },
+                    { name: LToJson(OPT_30), priceDelta: 0, position: 0 },
+                    { name: LToJson(OPT_45), priceDelta: 2000, position: 1 },
+                ],
+            },
+        },
+    });
+}
+
+async function addShawarmaModifiers(productId: number): Promise<void> {
+    await prisma.modifierGroup.create({
+        data: {
+            productId,
+            name: LToJson(MOD_SIZE),
+            required: true,
+            maxChoices: 1,
+            position: 0,
+            modifiers: {
+                create: [
+                    { name: LToJson(OPT_SMALL), priceDelta: 0, position: 0 },
+                    { name: LToJson(OPT_LARGE), priceDelta: 500, position: 1 },
+                ],
+            },
+        },
+    });
+
+    await prisma.modifierGroup.create({
+        data: {
+            productId,
+            name: LToJson(MOD_SAUCE),
+            required: false,
+            maxChoices: 1,
+            position: 1,
+            modifiers: {
+                create: [
+                    { name: LToJson(OPT_SPICY), priceDelta: 0, position: 0 },
+                    { name: LToJson(OPT_GARLIC), priceDelta: 0, position: 1 },
                 ],
             },
         },
@@ -439,7 +637,19 @@ async function addSizeModifier(productId: number): Promise<void> {
 }
 
 async function main() {
-    console.log("🌱 Seeding East West Delivery…");
+    console.log("🌱 Seeding East West Delivery (50 products)…");
+
+    if (productsData.length !== 50) {
+        throw new Error(`Expected 50 products, got ${productsData.length}`);
+    }
+
+    const slugs = new Set<string>();
+    for (const p of productsData) {
+        if (slugs.has(p.slug)) {
+            throw new Error(`Duplicate slug: ${p.slug}`);
+        }
+        slugs.add(p.slug);
+    }
 
     await prisma.orderItem.deleteMany();
     await prisma.order.deleteMany();
@@ -450,36 +660,13 @@ async function main() {
     await prisma.promoCode.deleteMany();
     await prisma.deliveryZone.deleteMany();
 
-    const categoriesData = [
-        {
-            slug: "pizza",
-            name: L("Пицца", "Պիցցա", "Pizza"),
-        },
-        {
-            slug: "sushi",
-            name: L("Суши и роллы", "Սուշի և ռոլեր", "Sushi & rolls"),
-        },
-        {
-            slug: "shawarma",
-            name: L("Шаурма", "Շաուրմա", "Shawarma"),
-        },
-        {
-            slug: "snacks",
-            name: L("Закуски", "Նախուտեստներ", "Snacks"),
-        },
-        {
-            slug: "drinks",
-            name: L("Напитки", "Խմիչքներ", "Drinks"),
-        },
-    ] as const;
-
     const categories = await Promise.all(
-        categoriesData.map((c, position) =>
+        CATEGORIES.map((c) =>
             prisma.category.create({
                 data: {
                     name: LToJson(c.name),
                     slug: c.slug,
-                    position,
+                    position: c.position,
                     isActive: true,
                 },
             }),
@@ -488,31 +675,23 @@ async function main() {
 
     const categoryIdBySlug = Object.fromEntries(
         categories.map((c) => [c.slug, c.id] as const),
-    ) as Record<(typeof categoriesData)[number]["slug"], number>;
+    ) as Record<CategorySlug, number>;
 
-    if (productsData.length !== 32) {
-        throw new Error(`Expected 32 products, got ${productsData.length}`);
-    }
-
-    const seenSlugs = new Set<string>();
-    for (const p of productsData) {
-        const slug = p.slug ?? slugify(p.name);
-        if (seenSlugs.has(slug)) {
-            throw new Error(`Duplicate product slug: ${slug}`);
-        }
-        seenSlugs.add(slug);
-    }
-
-    const productIdBySlug = new Map<string, number>();
+    let pizzaCount = 0;
+    let shawarmaCount = 0;
 
     for (const p of productsData) {
-        const slug = p.slug ?? slugify(p.name);
+        const i18n = getProductI18n(p.slug, {
+            name: p.name,
+            description: p.description,
+            composition: p.composition,
+        });
         const images = [p.image] as Prisma.InputJsonArray;
-        const i18n = getProductI18n(slug, p);
+
         const created = await prisma.product.create({
             data: {
                 name: LToJson(i18n.name),
-                slug,
+                slug: p.slug,
                 description: LToJson(i18n.description),
                 composition: LToJson(i18n.composition),
                 price: p.price,
@@ -523,13 +702,14 @@ async function main() {
                 categoryId: categoryIdBySlug[p.categorySlug],
             },
         });
-        productIdBySlug.set(slug, created.id);
-    }
 
-    for (const slug of PIZZA_SIZE_MODIFIER_SLUGS) {
-        const productId = productIdBySlug.get(slug);
-        if (productId != null) {
-            await addSizeModifier(productId);
+        if (p.categorySlug === "pizza") {
+            await addPizzaSizeModifier(created.id);
+            pizzaCount += 1;
+        }
+        if (p.categorySlug === "shawarma") {
+            await addShawarmaModifiers(created.id);
+            shawarmaCount += 1;
         }
     }
 
@@ -547,8 +727,7 @@ async function main() {
             name: LToJson(z.name),
             deliveryPrice: z.deliveryPrice,
             minOrderAmount: z.minOrderAmount,
-            description:
-                z.description === "" ? {} : LToJson(z.description),
+            description: z.description === "" ? {} : LToJson(z.description),
             requiresManagerApproval: z.requiresManagerApproval,
             position: z.position,
             isActive: true,
@@ -557,7 +736,8 @@ async function main() {
 
     console.log(`✅ Категорий: ${categories.length}`);
     console.log(`✅ Товаров: ${productsData.length}`);
-    console.log(`✅ Пицц с модификатором «Размер»: ${PIZZA_SIZE_MODIFIER_SLUGS.size}`);
+    console.log(`✅ Пицц с модификатором «Размер»: ${pizzaCount}`);
+    console.log(`✅ Шаурмы с модификаторами «Размер» + «Соус»: ${shawarmaCount}`);
     console.log(`✅ Зоны доставки: ${deliveryZonesData.length}`);
     console.log("✅ Seeding completed.");
 }
