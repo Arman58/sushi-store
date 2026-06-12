@@ -3,15 +3,11 @@
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
-import MenuIcon from "@mui/icons-material/Menu";
 import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Container from "@mui/material/Container";
-import IconButton from "@mui/material/IconButton";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
 import Snackbar from "@mui/material/Snackbar";
 import { alpha } from "@mui/material/styles";
 import Toolbar from "@mui/material/Toolbar";
@@ -39,6 +35,7 @@ const StoreFooter = dynamic(
     { ssr: false, loading: () => null },
 );
 import LanguageSwitcher from "./LanguageSwitcher";
+import { MobileNavDrawer } from "./mobile-nav-drawer";
 import { tokens } from "./theme";
 
 const HEADER_ACTION_SLOT_SX = {
@@ -87,69 +84,6 @@ function NavLink({
         >
             {t(labelKey)}
         </ButtonBase>
-    );
-}
-
-// ─── Mobile nav menu ────────────────────────────────────────────────────────────
-
-function MobileNavMenu() {
-    const pathname = usePathname();
-    const t = useTranslations("nav");
-    const tCommon = useTranslations("common");
-    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-    const open = Boolean(anchorEl);
-
-    return (
-        <>
-            <IconButton
-                onClick={(e) => setAnchorEl(e.currentTarget)}
-                aria-label={tCommon("aria.mobileNavMenu")}
-                sx={{
-                    display: { xs: "inline-flex", sm: "none" },
-                    flexShrink: 0,
-                    minWidth: 40,
-                    width: 40,
-                    height: 40,
-                    border: "1px solid",
-                    borderColor: "divider",
-                    bgcolor: "background.paper",
-                    color: tokens.textSecondary,
-                }}
-            >
-                <MenuIcon aria-hidden focusable="false" />
-            </IconButton>
-
-            <Menu
-                anchorEl={anchorEl}
-                open={open}
-                onClose={() => setAnchorEl(null)}
-                disablePortal
-                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-                transformOrigin={{ vertical: "top", horizontal: "right" }}
-                PaperProps={{
-                    sx: {
-                        mt: 0.75,
-                        minWidth: 200,
-                        borderRadius: 2,
-                        border: "1px solid",
-                        borderColor: "divider",
-                    },
-                }}
-            >
-                {STORE_NAV_HREFS.map(({ href, key }) => (
-                    <MenuItem
-                        key={href}
-                        component={Link}
-                        href={href}
-                        onClick={() => setAnchorEl(null)}
-                        selected={pathname === href}
-                        sx={{ fontWeight: pathname === href ? 700 : 500 }}
-                    >
-                        {t(key)}
-                    </MenuItem>
-                ))}
-            </Menu>
-        </>
     );
 }
 
@@ -498,13 +432,23 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                 ))}
                             </Box>
 
-                            <Box sx={HEADER_ACTION_SLOT_SX}>
+                            <Box
+                                sx={{
+                                    ...HEADER_ACTION_SLOT_SX,
+                                    display: { xs: "none", sm: "flex" },
+                                }}
+                            >
                                 <LanguageSwitcher />
                             </Box>
                             <Box sx={HEADER_ACTION_SLOT_SX}>
-                                <MobileNavMenu />
+                                <MobileNavDrawer />
                             </Box>
-                            <Box sx={HEADER_ACTION_SLOT_SX}>
+                            <Box
+                                sx={{
+                                    ...HEADER_ACTION_SLOT_SX,
+                                    display: { xs: "none", sm: "flex" },
+                                }}
+                            >
                                 <LoginButton />
                             </Box>
                             <Box sx={HEADER_ACTION_SLOT_SX}>

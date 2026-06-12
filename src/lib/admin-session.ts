@@ -19,7 +19,7 @@ export function getAdminAuthCookieMaxAgeSec(): number {
     return SESSION_MAX_AGE_SEC;
 }
 
-/** Параметры куки `admin_auth` (login + proxy после Basic). */
+/** Параметры куки `admin_auth` (выставляется при POST /api/admin/login). */
 export function getAdminAuthCookieSettings(): {
     httpOnly: true;
     secure: boolean;
