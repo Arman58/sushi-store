@@ -1,490 +1,55 @@
 "use client";
 
-import AddIcon from "@mui/icons-material/Add";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import CloseIcon from "@mui/icons-material/Close";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import DeleteIcon from "@mui/icons-material/Delete";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import {
-    Accordion,
-    AccordionDetails,
-    AccordionSummary,
     Alert,
     Autocomplete,
     Avatar,
     Box,
     Button,
-    Chip,
     Dialog,
     DialogActions,
     DialogContent,
     DialogTitle,
-    FormControlLabel,
     IconButton,
     InputAdornment,
     LinearProgress,
     Snackbar,
     Stack,
-    Switch,
     TextField,
     Typography,
     useMediaQuery,
     useTheme,
 } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
-import {
-    type Control,
-    Controller,
-    useFieldArray,
-    useForm,
-    useWatch,
-} from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 
-import type { AdminModifierGroupInput } from "@/lib/admin-product-modifiers";
 import {
     IMAGE_UPLOAD_ACCEPT,
     validateImageUpload,
 } from "@/lib/validate-image-upload";
-import ruMessages from "@/messages/ru.json";
 import {
     emptyLocalizedJson,
     getLocalizedField,
-    type LocalizedJson,
-    parseLocalizedJson,
 } from "@/lib/i18n-utils";
+import ruMessages from "@/messages/ru.json";
 import { LocalizedTextFields } from "@/shared/ui/localized-text-fields";
 
-export type ProductSavePayload = {
-    name: LocalizedJson;
-    price: number;
-    categoryId: number;
-    composition: LocalizedJson | null;
-    description: LocalizedJson | null;
-    weight: number | null;
-    images: string[];
-    modifierGroups: AdminModifierGroupInput[];
-};
+import { ProductLocalizedFieldsSection } from "./product-localized-fields-section";
+import { ProductModifiersSection } from "./product-modifiers-section";
+import {
+    buildModifierPayload,
+    productDialogDefaults,
+    TEXT_FIELD_FOCUS_SX,
+    type EditingProduct,
+    type ProductDialogFormValues,
+    type ProductSavePayload,
+} from "./product-form-types";
 
-type ProductRow = {
-    id: number;
-    name: unknown;
-    description: unknown;
-    composition: unknown;
-    price: number;
-    weight: number | null;
-    images?: unknown;
-    mainImage?: string | null;
-    isActive: boolean;
-    categoryId: number | null;
-    category: { name: unknown } | null;
-    modifierGroups?: {
-        id: number;
-        name: unknown;
-        required: boolean;
-        maxChoices: number;
-        position: number;
-        modifiers: {
-            id: number;
-            name: unknown;
-            priceDelta: number;
-            position: number;
-        }[];
-    }[];
-};
-
-type EditingProduct = null | Record<string, never> | ProductRow;
-
-type ProductDialogFormValues = {
-    name: LocalizedJson;
-    price: string;
-    weight: string;
-    categoryId: string;
-    composition: LocalizedJson;
-    description: LocalizedJson;
-    images: string[];
-    modifierGroups: {
-        /** id присутствует для существующих групп; undefined для новых, добавленных в UI. */
-        id?: number;
-        name: LocalizedJson;
-        required: boolean;
-        maxChoices: number;
-        modifiers: {
-            id?: number;
-            name: LocalizedJson;
-            priceDelta: number;
-        }[];
-    }[];
-};
-
-function hasLocalizedText(value: LocalizedJson): boolean {
-    return Boolean(value.hy.trim() || value.ru.trim() || value.en.trim());
-}
-
-function toLocalizedPayload(value: LocalizedJson): {
-    hy: string;
-    ru: string;
-    en: string;
-} {
-    return {
-        hy: value.hy ?? "",
-        ru: value.ru ?? "",
-        en: value.en ?? "",
-    };
-}
-
-const TEXT_FIELD_FOCUS_SX = {
-    "& .MuiOutlinedInput-root": {
-        "&.Mui-focused:not(.Mui-error) fieldset": { borderColor: "primary.main" },
-    },
-} as const;
-
-function emptyProductDialogForm(): ProductDialogFormValues {
-    return {
-        name: emptyLocalizedJson(),
-        price: "",
-        weight: "",
-        categoryId: "",
-        composition: emptyLocalizedJson(),
-        description: emptyLocalizedJson(),
-        images: [],
-        modifierGroups: [],
-    };
-}
-
-function productDialogDefaults(editingProduct: EditingProduct): ProductDialogFormValues {
-    if (editingProduct === null || !("id" in editingProduct)) {
-        return emptyProductDialogForm();
-    }
-    const p = editingProduct as ProductRow;
-    // Сортируем группы и опции по position. Бэк уже сортирует, но это страхует
-    // от случаев, когда товар приходит из другого источника (импорт, тесты).
-    const sortedGroups = [...(p.modifierGroups ?? [])].sort(
-        (a, b) => a.position - b.position || a.id - b.id,
-    );
-    return {
-        name: parseLocalizedJson(p.name),
-        price: String(p.price),
-        weight: p.weight != null ? String(p.weight) : "",
-        categoryId: p.categoryId != null ? String(p.categoryId) : "",
-        composition: parseLocalizedJson(p.composition),
-        description: parseLocalizedJson(p.description),
-        images: Array.isArray(p.images) ? (p.images as string[]) : [],
-        modifierGroups: sortedGroups.map((g) => ({
-            id: g.id,
-            name: parseLocalizedJson(g.name),
-            required: g.required,
-            maxChoices: g.maxChoices,
-            modifiers: [...(g.modifiers ?? [])]
-                .sort((a, b) => a.position - b.position || a.id - b.id)
-                .map((m) => ({
-                    id: m.id,
-                    name: parseLocalizedJson(m.name),
-                    priceDelta: m.priceDelta,
-                })),
-        })),
-    };
-}
-
-function buildModifierPayload(
-    groups: ProductDialogFormValues["modifierGroups"],
-): { ok: true; modifierGroups: AdminModifierGroupInput[] } | { ok: false; message: string } {
-    const modifierGroups: AdminModifierGroupInput[] = [];
-    for (let gi = 0; gi < groups.length; gi++) {
-        const g = groups[gi];
-        const name = g.name;
-        const modifiers = g.modifiers
-            .filter((m) => hasLocalizedText(m.name))
-            .map((m, mi) => ({
-                ...(typeof m.id === "number" ? { id: m.id } : {}),
-                name: toLocalizedPayload(m.name),
-                priceDelta: Math.round(Number(m.priceDelta)) || 0,
-                position: mi,
-            }));
-        if (!hasLocalizedText(name) && modifiers.length === 0) continue;
-        if (!hasLocalizedText(name)) {
-            return {
-                ok: false,
-                message: `Группа ${String(gi + 1)}: укажите название (или удалите опции).`,
-            };
-        }
-        let maxChoices = Number.parseInt(String(g.maxChoices), 10);
-        if (Number.isNaN(maxChoices) || maxChoices < 0) {
-            maxChoices = 1;
-        }
-        modifierGroups.push({
-            ...(typeof g.id === "number" ? { id: g.id } : {}),
-            name: toLocalizedPayload(name),
-            required: Boolean(g.required),
-            maxChoices,
-            position: gi,
-            modifiers,
-        });
-    }
-    return { ok: true, modifierGroups };
-}
+export type { ProductSavePayload } from "./product-form-types";
 
 type AdminCategory = { id: number; name: unknown };
-
-function ModifierGroupAccordion(props: {
-    control: Control<ProductDialogFormValues>;
-    groupIndex: number;
-    removeGroup: () => void;
-    disabled: boolean;
-}) {
-    const { control, groupIndex, removeGroup, disabled } = props;
-    const groupName = useWatch({
-        control,
-        name: `modifierGroups.${groupIndex}.name`,
-    });
-    const groupRequired = useWatch({
-        control,
-        name: `modifierGroups.${groupIndex}.required`,
-    });
-    const groupMaxChoices = useWatch({
-        control,
-        name: `modifierGroups.${groupIndex}.maxChoices`,
-    });
-
-    const {
-        fields: optionFields,
-        append: appendOption,
-        remove: removeOption,
-        move: moveOption,
-    } = useFieldArray({
-        control,
-        name: `modifierGroups.${groupIndex}.modifiers`,
-    });
-
-    const summaryTitle =
-        groupName != null && hasLocalizedText(groupName)
-            ? getLocalizedField(groupName, "hy") || getLocalizedField(groupName, "ru")
-            : `Группа ${String(groupIndex + 1)}`;
-
-    const maxN =
-        typeof groupMaxChoices === "number" && Number.isFinite(groupMaxChoices)
-            ? Math.max(0, Math.floor(groupMaxChoices))
-            : 0;
-
-    return (
-        <Accordion
-            defaultExpanded
-            disableGutters
-            elevation={0}
-            sx={{
-                border: 1,
-                borderColor: "divider",
-                borderRadius: 2,
-                "&:before": { display: "none" },
-                overflow: "hidden",
-            }}
-        >
-            <AccordionSummary
-                sx={{
-                    px: 1.5,
-                    "& .MuiAccordionSummary-content": {
-                        mr: 1,
-                        alignItems: "center",
-                        gap: 1,
-                        flexWrap: "wrap",
-                    },
-                }}
-            >
-                <Typography variant="subtitle2" sx={{ flex: "1 1 auto", minWidth: 120 }}>
-                    {summaryTitle}
-                </Typography>
-                <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-                    {groupRequired ? (
-                        <Chip size="small" label="Обязательно" color="primary" variant="outlined" />
-                    ) : (
-                        <Chip size="small" label="Необязательно" variant="outlined" />
-                    )}
-                    {maxN === 0 ? (
-                        <Chip size="small" label="Без лимита" variant="outlined" />
-                    ) : (
-                        <Chip
-                            size="small"
-                            label={`До ${String(maxN)} ${maxN === 1 ? "выбора" : "выборов"}`}
-                            variant="outlined"
-                        />
-                    )}
-                </Stack>
-                <IconButton
-                    type="button"
-                    size="small"
-                    aria-label="Удалить группу"
-                    disabled={disabled}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        removeGroup();
-                    }}
-                    color="error"
-                    sx={{ ml: "auto" }}
-                >
-                    <DeleteOutlineIcon fontSize="small" />
-                </IconButton>
-            </AccordionSummary>
-            <AccordionDetails sx={{ pt: 0, px: 1.5, pb: 2 }}>
-                <Stack spacing={2}>
-                    <input
-                        type="hidden"
-                        {...control.register(`modifierGroups.${groupIndex}.id`, {
-                            setValueAs: (v) =>
-                                v === "" || v == null ? undefined : Number(v),
-                        })}
-                    />
-                    <Controller
-                        name={`modifierGroups.${groupIndex}.name`}
-                        control={control}
-                        render={({ field }) => (
-                            <LocalizedTextFields
-                                label="Название группы"
-                                value={field.value}
-                                onChange={field.onChange}
-                                disabled={disabled}
-                                required
-                            />
-                        )}
-                    />
-                    <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" useFlexGap>
-                        <Controller
-                            name={`modifierGroups.${groupIndex}.required`}
-                            control={control}
-                            render={({ field }) => (
-                                <FormControlLabel
-                                    control={
-                                        <Switch
-                                            checked={Boolean(field.value)}
-                                            onChange={(e) => field.onChange(e.target.checked)}
-                                            disabled={disabled}
-                                            size="small"
-                                        />
-                                    }
-                                    label={field.value ? "Обязательно" : "Необязательно"}
-                                />
-                            )}
-                        />
-                        <TextField
-                            {...control.register(`modifierGroups.${groupIndex}.maxChoices`, {
-                                valueAsNumber: true,
-                            })}
-                            type="number"
-                            size="small"
-                            label="Макс. выбор"
-                            disabled={disabled}
-                            sx={{ width: 128, ...TEXT_FIELD_FOCUS_SX }}
-                            inputProps={{ min: 0, step: 1 }}
-                            helperText="0 - без лимита"
-                        />
-                    </Stack>
-                    <Stack spacing={1}>
-                        {optionFields.map((optField, optIndex) => (
-                            <Stack
-                                key={optField.id}
-                                direction="row"
-                                alignItems="center"
-                                spacing={1}
-                            >
-                                <input
-                                    type="hidden"
-                                    {...control.register(
-                                        `modifierGroups.${groupIndex}.modifiers.${optIndex}.id`,
-                                        {
-                                            setValueAs: (v) =>
-                                                v === "" || v == null
-                                                    ? undefined
-                                                    : Number(v),
-                                        },
-                                    )}
-                                />
-                                <Box sx={{ flex: 1, minWidth: 0 }}>
-                                    <Controller
-                                        name={`modifierGroups.${groupIndex}.modifiers.${optIndex}.name`}
-                                        control={control}
-                                        render={({ field }) => (
-                                            <LocalizedTextFields
-                                                label="Название"
-                                                value={field.value}
-                                                onChange={field.onChange}
-                                                disabled={disabled}
-                                                required
-                                            />
-                                        )}
-                                    />
-                                </Box>
-                                <TextField
-                                    {...control.register(
-                                        `modifierGroups.${groupIndex}.modifiers.${optIndex}.priceDelta`,
-                                        { valueAsNumber: true },
-                                    )}
-                                    size="small"
-                                    type="number"
-                                    label="Доплата"
-                                    disabled={disabled}
-                                    sx={{ width: 120, flexShrink: 0, ...TEXT_FIELD_FOCUS_SX }}
-                                    inputProps={{ step: 1 }}
-                                    slotProps={{
-                                        input: {
-                                            endAdornment: (
-                                                <InputAdornment position="end">֏</InputAdornment>
-                                            ),
-                                        },
-                                    }}
-                                />
-                                <IconButton
-                                    type="button"
-                                    size="small"
-                                    aria-label="Выше"
-                                    disabled={disabled || optIndex === 0}
-                                    onClick={() => moveOption(optIndex, optIndex - 1)}
-                                >
-                                    <ArrowUpwardIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton
-                                    type="button"
-                                    size="small"
-                                    aria-label="Ниже"
-                                    disabled={
-                                        disabled || optIndex >= optionFields.length - 1
-                                    }
-                                    onClick={() => moveOption(optIndex, optIndex + 1)}
-                                >
-                                    <ArrowDownwardIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton
-                                    type="button"
-                                    size="small"
-                                    aria-label="Удалить опцию"
-                                    disabled={disabled}
-                                    color="error"
-                                    onClick={() => removeOption(optIndex)}
-                                >
-                                    <DeleteIcon fontSize="small" />
-                                </IconButton>
-                            </Stack>
-                        ))}
-                    </Stack>
-                    <Button
-                        type="button"
-                        variant="text"
-                        size="small"
-                        disabled={disabled}
-                        onClick={() =>
-                            appendOption({
-                                name: emptyLocalizedJson(),
-                                priceDelta: 0,
-                            })
-                        }
-                        sx={{ alignSelf: "flex-start", textTransform: "none" }}
-                    >
-                        Добавить опцию
-                    </Button>
-                </Stack>
-            </AccordionDetails>
-        </Accordion>
-    );
-}
 
 export function ProductFormDialog(props: {
     formKey: number;
@@ -497,18 +62,11 @@ export function ProductFormDialog(props: {
 }) {
     const { formKey, editingProduct, isEdit, onClose, onSave, open, submitLoading } = props;
 
-    const { control, handleSubmit, reset, register, setValue, watch } = useForm<ProductDialogFormValues>({
-        defaultValues: productDialogDefaults(editingProduct),
-    });
-
-    const {
-        fields: groupFields,
-        append: appendGroup,
-        remove: removeGroup,
-    } = useFieldArray({
-        control,
-        name: "modifierGroups",
-    });
+    const { control, handleSubmit, reset, register, setValue, getValues } =
+        useForm<ProductDialogFormValues>({
+            defaultValues: productDialogDefaults(editingProduct),
+            mode: "onBlur",
+        });
 
     useEffect(() => {
         reset(productDialogDefaults(editingProduct));
@@ -522,7 +80,9 @@ export function ProductFormDialog(props: {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const unsupportedImageFormatMessage =
         ruMessages.admin.imageUpload.unsupportedFormat;
-    const categoryIdWatch = watch("categoryId");
+
+    const categoryIdWatch = useWatch({ control, name: "categoryId" });
+    const images = useWatch({ control, name: "images" }) ?? [];
 
     useEffect(() => {
         let cancelled = false;
@@ -540,7 +100,7 @@ export function ProductFormDialog(props: {
                                     typeof c === "object" &&
                                     "id" in c &&
                                     "name" in c &&
-                                    typeof (c as { id: unknown }).id === "number"
+                                    typeof (c as { id: unknown }).id === "number",
                             )
                             .map((c) => ({ id: c.id, name: c.name })),
                     );
@@ -587,7 +147,7 @@ export function ProductFormDialog(props: {
                 return data.url;
             });
             const newUrls = await Promise.all(uploadPromises);
-            const cur = watch("images");
+            const cur = getValues("images");
             setValue("images", [...cur, ...newUrls], { shouldDirty: true });
         } catch (err) {
             if (err instanceof Error && err.message === "unsupported_image_format") {
@@ -750,36 +310,35 @@ export function ProductFormDialog(props: {
         await onSave(payload);
     };
 
-    const images = watch("images");
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
     return (
         <>
-        <Dialog
-            key={formKey}
-            open={open}
-            onClose={() => {
-                if (!submitLoading) onClose();
-            }}
-            fullWidth
-            fullScreen={isMobile}
-            maxWidth="md"
-            disableScrollLock={false}
-            sx={{
-                "& .MuiDialog-container": {
-                    alignItems: { xs: "stretch", md: "center" },
-                },
-                "& .MuiDialog-paper": {
-                    display: "flex",
-                    flexDirection: "column",
-                    height: { xs: "100%", md: "auto" },
-                    m: { xs: 0, md: 3 },
-                    borderRadius: { xs: 0, md: 4 },
-                },
-            }}
-        >
-            <Box
+            <Dialog
+                key={formKey}
+                open={open}
+                onClose={() => {
+                    if (!submitLoading) onClose();
+                }}
+                fullWidth
+                fullScreen={isMobile}
+                maxWidth="md"
+                disableScrollLock={false}
+                sx={{
+                    "& .MuiDialog-container": {
+                        alignItems: { xs: "stretch", md: "center" },
+                    },
+                    "& .MuiDialog-paper": {
+                        display: "flex",
+                        flexDirection: "column",
+                        height: { xs: "100%", md: "auto" },
+                        m: { xs: 0, md: 3 },
+                        borderRadius: { xs: 0, md: 4 },
+                    },
+                }}
+            >
+                <Box
                     component="form"
                     onSubmit={(e) => void handleSubmit(onValid)(e)}
                     noValidate
@@ -796,18 +355,9 @@ export function ProductFormDialog(props: {
                     </DialogTitle>
                     <DialogContent sx={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
                         <Stack spacing={2} sx={{ pt: 1 }}>
-                            <Controller
-                                name="name"
+                            <ProductLocalizedFieldsSection
                                 control={control}
-                                render={({ field }) => (
-                                    <LocalizedTextFields
-                                        label="Название"
-                                        value={field.value}
-                                        onChange={field.onChange}
-                                        disabled={submitLoading}
-                                        required
-                                    />
-                                )}
+                                disabled={submitLoading}
                             />
                             <TextField
                                 {...register("price")}
@@ -926,68 +476,11 @@ export function ProductFormDialog(props: {
                                     +
                                 </Button>
                             </Stack>
-                            <Controller
-                                name="composition"
-                                control={control}
-                                render={({ field }) => (
-                                    <LocalizedTextFields
-                                        label="Состав"
-                                        value={field.value}
-                                        onChange={field.onChange}
-                                        disabled={submitLoading}
-                                        multiline
-                                    />
-                                )}
-                            />
-                            <Controller
-                                name="description"
-                                control={control}
-                                render={({ field }) => (
-                                    <LocalizedTextFields
-                                        label="Описание"
-                                        value={field.value}
-                                        onChange={field.onChange}
-                                        disabled={submitLoading}
-                                        multiline
-                                    />
-                                )}
-                            />
 
-                            <Box>
-                                <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                                    Модификаторы
-                                </Typography>
-                                <Stack spacing={2}>
-                                    {groupFields.map((gf, groupIndex) => (
-                                        <ModifierGroupAccordion
-                                            key={gf.id}
-                                            control={control}
-                                            groupIndex={groupIndex}
-                                            disabled={submitLoading}
-                                            removeGroup={() => removeGroup(groupIndex)}
-                                        />
-                                    ))}
-                                </Stack>
-                                <Button
-                                    type="button"
-                                    variant="outlined"
-                                    size="large"
-                                    fullWidth
-                                    startIcon={<AddIcon />}
-                                    sx={{ mt: 1.5, textTransform: "none" }}
-                                    disabled={submitLoading}
-                                    onClick={() =>
-                                        appendGroup({
-                                            name: emptyLocalizedJson(),
-                                            required: false,
-                                            maxChoices: 1,
-                                            modifiers: [],
-                                        })
-                                    }
-                                >
-                                    Добавить группу модификаторов
-                                </Button>
-                            </Box>
+                            <ProductModifiersSection
+                                control={control}
+                                disabled={submitLoading}
+                            />
 
                             <Box>
                                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
@@ -1071,7 +564,11 @@ export function ProductFormDialog(props: {
                                 : undefined,
                         }}
                     >
-                        <Button onClick={onClose} disabled={submitLoading} size={isMobile ? "large" : "medium"}>
+                        <Button
+                            onClick={onClose}
+                            disabled={submitLoading}
+                            size={isMobile ? "large" : "medium"}
+                        >
                             Отмена
                         </Button>
                         <Button
@@ -1090,23 +587,23 @@ export function ProductFormDialog(props: {
                                   : "Создать"}
                         </Button>
                     </DialogActions>
-            </Box>
-        </Dialog>
-        <Snackbar
-            open={uploadErrorOpen}
-            autoHideDuration={6000}
-            onClose={() => setUploadErrorOpen(false)}
-            anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        >
-            <Alert
+                </Box>
+            </Dialog>
+            <Snackbar
+                open={uploadErrorOpen}
+                autoHideDuration={6000}
                 onClose={() => setUploadErrorOpen(false)}
-                severity="error"
-                variant="filled"
-                sx={{ width: "100%" }}
+                anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
             >
-                {unsupportedImageFormatMessage}
-            </Alert>
-        </Snackbar>
+                <Alert
+                    onClose={() => setUploadErrorOpen(false)}
+                    severity="error"
+                    variant="filled"
+                    sx={{ width: "100%" }}
+                >
+                    {unsupportedImageFormatMessage}
+                </Alert>
+            </Snackbar>
         </>
     );
 }

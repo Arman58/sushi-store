@@ -24,13 +24,21 @@ import {
     Typography,
 } from "@mui/material";
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+import { startTransition, useCallback, useEffect, useState } from "react";
 
 import { getLocalizedField } from "@/lib/i18n-utils";
 import { getProductCoverUrl, getProductImageUrls } from "@/shared/lib/product-cover";
 import { PageContainer, SectionTitle } from "@/shared/ui";
 
-import { ProductFormDialog, type ProductSavePayload } from "./product-form-dialog";
+import { ProductFormDialogShell } from "./product-form-dialog-shell";
+import type { ProductSavePayload } from "./product-form-types";
+
+const ProductFormDialog = dynamic(
+    () =>
+        import("./product-form-dialog").then((m) => m.ProductFormDialog),
+    { ssr: false },
+);
 
 type ProductRow = {
     id: number;
@@ -170,6 +178,7 @@ export default function AdminProductsPage() {
     const [error, setError] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [editingProduct, setEditingProduct] = useState<EditingProduct>(null);
+    const [shouldRenderForm, setShouldRenderForm] = useState(false);
     const [formSession, setFormSession] = useState(0);
     const [saveLoading, setSaveLoading] = useState(false);
     const [saveSuccessOpen, setSaveSuccessOpen] = useState(false);
@@ -211,6 +220,26 @@ export default function AdminProductsPage() {
         void load();
     }, [load]);
 
+    const isDialogOpen = editingProduct !== null;
+
+    useEffect(() => {
+        if (!isDialogOpen) {
+            setShouldRenderForm(false);
+            return;
+        }
+
+        setShouldRenderForm(false);
+        const frame = window.requestAnimationFrame(() => {
+            startTransition(() => {
+                setShouldRenderForm(true);
+            });
+        });
+
+        return () => {
+            window.cancelAnimationFrame(frame);
+        };
+    }, [isDialogOpen, formSession]);
+
     const isProductRowEdit = (e: NonNullable<EditingProduct>): e is ProductRow =>
         "id" in e && typeof (e as ProductRow).id === "number";
 
@@ -225,7 +254,10 @@ export default function AdminProductsPage() {
     };
 
     const closeProductDialog = () => {
-        if (!saveLoading) setEditingProduct(null);
+        if (!saveLoading) {
+            setEditingProduct(null);
+            setShouldRenderForm(false);
+        }
     };
 
     const handleSaveProduct = async (payload: ProductSavePayload) => {
@@ -426,15 +458,24 @@ export default function AdminProductsPage() {
 
     return (
         <PageContainer>
-            <ProductFormDialog
-                formKey={formSession}
-                editingProduct={editingProduct}
-                open={editingProduct !== null}
-                isEdit={editingProduct !== null && isProductRowEdit(editingProduct)}
-                onClose={closeProductDialog}
-                onSave={handleSaveProduct}
-                submitLoading={saveLoading}
-            />
+            {isDialogOpen && !shouldRenderForm ? (
+                <ProductFormDialogShell
+                    open
+                    isEdit={editingProduct !== null && isProductRowEdit(editingProduct)}
+                    onClose={closeProductDialog}
+                />
+            ) : null}
+            {isDialogOpen && shouldRenderForm ? (
+                <ProductFormDialog
+                    formKey={formSession}
+                    editingProduct={editingProduct}
+                    open
+                    isEdit={editingProduct !== null && isProductRowEdit(editingProduct)}
+                    onClose={closeProductDialog}
+                    onSave={handleSaveProduct}
+                    submitLoading={saveLoading}
+                />
+            ) : null}
             <Snackbar
                 open={saveSuccessOpen}
                 autoHideDuration={4000}
