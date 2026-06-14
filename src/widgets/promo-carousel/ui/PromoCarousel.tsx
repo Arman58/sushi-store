@@ -21,36 +21,35 @@ const SLIDES = [
         id: "sets",
         imageUrl:
             "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=1600&q=80",
-        imageAlt: "Sushi set platter",
         href: "/menu",
     },
     {
         id: "hot",
         imageUrl:
             "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=1600&q=80",
-        imageAlt: "Fresh pizza from the oven",
         href: "/menu",
     },
     {
         id: "fresh",
         imageUrl:
             "https://images.unsplash.com/photo-1534256958597-7fe685cbd745?auto=format&fit=crop&w=1600&q=80",
-        imageAlt: "Close-up of a sushi roll",
         href: "/menu",
     },
-];
+] as const;
 
 function PromoSlideCard({
     slide,
     subtitle,
     title,
     buttonLabel,
+    imageAlt,
     priority = false,
 }: {
     slide: (typeof SLIDES)[number];
     subtitle: string;
     title: string;
     buttonLabel: string;
+    imageAlt: string;
     priority?: boolean;
 }) {
     return (
@@ -66,7 +65,7 @@ function PromoSlideCard({
         >
             <Image
                 src={slide.imageUrl}
-                alt={slide.imageAlt}
+                alt={imageAlt}
                 fill
                 sizes="(max-width: 600px) 100vw, 960px"
                 style={{ objectFit: "cover" }}
@@ -159,6 +158,7 @@ export function PromoCarousel() {
                 subtitleKey: `promo_${slide.id}_subtitle` as const,
                 titleKey: `promo_${slide.id}_title` as const,
                 buttonKey: `promo_${slide.id}_btn` as const,
+                imageAltKey: `promo_${slide.id}_image_alt` as const,
             })),
         [],
     );
@@ -213,6 +213,7 @@ export function PromoCarousel() {
                             subtitle={t(slide.subtitleKey)}
                             title={t(slide.titleKey)}
                             buttonLabel={t(slide.buttonKey)}
+                            imageAlt={t(slide.imageAltKey)}
                             priority={index === 0}
                         />
                     </SwiperSlide>

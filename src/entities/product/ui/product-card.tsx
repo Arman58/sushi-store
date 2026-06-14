@@ -9,7 +9,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import { alpha } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { memo } from "react";
 
 import { formatStorePrice } from "@/shared/lib/format-price";
@@ -74,8 +74,9 @@ export const ProductCard = memo(function ProductCard({
     imagePriority = false,
 }: ProductCardProps) {
     const t = useTranslations("product");
+    const locale = useLocale();
     const imageUrl = getProductCoverUrl({ images, mainImage });
-    const imageAlt = buildProductImageAlt(name);
+    const imageAlt = buildProductImageAlt(name, locale);
 
     const hasInCart = quantity > 0;
 
@@ -143,9 +144,12 @@ export const ProductCard = memo(function ProductCard({
                         variant="body2"
                         sx={{
                             fontWeight: 700,
-                            whiteSpace: "nowrap",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
                             overflow: "hidden",
-                            textOverflow: "ellipsis",
+                            whiteSpace: "normal",
+                            wordBreak: "break-word",
                             color: "text.primary",
                             lineHeight: 1.25,
                         }}

@@ -20,10 +20,9 @@ import { showCheckoutFieldError } from "@/features/checkout/model/helpers";
 import type { DeliveryZoneOption } from "@/features/checkout/model/types";
 import type { CheckoutFormValues, DeliveryType } from "@/shared/lib/schemas";
 import { AppInput, AppSelect } from "@/shared/ui";
-
-import { DeliveryZoneSelect } from "../DeliveryZoneSelect";
 import { tokens } from "@/shared/ui/theme";
 
+import { DeliveryZoneSelect } from "../DeliveryZoneSelect";
 import {
     checkoutFieldProps,
     checkoutInputRadiusSx,

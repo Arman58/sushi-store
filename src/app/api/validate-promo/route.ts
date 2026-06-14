@@ -4,14 +4,14 @@ import { validatePromoBodySchema } from "@/lib/api-schemas";
 import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
 import {
-    checkRateLimit,
-    rateLimitExceededJsonResponse,
-} from "@/lib/rate-limit";
-import {
     computePromoDiscountAmount,
     getPromoRejectionReason,
     normalizePromoCode,
 } from "@/lib/promo";
+import {
+    checkRateLimit,
+    rateLimitExceededJsonResponse,
+} from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
     const rateLimit = await checkRateLimit(request, "validatePromo");

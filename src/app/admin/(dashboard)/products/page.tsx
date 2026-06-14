@@ -23,8 +23,8 @@ import {
     TableRow,
     Typography,
 } from "@mui/material";
-import Image from "next/image";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { startTransition, useCallback, useEffect, useState } from "react";
 
 import { getLocalizedField } from "@/lib/i18n-utils";

@@ -6,7 +6,6 @@ import { getLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 
 import { routing } from "@/i18n/routing";
-
 import {
     foodDeliveryServiceJsonLd,
     JsonLd,

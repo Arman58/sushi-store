@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 
 import {
     DEFAULT_STORE_LOCALE,
-    type StoreLocale,
     STORE_LOCALES,
+    type StoreLocale,
 } from "@/lib/i18n-utils";
 import {
     type ApiErrorBody,
@@ -63,6 +63,16 @@ export const BACKEND_ERROR_MESSAGES: Record<ApiErrorCode, BackendMessageTemplate
             hy: "Պրոմոկոդը այլևս հնարավոր չէ կիրառել",
             ru: "Промокод больше нельзя применить",
             en: "This promo code can no longer be applied",
+        },
+        ORDER_NOT_FOUND: {
+            hy: "Պատվերը չի գտնվել",
+            ru: "Заказ не найден",
+            en: "Order not found",
+        },
+        INTERNAL_SERVER_ERROR: {
+            hy: "Սերվերում սխալ է տեղի ունեցել",
+            ru: "На сервере произошла ошибка",
+            en: "Internal server error",
         },
     };
 

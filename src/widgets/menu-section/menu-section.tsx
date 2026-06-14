@@ -12,7 +12,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { startTransition, useCallback, useMemo, useState } from "react";
 
 import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
-import { ConnectedProductCard, type ConnectableProduct } from "@/entities/product/ui/connected-product-card";
+import { type ConnectableProduct,ConnectedProductCard } from "@/entities/product/ui/connected-product-card";
 import { useCartStore } from "@/features/cart";
 import { FilterTriggerButton, useMenuFilters } from "@/features/filter";
 import { Link } from "@/i18n/server";
@@ -328,10 +328,13 @@ export function MenuSection({
                     sx={{
                         display: { xs: "flex", md: "none" },
                         position: "fixed",
-                        bottom: 0,
+                        bottom: {
+                            xs: "calc(72px + env(safe-area-inset-bottom))",
+                            md: 0,
+                        },
                         left: 0,
                         right: 0,
-                        zIndex: 1100,
+                        zIndex: 1250,
                         px: 1.5,
                         pb: "calc(16px + env(safe-area-inset-bottom))",
                         bgcolor: "background.paper",

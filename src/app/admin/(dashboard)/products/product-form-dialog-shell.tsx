@@ -1,11 +1,11 @@
 "use client";
 
+import { useMediaQuery, useTheme } from "@mui/material";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import { useMediaQuery, useTheme } from "@mui/material";
 
 type ProductFormDialogShellProps = {
     open: boolean;

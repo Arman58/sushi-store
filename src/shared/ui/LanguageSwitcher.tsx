@@ -6,8 +6,8 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import { useLocale } from "next-intl";
 import { useSearchParams } from "next/navigation";
+import { useLocale } from "next-intl";
 import { useState } from "react";
 
 import { usePathname, useRouter } from "@/i18n/server";

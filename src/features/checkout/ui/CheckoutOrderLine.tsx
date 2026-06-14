@@ -83,12 +83,10 @@ export function CheckoutOrderLine({ item, lineIssue }: CheckoutOrderLineProps) {
                             variant="caption"
                             color="text.secondary"
                             sx={{
-                                display: "-webkit-box",
-                                WebkitLineClamp: 1,
-                                WebkitBoxOrient: "vertical",
-                                overflow: "hidden",
                                 mt: 0.25,
                                 lineHeight: 1.35,
+                                whiteSpace: "normal",
+                                wordBreak: "break-word",
                             }}
                         >
                             {formatModifiersInline(item.selectedModifiers)}

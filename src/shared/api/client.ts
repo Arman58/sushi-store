@@ -4,7 +4,11 @@
  */
 
 import { type AppLocale, routing } from "@/i18n/routing";
-import { extractApiErrorCode, type ApiErrorCode } from "@/shared/lib/api-error";
+import {
+    API_ERROR_CODES,
+    type ApiErrorCode,
+    extractApiErrorCode,
+} from "@/shared/lib/api-error";
 
 function resolveClientLocale(): AppLocale {
     if (typeof window === "undefined") return routing.defaultLocale;
@@ -73,10 +77,24 @@ function extractErrorMessage(body: unknown, status: number): string {
     }
 
     if (status >= 500) {
-        return `Внутренняя ошибка сервера (${status})`;
+        return "Internal server error";
     }
 
     return `HTTP ${status}`;
+}
+
+function normalizeErrorData(body: unknown, status: number, message: string): Record<string, unknown> {
+    const base: Record<string, unknown> =
+        typeof body === "object" && body !== null
+            ? { ...(body as Record<string, unknown>) }
+            : { raw: body };
+
+    if (!extractApiErrorCode(base) && status >= 500) {
+        base.error = message;
+        base.code = API_ERROR_CODES.INTERNAL_SERVER_ERROR;
+    }
+
+    return base;
 }
 
 async function parseResponse<T>(res: Response): Promise<T> {
@@ -93,10 +111,7 @@ async function parseResponse<T>(res: Response): Promise<T> {
 
     if (!res.ok) {
         const message = extractErrorMessage(body, res.status);
-        const errorData =
-            typeof body === "object" && body !== null
-                ? body
-                : { error: message, status: res.status, raw: rawText || null };
+        const errorData = normalizeErrorData(body, res.status, message);
 
         if (res.status === 401) {
             void handleUnauthorized();

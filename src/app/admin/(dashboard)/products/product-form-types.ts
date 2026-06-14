@@ -1,8 +1,8 @@
 import type { AdminModifierGroupInput } from "@/lib/admin-product-modifiers";
 import {
     emptyLocalizedJson,
-    parseLocalizedJson,
     type LocalizedJson,
+    parseLocalizedJson,
 } from "@/lib/i18n-utils";
 
 export type ProductSavePayload = {

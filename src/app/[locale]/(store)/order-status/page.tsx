@@ -21,6 +21,7 @@ import { Controller, useForm } from "react-hook-form";
 
 import { formatEstimatedDeliveryTime } from "@/lib/order-status";
 import { ApiError, fetchOrderStatus, type OrderStatusResponse } from "@/shared/api";
+import { API_ERROR_CODES } from "@/shared/lib/api-error";
 import {
     createOrderStatusSchema,
     type OrderStatusFormValues,
@@ -42,6 +43,7 @@ const STEP_ICONS: Record<(typeof STEP_KEYS)[number], ReactNode> = {
 export default function OrderStatusPage() {
     const locale = useLocale();
     const t = useTranslations("order.status");
+    const tCommon = useTranslations("common");
     const tDelivery = useTranslations("checkout.delivery.type");
     const tPayment = useTranslations("order.payment");
     const schemaMessages = useSchemaMessages();
@@ -79,9 +81,15 @@ export default function OrderStatusPage() {
             const data = await fetchOrderStatus(Number(values.id), values.phone);
             setOrder(data);
         } catch (error) {
-            setErrorMessage(
-                error instanceof ApiError ? error.message : t("notFound"),
-            );
+            if (error instanceof ApiError) {
+                if (error.code === API_ERROR_CODES.INTERNAL_SERVER_ERROR) {
+                    setErrorMessage(tCommon("generic_server_error"));
+                } else {
+                    setErrorMessage(t("notFound"));
+                }
+            } else {
+                setErrorMessage(t("notFound"));
+            }
         }
     };
 

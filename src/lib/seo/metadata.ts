@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
+import { type AppLocale,routing } from "@/i18n/routing";
 import { getPathname } from "@/i18n/server";
-import { routing, type AppLocale } from "@/i18n/routing";
 import { DEFAULT_OG_IMAGE, SITE_NAME } from "@/lib/site-config";
 
 const OG_LOCALE: Record<AppLocale, string> = {

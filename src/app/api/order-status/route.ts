@@ -7,12 +7,31 @@ import {
 } from "@/lib/api-schemas";
 import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
-
-const DEFAULT_ERROR = "Не удалось найти заказ по указанным данным";
+import { API_ERROR_CODES } from "@/shared/lib/api-error";
 
 const normalizePhone = (phone: string) => phone.replace(/\D/g, "");
 
 type OrderWithItems = Prisma.OrderGetPayload<{ include: { items: true } }>;
+
+function orderNotFoundResponse(status: number) {
+    return NextResponse.json(
+        {
+            error: "Order not found",
+            code: API_ERROR_CODES.ORDER_NOT_FOUND,
+        },
+        { status },
+    );
+}
+
+function orderServerErrorResponse() {
+    return NextResponse.json(
+        {
+            error: "Internal server error",
+            code: API_ERROR_CODES.INTERNAL_SERVER_ERROR,
+        },
+        { status: 500 },
+    );
+}
 
 function buildOrderStatusPayload(order: OrderWithItems) {
     return {
@@ -49,10 +68,7 @@ export async function GET(request: Request) {
 
     if (!queryParsed.success) {
         const phoneMissing = !url.searchParams.get("phone")?.trim();
-        return NextResponse.json(
-            { error: phoneMissing ? "Forbidden" : DEFAULT_ERROR },
-            { status: phoneMissing ? 403 : 400 },
-        );
+        return orderNotFoundResponse(phoneMissing ? 403 : 400);
     }
 
     const { id, phone } = queryParsed.data;
@@ -65,20 +81,20 @@ export async function GET(request: Request) {
         });
 
         if (!order || normalizePhone(order.phone) !== normalized) {
-            return NextResponse.json({ error: DEFAULT_ERROR }, { status: 404 });
+            return orderNotFoundResponse(404);
         }
 
         return NextResponse.json(buildOrderStatusPayload(order));
     } catch {
         // Error logged in production monitoring
-        return NextResponse.json({ error: DEFAULT_ERROR }, { status: 500 });
+        return orderServerErrorResponse();
     }
 }
 
 export async function POST(request: Request) {
     const parsed = await parseJsonBody(request, orderStatusPostBodySchema);
     if (!parsed.ok) {
-        return NextResponse.json({ error: DEFAULT_ERROR }, { status: 400 });
+        return orderNotFoundResponse(400);
     }
 
     const { id, phone } = parsed.data;
@@ -91,12 +107,12 @@ export async function POST(request: Request) {
         });
 
         if (!order || normalizePhone(order.phone) !== normalized) {
-            return NextResponse.json({ error: DEFAULT_ERROR }, { status: 404 });
+            return orderNotFoundResponse(404);
         }
 
         return NextResponse.json(buildOrderStatusPayload(order));
     } catch {
         // Error logged in production monitoring
-        return NextResponse.json({ error: DEFAULT_ERROR }, { status: 500 });
+        return orderServerErrorResponse();
     }
 }

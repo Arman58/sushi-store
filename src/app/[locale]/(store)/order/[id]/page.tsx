@@ -8,8 +8,8 @@ import { redirect } from "@/i18n/server";
 import { auth } from "@/lib/auth";
 import { orderAccessCookieName } from "@/lib/order-access";
 import { prisma } from "@/lib/prisma";
-import { NOINDEX_METADATA } from "@/lib/seo/metadata";
 import { JsonLd, orderJsonLd } from "@/lib/seo/json-ld";
+import { NOINDEX_METADATA } from "@/lib/seo/metadata";
 import type { OrderStatusResponse } from "@/shared/api/order-api";
 
 import { OrderTracker } from "./order-tracker";

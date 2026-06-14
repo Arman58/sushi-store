@@ -22,6 +22,7 @@ import {
     PopularSection,
     PromoCarousel,
 } from "@/widgets/home/lazy-home-widgets";
+import { SeoText } from "@/widgets/seo-text";
 
 export const revalidate = 60;
 
@@ -136,6 +137,8 @@ export default async function HomePage() {
             >
                 <FeaturesBlock />
             </Container>
+
+            <SeoText />
 
             <Box sx={{ height: { xs: 32, sm: 48, md: 64 } }} />
         </>

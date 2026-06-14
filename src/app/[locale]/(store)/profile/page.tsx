@@ -1,18 +1,18 @@
 import Avatar from "@mui/material/Avatar";
-import type { Metadata } from "next";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { auth } from "@/lib/auth";
-import { NOINDEX_METADATA } from "@/lib/seo/metadata";
 import { orderStatusChipColor } from "@/lib/order-status";
 import { formatPhoneForDisplay } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
+import { NOINDEX_METADATA } from "@/lib/seo/metadata";
 import { translateOrderStatus } from "@/shared/lib/order-status-labels";
 import { EmptyCart, PageContainer, SectionTitle } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";

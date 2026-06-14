@@ -27,11 +27,11 @@ import {
     checkRateLimit,
     rateLimitExceededJsonResponse,
 } from "@/lib/rate-limit";
-import { API_ERROR_CODES, type ApiErrorCode } from "@/shared/lib/api-error";
 import {
     buildKitchenStatusKeyboard,
     isKitchenTelegramConfigured,
 } from "@/lib/telegram-kitchen";
+import { API_ERROR_CODES, type ApiErrorCode } from "@/shared/lib/api-error";
 
 import {
     countPhoneDigits,

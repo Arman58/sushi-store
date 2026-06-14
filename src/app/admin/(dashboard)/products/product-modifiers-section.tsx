@@ -36,8 +36,8 @@ import { LocalizedTextFields } from "@/shared/ui/localized-text-fields";
 
 import {
     hasLocalizedText,
-    TEXT_FIELD_FOCUS_SX,
     type ProductDialogFormValues,
+    TEXT_FIELD_FOCUS_SX,
 } from "./product-form-types";
 
 const ModifierGroupAccordion = memo(function ModifierGroupAccordion(props: {

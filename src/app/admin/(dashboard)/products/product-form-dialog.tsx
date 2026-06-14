@@ -26,26 +26,26 @@ import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
 import {
-    IMAGE_UPLOAD_ACCEPT,
-    validateImageUpload,
-} from "@/lib/validate-image-upload";
-import {
     emptyLocalizedJson,
     getLocalizedField,
 } from "@/lib/i18n-utils";
+import {
+    IMAGE_UPLOAD_ACCEPT,
+    validateImageUpload,
+} from "@/lib/validate-image-upload";
 import ruMessages from "@/messages/ru.json";
 import { LocalizedTextFields } from "@/shared/ui/localized-text-fields";
 
-import { ProductLocalizedFieldsSection } from "./product-localized-fields-section";
-import { ProductModifiersSection } from "./product-modifiers-section";
 import {
     buildModifierPayload,
-    productDialogDefaults,
-    TEXT_FIELD_FOCUS_SX,
     type EditingProduct,
+    productDialogDefaults,
     type ProductDialogFormValues,
     type ProductSavePayload,
+    TEXT_FIELD_FOCUS_SX,
 } from "./product-form-types";
+import { ProductLocalizedFieldsSection } from "./product-localized-fields-section";
+import { ProductModifiersSection } from "./product-modifiers-section";
 
 export type { ProductSavePayload } from "./product-form-types";
 
