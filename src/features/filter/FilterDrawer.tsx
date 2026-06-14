@@ -1,8 +1,6 @@
 "use client";
 
 import CloseIcon from "@mui/icons-material/Close";
-import FilterListIcon from "@mui/icons-material/FilterList";
-import Badge from "@mui/material/Badge";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
@@ -13,6 +11,7 @@ import Stack from "@mui/material/Stack";
 import { alpha, useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { useTranslations } from "next-intl";
+import { startTransition } from "react";
 
 import { AppButton } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
@@ -93,7 +92,9 @@ export function FilterDrawer({
 
     const handleSliderChange = (_: Event, value: number | number[]) => {
         if (!Array.isArray(value)) return;
-        onPriceRangeChange([value[0], value[1]]);
+        startTransition(() => {
+            onPriceRangeChange([value[0], value[1]]);
+        });
     };
 
     const showResultsLabel =
@@ -104,11 +105,13 @@ export function FilterDrawer({
     const priceSliderDisabled = minPrice >= maxPrice;
 
     const handleCategorySelect = (slug: string) => {
-        if (slug === "all") {
-            onCategoryChange("all");
-            return;
-        }
-        onCategoryChange(categorySlug === slug ? "all" : slug);
+        startTransition(() => {
+            if (slug === "all") {
+                onCategoryChange("all");
+                return;
+            }
+            onCategoryChange(categorySlug === slug ? "all" : slug);
+        });
     };
 
     return (
@@ -287,41 +290,5 @@ export function FilterDrawer({
                 </AppButton>
             </Box>
         </Drawer>
-    );
-}
-
-type FilterTriggerButtonProps = {
-    onClick: () => void;
-    hasActiveFilters: boolean;
-};
-
-export function FilterTriggerButton({
-    onClick,
-    hasActiveFilters,
-}: FilterTriggerButtonProps) {
-    const t = useTranslations("menu");
-
-    return (
-        <Badge
-            variant="dot"
-            color="primary"
-            invisible={!hasActiveFilters}
-            overlap="circular"
-            anchorOrigin={{ vertical: "top", horizontal: "right" }}
-        >
-            <AppButton
-                variant="outlined"
-                onClick={onClick}
-                startIcon={<FilterListIcon fontSize="small" />}
-                sx={{
-                    flexShrink: 0,
-                    whiteSpace: "nowrap",
-                    minHeight: 44,
-                    px: 2,
-                }}
-            >
-                {t("filters")}
-            </AppButton>
-        </Badge>
     );
 }

@@ -9,16 +9,12 @@ import { alpha, useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import dynamic from "next/dynamic";
 import { useLocale, useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { startTransition, useCallback, useMemo, useState } from "react";
 
 import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
-import { ProductCard } from "@/entities/product/ui/product-card";
-import { buildCartItemId, useCartStore } from "@/features/cart";
-import {
-    FilterDrawer,
-    FilterTriggerButton,
-    useMenuFilters,
-} from "@/features/filter";
+import { ConnectedProductCard, type ConnectableProduct } from "@/entities/product/ui/connected-product-card";
+import { useCartStore } from "@/features/cart";
+import { FilterTriggerButton, useMenuFilters } from "@/features/filter";
 import { Link } from "@/i18n/server";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { AppInput } from "@/shared/ui";
@@ -29,6 +25,12 @@ const ProductModifiersDialog = dynamic(
         import("@/entities/product/ui/product-modifiers-dialog").then(
             (m) => m.ProductModifiersDialog,
         ),
+    { ssr: false },
+);
+
+const FilterDrawer = dynamic(
+    () =>
+        import("@/features/filter/FilterDrawer").then((m) => m.FilterDrawer),
     { ssr: false },
 );
 
@@ -90,16 +92,34 @@ export function MenuSection({
         maxPrice,
     });
     const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
-    const addItem = useCartStore((s) => s.addItem);
-    const setItemQuantity = useCartStore((s) => s.setItemQuantity);
-    const decrementFirstLineForProduct = useCartStore(
-        (s) => s.decrementFirstLineForProduct,
+    const totalCount = useCartStore((s) =>
+        s.items.reduce((sum, item) => sum + item.quantity, 0),
     );
-    const cartItems = useCartStore((s) => s.items);
-    const [modifierProduct, setModifierProduct] = useState<MenuProduct | null>(
+    const totalPrice = useCartStore((s) =>
+        s.items.reduce(
+            (sum, item) => sum + item.calculatedItemPrice * item.quantity,
+            0,
+        ),
+    );
+    const addItem = useCartStore((s) => s.addItem);
+    const [modifierProduct, setModifierProduct] = useState<ConnectableProduct | null>(
         null,
     );
     const [search, setSearch] = useState("");
+
+    const openFilterDrawer = useCallback(() => {
+        startTransition(() => {
+            setFilterDrawerOpen(true);
+        });
+    }, []);
+
+    const closeFilterDrawer = useCallback(() => {
+        setFilterDrawerOpen(false);
+    }, []);
+
+    const openModifiers = useCallback((product: ConnectableProduct) => {
+        setModifierProduct(product);
+    }, []);
 
     const filteredProducts = useMemo(() => {
         const base = filterByCategory(products, categorySlug);
@@ -136,60 +156,6 @@ export function MenuSection({
     const isEmptyCategoryShelf =
         categorySlug !== "all" && productsInActiveCategory.length === 0;
 
-    const { totalCount, totalPrice } = useMemo(
-        () => ({
-            totalCount: cartItems.reduce((s, i) => s + i.quantity, 0),
-            totalPrice: cartItems.reduce(
-                (s, i) =>
-                    s + i.calculatedItemPrice * i.quantity,
-                0,
-            ),
-        }),
-        [cartItems],
-    );
-
-    function productHasModifiers(p: MenuProduct) {
-        return (p.modifierGroups?.length ?? 0) > 0;
-    }
-
-    function qtyForProduct(productId: number) {
-        return cartItems
-            .filter((i) => i.productId === productId)
-            .reduce((s, i) => s + i.quantity, 0);
-    }
-
-    const handleAddToCart = (p: MenuProduct) => {
-        if (productHasModifiers(p)) {
-            setModifierProduct(p);
-            return;
-        }
-        addItem({
-            productId: p.id,
-            name: p.name,
-            basePrice: p.price,
-            selectedModifiers: [],
-            calculatedItemPrice: p.price,
-            image:
-                getProductCoverUrl({
-                    images: p.images,
-                    mainImage: p.mainImage,
-                }) || "",
-        });
-    };
-    const handleIncrease = (p: MenuProduct) => {
-        if (productHasModifiers(p)) {
-            setModifierProduct(p);
-            return;
-        }
-        const cartItemId = buildCartItemId(p.id, []);
-        const q =
-            cartItems.find((i) => i.cartItemId === cartItemId)?.quantity ?? 0;
-        setItemQuantity(cartItemId, q + 1);
-    };
-    const handleDecrease = (productId: number) => {
-        decrementFirstLineForProduct(productId);
-    };
-
     return (
         <Box sx={{ mt: 3, display: "flex", flexDirection: "column", gap: 2 }}>
             {/* ══════════════════════════════════════════════════════
@@ -224,7 +190,7 @@ export function MenuSection({
                     />
 
                     <FilterTriggerButton
-                        onClick={() => setFilterDrawerOpen(true)}
+                        onClick={openFilterDrawer}
                         hasActiveFilters={hasActiveFilters}
                     />
                 </Stack>
@@ -233,7 +199,7 @@ export function MenuSection({
 
             <FilterDrawer
                 isOpen={filterDrawerOpen}
-                onClose={() => setFilterDrawerOpen(false)}
+                onClose={closeFilterDrawer}
                 categories={categories}
                 categorySlug={categorySlug}
                 priceRange={priceRange}
@@ -335,9 +301,7 @@ export function MenuSection({
                         },
                     }}
                 >
-                    {filteredProducts.map((product, index) => {
-                        const qty = qtyForProduct(product.id);
-                        return (
+                    {filteredProducts.map((product, index) => (
                             <Box
                                 key={product.id}
                                 sx={{
@@ -346,26 +310,13 @@ export function MenuSection({
                                     display: "flex",
                                 }}
                             >
-                                <ProductCard
+                                <ConnectedProductCard
+                                    product={product}
                                     index={index}
-                                    name={product.name}
-                                    composition={
-                                        product.composition ||
-                                        product.description ||
-                                        undefined
-                                    }
-                                    price={product.price}
-                                    weight={product.weight ?? undefined}
-                                    images={product.images}
-                                    mainImage={product.mainImage}
-                                    onAddToCart={() => handleAddToCart(product)}
-                                    quantity={qty}
-                                    onIncrease={() => handleIncrease(product)}
-                                    onDecrease={() => handleDecrease(product.id)}
+                                    onOpenModifiers={openModifiers}
                                 />
                             </Box>
-                        );
-                    })}
+                        ))}
                 </Box>
             )}
 
@@ -464,17 +415,19 @@ export function MenuSection({
                 modifierGroups={modifierProduct?.modifierGroups ?? []}
                 onConfirm={({ selectedModifiers, calculatedItemPrice }) => {
                     if (!modifierProduct) return;
-                    addItem({
-                        productId: modifierProduct.id,
-                        name: modifierProduct.name,
-                        basePrice: modifierProduct.price,
-                        selectedModifiers,
-                        calculatedItemPrice,
-                        image:
-                            getProductCoverUrl({
-                                images: modifierProduct.images,
-                                mainImage: modifierProduct.mainImage,
-                            }) || "",
+                    startTransition(() => {
+                        addItem({
+                            productId: modifierProduct.id,
+                            name: modifierProduct.name,
+                            basePrice: modifierProduct.price,
+                            selectedModifiers,
+                            calculatedItemPrice,
+                            image:
+                                getProductCoverUrl({
+                                    images: modifierProduct.images,
+                                    mainImage: modifierProduct.mainImage,
+                                }) || "",
+                        });
                     });
                 }}
             />

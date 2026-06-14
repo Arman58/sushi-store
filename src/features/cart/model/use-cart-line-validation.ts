@@ -131,7 +131,7 @@ export function useCartLineValidation(items: CartItem[]) {
                     }
                 }
             })();
-        }, 350);
+        }, 500);
 
         return () => {
             window.clearTimeout(timer);

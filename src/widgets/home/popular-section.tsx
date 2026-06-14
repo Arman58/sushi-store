@@ -6,12 +6,13 @@ import ButtonBase from "@mui/material/ButtonBase";
 import Typography from "@mui/material/Typography";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { startTransition, useCallback, useState } from "react";
 
 import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
+import type { ConnectableProduct } from "@/entities/product/ui/connected-product-card";
+import { ConnectedProductCard } from "@/entities/product/ui/connected-product-card";
 import type { ProductBadge } from "@/entities/product/ui/product-card";
-import { ProductCard } from "@/entities/product/ui/product-card";
-import { buildCartItemId, useCartStore } from "@/features/cart";
+import { useCartStore } from "@/features/cart";
 import { Link } from "@/i18n/server";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { tokens } from "@/shared/ui/theme";
@@ -156,54 +157,13 @@ export function PopularSection({
     const t = useTranslations("home");
     const sectionTitle = title ?? t("popular");
     const addItem = useCartStore((s) => s.addItem);
-    const setItemQty = useCartStore((s) => s.setItemQuantity);
-    const decrementFirstLineForProduct = useCartStore(
-        (s) => s.decrementFirstLineForProduct,
-    );
-    const cartItems = useCartStore((s) => s.items);
-    const [modifierProduct, setModifierProduct] = useState<PopularProduct | null>(
+    const [modifierProduct, setModifierProduct] = useState<ConnectableProduct | null>(
         null,
     );
 
-    function productHasModifiers(p: PopularProduct) {
-        return (p.modifierGroups?.length ?? 0) > 0;
-    }
-
-    function qtyForProduct(productId: number) {
-        return cartItems
-            .filter((i) => i.productId === productId)
-            .reduce((s, i) => s + i.quantity, 0);
-    }
-
-    const handleAdd = (p: PopularProduct) => {
-        if (productHasModifiers(p)) {
-            setModifierProduct(p);
-            return;
-        }
-        const thumb = getProductCoverUrl({
-            images: p.images,
-            mainImage: p.mainImage,
-        });
-        addItem({
-            productId: p.id,
-            name: p.name,
-            basePrice: p.price,
-            selectedModifiers: [],
-            calculatedItemPrice: p.price,
-            image: thumb,
-        });
-    };
-
-    const handleIncrease = (p: PopularProduct) => {
-        if (productHasModifiers(p)) {
-            setModifierProduct(p);
-            return;
-        }
-        const cartItemId = buildCartItemId(p.id, []);
-        const q =
-            cartItems.find((i) => i.cartItemId === cartItemId)?.quantity ?? 0;
-        setItemQty(cartItemId, q + 1);
-    };
+    const openModifiers = useCallback((product: ConnectableProduct) => {
+        setModifierProduct(product);
+    }, []);
 
     if (products.length === 0) return null;
 
@@ -228,10 +188,7 @@ export function PopularSection({
                     },
                 }}
             >
-                {products.map((product, index) => {
-                    const qty = qtyForProduct(product.id);
-
-                    return (
+                {products.map((product, index) => (
                         <Box
                             key={product.id}
                             sx={{
@@ -240,28 +197,15 @@ export function PopularSection({
                                 display: "flex",
                             }}
                         >
-                        <ProductCard
+                        <ConnectedProductCard
+                            product={product}
                             index={index}
                             imagePriority={prioritizeFirstImage && index === 0}
-                            name={product.name}
-                            description={product.description}
-                            categoryName={product.category?.name}
-                            composition={product.composition ?? undefined}
-                            price={product.price}
-                            weight={product.weight}
-                            images={product.images}
-                            mainImage={product.mainImage}
                             badges={badge ? [badge] : []}
-                            quantity={qty}
-                            onAddToCart={() => handleAdd(product)}
-                            onIncrease={() => handleIncrease(product)}
-                            onDecrease={() =>
-                                decrementFirstLineForProduct(product.id)
-                            }
+                            onOpenModifiers={openModifiers}
                         />
                         </Box>
-                    );
-                })}
+                    ))}
             </Box>
 
             <ProductModifiersDialog
@@ -277,13 +221,15 @@ export function PopularSection({
                         images: modifierProduct.images,
                         mainImage: modifierProduct.mainImage,
                     });
-                    addItem({
-                        productId: modifierProduct.id,
-                        name: modifierProduct.name,
-                        basePrice: modifierProduct.price,
-                        selectedModifiers,
-                        calculatedItemPrice,
-                        image: thumb,
+                    startTransition(() => {
+                        addItem({
+                            productId: modifierProduct.id,
+                            name: modifierProduct.name,
+                            basePrice: modifierProduct.price,
+                            selectedModifiers,
+                            calculatedItemPrice,
+                            image: thumb,
+                        });
                     });
                 }}
             />
