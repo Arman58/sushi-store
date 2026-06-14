@@ -551,5 +551,22 @@
         "body": "Maybe it got eaten 🍣",
         "menuCta": "Go to menu",
         "homeCta": "Home"
+    },
+    "fatalError": {
+        "badge": "Oops",
+        "heading": "Something went wrong",
+        "body": "We're sorry — an unexpected error occurred. Please try again or return to the homepage.",
+        "retryCta": "Try again",
+        "homeCta": "Back to home"
+    },
+    "pwa": {
+        "install": {
+            "title": "Install East West",
+            "body": "Add East West to your home screen for quick access!",
+            "installCta": "Install",
+            "dismissCta": "Not now",
+            "dismissAria": "Dismiss install prompt",
+            "logoAlt": "East West app icon"
+        }
     }
 }

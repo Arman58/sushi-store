@@ -1,7 +1,8 @@
 import "./globals.css";
 
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v13-appRouter";
-import type { Metadata } from "next";
+import { SerwistProvider } from "@serwist/next/react";
+import type { Metadata, Viewport } from "next";
 import { getLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 
@@ -20,7 +21,22 @@ import {
 import { interFont } from "./fonts";
 import { AppProviders } from "./providers";
 
+const PWA_APP_NAME = "East West Delivery";
+
+export const viewport: Viewport = {
+    themeColor: "#00B341",
+};
+
 export const metadata: Metadata = {
+    applicationName: PWA_APP_NAME,
+    appleWebApp: {
+        capable: true,
+        statusBarStyle: "default",
+        title: "East West",
+    },
+    formatDetection: {
+        telephone: false,
+    },
     ...(SITE_URL ? { metadataBase: new URL(SITE_URL) } : {}),
     title: {
         default: "Sushi & Pizza Delivery in Yerevan & Nor Hachn | East West",
@@ -91,7 +107,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                     data={[restaurantJsonLd(), foodDeliveryServiceJsonLd()]}
                 />
                 <AppRouterCacheProvider options={{ enableCssLayer: true }}>
-                    <AppProviders>{children}</AppProviders>
+                    <SerwistProvider
+                        swUrl="/sw.js"
+                        disable={process.env.NODE_ENV === "development"}
+                    >
+                        <AppProviders>{children}</AppProviders>
+                    </SerwistProvider>
                 </AppRouterCacheProvider>
             </body>
         </html>

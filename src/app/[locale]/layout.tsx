@@ -4,6 +4,7 @@ import { getMessages, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 
 import { routing } from "@/i18n/routing";
+import { InstallPwaPrompt } from "@/shared/ui/InstallPwaPrompt";
 
 type LocaleLayoutProps = {
     children: ReactNode;
@@ -30,6 +31,7 @@ export default async function LocaleLayout({
     return (
         <NextIntlClientProvider locale={locale} messages={messages}>
             {children}
+            <InstallPwaPrompt />
         </NextIntlClientProvider>
     );
 }

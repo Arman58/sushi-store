@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma migrate deploy && prisma generate && next build",
-    "build:local": "dotenv -e .env.local -- prisma migrate deploy && dotenv -e .env.local -- prisma generate && next build",
+    "build": "prisma migrate deploy && prisma generate && next build && serwist build serwist.config.mjs",
+    "build:local": "dotenv -e .env.local -- prisma migrate deploy && dotenv -e .env.local -- prisma generate && next build && serwist build serwist.config.mjs",
     "postinstall": "npx prisma generate",
     "start": "next start",
     "lint": "eslint .",
@@ -27,6 +27,7 @@
     "@mui/material": "^7.3.6",
     "@mui/material-nextjs": "^7.3.10",
     "@prisma/client": "^6.19.0",
+    "@sentry/nextjs": "^10.57.0",
     "@tanstack/react-query": "^5.90.12",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",
@@ -47,11 +48,15 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@serwist/cli": "^9.5.11",
+    "@serwist/next": "^9.5.11",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.19.25",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.2.1",
     "dotenv-cli": "^11.0.0",
+    "esbuild": "^0.28.1",
     "eslint": "^9",
     "eslint-config-next": "16.0.7",
     "eslint-config-prettier": "^10.1.8",
@@ -59,6 +64,7 @@
     "eslint-plugin-unused-imports": "^4.3.0",
     "prettier": "^3.7.4",
     "prisma": "^6.19.0",
+    "serwist": "^9.5.11",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }
