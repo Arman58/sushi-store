@@ -2,15 +2,23 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { Metadata } from "next";
+import { getLocale, getTranslations } from "next-intl/server";
 
+import { buildLocalizedMetadata } from "@/lib/seo/metadata";
 import { PageContainer } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
 
-export const metadata: Metadata = {
-    title: "Публичная оферта",
-    description:
-        "Публичная оферта сервиса доставки East West Delivery - условия заказа, оплаты и доставки.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+    const locale = await getLocale();
+    const t = await getTranslations("metadata.offer");
+
+    return buildLocalizedMetadata({
+        locale,
+        href: "/offer",
+        title: t("title"),
+        description: t("description"),
+    });
+}
 
 const bodySx = {
     color: tokens.textSecondary,

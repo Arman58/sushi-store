@@ -524,6 +524,26 @@
         },
         "orderSuccess": {
             "title": "Thank you for your order | East West"
+        },
+        "privacy": {
+            "title": "Privacy Policy",
+            "description": "Personal data processing policy for East West Delivery."
+        },
+        "offer": {
+            "title": "Terms of Service",
+            "description": "Public offer for East West Delivery — ordering, payment and delivery terms."
         }
+    },
+    "admin": {
+        "imageUpload": {
+            "unsupportedFormat": "Unsupported image format. Please upload JPG, PNG, WEBP, GIF, or HEIC."
+        }
+    },
+    "notFound": {
+        "title": "404",
+        "heading": "Page not found",
+        "body": "Maybe it got eaten 🍣",
+        "menuCta": "Go to menu",
+        "homeCta": "Home"
     }
 }

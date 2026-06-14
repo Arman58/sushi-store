@@ -1,4 +1,5 @@
 import Avatar from "@mui/material/Avatar";
+import type { Metadata } from "next";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
@@ -8,6 +9,7 @@ import Typography from "@mui/material/Typography";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { auth } from "@/lib/auth";
+import { NOINDEX_METADATA } from "@/lib/seo/metadata";
 import { orderStatusChipColor } from "@/lib/order-status";
 import { formatPhoneForDisplay } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
@@ -20,6 +22,8 @@ import { ProfileLoginPrompt } from "./profile-login-prompt";
 import { ProfileOrderActions } from "./profile-order-actions";
 import { ProfileSessionGuard } from "./profile-session-guard";
 import type { ProfileOrderItem } from "./types";
+
+export const metadata: Metadata = NOINDEX_METADATA;
 
 export const dynamic = "force-dynamic";
 

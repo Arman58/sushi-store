@@ -11,6 +11,7 @@ import {
     Accordion,
     AccordionDetails,
     AccordionSummary,
+    Alert,
     Autocomplete,
     Avatar,
     Box,
@@ -24,6 +25,7 @@ import {
     IconButton,
     InputAdornment,
     LinearProgress,
+    Snackbar,
     Stack,
     Switch,
     TextField,
@@ -41,6 +43,11 @@ import {
 } from "react-hook-form";
 
 import type { AdminModifierGroupInput } from "@/lib/admin-product-modifiers";
+import {
+    IMAGE_UPLOAD_ACCEPT,
+    validateImageUpload,
+} from "@/lib/validate-image-upload";
+import ruMessages from "@/messages/ru.json";
 import {
     emptyLocalizedJson,
     getLocalizedField,
@@ -511,7 +518,10 @@ export function ProductFormDialog(props: {
     const [newCategoryName, setNewCategoryName] = useState(emptyLocalizedJson);
     const [addCategoryLoading, setAddCategoryLoading] = useState(false);
     const [uploadLoading, setUploadLoading] = useState(false);
+    const [uploadErrorOpen, setUploadErrorOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const unsupportedImageFormatMessage =
+        ruMessages.admin.imageUpload.unsupportedFormat;
     const categoryIdWatch = watch("categoryId");
 
     useEffect(() => {
@@ -544,17 +554,35 @@ export function ProductFormDialog(props: {
         };
     }, []);
 
+    const showUploadFormatError = () => {
+        setUploadErrorOpen(true);
+    };
+
     const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
 
+        const fileList = Array.from(files);
+        const invalidFile = fileList.find((file) => !validateImageUpload(file).ok);
+        if (invalidFile) {
+            showUploadFormatError();
+            e.target.value = "";
+            return;
+        }
+
         setUploadLoading(true);
         try {
-            const uploadPromises = Array.from(files).map(async (file) => {
+            const uploadPromises = fileList.map(async (file) => {
                 const formData = new FormData();
                 formData.append("file", file);
                 const res = await fetch("/api/upload", { method: "POST", body: formData });
-                if (!res.ok) throw new Error("Upload failed");
+                if (!res.ok) {
+                    const body = (await res.json().catch(() => null)) as { error?: string } | null;
+                    if (body?.error === "unsupported_image_format") {
+                        throw new Error("unsupported_image_format");
+                    }
+                    throw new Error("Upload failed");
+                }
                 const data = (await res.json()) as { url: string };
                 return data.url;
             });
@@ -562,7 +590,11 @@ export function ProductFormDialog(props: {
             const cur = watch("images");
             setValue("images", [...cur, ...newUrls], { shouldDirty: true });
         } catch (err) {
-            alert(err instanceof Error ? err.message : "Ошибка сети при загрузке файла");
+            if (err instanceof Error && err.message === "unsupported_image_format") {
+                showUploadFormatError();
+            } else {
+                alert(err instanceof Error ? err.message : "Ошибка сети при загрузке файла");
+            }
         } finally {
             setUploadLoading(false);
             e.target.value = "";
@@ -723,6 +755,7 @@ export function ProductFormDialog(props: {
     const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
     return (
+        <>
         <Dialog
             key={formKey}
             open={open}
@@ -963,7 +996,7 @@ export function ProductFormDialog(props: {
                                 <input
                                     ref={fileInputRef}
                                     type="file"
-                                    accept="image/*"
+                                    accept={IMAGE_UPLOAD_ACCEPT}
                                     multiple
                                     hidden
                                     onChange={(e) => void handleImageFile(e)}
@@ -1059,5 +1092,21 @@ export function ProductFormDialog(props: {
                     </DialogActions>
             </Box>
         </Dialog>
+        <Snackbar
+            open={uploadErrorOpen}
+            autoHideDuration={6000}
+            onClose={() => setUploadErrorOpen(false)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+            <Alert
+                onClose={() => setUploadErrorOpen(false)}
+                severity="error"
+                variant="filled"
+                sx={{ width: "100%" }}
+            >
+                {unsupportedImageFormatMessage}
+            </Alert>
+        </Snackbar>
+        </>
     );
 }

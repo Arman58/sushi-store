@@ -524,6 +524,26 @@
         },
         "orderSuccess": {
             "title": "Շնորհակալություն պատվերի համար | East West"
+        },
+        "privacy": {
+            "title": "Անձնական տվյալների մշակման քաղաքականություն",
+            "description": "East West Delivery-ի անձնական տվյալների մշակման քաղաքականություն։"
+        },
+        "offer": {
+            "title": "Հանրային առաջարկ",
+            "description": "East West Delivery-ի հանրային առաջարկ — պատվերի, վճարման և առաքման պայմաններ։"
         }
+    },
+    "admin": {
+        "imageUpload": {
+            "unsupportedFormat": "Անընդունելի պատկերի ձևաչափ։ Վերբեռնեք JPG, PNG, WEBP, GIF կամ HEIC:"
+        }
+    },
+    "notFound": {
+        "title": "404",
+        "heading": "Էջը չի գտնվել",
+        "body": "Գուցե ուտել են 🍣",
+        "menuCta": "Դեպի մենյու",
+        "homeCta": "Գլխավոր"
     }
 }

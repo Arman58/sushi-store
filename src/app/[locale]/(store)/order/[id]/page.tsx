@@ -1,4 +1,5 @@
 import Box from "@mui/material/Box";
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { getLocale } from "next-intl/server";
@@ -7,6 +8,7 @@ import { redirect } from "@/i18n/server";
 import { auth } from "@/lib/auth";
 import { orderAccessCookieName } from "@/lib/order-access";
 import { prisma } from "@/lib/prisma";
+import { NOINDEX_METADATA } from "@/lib/seo/metadata";
 import { JsonLd, orderJsonLd } from "@/lib/seo/json-ld";
 import type { OrderStatusResponse } from "@/shared/api/order-api";
 
@@ -16,6 +18,8 @@ type PageProps = {
     params: Promise<{ id: string }>;
     searchParams: Promise<{ key?: string }>;
 };
+
+export const metadata: Metadata = NOINDEX_METADATA;
 
 export default async function OrderPage({ params, searchParams }: PageProps) {
     const { id: rawId } = await params;

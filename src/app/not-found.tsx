@@ -4,8 +4,7 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { Link } from "@/i18n/server";
-
+/** Fallback for routes outside [locale] (e.g. /admin). Storefront uses [locale]/not-found.tsx. */
 export default function NotFound() {
     return (
         <Box
@@ -19,21 +18,21 @@ export default function NotFound() {
         >
             <Stack alignItems="center" spacing={2} maxWidth={440} textAlign="center">
                 <SearchOff color="disabled" sx={{ fontSize: 72 }} />
+                <Typography variant="h3" component="p" fontWeight={900} color="text.disabled">
+                    404
+                </Typography>
                 <Typography variant="h5" component="h1" fontWeight={700}>
-                    Страница не найдена
+                    Page not found
                 </Typography>
-                <Typography variant="body1" color="text.secondary">
-                    Возможно, её съели 🍣
-                </Typography>
-                <Link href="/" style={{ textDecoration: "none" }}>
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        sx={{ borderRadius: 3, mt: 4, px: 6, textTransform: "none" }}
-                    >
-                        На главную
-                    </Button>
-                </Link>
+                <Button
+                    component="a"
+                    href="/"
+                    variant="contained"
+                    color="primary"
+                    sx={{ borderRadius: 3, mt: 2, px: 6, textTransform: "none" }}
+                >
+                    Home
+                </Button>
             </Stack>
         </Box>
     );

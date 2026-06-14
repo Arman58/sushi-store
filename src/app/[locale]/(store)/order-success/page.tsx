@@ -7,10 +7,14 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
 import { Link } from "@/i18n/server";
+import { NOINDEX_METADATA } from "@/lib/seo/metadata";
 
 export async function generateMetadata(): Promise<Metadata> {
     const t = await getTranslations("metadata.orderSuccess");
-    return { title: t("title") };
+    return {
+        ...NOINDEX_METADATA,
+        title: t("title"),
+    };
 }
 
 export default async function OrderSuccessPage() {

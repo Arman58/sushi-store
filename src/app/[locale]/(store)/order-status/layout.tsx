@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 
-import { CheckoutWizard } from "@/features/checkout";
 import { NOINDEX_METADATA } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = NOINDEX_METADATA;
 
-export default function CheckoutPage() {
-    return <CheckoutWizard />;
+export default function OrderStatusLayout({ children }: { children: ReactNode }) {
+    return children;
 }

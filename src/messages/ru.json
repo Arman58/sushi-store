@@ -524,6 +524,26 @@
         },
         "orderSuccess": {
             "title": "Спасибо за заказ | East West"
+        },
+        "privacy": {
+            "title": "Политика обработки персональных данных",
+            "description": "Политика обработки персональных данных сервиса East West Delivery."
+        },
+        "offer": {
+            "title": "Публичная оферта",
+            "description": "Публичная оферта сервиса доставки East West Delivery — условия заказа, оплаты и доставки."
         }
+    },
+    "admin": {
+        "imageUpload": {
+            "unsupportedFormat": "Неподдерживаемый формат изображения. Загрузите JPG, PNG, WEBP, GIF или HEIC."
+        }
+    },
+    "notFound": {
+        "title": "404",
+        "heading": "Страница не найдена",
+        "body": "Возможно, её съели 🍣",
+        "menuCta": "Перейти в меню",
+        "homeCta": "На главную"
     }
 }

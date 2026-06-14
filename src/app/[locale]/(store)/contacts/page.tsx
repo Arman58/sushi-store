@@ -8,10 +8,11 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 
 import { Link } from "@/i18n/server";
+import { buildLocalizedMetadata } from "@/lib/seo/metadata";
 import { CONTACT_PHONE, CONTACT_PHONE_DISPLAY } from "@/lib/site-config";
 import { PageContainer } from "@/shared/ui/page-container";
 import { tokens } from "@/shared/ui/theme";
@@ -19,13 +20,16 @@ import { tokens } from "@/shared/ui/theme";
 import { ContactsCallButton } from "./contacts-call-button";
 
 export async function generateMetadata(): Promise<Metadata> {
+    const locale = await getLocale();
     const t = await getTranslations("contacts");
     const tMeta = await getTranslations("metadata.contacts");
-    return {
+
+    return buildLocalizedMetadata({
+        locale,
+        href: "/contacts",
         title: t("pageTitle"),
         description: tMeta("description"),
-        alternates: { canonical: "/contacts" },
-    };
+    });
 }
 
 type ContactRowProps = {

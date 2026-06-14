@@ -12,6 +12,7 @@ import {
     toStorefrontProducts,
 } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
+import { buildLocalizedMetadata } from "@/lib/seo/metadata";
 import { PageContainer } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
 import { MenuSection } from "@/widgets/menu-section";
@@ -98,23 +99,24 @@ export async function generateMetadata({
             if (category) {
                 const categoryName = getLocalizedField(category.name, locale);
                 const nameLower = categoryName.toLowerCase();
-                return {
+                return buildLocalizedMetadata({
+                    locale,
+                    href: `/menu?category=${category.slug}`,
                     title: t("categoryTitle", { category: categoryName }),
                     description: t("categoryDescription", { name: nameLower }),
-                    alternates: {
-                        canonical: `/menu?category=${category.slug}`,
-                    },
-                };
+                });
             }
         } catch {
         }
     }
 
-    return {
-        title: { absolute: t("title") },
+    return buildLocalizedMetadata({
+        locale,
+        href: "/menu",
+        title: t("title"),
         description: t("description"),
-        alternates: { canonical: "/menu" },
-    };
+        titleAbsolute: true,
+    });
 }
 
 export default async function MenuPage() {

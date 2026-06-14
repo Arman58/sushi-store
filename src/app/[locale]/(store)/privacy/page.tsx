@@ -2,15 +2,23 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { Metadata } from "next";
+import { getLocale, getTranslations } from "next-intl/server";
 
+import { buildLocalizedMetadata } from "@/lib/seo/metadata";
 import { PageContainer } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
 
-export const metadata: Metadata = {
-    title: "Политика обработки персональных данных",
-    description:
-        "Политика обработки персональных данных сервиса East West Delivery.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+    const locale = await getLocale();
+    const t = await getTranslations("metadata.privacy");
+
+    return buildLocalizedMetadata({
+        locale,
+        href: "/privacy",
+        title: t("title"),
+        description: t("description"),
+    });
+}
 
 const bodySx = {
     color: tokens.textSecondary,

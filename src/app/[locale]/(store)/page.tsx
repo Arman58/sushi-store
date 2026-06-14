@@ -14,6 +14,7 @@ import {
     mapProductToPopular,
 } from "@/lib/home-product-include";
 import { prisma } from "@/lib/prisma";
+import { buildLocalizedMetadata } from "@/lib/seo/metadata";
 import { getOpeningHoursState } from "@/lib/site-config";
 import {
     FeaturesBlock,
@@ -44,13 +45,16 @@ function formatDeliveryStatLabel(
 }
 
 export async function generateMetadata(): Promise<Metadata> {
+    const locale = await getLocale();
     const t = await getTranslations("metadata.home");
 
-    return {
-        title: { absolute: t("title") },
+    return buildLocalizedMetadata({
+        locale,
+        href: "/",
+        title: t("title"),
         description: t("description"),
-        alternates: { canonical: "/" },
-    };
+        titleAbsolute: true,
+    });
 }
 
 export default async function HomePage() {
