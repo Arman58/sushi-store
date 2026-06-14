@@ -560,6 +560,10 @@
         "homeCta": "Back to home"
     },
     "pwa": {
+        "ios_title": "Add East West to Home Screen",
+        "ios_step1": "Tap the 'Share' button at the bottom",
+        "ios_step2": "Select 'Add to Home Screen'",
+        "ios_close": "Got it",
         "install": {
             "title": "Install East West",
             "body": "Add East West to your home screen for quick access!",

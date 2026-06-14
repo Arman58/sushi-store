@@ -15,6 +15,7 @@ import { memo } from "react";
 import { formatStorePrice } from "@/shared/lib/format-price";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { buildProductImageAlt } from "@/shared/lib/product-image-alt";
+import { fadeInSx, skeletonSurfaceSx } from "@/shared/ui/skeleton-styles";
 import { ProductCoverImage } from "@/shared/ui/product-cover-image";
 import { tokens } from "@/shared/ui/theme";
 
@@ -86,7 +87,7 @@ export const ProductCard = memo(function ProductCard({
     };
 
     return (
-        <Box sx={{ width: "100%", height: "100%", minWidth: 0 }}>
+        <Box sx={{ width: "100%", height: "100%", minWidth: 0, ...fadeInSx }}>
             <Card
                 component="article"
                 elevation={1}
@@ -325,6 +326,7 @@ export function ProductCardSkeleton() {
                         aspectRatio: "4 / 3",
                         flexShrink: 0,
                         transform: "none",
+                        ...skeletonSurfaceSx,
                     }}
                 />
                 <Box
@@ -341,13 +343,13 @@ export function ProductCardSkeleton() {
                         variant="text"
                         animation="wave"
                         width="88%"
-                        sx={{ borderRadius: 1 }}
+                        sx={{ borderRadius: 1, ...skeletonSurfaceSx }}
                     />
                     <Skeleton
                         variant="text"
                         animation="wave"
                         width="70%"
-                        sx={{ borderRadius: 1, mt: 0.5 }}
+                        sx={{ borderRadius: 1, mt: 0.5, ...skeletonSurfaceSx }}
                     />
                 </Box>
                 <Box
@@ -367,14 +369,14 @@ export function ProductCardSkeleton() {
                         variant="text"
                         animation="wave"
                         width="38%"
-                        sx={{ borderRadius: 1, flex: 1, minWidth: 0 }}
+                        sx={{ borderRadius: 1, flex: 1, minWidth: 0, ...skeletonSurfaceSx }}
                     />
                     <Skeleton
                         variant="circular"
                         animation="wave"
                         width={STEPPER_SIZE}
                         height={STEPPER_SIZE}
-                        sx={{ flexShrink: 0 }}
+                        sx={{ flexShrink: 0, ...skeletonSurfaceSx }}
                     />
                 </Box>
             </Card>

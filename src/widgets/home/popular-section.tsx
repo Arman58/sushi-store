@@ -15,6 +15,7 @@ import type { ProductBadge } from "@/entities/product/ui/product-card";
 import { useCartStore } from "@/features/cart";
 import { Link } from "@/i18n/server";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
+import { fadeInSx } from "@/shared/ui/skeleton-styles";
 import { tokens } from "@/shared/ui/theme";
 
 const ProductModifiersDialog = dynamic(
@@ -195,6 +196,7 @@ export function PopularSection({
                                 height: "100%",
                                 minWidth: 0,
                                 display: "flex",
+                                ...fadeInSx,
                             }}
                         >
                         <ConnectedProductCard

@@ -3,8 +3,9 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 
 import { ProductCardSkeleton } from "@/entities/product/ui/product-card";
+import { skeletonSurfaceSx } from "@/shared/ui/skeleton-styles";
 
-const SKELETON_COUNT = 12;
+const SKELETON_COUNT = 8;
 
 /**
  * Full-page skeleton shown while the menu Server Component is streaming.
@@ -25,6 +26,7 @@ export function MenuSectionSkeleton() {
                         sx={{
                             borderRadius: 999,
                             flexShrink: 0,
+                            ...skeletonSurfaceSx,
                         }}
                     />
                 ))}

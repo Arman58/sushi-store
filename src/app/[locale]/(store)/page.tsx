@@ -1,27 +1,20 @@
 /**
- * Home page - Server Component.
- * Hero, promo carousel, новинки из Prisma; Hero - данные из БД и site-config.
+ * Home page - Server Component with Streaming SSR via Suspense boundaries.
  */
 
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
+import { Suspense } from "react";
 
-import { type DeliveryStat, fetchHeroPageData } from "@/lib/hero-data";
-import {
-    homeProductInclude,
-    mapProductToPopular,
-} from "@/lib/home-product-include";
-import { prisma } from "@/lib/prisma";
 import { buildLocalizedMetadata } from "@/lib/seo/metadata";
-import { getOpeningHoursState } from "@/lib/site-config";
-import {
-    FeaturesBlock,
-    HeroSection,
-    PopularSection,
-    PromoCarousel,
-} from "@/widgets/home/lazy-home-widgets";
+import { HomeHeroSection } from "@/widgets/home/home-hero-section";
+import { HomeNewArrivalsSection } from "@/widgets/home/home-new-arrivals-section";
+import { HomePromoCarouselSection } from "@/widgets/home/home-promo-carousel-section";
+import { FeaturesBlock } from "@/widgets/home/lazy-home-widgets";
+import { HeroSectionSkeleton } from "@/widgets/home/skeletons/hero-section-skeleton";
+import { PopularSectionSkeleton } from "@/widgets/home/skeletons/popular-section-skeleton";
 import { SeoText } from "@/widgets/seo-text";
 
 export const revalidate = 60;
@@ -30,20 +23,6 @@ const sectionContainerSx = {
     maxWidth: "lg",
     px: { xs: 2, md: 6 },
 } as const;
-
-function formatDeliveryStatLabel(
-    stat: DeliveryStat,
-    t: (key: string, values?: Record<string, string | number>) => string,
-    locale: string,
-): string {
-    if (stat.kind === "fastDelivery") return t("fastDelivery");
-    if (stat.kind === "freeDeliveryIn") {
-        return t("freeDeliveryIn", { zone: stat.zone });
-    }
-    return t("deliveryFrom", {
-        price: stat.price.toLocaleString(locale),
-    });
-}
 
 export async function generateMetadata(): Promise<Metadata> {
     const locale = await getLocale();
@@ -58,35 +37,7 @@ export async function generateMetadata(): Promise<Metadata> {
     });
 }
 
-export default async function HomePage() {
-    const locale = await getLocale();
-
-    const [newProductsRaw, heroData] = await Promise.all([
-        prisma.product
-            .findMany({
-                where: { isActive: true },
-                include: homeProductInclude,
-                take: 6,
-                orderBy: { id: "desc" },
-            })
-            .catch(() => []),
-        fetchHeroPageData(locale),
-    ]);
-
-    const newItems = newProductsRaw.map((p) => mapProductToPopular(p, locale));
-    const hoursState = getOpeningHoursState();
-    const t = await getTranslations("home");
-    const tStats = await getTranslations("hero.stats");
-    const tHours = await getTranslations("common.hours");
-    const openingHoursStat = hoursState.isOpen
-        ? tHours("openUntil", { time: hoursState.time })
-        : tHours("opensAt", { time: hoursState.time });
-    const deliveryStat = formatDeliveryStatLabel(
-        heroData.deliveryStat,
-        tStats,
-        locale,
-    );
-
+export default function HomePage() {
     return (
         <>
             <Container
@@ -94,11 +45,9 @@ export default async function HomePage() {
                 disableGutters
                 sx={{ ...sectionContainerSx, px: { xs: 0, sm: 3, md: 6 } }}
             >
-                <HeroSection
-                    deliveryStat={deliveryStat}
-                    openingHoursStat={openingHoursStat}
-                    promo={heroData.promo}
-                />
+                <Suspense fallback={<HeroSectionSkeleton />}>
+                    <HomeHeroSection />
+                </Suspense>
             </Container>
 
             <Container
@@ -107,26 +56,16 @@ export default async function HomePage() {
                     mt: { xs: 3, md: 6 },
                 }}
             >
-                <PromoCarousel />
+                <HomePromoCarouselSection />
             </Container>
 
-            {newItems.length > 0 && (
-                <Container
-                    sx={{
-                        ...sectionContainerSx,
-                        mt: { xs: 3, md: 6 },
-                    }}
-                >
-                    <PopularSection
-                        products={newItems}
-                        prioritizeFirstImage
-                        title={t("newArrivals")}
-                        badge="new"
-                        seeAllHref="/menu"
-                        seeAllLabel={t("seeAll")}
-                    />
+            <Suspense fallback={
+                <Container sx={{ ...sectionContainerSx, mt: { xs: 3, md: 6 } }}>
+                    <PopularSectionSkeleton />
                 </Container>
-            )}
+            }>
+                <HomeNewArrivalsSection />
+            </Suspense>
 
             <Container
                 sx={{

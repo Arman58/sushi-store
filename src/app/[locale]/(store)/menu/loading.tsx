@@ -1,36 +1,25 @@
 /**
- * Next.js streaming loading UI for /menu.
- * Shown automatically while the Server Component fetches data.
- * No "use client" needed - this is a server component boundary.
+ * Next.js route loading UI for /menu — hero shell + catalog skeleton grid.
  */
 
 import Skeleton from "@mui/material/Skeleton";
 
 import { PageContainer } from "@/shared/ui";
-import { MenuSectionSkeleton } from "@/widgets/menu-section/menu-section-skeleton";
+import { skeletonSurfaceSx } from "@/shared/ui/skeleton-styles";
+
+import { MenuCatalogSkeleton } from "./menu-catalog-skeleton";
 
 export default function MenuLoading() {
     return (
         <PageContainer>
-                {/* Hero banner skeleton */}
-                <Skeleton
-                    variant="rounded"
-                    animation="wave"
-                    height={160}
-                    sx={{ borderRadius: 4, mb: 4 }}
-                />
+            <Skeleton
+                variant="rounded"
+                animation="wave"
+                height={160}
+                sx={{ borderRadius: 4, mb: 4, ...skeletonSurfaceSx }}
+            />
 
-                {/* Section title skeleton */}
-                <Skeleton
-                    variant="text"
-                    animation="wave"
-                    width={120}
-                    height={40}
-                    sx={{ mb: 3 }}
-                />
-
-                {/* Menu grid skeleton */}
-                <MenuSectionSkeleton />
+            <MenuCatalogSkeleton />
         </PageContainer>
     );
 }

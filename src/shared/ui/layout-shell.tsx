@@ -21,6 +21,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { LoginButton } from "@/features/auth";
 import { useCartStore } from "@/features/cart";
 import { Link, usePathname } from "@/i18n/server";
+import { PageTransition } from "@/shared/ui/page-transition";
 
 const CartDrawer = dynamic(
     () => import("./cart-drawer").then((m) => m.CartDrawer),
@@ -544,7 +545,7 @@ export function LayoutShell({ children }: LayoutShellProps) {
                     maxWidth: "100%",
                 }}
             >
-                {children}
+                <PageTransition>{children}</PageTransition>
                 <StoreFooter />
             </Box>
 
