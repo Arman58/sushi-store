@@ -10,6 +10,7 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 const ONE_YEAR_CACHE = "public, max-age=31536000, immutable";
 
 const nextConfig: NextConfig = {
+    trailingSlash: false,
     images: {
         remotePatterns: [
             {
