@@ -31,6 +31,7 @@ async function handleAdminAuth(
 export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
+    // API and internal routes must never pass through next-intl (avoids 308 on POST webhooks).
     if (
         pathname.startsWith("/api") ||
         pathname.startsWith("/_next") ||
@@ -47,11 +48,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-    matcher: [
-        "/",
-        "/(hy|en|ru)/:path*",
-        "/admin",
-        "/admin/:path*",
-        "/((?!api|admin|_next|_vercel|.*\\..*).*)",
-    ],
+    matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"],
 };
