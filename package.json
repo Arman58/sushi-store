@@ -27,6 +27,8 @@
     "@mui/material": "^7.3.6",
     "@mui/material-nextjs": "^7.3.10",
     "@prisma/client": "^6.19.0",
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.0.9",
     "@sentry/nextjs": "^10.57.0",
     "@tanstack/react-query": "^5.90.12",
     "@upstash/ratelimit": "^2.0.8",
@@ -64,6 +66,7 @@
     "eslint-plugin-unused-imports": "^4.3.0",
     "prettier": "^3.7.4",
     "prisma": "^6.19.0",
+    "react-email": "^6.6.4",
     "serwist": "^9.5.11",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"

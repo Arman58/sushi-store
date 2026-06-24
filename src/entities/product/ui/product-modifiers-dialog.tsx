@@ -260,7 +260,7 @@ export function ProductModifiersDialog({
     }, [basePrice, modifierGroups, selectedByGroup]);
 
     const canSubmit =
-        hasModifiers && selectionValid(modifierGroups, selectedByGroup);
+        !hasModifiers || selectionValid(modifierGroups, selectedByGroup);
 
     const toggleRadio = (group: MenuModifierGroup, modifierId: number) => {
         const cur = selectedByGroup[group.id] ?? [];
@@ -350,7 +350,12 @@ export function ProductModifiersDialog({
                     <Typography
                         variant="body2"
                         color="text.secondary"
-                        sx={{ mb: 1, lineHeight: 1.5 }}
+                        sx={{
+                            mb: 2,
+                            lineHeight: 1.5,
+                            whiteSpace: "normal",
+                            wordBreak: "break-word",
+                        }}
                     >
                         {description.trim()}
                     </Typography>
@@ -359,15 +364,18 @@ export function ProductModifiersDialog({
                 <Typography
                     variant="body1"
                     color="text.secondary"
-                    sx={{ fontVariantNumeric: "tabular-nums", mb: 2 }}
+                    sx={{ fontVariantNumeric: "tabular-nums", mb: hasModifiers ? 2 : 0 }}
                 >
-                    {t("fromPrice", { price: fmt.format(basePrice) })}
+                    {hasModifiers
+                        ? t("fromPrice", { price: fmt.format(basePrice) })
+                        : t("price", { price: fmt.format(basePrice) })}
                 </Typography>
 
-                <Divider sx={{ mb: 3 }} />
+                {hasModifiers ? <Divider sx={{ mb: 3 }} /> : null}
 
                 <Stack spacing={3}>
-                    {modifierGroups.map((group) => {
+                    {hasModifiers
+                        ? modifierGroups.map((group) => {
                         const picked = selectedByGroup[group.id] ?? [];
                         const useRadio = group.maxChoices === 1;
                         const limitReached =
@@ -488,7 +496,8 @@ export function ProductModifiersDialog({
                                 </Stack>
                             </Box>
                         );
-                    })}
+                    })
+                        : null}
                 </Stack>
             </Box>
 

@@ -1,49 +1,37 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { type ReactNode, useEffect, useState } from "react";
-
-import { usePathname } from "@/i18n/server";
+import type { ReactNode } from "react";
 
 const transition = { duration: 0.15, ease: "easeOut" as const };
 
+const shellStyle = {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 0,
+    width: "100%",
+} as const;
+
 /**
- * Fast page enter animation without AnimatePresence.
- * AnimatePresence + mode="wait" unmounts the page tree while Suspense/async
- * RSC work is still tracked — that triggers React's "async info not on parent
- * Suspense boundary" warning (especially visible in React DevTools).
+ * Stable layout wrapper for store pages.
+ * Do not re-animate or remount on pathname changes — that breaks RSC Suspense
+ * tracking and triggers React's "async info not on parent Suspense boundary"
+ * warning (often surfaced via React DevTools).
  */
 export function PageTransition({ children }: { children: ReactNode }) {
-    const pathname = usePathname();
     const reduceMotion = useReducedMotion();
-    const [entered, setEntered] = useState(true);
 
-    useEffect(() => {
-        if (reduceMotion) {
-            setEntered(true);
-            return;
-        }
-
-        setEntered(false);
-        const frame = requestAnimationFrame(() => setEntered(true));
-        return () => cancelAnimationFrame(frame);
-    }, [pathname, reduceMotion]);
+    if (reduceMotion) {
+        return <div style={shellStyle}>{children}</div>;
+    }
 
     return (
         <motion.div
-            animate={
-                reduceMotion || entered
-                    ? { opacity: 1, y: 0 }
-                    : { opacity: 0, y: 10 }
-            }
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={transition}
-            style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                minHeight: 0,
-                width: "100%",
-            }}
+            style={shellStyle}
         >
             {children}
         </motion.div>

@@ -12,15 +12,21 @@ import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import Typography from "@mui/material/Typography";
 import { signIn } from "next-auth/react";
-import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useCallback, useEffect, useState } from "react";
 
 import { useRouter } from "@/i18n/server";
+import { EMAIL_NOT_VERIFIED_ERROR } from "@/lib/otp-auth";
 import { showAppToast } from "@/shared/lib/show-app-toast";
 import { AppButton, AppInput } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
 
+import { OtpCodeInput, OtpResendTimer } from "./otp-code-input";
+
 type AuthTab = "login" | "register";
+type RegisterStep = "form" | "otp";
+
+const OTP_RESEND_SECONDS = 60;
 
 const authFieldSx = {
     "& .MuiOutlinedInput-root": {
@@ -32,6 +38,8 @@ const authFieldSx = {
         },
     },
 } as const;
+
+const emptyOtp = ["", "", "", ""] as const;
 
 async function readJsonError(res: Response, fallback: string): Promise<string> {
     try {
@@ -53,28 +61,78 @@ export type LoginDialogProps = {
 
 export function LoginDialog({ open, onClose }: LoginDialogProps) {
     const router = useRouter();
+    const locale = useLocale();
     const t = useTranslations("auth");
     const tCommon = useTranslations("common");
     const [tab, setTab] = useState<AuthTab>("login");
+    const [registerStep, setRegisterStep] = useState<RegisterStep>("form");
     const [loginEmail, setLoginEmail] = useState("");
     const [loginPassword, setLoginPassword] = useState("");
     const [regName, setRegName] = useState("");
     const [regEmail, setRegEmail] = useState("");
     const [regPassword, setRegPassword] = useState("");
+    const [otpDigits, setOtpDigits] = useState<string[]>([...emptyOtp]);
+    const [resendSeconds, setResendSeconds] = useState(0);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        if (!open) return;
+    const resetState = useCallback(() => {
         setTab("login");
+        setRegisterStep("form");
         setLoginEmail("");
         setLoginPassword("");
         setRegName("");
         setRegEmail("");
         setRegPassword("");
+        setOtpDigits([...emptyOtp]);
+        setResendSeconds(0);
         setError(null);
         setLoading(false);
-    }, [open]);
+    }, []);
+
+    useEffect(() => {
+        if (!open) return;
+        resetState();
+    }, [open, resetState]);
+
+    useEffect(() => {
+        if (registerStep !== "otp" || resendSeconds <= 0) return;
+
+        const timer = window.setInterval(() => {
+            setResendSeconds((prev) => (prev > 0 ? prev - 1 : 0));
+        }, 1000);
+
+        return () => window.clearInterval(timer);
+    }, [registerStep, resendSeconds]);
+
+    const startOtpStep = useCallback((email: string) => {
+        setRegisterStep("otp");
+        setRegEmail(email);
+        setOtpDigits([...emptyOtp]);
+        setResendSeconds(OTP_RESEND_SECONDS);
+        setError(null);
+    }, []);
+
+    const handleResendOtp = async () => {
+        const email = regEmail.trim().toLowerCase();
+        if (!email) return;
+
+        setLoading(true);
+        setError(null);
+        try {
+            await fetch("/api/auth/resend-otp", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, locale }),
+            });
+            setResendSeconds(OTP_RESEND_SECONDS);
+            showAppToast(t("otp.sentAgain"));
+        } catch {
+            showAppToast(tCommon("networkError"), "error");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleLogin = async () => {
         setError(null);
@@ -93,6 +151,21 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                 password: loginPassword,
                 redirect: false,
             });
+
+            if (result?.error === EMAIL_NOT_VERIFIED_ERROR) {
+                const msg = t("errors.emailNotVerified");
+                setError(msg);
+                showAppToast(msg, "error");
+                setTab("register");
+                setRegPassword(loginPassword);
+                startOtpStep(email);
+                void fetch("/api/auth/resend-otp", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, locale }),
+                });
+                return;
+            }
 
             if (result?.error) {
                 const msg = t("errors.invalidCredentials");
@@ -142,11 +215,60 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
             const res = await fetch("/api/auth/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password: regPassword, name }),
+                body: JSON.stringify({ email, password: regPassword, name, locale }),
             });
 
             if (!res.ok) {
                 const msg = await readJsonError(res, t("errors.registerFailed"));
+                setError(msg);
+                showAppToast(msg, "error");
+                return;
+            }
+
+            const data = (await res.json().catch(() => null)) as
+                | { status?: string }
+                | null;
+
+            if (data?.status !== "OTP_SENT") {
+                const msg = t("errors.registerFailed");
+                setError(msg);
+                showAppToast(msg, "error");
+                return;
+            }
+
+            startOtpStep(email);
+            showAppToast(t("otp.sent"));
+        } catch {
+            const msg = tCommon("networkError");
+            setError(msg);
+            showAppToast(msg, "error");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleVerifyOtp = async () => {
+        const email = regEmail.trim().toLowerCase();
+        const code = otpDigits.join("");
+
+        if (code.length !== 4) {
+            const msg = t("otp.invalidCode");
+            setError(msg);
+            showAppToast(msg, "error");
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await fetch("/api/auth/verify-otp", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, code }),
+            });
+
+            if (!res.ok) {
+                const msg = t("otp.invalidCode");
                 setError(msg);
                 showAppToast(msg, "error");
                 return;
@@ -179,6 +301,8 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
         }
     };
 
+    const showOtpStep = tab === "register" && registerStep === "otp";
+
     return (
         <Dialog
             open={open}
@@ -190,7 +314,7 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
             }}
         >
             <DialogTitle sx={{ pr: 6, fontWeight: 700, pb: 0 }}>
-                {t("dialog.title")}
+                {showOtpStep ? t("otp.title") : t("dialog.title")}
                 <IconButton
                     onClick={onClose}
                     disabled={loading}
@@ -207,33 +331,36 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                     color="text.secondary"
                     sx={{ mb: 2, lineHeight: 1.5 }}
                 >
-                    {t("dialog.subtitle")}
+                    {showOtpStep ? t("otp.subtitle", { email: regEmail }) : t("dialog.subtitle")}
                 </Typography>
 
-                <Tabs
-                    value={tab}
-                    onChange={(_, v: AuthTab) => {
-                        setTab(v);
-                        setError(null);
-                    }}
-                    variant="fullWidth"
-                    sx={{
-                        mb: 2.5,
-                        minHeight: 40,
-                        "& .MuiTab-root": {
-                            textTransform: "none",
-                            fontWeight: 600,
-                            borderRadius: 2,
-                        },
-                        "& .MuiTabs-indicator": {
-                            height: 3,
-                            borderRadius: 999,
-                        },
-                    }}
-                >
-                    <Tab label={t("tabs.login")} value="login" />
-                    <Tab label={t("tabs.register")} value="register" />
-                </Tabs>
+                {!showOtpStep ? (
+                    <Tabs
+                        value={tab}
+                        onChange={(_, v: AuthTab) => {
+                            setTab(v);
+                            setRegisterStep("form");
+                            setError(null);
+                        }}
+                        variant="fullWidth"
+                        sx={{
+                            mb: 2.5,
+                            minHeight: 40,
+                            "& .MuiTab-root": {
+                                textTransform: "none",
+                                fontWeight: 600,
+                                borderRadius: 2,
+                            },
+                            "& .MuiTabs-indicator": {
+                                height: 3,
+                                borderRadius: 999,
+                            },
+                        }}
+                    >
+                        <Tab label={t("tabs.login")} value="login" />
+                        <Tab label={t("tabs.register")} value="register" />
+                    </Tabs>
+                ) : null}
 
                 {tab === "login" ? (
                     <Stack spacing={2}>
@@ -278,6 +405,50 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                             ) : (
                                 t("login")
                             )}
+                        </AppButton>
+                    </Stack>
+                ) : showOtpStep ? (
+                    <Stack spacing={2.5}>
+                        <OtpCodeInput
+                            value={otpDigits}
+                            onChange={setOtpDigits}
+                            disabled={loading}
+                        />
+                        {error ? <Alert severity="error">{error}</Alert> : null}
+                        <AppButton
+                            variant="contained"
+                            color="primary"
+                            disabled={loading}
+                            onClick={() => void handleVerifyOtp()}
+                            sx={{
+                                py: 1.25,
+                                fontWeight: 700,
+                                borderRadius: `${tokens.radiusCardLg}px`,
+                                boxShadow: "none",
+                            }}
+                        >
+                            {loading ? (
+                                <CircularProgress size={22} color="inherit" />
+                            ) : (
+                                t("otp.confirm")
+                            )}
+                        </AppButton>
+                        <OtpResendTimer
+                            secondsLeft={resendSeconds}
+                            onResend={() => void handleResendOtp()}
+                            resendLabel={t("otp.resend")}
+                            timerLabel={t("otp.resendIn")}
+                            disabled={loading}
+                        />
+                        <AppButton
+                            variant="text"
+                            disabled={loading}
+                            onClick={() => {
+                                setRegisterStep("form");
+                                setError(null);
+                            }}
+                        >
+                            {t("otp.back")}
                         </AppButton>
                     </Stack>
                 ) : (
