@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { normalizeEmail } from "@/lib/normalize-email";
 import { verifyOtpCode } from "@/lib/otp-auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -40,9 +41,11 @@ export async function POST(request: Request) {
     }
 
     const { email, code } = parsed.data;
+    const normalizedEmail = normalizeEmail(email);
+    const cleanCode = String(code).trim();
 
     const user = await prisma.user.findUnique({
-        where: { email },
+        where: { email: normalizedEmail },
         select: { id: true, emailVerified: true },
     });
 
@@ -54,8 +57,11 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true, alreadyVerified: true });
     }
 
-    const valid = await verifyOtpCode(email, code);
-    if (!valid) {
+    const result = await verifyOtpCode(normalizedEmail, cleanCode);
+    if (result === "expired") {
+        return NextResponse.json({ error: "OTP_EXPIRED" }, { status: 410 });
+    }
+    if (result === "invalid") {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

@@ -1,8 +1,8 @@
 "use client";
 
-import * as Sentry from "@sentry/nextjs";
 import DashboardOutlined from "@mui/icons-material/DashboardOutlined";
 import Button from "@mui/material/Button";
+import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
 
 import {

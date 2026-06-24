@@ -170,7 +170,7 @@ export async function sendOtpEmail(
 ): Promise<SendEmailResult> {
     const resend = getResendClient();
     if (!resend) {
-        console.error("Resend error: RESEND_API_KEY is not configured");
+        console.error("[RESEND ERROR] RESEND_API_KEY is not configured");
         return { sent: false };
     }
 
@@ -188,7 +188,7 @@ export async function sendOtpEmail(
             }),
         );
     } catch (error) {
-        console.error("Resend error:", error);
+        console.error("[RESEND ERROR]", error);
         return { sent: false };
     }
 
@@ -206,7 +206,7 @@ export async function sendOtpEmail(
 
         if (error) {
             console.error(
-                "Resend error:",
+                "[RESEND ERROR]",
                 formatResendError(error.message, from, to, recipient),
             );
             return { sent: false };
@@ -214,7 +214,7 @@ export async function sendOtpEmail(
 
         return { sent: true };
     } catch (error) {
-        console.error("Resend error:", error);
+        console.error("[RESEND ERROR]", error);
         return { sent: false };
     }
 }

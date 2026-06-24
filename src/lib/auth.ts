@@ -3,8 +3,9 @@ import type { NextAuthOptions } from "next-auth";
 import { getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-import { prisma } from "@/lib/prisma";
+import { normalizeEmail } from "@/lib/normalize-email";
 import { EMAIL_NOT_VERIFIED_ERROR } from "@/lib/otp-auth";
+import { prisma } from "@/lib/prisma";
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -56,7 +57,7 @@ export const authOptions: NextAuthOptions = {
             async authorize(credentials) {
                 if (!credentials?.email || !credentials?.password) return null;
 
-                const email = String(credentials.email).trim().toLowerCase();
+                const email = normalizeEmail(String(credentials.email));
                 const password = String(credentials.password);
 
                 if (!email || password.length < 1) return null;

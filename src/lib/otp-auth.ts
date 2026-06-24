@@ -1,12 +1,12 @@
 import type { AppLocale } from "@/i18n/routing";
 import { sendOtpEmail } from "@/lib/email";
+import { normalizeEmail } from "@/lib/normalize-email";
 import {
     deleteOtpCode,
     generateOtpCode,
     getOtpCode,
     saveOtpCode,
 } from "@/lib/otp-store";
-import { timingSafeEqual } from "node:crypto";
 
 export const EMAIL_NOT_VERIFIED_ERROR = "EMAIL_NOT_VERIFIED";
 
@@ -14,38 +14,36 @@ export async function issueOtpForEmail(
     email: string,
     locale?: AppLocale | string,
 ): Promise<{ code: string; sent: boolean }> {
+    const normalizedEmail = normalizeEmail(email);
     const code = generateOtpCode();
-    await saveOtpCode(email, code);
-    const { sent } = await sendOtpEmail(email, code, locale);
+    await saveOtpCode(normalizedEmail, code);
+
+    const { sent } = await sendOtpEmail(normalizedEmail, code, locale);
     return { code, sent };
 }
+
+export type OtpVerifyResult = "valid" | "expired" | "invalid";
 
 export async function verifyOtpCode(
     email: string,
     code: string,
-): Promise<boolean> {
-    const normalizedEmail = email.trim().toLowerCase();
-    const normalizedCode = code.trim();
+): Promise<OtpVerifyResult> {
+    const normalizedEmail = normalizeEmail(email);
+    const cleanCode = String(code).trim();
 
-    if (!/^\d{4}$/.test(normalizedCode)) {
-        return false;
+    if (!/^\d{4}$/.test(cleanCode)) {
+        return "invalid";
     }
 
-    const stored = await getOtpCode(normalizedEmail);
-    if (!stored) {
-        return false;
+    const redisCode = await getOtpCode(normalizedEmail);
+    if (!redisCode) {
+        return "expired";
     }
 
-    const storedBuf = Buffer.from(stored);
-    const providedBuf = Buffer.from(normalizedCode);
-    if (storedBuf.length !== providedBuf.length) {
-        return false;
-    }
-
-    const matches = timingSafeEqual(storedBuf, providedBuf);
-    if (matches) {
+    if (String(redisCode) === cleanCode) {
         await deleteOtpCode(normalizedEmail);
+        return "valid";
     }
 
-    return matches;
+    return "invalid";
 }

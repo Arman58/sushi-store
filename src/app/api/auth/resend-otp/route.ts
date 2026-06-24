@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { normalizeEmail } from "@/lib/normalize-email";
 import { issueOtpForEmail } from "@/lib/otp-auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -37,14 +38,15 @@ export async function POST(request: Request) {
     }
 
     const { email, locale } = parsed.data;
+    const normalizedEmail = normalizeEmail(email);
 
     const user = await prisma.user.findUnique({
-        where: { email },
+        where: { email: normalizedEmail },
         select: { emailVerified: true },
     });
 
     if (user && user.emailVerified == null) {
-        void issueOtpForEmail(email, locale);
+        await issueOtpForEmail(normalizedEmail, locale);
     }
 
     return NextResponse.json({ status: "OTP_SENT" }, { status: 200 });

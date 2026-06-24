@@ -7,6 +7,7 @@ import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
+import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
@@ -17,6 +18,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useRouter } from "@/i18n/server";
 import { EMAIL_NOT_VERIFIED_ERROR } from "@/lib/otp-auth";
+import { OTP_TTL_SECONDS } from "@/lib/otp-store";
 import { showAppToast } from "@/shared/lib/show-app-toast";
 import { AppButton, AppInput } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
@@ -25,8 +27,6 @@ import { OtpCodeInput, OtpResendTimer } from "./otp-code-input";
 
 type AuthTab = "login" | "register";
 type RegisterStep = "form" | "otp";
-
-const OTP_RESEND_SECONDS = 60;
 
 const authFieldSx = {
     "& .MuiOutlinedInput-root": {
@@ -40,19 +40,6 @@ const authFieldSx = {
 } as const;
 
 const emptyOtp = ["", "", "", ""] as const;
-
-async function readJsonError(res: Response, fallback: string): Promise<string> {
-    try {
-        const data = await res.json();
-        if (data && typeof data === "object" && "error" in data) {
-            const e = (data as { error?: unknown }).error;
-            if (typeof e === "string" && e.trim().length > 0) return e;
-        }
-    } catch {
-        /* noop */
-    }
-    return fallback;
-}
 
 export type LoginDialogProps = {
     open: boolean;
@@ -74,6 +61,7 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
     const [otpDigits, setOtpDigits] = useState<string[]>([...emptyOtp]);
     const [resendSeconds, setResendSeconds] = useState(0);
     const [error, setError] = useState<string | null>(null);
+    const [emailExists, setEmailExists] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const resetState = useCallback(() => {
@@ -87,6 +75,7 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
         setOtpDigits([...emptyOtp]);
         setResendSeconds(0);
         setError(null);
+        setEmailExists(false);
         setLoading(false);
     }, []);
 
@@ -109,7 +98,7 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
         setRegisterStep("otp");
         setRegEmail(email);
         setOtpDigits([...emptyOtp]);
-        setResendSeconds(OTP_RESEND_SECONDS);
+        setResendSeconds(OTP_TTL_SECONDS);
         setError(null);
     }, []);
 
@@ -125,7 +114,7 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, locale }),
             });
-            setResendSeconds(OTP_RESEND_SECONDS);
+            setResendSeconds(OTP_TTL_SECONDS);
             showAppToast(t("otp.sentAgain"));
         } catch {
             showAppToast(tCommon("networkError"), "error");
@@ -186,8 +175,17 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
         }
     };
 
+    const switchToLoginWithEmail = useCallback((email: string) => {
+        setEmailExists(false);
+        setError(null);
+        setRegisterStep("form");
+        setTab("login");
+        setLoginEmail(email);
+    }, []);
+
     const handleRegister = async () => {
         setError(null);
+        setEmailExists(false);
         const email = regEmail.trim().toLowerCase();
         const name = regName.trim();
 
@@ -219,9 +217,23 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
             });
 
             if (!res.ok) {
-                const msg = await readJsonError(res, t("errors.registerFailed"));
-                setError(msg);
-                showAppToast(msg, "error");
+                try {
+                    const data = (await res.json()) as { error?: unknown };
+                    if (data.error === "EMAIL_EXISTS") {
+                        setEmailExists(true);
+                        return;
+                    }
+                    const msg =
+                        typeof data.error === "string" && data.error.trim().length > 0
+                            ? data.error
+                            : t("errors.registerFailed");
+                    setError(msg);
+                    showAppToast(msg, "error");
+                } catch {
+                    const msg = t("errors.registerFailed");
+                    setError(msg);
+                    showAppToast(msg, "error");
+                }
                 return;
             }
 
@@ -249,9 +261,9 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
 
     const handleVerifyOtp = async () => {
         const email = regEmail.trim().toLowerCase();
-        const code = otpDigits.join("");
+        const codeToSend = otpDigits.join("").trim();
 
-        if (code.length !== 4) {
+        if (codeToSend.length !== 4) {
             const msg = t("otp.invalidCode");
             setError(msg);
             showAppToast(msg, "error");
@@ -264,10 +276,22 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
             const res = await fetch("/api/auth/verify-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, code }),
+                body: JSON.stringify({ email, code: codeToSend }),
             });
 
             if (!res.ok) {
+                try {
+                    const data = (await res.json()) as { error?: unknown };
+                    if (data.error === "OTP_EXPIRED") {
+                        const msg = t("code_expired");
+                        setError(msg);
+                        setResendSeconds(0);
+                        showAppToast(msg, "error");
+                        return;
+                    }
+                } catch {
+                    /* noop */
+                }
                 const msg = t("otp.invalidCode");
                 setError(msg);
                 showAppToast(msg, "error");
@@ -341,6 +365,7 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                             setTab(v);
                             setRegisterStep("form");
                             setError(null);
+                            setEmailExists(false);
                         }}
                         variant="fullWidth"
                         sx={{
@@ -436,8 +461,10 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                         <OtpResendTimer
                             secondsLeft={resendSeconds}
                             onResend={() => void handleResendOtp()}
-                            resendLabel={t("otp.resend")}
-                            timerLabel={t("otp.resendIn")}
+                            codeTimerLabel={t("code_timer")}
+                            resendAvailableLabel={t("resend_available")}
+                            resendWaitLabel={t("resend_wait")}
+                            codeExpiredLabel={t("code_expired")}
                             disabled={loading}
                         />
                         <AppButton
@@ -486,6 +513,21 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                                 if (e.key === "Enter") void handleRegister();
                             }}
                         />
+                        {emailExists ? (
+                            <Alert severity="warning">
+                                {t("email_exists")}{" "}
+                                <Link
+                                    component="button"
+                                    variant="body2"
+                                    fontWeight={700}
+                                    underline="hover"
+                                    onClick={() => switchToLoginWithEmail(regEmail.trim().toLowerCase())}
+                                    sx={{ verticalAlign: "baseline" }}
+                                >
+                                    {t("login_link")}
+                                </Link>
+                            </Alert>
+                        ) : null}
                         {error ? <Alert severity="error">{error}</Alert> : null}
                         <AppButton
                             variant="contained"

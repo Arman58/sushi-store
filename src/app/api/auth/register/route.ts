@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { normalizeEmail } from "@/lib/normalize-email";
 import { issueOtpForEmail } from "@/lib/otp-auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -49,13 +50,11 @@ export async function POST(request: Request) {
     }
 
     const { email, password, name, locale } = parsed.data;
+    const normalizedEmail = normalizeEmail(email);
 
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existing) {
-        return NextResponse.json(
-            { error: GENERIC_REGISTRATION_FAILURE_MESSAGE },
-            { status: 409 },
-        );
+        return NextResponse.json({ error: "EMAIL_EXISTS" }, { status: 409 });
     }
 
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
@@ -63,7 +62,7 @@ export async function POST(request: Request) {
     try {
         await prisma.user.create({
             data: {
-                email,
+                email: normalizedEmail,
                 passwordHash,
                 name,
                 emailVerified: null,
@@ -78,7 +77,7 @@ export async function POST(request: Request) {
         );
     }
 
-    void issueOtpForEmail(email, locale);
+    await issueOtpForEmail(normalizedEmail, locale);
 
     return NextResponse.json({ status: "OTP_SENT" }, { status: 200 });
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { getLocale, getTranslations } from "next-intl/server";
+import { Suspense } from "react";
 
 import { getLocalizedField } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";

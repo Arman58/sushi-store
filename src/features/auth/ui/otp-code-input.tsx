@@ -1,15 +1,18 @@
 "use client";
 
 import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import {
+    type ClipboardEvent,
+    type KeyboardEvent,
     useCallback,
     useEffect,
     useRef,
-    type ClipboardEvent,
-    type KeyboardEvent,
 } from "react";
+
+import { OTP_RESEND_AVAILABLE_AT_SECONDS } from "@/lib/otp-store";
 
 type OtpCodeInputProps = {
     value: string[];
@@ -120,49 +123,71 @@ export function OtpCodeInput({ value, onChange, disabled = false }: OtpCodeInput
     );
 }
 
+export function formatOtpTimer(seconds: number): string {
+    const minutes = Math.floor(seconds / 60);
+    const remainder = seconds % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+}
+
 type OtpResendTimerProps = {
     secondsLeft: number;
     onResend: () => void;
-    resendLabel: string;
-    timerLabel: string;
+    codeTimerLabel: string;
+    resendAvailableLabel: string;
+    resendWaitLabel: string;
+    codeExpiredLabel: string;
     disabled?: boolean;
 };
 
 export function OtpResendTimer({
     secondsLeft,
     onResend,
-    resendLabel,
-    timerLabel,
+    codeTimerLabel,
+    resendAvailableLabel,
+    resendWaitLabel,
+    codeExpiredLabel,
     disabled = false,
 }: OtpResendTimerProps) {
-    if (secondsLeft > 0) {
-        return (
-            <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
-                {timerLabel.replace("{seconds}", String(secondsLeft))}
-            </Typography>
-        );
-    }
+    const canResend = secondsLeft <= OTP_RESEND_AVAILABLE_AT_SECONDS;
+    const resendCooldownLeft = secondsLeft - OTP_RESEND_AVAILABLE_AT_SECONDS;
 
     return (
-        <Box sx={{ textAlign: "center" }}>
-            <Typography
-                component="button"
-                type="button"
-                variant="body2"
-                onClick={onResend}
-                disabled={disabled}
-                sx={{
-                    border: 0,
-                    background: "none",
-                    p: 0,
-                    color: "primary.main",
-                    fontWeight: 700,
-                    cursor: disabled ? "not-allowed" : "pointer",
-                    textDecoration: "underline",
-                }}
-            >
-                {resendLabel}
-            </Typography>
-        </Box>
+        <Stack spacing={1} sx={{ textAlign: "center" }}>
+            {secondsLeft > 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                    {codeTimerLabel} {formatOtpTimer(secondsLeft)}
+                </Typography>
+            ) : (
+                <Typography variant="body2" color="warning.main" fontWeight={600}>
+                    {codeExpiredLabel}
+                </Typography>
+            )}
+
+            {!canResend ? (
+                <Typography variant="body2" color="text.secondary">
+                    {resendWaitLabel.replace("{seconds}", String(resendCooldownLeft))}
+                </Typography>
+            ) : (
+                <Typography
+                    component="button"
+                    type="button"
+                    variant="body2"
+                    onClick={onResend}
+                    disabled={disabled}
+                    sx={{
+                        border: 0,
+                        background: "none",
+                        p: 0,
+                        color: "primary.main",
+                        fontWeight: 700,
+                        cursor: disabled ? "not-allowed" : "pointer",
+                        textDecoration: "underline",
+                        opacity: disabled ? 0.6 : 1,
+                    }}
+                >
+                    {resendAvailableLabel}
+                </Typography>
+            )}
+        </Stack>
     );
 }

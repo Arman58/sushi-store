@@ -15,8 +15,8 @@ import { memo } from "react";
 import { formatStorePrice } from "@/shared/lib/format-price";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { buildProductImageAlt } from "@/shared/lib/product-image-alt";
-import { fadeInSx, skeletonSurfaceSx } from "@/shared/ui/skeleton-styles";
 import { ProductCoverImage } from "@/shared/ui/product-cover-image";
+import { fadeInSx, skeletonSurfaceSx } from "@/shared/ui/skeleton-styles";
 import { tokens } from "@/shared/ui/theme";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

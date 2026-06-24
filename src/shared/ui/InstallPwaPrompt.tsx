@@ -12,7 +12,7 @@ import SwipeableDrawer from "@mui/material/SwipeableDrawer";
 import Typography from "@mui/material/Typography";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { type ReactNode,useCallback, useEffect, useState } from "react";
 
 const ANDROID_DISMISS_KEY = "east-west-pwa-install-dismissed";
 const IOS_DISMISS_KEY = "ios-pwa-prompt-dismissed";

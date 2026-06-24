@@ -461,6 +461,12 @@
             "registerAutoLoginFailed": "Аккаунт создан, но не удалось войти. Попробуйте вкладку «Вход».",
             "emailNotVerified": "Email не подтвержден"
         },
+        "email_exists": "Пользователь с таким email уже зарегистрирован.",
+        "login_link": "Войти",
+        "code_timer": "Код действует еще",
+        "resend_available": "Отправить код снова",
+        "resend_wait": "Отправить код можно через {seconds} сек",
+        "code_expired": "Код просрочен, запросите новый",
         "otp": {
             "title": "Подтвердите email",
             "subtitle": "Введите 4-значный код, отправленный на {email}",
