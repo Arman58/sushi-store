@@ -7,6 +7,8 @@ export type RateLimitBucket =
     | "order"
     | "adminLogin"
     | "register"
+    | "verifyOtp"
+    | "resendOtp"
     | "validateCart"
     | "validatePromo";
 
@@ -20,6 +22,8 @@ export const RATE_LIMIT_BUCKETS: Record<RateLimitBucket, BucketConfig> = {
     order: { requests: 5, window: "60 s", prefix: "rl:order" },
     adminLogin: { requests: 5, window: "15 m", prefix: "rl:admin-login" },
     register: { requests: 5, window: "15 m", prefix: "rl:register" },
+    verifyOtp: { requests: 10, window: "15 m", prefix: "rl:verify-otp" },
+    resendOtp: { requests: 5, window: "15 m", prefix: "rl:resend-otp" },
     validateCart: { requests: 20, window: "60 s", prefix: "rl:validate-cart" },
     validatePromo: { requests: 10, window: "60 s", prefix: "rl:validate-promo" },
 };
@@ -49,6 +53,8 @@ const limiters: Record<RateLimitBucket, Ratelimit | null> = {
     order: createLimiter("order"),
     adminLogin: createLimiter("adminLogin"),
     register: createLimiter("register"),
+    verifyOtp: createLimiter("verifyOtp"),
+    resendOtp: createLimiter("resendOtp"),
     validateCart: createLimiter("validateCart"),
     validatePromo: createLimiter("validatePromo"),
 };

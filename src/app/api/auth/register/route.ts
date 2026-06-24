@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { sendWelcomeEmail } from "@/lib/email";
+import { issueOtpForEmail } from "@/lib/otp-auth";
 import { prisma } from "@/lib/prisma";
 import {
     checkRateLimit,
@@ -26,6 +26,7 @@ const registerSchema = z.object({
         .string()
         .trim()
         .min(2, "Имя должно быть не короче 2 символов"),
+    locale: z.enum(["hy", "ru", "en"]).optional(),
 });
 
 export async function POST(request: Request) {
@@ -47,13 +48,13 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: message }, { status: 400 });
     }
 
-    const { email, password, name } = parsed.data;
+    const { email, password, name, locale } = parsed.data;
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
         return NextResponse.json(
             { error: GENERIC_REGISTRATION_FAILURE_MESSAGE },
-            { status: 400 },
+            { status: 409 },
         );
     }
 
@@ -77,11 +78,7 @@ export async function POST(request: Request) {
         );
     }
 
-    try {
-        await sendWelcomeEmail(email, name);
-    } catch {
-        // Error logged in production monitoring
-    }
+    void issueOtpForEmail(email, locale);
 
-    return NextResponse.json({ ok: true }, { status: 201 });
+    return NextResponse.json({ status: "OTP_SENT" }, { status: 200 });
 }

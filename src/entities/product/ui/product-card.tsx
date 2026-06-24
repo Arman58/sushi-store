@@ -35,6 +35,7 @@ export type ProductCardProps = {
     mainImage?: string | null;
     badges?: ProductBadge[];
     onAddToCart: () => void;
+    onOpenDetails?: () => void;
     quantity?: number;
     onIncrease?: () => void;
     onDecrease?: () => void;
@@ -64,11 +65,13 @@ const stepperButtonSx = {
 
 export const ProductCard = memo(function ProductCard({
     name,
+    description,
     composition,
     price,
     images,
     mainImage,
     onAddToCart,
+    onOpenDetails,
     quantity = 0,
     onIncrease,
     onDecrease,
@@ -78,12 +81,24 @@ export const ProductCard = memo(function ProductCard({
     const locale = useLocale();
     const imageUrl = getProductCoverUrl({ images, mainImage });
     const imageAlt = buildProductImageAlt(name, locale);
+    const previewText = (description ?? composition)?.trim() ?? "";
 
     const hasInCart = quantity > 0;
 
     const handleAdd = (e: React.MouseEvent) => {
         e.stopPropagation();
         onAddToCart();
+    };
+
+    const handleOpenDetails = () => {
+        onOpenDetails?.();
+    };
+
+    const handleOpenDetailsKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleOpenDetails();
+        }
     };
 
     return (
@@ -98,7 +113,6 @@ export const ProductCard = memo(function ProductCard({
                     flexDirection: "column",
                     borderRadius: `${tokens.radiusCardLg}px`,
                     overflow: "hidden",
-                    cursor: "pointer",
                     bgcolor: "background.paper",
                     transition:
                         "transform 200ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1)",
@@ -110,6 +124,33 @@ export const ProductCard = memo(function ProductCard({
                     },
                 }}
             >
+                <Box
+                    role={onOpenDetails ? "button" : undefined}
+                    tabIndex={onOpenDetails ? 0 : undefined}
+                    aria-label={
+                        onOpenDetails
+                            ? t("aria.openDetails", { name })
+                            : undefined
+                    }
+                    onClick={onOpenDetails ? handleOpenDetails : undefined}
+                    onKeyDown={
+                        onOpenDetails ? handleOpenDetailsKeyDown : undefined
+                    }
+                    sx={{
+                        flex: 1,
+                        minHeight: 0,
+                        display: "flex",
+                        flexDirection: "column",
+                        cursor: onOpenDetails ? "pointer" : undefined,
+                        outline: "none",
+                        "&:focus-visible": onOpenDetails
+                            ? {
+                                  boxShadow: (theme) =>
+                                      `inset 0 0 0 2px ${theme.palette.primary.main}`,
+                              }
+                            : undefined,
+                    }}
+                >
                 {/* 1. Image - fixed aspect ratio, never stretches the card */}
                 <Box
                     sx={{
@@ -158,7 +199,7 @@ export const ProductCard = memo(function ProductCard({
                         {name}
                     </Typography>
 
-                    {composition?.trim() ? (
+                    {previewText ? (
                         <Typography
                             variant="caption"
                             color="text.secondary"
@@ -168,12 +209,14 @@ export const ProductCard = memo(function ProductCard({
                                 WebkitLineClamp: 2,
                                 WebkitBoxOrient: "vertical",
                                 overflow: "hidden",
-                                lineHeight: 1.35,
+                                textOverflow: "ellipsis",
+                                lineHeight: 1.4,
                             }}
                         >
-                            {composition.trim()}
+                            {previewText}
                         </Typography>
                     ) : null}
+                </Box>
                 </Box>
 
                 {/* 3. Footer - price truncates before action controls */}

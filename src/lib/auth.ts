@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
 import { prisma } from "@/lib/prisma";
+import { EMAIL_NOT_VERIFIED_ERROR } from "@/lib/otp-auth";
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -20,7 +21,7 @@ const sessionCookieOptions = {
 
 /**
  * NextAuth: JWT-сессии, вход по email + пароль.
- * Lazy Verification: emailVerified === null не блокирует вход и заказы.
+ * emailVerified обязателен — без OTP-подтверждения вход блокируется.
  */
 export const authOptions: NextAuthOptions = {
     session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 /* 30 дней */ },
@@ -65,6 +66,10 @@ export const authOptions: NextAuthOptions = {
 
                 const valid = await bcrypt.compare(password, user.passwordHash);
                 if (!valid) return null;
+
+                if (user.emailVerified == null) {
+                    throw new Error(EMAIL_NOT_VERIFIED_ERROR);
+                }
 
                 return {
                     id: String(user.id),

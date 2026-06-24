@@ -24,6 +24,10 @@ import {
 
 type TelegramUpdate = z.infer<typeof telegramWebhookBodySchema>;
 
+async function replyToCallback(callbackId: string, text: string): Promise<void> {
+    await answerKitchenCallbackQuery(callbackId, text);
+}
+
 export async function POST(request: Request) {
     if (!isKitchenTelegramConfigured()) {
         return NextResponse.json({ ok: false, error: "Telegram not configured" }, {
@@ -48,105 +52,107 @@ export async function POST(request: Request) {
     }
 
     const update: TelegramUpdate = bodyParsed.data;
+    console.log("Telegram webhook received:", JSON.stringify(update));
 
     const callback = update.callback_query;
-    if (!callback?.data || !callback.id) {
-        return NextResponse.json({ ok: true });
+    if (!callback?.id) {
+        return NextResponse.json({ ok: true }, { status: 200 });
     }
 
-    const chatId = callback.message?.chat.id;
-    if (!isAuthorizedKitchenChat(chatId)) {
-        return NextResponse.json({ ok: true });
-    }
+    const callbackId = callback.id;
 
-    const etaParsed = parseKitchenEtaCallbackData(callback.data);
-    if (etaParsed) {
-        const { orderId, minutes } = etaParsed;
+    try {
+        if (!callback.data) {
+            await replyToCallback(callbackId, "Некорректные данные");
+            return NextResponse.json({ ok: true }, { status: 200 });
+        }
+
+        const chatId = callback.message?.chat.id;
+        if (!isAuthorizedKitchenChat(chatId)) {
+            await replyToCallback(callbackId, "Нет доступа");
+            return NextResponse.json({ ok: true }, { status: 200 });
+        }
+
+        const etaParsed = parseKitchenEtaCallbackData(callback.data);
+        if (etaParsed) {
+            const { orderId, minutes } = etaParsed;
+
+            try {
+                const estimatedDeliveryAt = computeEstimatedDeliveryAt(minutes);
+                const updated = await updateOrderEstimatedDeliveryAt(
+                    orderId,
+                    estimatedDeliveryAt,
+                );
+
+                await replyToCallback(
+                    callbackId,
+                    `Заказ №${orderId}: ETA ${minutes} мин`,
+                );
+
+                const message = callback.message;
+                if (message?.message_id != null && message.text) {
+                    await editKitchenOrderMessageEta({
+                        chatId: message.chat.id,
+                        messageId: message.message_id,
+                        text: message.text,
+                        orderId,
+                        estimatedDeliveryAt: updated.estimatedDeliveryAt,
+                    });
+                }
+            } catch (error) {
+                if (error instanceof UpdateOrderEtaError) {
+                    const text =
+                        error.code === "NOT_FOUND" ? "Заказ не найден" : error.message;
+                    await replyToCallback(callbackId, text);
+                } else {
+                    await replyToCallback(callbackId, "Ошибка установки времени");
+                }
+            }
+
+            return NextResponse.json({ ok: true }, { status: 200 });
+        }
+
+        const statusParsed = parseKitchenCallbackData(callback.data);
+        if (!statusParsed) {
+            await replyToCallback(callbackId, "Неизвестная команда");
+            return NextResponse.json({ ok: true }, { status: 200 });
+        }
+
+        const { orderId, status } = statusParsed;
 
         try {
-            const estimatedDeliveryAt = computeEstimatedDeliveryAt(minutes);
-            const updated = await updateOrderEstimatedDeliveryAt(
-                orderId,
-                estimatedDeliveryAt,
-            );
+            const updated = await updateOrderStatus(orderId, status);
+            const label = orderStatusLabel(updated.status);
 
-            await answerKitchenCallbackQuery(
-                callback.id,
-                `Заказ №${orderId}: ETA ${minutes} мин`,
-            );
+            await replyToCallback(callbackId, `Заказ №${orderId}: ${label}`);
 
             const message = callback.message;
             if (message?.message_id != null && message.text) {
-                await editKitchenOrderMessageEta({
+                await editKitchenOrderMessageWithKeyboard({
                     chatId: message.chat.id,
                     messageId: message.message_id,
                     text: message.text,
                     orderId,
-                    estimatedDeliveryAt: updated.estimatedDeliveryAt,
+                    status: status as KitchenButtonStatus,
                 });
             }
-
-            return NextResponse.json({
-                ok: true,
-                orderId: updated.id,
-                estimatedDeliveryAt: updated.estimatedDeliveryAt.toISOString(),
-            });
         } catch (error) {
-            if (error instanceof UpdateOrderEtaError) {
-                if (error.code === "NOT_FOUND") {
-                    return NextResponse.json({ ok: true });
-                }
-                await answerKitchenCallbackQuery(callback.id, error.message);
-                return NextResponse.json({ ok: true });
-            }
-
-            // Error logged in production monitoring
-            await answerKitchenCallbackQuery(callback.id, "Ошибка установки времени");
-            return NextResponse.json({ ok: false }, { status: 500 });
-        }
-    }
-
-    const statusParsed = parseKitchenCallbackData(callback.data);
-    if (!statusParsed) {
-        return NextResponse.json({ ok: true });
-    }
-
-    const { orderId, status } = statusParsed;
-
-    try {
-        const updated = await updateOrderStatus(orderId, status);
-        const label = orderStatusLabel(updated.status);
-
-        await answerKitchenCallbackQuery(
-            callback.id,
-            `Заказ №${orderId}: ${label}`,
-        );
-
-        const message = callback.message;
-        if (message?.message_id != null && message.text) {
-            await editKitchenOrderMessageWithKeyboard({
-                chatId: message.chat.id,
-                messageId: message.message_id,
-                text: message.text,
-                orderId,
-                status: status as KitchenButtonStatus,
-            });
-        }
-
-        return NextResponse.json({ ok: true, orderId: updated.id, status: updated.status });
-    } catch (error) {
-        if (error instanceof UpdateOrderStatusError) {
-            if (error.code === "NOT_FOUND") {
-                return NextResponse.json({ ok: true });
-            }
-            if (error.code === "CANCELLED_LOCKED") {
-                await answerKitchenCallbackQuery(callback.id, "Заказ уже отменён");
-                return NextResponse.json({ ok: true });
+            if (error instanceof UpdateOrderStatusError) {
+                const text =
+                    error.code === "NOT_FOUND"
+                        ? "Заказ не найден"
+                        : error.code === "CANCELLED_LOCKED"
+                          ? "Заказ уже отменён"
+                          : error.message;
+                await replyToCallback(callbackId, text);
+            } else {
+                await replyToCallback(callbackId, "Ошибка обновления статуса");
             }
         }
 
-        // Error logged in production monitoring
-        await answerKitchenCallbackQuery(callback.id, "Ошибка обновления статуса");
-        return NextResponse.json({ ok: false }, { status: 500 });
+        return NextResponse.json({ ok: true }, { status: 200 });
+    } catch {
+        await replyToCallback(callbackId, "Ошибка обработки");
+        return NextResponse.json({ ok: true }, { status: 200 });
     }
 }

@@ -158,10 +158,12 @@
         "aria": {
             "decrease": "Decrease quantity: {name}",
             "increase": "Increase quantity: {name}",
-            "add": "Add {name}"
+            "add": "Add {name}",
+            "openDetails": "Open details for {name}"
         },
         "modifiers": {
             "fromPrice": "from {price} ֏",
+            "price": "{price} ֏",
             "required": "Required",
             "optional": "Optional",
             "maxChoices": "Up to {n} pcs",
@@ -456,11 +458,23 @@
             "invalidEmail": "Enter a valid email",
             "passwordTooShort": "Password must be at least 8 characters",
             "registerFailed": "Could not create account",
-            "registerAutoLoginFailed": "Account created but sign-in failed. Try the Sign in tab."
+            "registerAutoLoginFailed": "Account created but sign-in failed. Try the Sign in tab.",
+            "emailNotVerified": "Email is not verified"
+        },
+        "otp": {
+            "title": "Verify your email",
+            "subtitle": "Enter the 4-digit code sent to {email}",
+            "confirm": "Confirm",
+            "resend": "Resend code",
+            "resendIn": "Resend in {seconds}s",
+            "invalidCode": "Invalid code",
+            "sent": "Verification code sent to your email",
+            "sentAgain": "A new code was sent to your email",
+            "back": "Back"
         },
         "toast": {
             "welcome": "Welcome!",
-            "registerSuccess": "Registration successful! You are signed in"
+            "registerSuccess": "Email verified! You are signed in"
         }
     },
     "contacts": {

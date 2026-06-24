@@ -6,7 +6,6 @@ import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
 import type { ProductBadge } from "@/entities/product/ui/product-card";
 import { ProductCard } from "@/entities/product/ui/product-card";
 import { buildCartItemId, useCartStore } from "@/features/cart";
-import { getProductCoverUrl } from "@/shared/lib/product-cover";
 
 export type ConnectableProduct = {
     id: number;
@@ -49,7 +48,6 @@ export const ConnectedProductCard = memo(function ConnectedProductCard({
             [product.id],
         ),
     );
-    const addItem = useCartStore((s) => s.addItem);
     const setItemQuantity = useCartStore((s) => s.setItemQuantity);
     const decrementFirstLineForProduct = useCartStore(
         (s) => s.decrementFirstLineForProduct,
@@ -58,25 +56,12 @@ export const ConnectedProductCard = memo(function ConnectedProductCard({
     const hasModifiers = (product.modifierGroups?.length ?? 0) > 0;
 
     const handleAddToCart = useCallback(() => {
-        if (hasModifiers) {
-            onOpenModifiers(product);
-            return;
-        }
-        startTransition(() => {
-            addItem({
-                productId: product.id,
-                name: product.name,
-                basePrice: product.price,
-                selectedModifiers: [],
-                calculatedItemPrice: product.price,
-                image:
-                    getProductCoverUrl({
-                        images: product.images,
-                        mainImage: product.mainImage,
-                    }) || "",
-            });
-        });
-    }, [addItem, hasModifiers, onOpenModifiers, product]);
+        onOpenModifiers(product);
+    }, [onOpenModifiers, product]);
+
+    const handleOpenDetails = useCallback(() => {
+        onOpenModifiers(product);
+    }, [onOpenModifiers, product]);
 
     const handleIncrease = useCallback(() => {
         if (hasModifiers) {
@@ -116,6 +101,7 @@ export const ConnectedProductCard = memo(function ConnectedProductCard({
             badges={badges}
             quantity={quantity}
             onAddToCart={handleAddToCart}
+            onOpenDetails={handleOpenDetails}
             onIncrease={handleIncrease}
             onDecrease={handleDecrease}
         />

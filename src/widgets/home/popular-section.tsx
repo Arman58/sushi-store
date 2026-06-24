@@ -214,7 +214,11 @@ export function PopularSection({
                 open={modifierProduct !== null}
                 onClose={() => setModifierProduct(null)}
                 productName={modifierProduct?.name ?? ""}
-                description={modifierProduct?.description}
+                description={
+                    modifierProduct?.description ??
+                    modifierProduct?.composition ??
+                    undefined
+                }
                 basePrice={modifierProduct?.price ?? 0}
                 modifierGroups={modifierProduct?.modifierGroups ?? []}
                 onConfirm={({ selectedModifiers, calculatedItemPrice }) => {

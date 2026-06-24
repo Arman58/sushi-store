@@ -5,7 +5,7 @@ import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { handleSessionExpired } from "@/features/auth/handle-session-expired";
@@ -21,6 +21,7 @@ export function ProfileEmailVerificationAlert({
 }: ProfileEmailVerificationAlertProps) {
     const [loading, setLoading] = useState(false);
     const [loginOpen, setLoginOpen] = useState(false);
+    const locale = useLocale();
     const t = useTranslations("profile.email");
     const tProfile = useTranslations("profile.login");
     const tCommon = useTranslations("common");
@@ -32,7 +33,7 @@ export function ProfileEmailVerificationAlert({
             const res = await fetch("/api/auth/resend-verification", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ email, locale }),
             });
 
             if (res.status === 401) {

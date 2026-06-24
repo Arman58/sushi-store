@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
-import { sendWelcomeEmail } from "@/lib/email";
+import { issueOtpForEmail } from "@/lib/otp-auth";
 import { prisma } from "@/lib/prisma";
+import {
+    checkRateLimit,
+    rateLimitExceededJsonResponse,
+} from "@/lib/rate-limit";
 
 const bodySchema = z.object({
     email: z
@@ -12,9 +16,15 @@ const bodySchema = z.object({
         .min(1, "Укажите email")
         .email("Некорректный email")
         .transform((v) => v.toLowerCase()),
+    locale: z.enum(["hy", "ru", "en"]).optional(),
 });
 
 export async function POST(request: Request) {
+    const rateLimit = await checkRateLimit(request, "resendOtp");
+    if (!rateLimit.allowed) {
+        return rateLimitExceededJsonResponse();
+    }
+
     const session = await auth();
     const userId = session?.user?.id ?? null;
 
@@ -35,7 +45,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: message }, { status: 400 });
     }
 
-    const { email } = parsed.data;
+    const { email, locale } = parsed.data;
 
     const user = await prisma.user.findUnique({
         where: { id: userId },
@@ -54,15 +64,13 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Почта уже подтверждена" }, { status: 400 });
     }
 
-    try {
-        await sendWelcomeEmail(email, user.name ?? "");
-    } catch {
-        // Error logged in production monitoring
+    const { sent } = await issueOtpForEmail(email, locale);
+    if (!sent) {
         return NextResponse.json(
             { error: "Не удалось отправить письмо. Попробуйте позже." },
             { status: 502 },
         );
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ status: "OTP_SENT" });
 }

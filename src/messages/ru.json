@@ -158,10 +158,12 @@
         "aria": {
             "decrease": "Уменьшить количество: {name}",
             "increase": "Увеличить количество: {name}",
-            "add": "Добавить {name}"
+            "add": "Добавить {name}",
+            "openDetails": "Открыть описание: {name}"
         },
         "modifiers": {
             "fromPrice": "от {price} ֏",
+            "price": "{price} ֏",
             "required": "Обязательно",
             "optional": "По желанию",
             "maxChoices": "До {n} шт",
@@ -456,11 +458,23 @@
             "invalidEmail": "Введите корректный email",
             "passwordTooShort": "Пароль должен быть не короче 8 символов",
             "registerFailed": "Не удалось создать аккаунт",
-            "registerAutoLoginFailed": "Аккаунт создан, но не удалось войти. Попробуйте вкладку «Вход»."
+            "registerAutoLoginFailed": "Аккаунт создан, но не удалось войти. Попробуйте вкладку «Вход».",
+            "emailNotVerified": "Email не подтвержден"
+        },
+        "otp": {
+            "title": "Подтвердите email",
+            "subtitle": "Введите 4-значный код, отправленный на {email}",
+            "confirm": "Подтвердить",
+            "resend": "Отправить код снова",
+            "resendIn": "Отправить снова через {seconds} сек",
+            "invalidCode": "Неверный код",
+            "sent": "Код подтверждения отправлен на email",
+            "sentAgain": "Новый код отправлен на email",
+            "back": "Назад"
         },
         "toast": {
             "welcome": "Добро пожаловать!",
-            "registerSuccess": "Регистрация успешна! Вы вошли в аккаунт"
+            "registerSuccess": "Email подтвержден! Вы вошли в аккаунт"
         }
     },
     "contacts": {
