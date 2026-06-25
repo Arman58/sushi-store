@@ -7,6 +7,7 @@ import Typography from "@mui/material/Typography";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
+import { redirectToCanonicalHost } from "@/lib/canonical-host";
 import { getServiceWorkerRegistration } from "@/lib/push-service-worker";
 import { showAppToast } from "@/shared/lib/show-app-toast";
 import { AppButton } from "@/shared/ui";
@@ -37,6 +38,7 @@ export function PushPermissionPrompt() {
 
     useEffect(() => {
         if (!isPushSupported()) return;
+        if (redirectToCanonicalHost()) return;
 
         let cancelled = false;
 
@@ -55,7 +57,7 @@ export function PushPermissionPrompt() {
                     setState("denied");
                 }
             } catch {
-                /* keep idle */
+                /* keep idle — user can retry */
             }
         })();
 
@@ -69,6 +71,8 @@ export function PushPermissionPrompt() {
             setState("unsupported");
             return;
         }
+
+        if (redirectToCanonicalHost()) return;
 
         const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
         if (!vapidPublicKey) {
@@ -103,8 +107,8 @@ export function PushPermissionPrompt() {
                 !subscriptionJson.keys?.p256dh ||
                 !subscriptionJson.keys?.auth
             ) {
-                setState("denied");
-                showAppToast(t("denied"), "error");
+                setState("idle");
+                showAppToast(t("subscribeFailed"), "error");
                 return;
             }
 
@@ -133,8 +137,15 @@ export function PushPermissionPrompt() {
             showAppToast(t("enabled"));
         } catch (error) {
             console.error("[PUSH SUBSCRIBE] Client error:", error);
-            setState("denied");
-            showAppToast(t("denied"), "error");
+
+            if (Notification.permission === "denied") {
+                setState("denied");
+                showAppToast(t("denied"), "error");
+                return;
+            }
+
+            setState("idle");
+            showAppToast(t("subscribeFailed"), "error");
         }
     };
 

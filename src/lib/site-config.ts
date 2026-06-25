@@ -1,9 +1,21 @@
 /** Публичные контакты и URL витрины - единый источник для SEO, JSON-LD и UI. */
-export const SITE_URL = (
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    process.env.NEXTAUTH_URL ??
-    ""
-).replace(/\/$/, "");
+function normalizeSiteUrl(raw: string): string {
+    const trimmed = raw.replace(/\/$/, "");
+    if (!trimmed) return "";
+    try {
+        const url = new URL(trimmed);
+        if (url.hostname === "eastwestnh.com") {
+            url.hostname = "www.eastwestnh.com";
+        }
+        return url.origin;
+    } catch {
+        return trimmed;
+    }
+}
+
+export const SITE_URL = normalizeSiteUrl(
+    process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXTAUTH_URL ?? "",
+);
 
 export const SITE_NAME = "East West Delivery";
 

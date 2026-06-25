@@ -442,6 +442,8 @@
             "loading": "Enabling…",
             "enabled": "Push notifications are enabled",
             "denied": "Allow notifications in your browser settings",
+            "wrongHost": "Open the site at www.eastwestnh.com — push does not work on eastwestnh.com",
+            "subscribeFailed": "Could not enable notifications. Refresh the page and try again",
             "unsupported": "Your browser does not support push notifications"
         },
         "addresses": {

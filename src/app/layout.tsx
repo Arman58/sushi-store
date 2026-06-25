@@ -17,6 +17,7 @@ import {
     SITE_NAME,
     SITE_URL,
 } from "@/lib/site-config";
+import { CanonicalRedirectScript } from "@/shared/ui/CanonicalRedirectScript";
 
 import { interFont } from "./fonts";
 import { AppProviders } from "./providers";
@@ -99,6 +100,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             className={interFont.variable}
             data-scroll-behavior="smooth"
         >
+            <head>
+                <CanonicalRedirectScript />
+            </head>
             <body
                 suppressHydrationWarning
                 className={interFont.className}
