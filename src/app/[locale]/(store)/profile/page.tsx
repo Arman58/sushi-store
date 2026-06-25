@@ -20,6 +20,7 @@ import { tokens } from "@/shared/ui/theme";
 import { ProfileEmailVerificationAlert } from "./profile-email-verification-alert";
 import { ProfileLoginPrompt } from "./profile-login-prompt";
 import { ProfileOrderActions } from "./profile-order-actions";
+import { ProfileSavedAddressesSection } from "./profile-saved-addresses-section";
 import { ProfileSessionGuard } from "./profile-session-guard";
 import type { ProfileOrderItem } from "./types";
 
@@ -122,6 +123,8 @@ export default async function ProfilePage() {
                 ) : null}
 
                 {user.emailVerified != null ? <PushPermissionPrompt /> : null}
+
+                <ProfileSavedAddressesSection />
 
                 <Paper
                     elevation={0}

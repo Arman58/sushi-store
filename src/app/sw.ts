@@ -43,6 +43,7 @@ function isSensitiveApiPath(pathname: string): boolean {
         pathname.startsWith("/api/order") ||
         pathname.startsWith("/api/auth") ||
         pathname.startsWith("/api/push") ||
+        pathname.startsWith("/api/profile") ||
         pathname.startsWith("/api/validate-cart") ||
         pathname.startsWith("/api/validate-promo") ||
         pathname.startsWith("/api/admin/login") ||

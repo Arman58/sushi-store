@@ -173,6 +173,20 @@ model User {
   createdAt     DateTime  @default(now())
   orders        Order[]
   subscriptions PushSubscription[]
+  savedAddresses SavedAddress[]
+}
+
+model SavedAddress {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String
+  street    String
+  apartment String?
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model PushSubscription {
