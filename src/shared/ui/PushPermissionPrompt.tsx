@@ -7,6 +7,8 @@ import Typography from "@mui/material/Typography";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
+import { getServiceWorkerRegistration } from "@/lib/push-service-worker";
+import { showAppToast } from "@/shared/lib/show-app-toast";
 import { AppButton } from "@/shared/ui";
 
 type PushPermissionState = "idle" | "loading" | "subscribed" | "denied" | "unsupported";
@@ -40,7 +42,7 @@ export function PushPermissionPrompt() {
 
         void (async () => {
             try {
-                const registration = await navigator.serviceWorker.ready;
+                const registration = await getServiceWorkerRegistration();
                 const existing = await registration.pushManager.getSubscription();
                 if (cancelled) return;
 
@@ -71,6 +73,7 @@ export function PushPermissionPrompt() {
         const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
         if (!vapidPublicKey) {
             setState("unsupported");
+            showAppToast(t("unsupported"), "error");
             return;
         }
 
@@ -80,10 +83,11 @@ export function PushPermissionPrompt() {
             const permission = await Notification.requestPermission();
             if (permission !== "granted") {
                 setState("denied");
+                showAppToast(t("denied"), "error");
                 return;
             }
 
-            const registration = await navigator.serviceWorker.ready;
+            const registration = await getServiceWorkerRegistration();
             let subscription = await registration.pushManager.getSubscription();
 
             if (!subscription) {
@@ -94,31 +98,43 @@ export function PushPermissionPrompt() {
             }
 
             const subscriptionJson = subscription.toJSON();
-            if (!subscriptionJson.endpoint || !subscriptionJson.keys?.p256dh || !subscriptionJson.keys?.auth) {
+            if (
+                !subscriptionJson.endpoint ||
+                !subscriptionJson.keys?.p256dh ||
+                !subscriptionJson.keys?.auth
+            ) {
                 setState("denied");
+                showAppToast(t("denied"), "error");
                 return;
             }
 
-            const res = await fetch("/api/push/subscribe", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    endpoint: subscriptionJson.endpoint,
-                    keys: {
-                        p256dh: subscriptionJson.keys.p256dh,
-                        auth: subscriptionJson.keys.auth,
-                    },
-                }),
-            });
+            try {
+                const res = await fetch("/api/push/subscribe", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "same-origin",
+                    body: JSON.stringify({
+                        endpoint: subscriptionJson.endpoint,
+                        keys: {
+                            p256dh: subscriptionJson.keys.p256dh,
+                            auth: subscriptionJson.keys.auth,
+                        },
+                    }),
+                });
 
-            if (!res.ok) {
-                setState("denied");
-                return;
+                if (!res.ok) {
+                    console.error("[PUSH SUBSCRIBE] Backend error:", res.status);
+                }
+            } catch (error) {
+                console.error("[PUSH SUBSCRIBE] Network error:", error);
             }
 
             setState("subscribed");
-        } catch {
+            showAppToast(t("enabled"));
+        } catch (error) {
+            console.error("[PUSH SUBSCRIBE] Client error:", error);
             setState("denied");
+            showAppToast(t("denied"), "error");
         }
     };
 
