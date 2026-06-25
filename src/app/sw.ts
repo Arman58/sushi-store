@@ -275,4 +275,15 @@ self.addEventListener("notificationclick", (event: NotificationEvent) => {
     );
 });
 
+self.addEventListener("message", (event: ExtendableMessageEvent) => {
+    if (
+        event.data &&
+        typeof event.data === "object" &&
+        "type" in event.data &&
+        event.data.type === "SKIP_WAITING"
+    ) {
+        void self.skipWaiting();
+    }
+});
+
 serwist.addEventListeners();
