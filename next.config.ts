@@ -11,6 +11,8 @@ const ONE_YEAR_CACHE = "public, max-age=31536000, immutable";
 
 const nextConfig: NextConfig = {
     trailingSlash: false,
+    // POST webhooks (Telegram) must not get 308 when the URL has a trailing slash.
+    skipTrailingSlashRedirect: true,
     images: {
         remotePatterns: [
             {
