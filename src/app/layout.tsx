@@ -100,13 +100,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             className={interFont.variable}
             data-scroll-behavior="smooth"
         >
-            <head>
-                <CanonicalRedirectScript />
-            </head>
             <body
                 suppressHydrationWarning
                 className={interFont.className}
             >
+                <CanonicalRedirectScript />
                 <JsonLd
                     data={[restaurantJsonLd(), foodDeliveryServiceJsonLd()]}
                 />

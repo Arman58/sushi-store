@@ -4,7 +4,11 @@ import createIntlMiddleware from "next-intl/middleware";
 
 import { routing } from "@/i18n/routing";
 import { verifyAdminSessionToken } from "@/lib/admin-session";
-import { shouldRedirectToCanonicalHost } from "@/lib/canonical-host";
+import {
+    CANONICAL_HOSTNAME,
+    isApexHost,
+    shouldRedirectToCanonicalHost,
+} from "@/lib/canonical-host";
 
 const handleI18nRouting = createIntlMiddleware(routing);
 
@@ -32,7 +36,9 @@ async function handleAdminAuth(
 export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
-    const canonicalHost = shouldRedirectToCanonicalHost(request.nextUrl.hostname);
+    const canonicalHost = isApexHost(request.nextUrl.hostname)
+        ? CANONICAL_HOSTNAME
+        : shouldRedirectToCanonicalHost(request.nextUrl.hostname);
     if (canonicalHost) {
         const redirectUrl = request.nextUrl.clone();
         redirectUrl.hostname = canonicalHost;

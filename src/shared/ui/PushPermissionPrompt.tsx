@@ -1,18 +1,29 @@
 "use client";
 
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
+import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import Alert from "@mui/material/Alert";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
-import { redirectToCanonicalHost } from "@/lib/canonical-host";
+import {
+    buildWwwUrl,
+    isApexHost,
+    redirectToCanonicalHost,
+} from "@/lib/canonical-host";
 import { getServiceWorkerRegistration } from "@/lib/push-service-worker";
 import { showAppToast } from "@/shared/lib/show-app-toast";
 import { AppButton } from "@/shared/ui";
 
-type PushPermissionState = "idle" | "loading" | "subscribed" | "denied" | "unsupported";
+type PushPermissionState =
+    | "idle"
+    | "loading"
+    | "subscribed"
+    | "denied"
+    | "unsupported"
+    | "wrongHost";
 
 function urlBase64ToUint8Array(base64String: string): BufferSource {
     const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -32,9 +43,11 @@ function isPushSupported(): boolean {
 
 export function PushPermissionPrompt() {
     const t = useTranslations("profile.push");
-    const [state, setState] = useState<PushPermissionState>(() =>
-        isPushSupported() ? "idle" : "unsupported",
-    );
+    const [state, setState] = useState<PushPermissionState>(() => {
+        if (!isPushSupported()) return "unsupported";
+        if (isApexHost()) return "wrongHost";
+        return "idle";
+    });
 
     useEffect(() => {
         if (!isPushSupported()) return;
@@ -66,9 +79,25 @@ export function PushPermissionPrompt() {
         };
     }, []);
 
+    const handleOpenOnWww = () => {
+        window.location.assign(
+            buildWwwUrl(
+                window.location.pathname,
+                window.location.search,
+                window.location.hash,
+            ),
+        );
+    };
+
     const handleEnablePush = async () => {
         if (!isPushSupported()) {
             setState("unsupported");
+            return;
+        }
+
+        if (isApexHost()) {
+            setState("wrongHost");
+            showAppToast(t("wrongHost"), "error");
             return;
         }
 
@@ -138,6 +167,12 @@ export function PushPermissionPrompt() {
         } catch (error) {
             console.error("[PUSH SUBSCRIBE] Client error:", error);
 
+            if (isApexHost()) {
+                setState("wrongHost");
+                showAppToast(t("wrongHost"), "error");
+                return;
+            }
+
             if (Notification.permission === "denied") {
                 setState("denied");
                 showAppToast(t("denied"), "error");
@@ -154,6 +189,23 @@ export function PushPermissionPrompt() {
             <Alert severity="info" sx={{ mb: 3 }}>
                 {t("unsupported")}
             </Alert>
+        );
+    }
+
+    if (state === "wrongHost") {
+        return (
+            <Stack spacing={2} sx={{ mb: 3 }}>
+                <Alert severity="warning">{t("wrongHost")}</Alert>
+                <AppButton
+                    variant="contained"
+                    color="primary"
+                    onClick={handleOpenOnWww}
+                    startIcon={<OpenInNewOutlinedIcon />}
+                    sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
+                >
+                    {t("openOnWww")}
+                </AppButton>
+            </Stack>
         );
     }
 

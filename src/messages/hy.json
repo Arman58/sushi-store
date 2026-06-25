@@ -439,6 +439,7 @@
             "enabled": "Push-ծանուցումները միացված է",
             "denied": "Թույլատրեք ծանուցումները դիտարկիչի կարգավորներում",
             "wrongHost": "Բացեք կայքը www.eastwestnh.com հասցեով — eastwestnh.com-ում push-ը չի աշխատում",
+            "openOnWww": "Բացել www.eastwestnh.com-ում",
             "subscribeFailed": "Չհաջողվեց միացնել ծանուցումները։ Թարմացրեք էջը և կրկին փորձեք",
             "unsupported": "Պեր դիտարկիչը չի աջակցում push-ծանուցումներ"
         },

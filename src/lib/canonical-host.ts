@@ -1,6 +1,17 @@
+/** Apex-домены, с которых push/SW не работают (sw.js редиректится на www). */
+export const APEX_HOSTNAMES = ["eastwestnh.com"] as const;
+
+export const CANONICAL_HOSTNAME = "www.eastwestnh.com";
+
 const APEX_TO_CANONICAL: Record<string, string> = {
-    "eastwestnh.com": "www.eastwestnh.com",
+    "eastwestnh.com": CANONICAL_HOSTNAME,
 };
+
+export function isApexHost(hostname?: string): boolean {
+    const host =
+        hostname ?? (typeof window !== "undefined" ? window.location.hostname : "");
+    return (APEX_HOSTNAMES as readonly string[]).includes(host);
+}
 
 /** Канонический hostname (www, не apex). */
 export function resolveCanonicalHostname(hostname: string): string {
@@ -17,7 +28,7 @@ export function resolveCanonicalHostname(hostname: string): string {
     return APEX_TO_CANONICAL[hostname] ?? hostname;
 }
 
-export function getCanonicalHostname(): string | null {
+export function getCanonicalHostname(): string {
     const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim();
     if (fromEnv) {
         try {
@@ -27,38 +38,39 @@ export function getCanonicalHostname(): string | null {
         }
     }
 
-    return "www.eastwestnh.com";
+    return CANONICAL_HOSTNAME;
 }
 
 export function shouldRedirectToCanonicalHost(currentHostname: string): string | null {
+    if (isApexHost(currentHostname)) {
+        return CANONICAL_HOSTNAME;
+    }
+
     const canonical = getCanonicalHostname();
-    if (canonical && canonical !== currentHostname) {
+    if (canonical !== currentHostname) {
         return canonical;
     }
     return null;
 }
 
-export function getCanonicalOrigin(): string | null {
-    const canonical = getCanonicalHostname();
-    if (!canonical) return null;
-    return `https://${canonical}`;
+export function getCanonicalOrigin(): string {
+    return `https://${getCanonicalHostname()}`;
 }
 
-/** Список apex-хостов, с которых нужен редирект (для inline-скрипта). */
-export function getApexHostnames(): string[] {
-    return Object.keys(APEX_TO_CANONICAL);
+export function buildWwwUrl(
+    pathname = "/",
+    search = "",
+    hash = "",
+): string {
+    return `https://${CANONICAL_HOSTNAME}${pathname}${search}${hash}`;
 }
 
 /**
- * Inline-скрипт в <head>: редирект до React/SW.
- * Критично для PWA, открытой с eastwestnh.com (без www).
+ * Inline-скрипт: редирект до React/SW.
+ * Хардкод — не зависит от env при сборке.
  */
 export function buildCanonicalRedirectScript(): string {
-    const canonical = getCanonicalHostname();
-    const apexHosts = getApexHostnames();
-    if (!canonical || apexHosts.length === 0) return "";
-
-    return `(function(){try{var c=${JSON.stringify(canonical)};var a=${JSON.stringify(apexHosts)};if(a.indexOf(location.hostname)!==-1){location.replace("https://"+c+location.pathname+location.search+location.hash);}}catch(e){}})();`;
+    return `(function(){try{if(location.hostname==="eastwestnh.com"){location.replace("https://www.eastwestnh.com"+location.pathname+location.search+location.hash);}}catch(e){}})();`;
 }
 
 /** Редирект на канонический хост (клиент). */
@@ -68,9 +80,8 @@ export function redirectToCanonicalHost(): boolean {
     const canonicalHost = shouldRedirectToCanonicalHost(window.location.hostname);
     if (!canonicalHost) return false;
 
-    const target = new URL(window.location.href);
-    target.hostname = canonicalHost;
-    target.protocol = "https:";
-    window.location.replace(target.toString());
+    window.location.replace(
+        buildWwwUrl(window.location.pathname, window.location.search, window.location.hash),
+    );
     return true;
 }
