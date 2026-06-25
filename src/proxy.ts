@@ -31,7 +31,6 @@ async function handleAdminAuth(
 export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
-    // API and internal routes must never pass through next-intl (avoids 308 on POST webhooks).
     if (
         pathname.startsWith("/api") ||
         pathname.startsWith("/_next") ||
