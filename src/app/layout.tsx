@@ -59,7 +59,10 @@ export const metadata: Metadata = {
     alternates: {
         canonical: "./",
     },
-    icons: { icon: "/east-west-logo.png" },
+    icons: {
+        icon: "/east-west-logo.png",
+        apple: "/pwa/icon-192x192.png",
+    },
     openGraph: {
         title: "Sushi & Pizza Delivery in Yerevan & Nor Hachn | East West",
         description:
