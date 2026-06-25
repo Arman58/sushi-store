@@ -52,7 +52,6 @@ export async function POST(request: Request) {
     }
 
     const update: TelegramUpdate = bodyParsed.data;
-    console.log("Telegram webhook received:", JSON.stringify(update));
 
     const callback = update.callback_query;
     if (!callback?.id) {
@@ -121,6 +120,7 @@ export async function POST(request: Request) {
         const { orderId, status } = statusParsed;
 
         try {
+            console.log("[TELEGRAM WEBHOOK] Updating order:", orderId, "to", status);
             const updated = await updateOrderStatus(orderId, status);
             const label = orderStatusLabel(updated.status);
 

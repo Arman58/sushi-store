@@ -54,7 +54,7 @@ export const orderStatusPostBodySchema = z.object({
 
 export const orderStatusGetQuerySchema = z.object({
     id: z.coerce.number().int().positive(),
-    phone: z.string().min(8),
+    phone: z.string().optional(),
 });
 
 export const adminOrderStatusBodySchema = z.object({

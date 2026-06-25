@@ -40,7 +40,9 @@ function isAdminPath(pathname: string): boolean {
 
 function isSensitiveApiPath(pathname: string): boolean {
     return (
-        pathname.startsWith("/api/order") ||
+        pathname.startsWith("/api/order-status") ||
+        pathname.startsWith("/api/order/") ||
+        pathname === "/api/order" ||
         pathname.startsWith("/api/auth") ||
         pathname.startsWith("/api/push") ||
         pathname.startsWith("/api/profile") ||
