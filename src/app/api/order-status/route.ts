@@ -5,11 +5,16 @@ import {
     orderStatusGetQuerySchema,
     orderStatusPostBodySchema,
 } from "@/lib/api-schemas";
+import { canAccessOrderStatus } from "@/lib/order-status-access";
 import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
 import { API_ERROR_CODES } from "@/shared/lib/api-error";
 
-const normalizePhone = (phone: string) => phone.replace(/\D/g, "");
+export const dynamic = "force-dynamic";
+
+const NO_STORE_HEADERS = {
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+};
 
 type OrderWithItems = Prisma.OrderGetPayload<{ include: { items: true } }>;
 
@@ -19,7 +24,7 @@ function orderNotFoundResponse(status: number) {
             error: "Order not found",
             code: API_ERROR_CODES.ORDER_NOT_FOUND,
         },
-        { status },
+        { status, headers: NO_STORE_HEADERS },
     );
 }
 
@@ -29,7 +34,7 @@ function orderServerErrorResponse() {
             error: "Internal server error",
             code: API_ERROR_CODES.INTERNAL_SERVER_ERROR,
         },
-        { status: 500 },
+        { status: 500, headers: NO_STORE_HEADERS },
     );
 }
 
@@ -58,21 +63,19 @@ function buildOrderStatusPayload(order: OrderWithItems) {
     };
 }
 
-/** Опрос статуса по id и телефону (телефон обязателен в query, чтобы нельзя было перебирать id). */
+/** Опрос статуса: cookie владельца/гостя, сессия или телефон в query. */
 export async function GET(request: Request) {
     const url = new URL(request.url);
     const queryParsed = orderStatusGetQuerySchema.safeParse({
         id: url.searchParams.get("id"),
-        phone: url.searchParams.get("phone") ?? "",
+        phone: url.searchParams.get("phone") ?? undefined,
     });
 
     if (!queryParsed.success) {
-        const phoneMissing = !url.searchParams.get("phone")?.trim();
-        return orderNotFoundResponse(phoneMissing ? 403 : 400);
+        return orderNotFoundResponse(400);
     }
 
     const { id, phone } = queryParsed.data;
-    const normalized = normalizePhone(phone);
 
     try {
         const order = await prisma.order.findUnique({
@@ -80,13 +83,19 @@ export async function GET(request: Request) {
             include: { items: true },
         });
 
-        if (!order || normalizePhone(order.phone) !== normalized) {
+        if (!order) {
             return orderNotFoundResponse(404);
         }
 
-        return NextResponse.json(buildOrderStatusPayload(order));
+        const allowed = await canAccessOrderStatus(order, phone);
+        if (!allowed) {
+            return orderNotFoundResponse(phone?.trim() ? 404 : 403);
+        }
+
+        return NextResponse.json(buildOrderStatusPayload(order), {
+            headers: NO_STORE_HEADERS,
+        });
     } catch {
-        // Error logged in production monitoring
         return orderServerErrorResponse();
     }
 }
@@ -98,7 +107,6 @@ export async function POST(request: Request) {
     }
 
     const { id, phone } = parsed.data;
-    const normalized = normalizePhone(phone);
 
     try {
         const order = await prisma.order.findUnique({
@@ -106,13 +114,19 @@ export async function POST(request: Request) {
             include: { items: true },
         });
 
-        if (!order || normalizePhone(order.phone) !== normalized) {
+        if (!order) {
             return orderNotFoundResponse(404);
         }
 
-        return NextResponse.json(buildOrderStatusPayload(order));
+        const allowed = await canAccessOrderStatus(order, phone);
+        if (!allowed) {
+            return orderNotFoundResponse(404);
+        }
+
+        return NextResponse.json(buildOrderStatusPayload(order), {
+            headers: NO_STORE_HEADERS,
+        });
     } catch {
-        // Error logged in production monitoring
         return orderServerErrorResponse();
     }
 }

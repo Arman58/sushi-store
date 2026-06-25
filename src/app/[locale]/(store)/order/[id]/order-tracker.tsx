@@ -34,6 +34,9 @@ import { storePriceFormatter } from "@/shared/lib/format-price";
 import { translateOrderStatus } from "@/shared/lib/order-status-labels";
 import { tokens } from "@/shared/ui/theme";
 
+const POLL_INTERVAL_MS = 5_000;
+const TERMINAL_STATUSES = new Set<OrderStatus>(["DONE", "CANCELLED"]);
+
 const STEP_KEYS = ["NEW", "COOKING", "DELIVERING", "DONE"] as const satisfies readonly OrderStatus[];
 
 const STEP_ICONS: Record<(typeof STEP_KEYS)[number], ReactNode> = {
@@ -171,11 +174,16 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
     const { data } = useQuery<OrderStatusResponse>({
         queryKey: ["order", initial.id],
         queryFn: async () => {
-            const qs = new URLSearchParams({
-                id: String(initial.id),
-                phone,
+            const qs = new URLSearchParams({ id: String(initial.id) });
+            if (phone.trim()) {
+                qs.set("phone", phone);
+            }
+
+            const res = await fetch(`/api/order-status?${qs.toString()}`, {
+                method: "GET",
+                cache: "no-store",
+                credentials: "same-origin",
             });
-            const res = await fetch(`/api/order-status?${qs.toString()}`, { method: "GET" });
             if (!res.ok) {
                 throw new Error(await res.text().catch(() => res.statusText));
             }
@@ -194,13 +202,16 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
             } satisfies OrderStatusResponse;
         },
         initialData: initial,
-        refetchOnMount: true,
+        staleTime: 0,
+        refetchOnMount: "always",
         refetchOnWindowFocus: true,
+        refetchIntervalInBackground: true,
         refetchInterval: (query) => {
             const status = query.state.data?.status;
-            return status === "NEW" || status === "COOKING" || status === "DELIVERING"
-                ? 10_000
-                : false;
+            if (!status || TERMINAL_STATUSES.has(status)) {
+                return false;
+            }
+            return POLL_INTERVAL_MS;
         },
     });
 
