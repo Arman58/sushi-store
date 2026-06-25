@@ -248,6 +248,9 @@
         "total": "Total",
         "delivery_price": "Delivery fee",
         "pageTitle": "Checkout",
+        "select_saved_address": "Select saved address",
+        "save_address": "Save this address for future orders",
+        "apartment": "Apartment",
         "emptyCart": "Your cart is empty. Add items before placing an order.",
         "phoneTemplate": "+374 (___) __-__-__",
         "pickupLocation": "Pickup from East West restaurant: {address}.",
@@ -409,6 +412,10 @@
     "profile": {
         "pageTitle": "Profile",
         "defaultName": "Customer",
+        "my_addresses": "My addresses",
+        "add_address": "Add address",
+        "label_home": "Home",
+        "label_work": "Work",
         "phoneMissing": "Phone number not set (add it when placing an order)",
         "memberSince": "With us since {date}",
         "orderHistory": "Order history",
@@ -427,6 +434,34 @@
             "resend": "Resend email",
             "resendFailed": "Could not send email. Try again later.",
             "resendSuccess": "Email sent to your inbox"
+        },
+        "push": {
+            "title": "Order notifications",
+            "description": "Get push alerts when your order status changes in the kitchen.",
+            "enable": "Enable order notifications",
+            "loading": "Enabling…",
+            "enabled": "Push notifications are enabled",
+            "denied": "Allow notifications in your browser settings",
+            "unsupported": "Your browser does not support push notifications"
+        },
+        "addresses": {
+            "empty": "No saved addresses yet",
+            "loadFailed": "Could not load addresses",
+            "saveFailed": "Could not save address",
+            "deleteFailed": "Could not delete address",
+            "created": "Address added",
+            "updated": "Address updated",
+            "deleted": "Address deleted",
+            "validation": "Fill in the label and street",
+            "editTitle": "Edit address",
+            "edit": "Edit",
+            "delete": "Delete",
+            "labelField": "Label",
+            "streetField": "Street and building",
+            "apartmentField": "Apartment",
+            "commentField": "Comment for courier",
+            "cancel": "Cancel",
+            "save": "Save"
         }
     },
     "auth": {

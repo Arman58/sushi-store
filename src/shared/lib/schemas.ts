@@ -50,7 +50,10 @@ export const checkoutSchema = z
         phone: z.string().default(""),
         delivery: z.enum(["delivery", "pickup"]),
         address: z.string().default(""),
+        apartment: z.string().default(""),
         comment: z.string().default(""),
+        saveAddress: z.boolean().default(false),
+        saveAddressLabel: z.string().default(""),
         payment: z.enum(["cash", "card"]).default("cash"),
         /** Обязательна при delivery; для pickup не используется */
         deliveryZoneId: z.number().int().positive().optional(),

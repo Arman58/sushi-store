@@ -5,19 +5,30 @@ import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import Checkbox from "@mui/material/Checkbox";
 import CircularProgress from "@mui/material/CircularProgress";
+import FormControl from "@mui/material/FormControl";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import FormLabel from "@mui/material/FormLabel";
 import InputAdornment from "@mui/material/InputAdornment";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
+import Radio from "@mui/material/Radio";
+import RadioGroup from "@mui/material/RadioGroup";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 
 import { deliveryZoneSelectMenuProps } from "@/features/checkout/model/constants";
 import { showCheckoutFieldError } from "@/features/checkout/model/helpers";
 import type { DeliveryZoneOption } from "@/features/checkout/model/types";
+import {
+    formatSavedAddressLine,
+    type SavedAddressDto,
+} from "@/lib/saved-address";
 import type { CheckoutFormValues, DeliveryType } from "@/shared/lib/schemas";
 import { AppInput, AppSelect } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
@@ -31,6 +42,7 @@ import {
 
 type DeliverySectionProps = {
     isDelivery: boolean;
+    isAuthenticated: boolean;
     deliveryZones: DeliveryZoneOption[];
     zonesLoading: boolean;
     zonesError: string | null;
@@ -49,6 +61,7 @@ const DELIVERY_TYPE_ICONS: Record<DeliveryType, ReactNode> = {
 
 export function DeliverySection({
     isDelivery,
+    isAuthenticated,
     deliveryZones,
     zonesLoading,
     zonesError,
@@ -61,11 +74,49 @@ export function DeliverySection({
 }: DeliverySectionProps) {
     const t = useTranslations("checkout.delivery");
     const tCheckout = useTranslations("checkout");
+    const tProfile = useTranslations("profile");
     const tCommon = useTranslations("common");
     const { control, register, setValue, clearErrors, watch, formState } =
         useFormContext<CheckoutFormValues>();
     const { errors, touchedFields, isSubmitted } = formState;
     const delivery = watch("delivery");
+    const saveAddress = watch("saveAddress");
+
+    const [savedAddresses, setSavedAddresses] = useState<SavedAddressDto[]>([]);
+    const [addressesLoading, setAddressesLoading] = useState(false);
+    const [selectedAddressId, setSelectedAddressId] = useState<string>("");
+
+    useEffect(() => {
+        if (!isAuthenticated || !isDelivery) {
+            setSavedAddresses([]);
+            setSelectedAddressId("");
+            return;
+        }
+
+        let cancelled = false;
+        setAddressesLoading(true);
+
+        void (async () => {
+            try {
+                const res = await fetch("/api/profile/addresses");
+                if (!res.ok || cancelled) return;
+                const data = (await res.json()) as { addresses?: SavedAddressDto[] };
+                if (!cancelled) {
+                    setSavedAddresses(
+                        Array.isArray(data.addresses) ? data.addresses : [],
+                    );
+                }
+            } catch {
+                if (!cancelled) setSavedAddresses([]);
+            } finally {
+                if (!cancelled) setAddressesLoading(false);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isAuthenticated, isDelivery]);
 
     const deliveryTypes: DeliveryType[] = ["delivery", "pickup"];
 
@@ -73,6 +124,38 @@ export function DeliverySection({
         setValue("delivery", type, { shouldValidate: false });
         if (type === "pickup") {
             clearErrors(["address", "deliveryZoneId", "phone"]);
+            setSelectedAddressId("");
+        }
+    };
+
+    const applySavedAddress = (address: SavedAddressDto) => {
+        setValue("address", address.street, { shouldValidate: true, shouldDirty: true });
+        setValue("apartment", address.apartment ?? "", {
+            shouldValidate: false,
+            shouldDirty: true,
+        });
+        if (address.comment) {
+            setValue("comment", address.comment, {
+                shouldValidate: false,
+                shouldDirty: true,
+            });
+        }
+    };
+
+    const handleSavedAddressChange = (value: string) => {
+        setSelectedAddressId(value);
+        const address = savedAddresses.find((item) => String(item.id) === value);
+        if (address) {
+            applySavedAddress(address);
+        }
+    };
+
+    const handleSaveAddressToggle = (checked: boolean) => {
+        setValue("saveAddress", checked, { shouldValidate: false });
+        if (checked && !watch("saveAddressLabel")) {
+            setValue("saveAddressLabel", tProfile("label_home"), {
+                shouldValidate: false,
+            });
         }
     };
 
@@ -307,42 +390,133 @@ export function DeliverySection({
                     </>
                 )}
 
+            {isDelivery && isAuthenticated && addressesLoading && (
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                    <CircularProgress size={20} />
+                    <Typography variant="body2" color="text.secondary">
+                        {tCommon("loading")}
+                    </Typography>
+                </Stack>
+            )}
+
+            {isDelivery && isAuthenticated && !addressesLoading && savedAddresses.length > 0 && (
+                <FormControl component="fieldset" sx={{ width: "100%" }}>
+                    <FormLabel component="legend" sx={{ mb: 1, fontWeight: 600 }}>
+                        {tCheckout("select_saved_address")}
+                    </FormLabel>
+                    <RadioGroup
+                        value={selectedAddressId}
+                        onChange={(event) => handleSavedAddressChange(event.target.value)}
+                    >
+                        {savedAddresses.map((address) => (
+                            <FormControlLabel
+                                key={address.id}
+                                value={String(address.id)}
+                                control={<Radio size="small" />}
+                                label={
+                                    <Box>
+                                        <Typography variant="body2" fontWeight={700}>
+                                            {address.label}
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary">
+                                            {formatSavedAddressLine(
+                                                address.street,
+                                                address.apartment,
+                                            )}
+                                        </Typography>
+                                    </Box>
+                                }
+                                sx={{
+                                    alignItems: "flex-start",
+                                    mx: 0,
+                                    mb: 0.5,
+                                    border: "1px solid",
+                                    borderColor: "divider",
+                                    borderRadius: 2,
+                                    px: 1.5,
+                                    py: 1,
+                                }}
+                            />
+                        ))}
+                    </RadioGroup>
+                </FormControl>
+            )}
+
             {isDelivery && (
-                <AppInput
-                    label={t("address")}
-                    {...checkoutFieldProps}
-                    sx={checkoutInputRadiusSx}
-                    {...register("address")}
-                    required
-                    error={showCheckoutFieldError(
-                        errors,
-                        touchedFields,
-                        isSubmitted,
-                        "address",
-                    )}
-                    helperText={
-                        showCheckoutFieldError(
+                <>
+                    <AppInput
+                        label={t("address")}
+                        {...checkoutFieldProps}
+                        sx={checkoutInputRadiusSx}
+                        {...register("address", {
+                            onChange: () => setSelectedAddressId(""),
+                        })}
+                        required
+                        error={showCheckoutFieldError(
                             errors,
                             touchedFields,
                             isSubmitted,
                             "address",
-                        )
-                            ? errors.address?.message
-                            : undefined
-                    }
-                    InputProps={{
-                        startAdornment: (
-                            <InputAdornment position="start">
-                                <HomeOutlinedIcon
-                                    sx={{
-                                        fontSize: 18,
-                                        color: "text.secondary",
-                                    }}
+                        )}
+                        helperText={
+                            showCheckoutFieldError(
+                                errors,
+                                touchedFields,
+                                isSubmitted,
+                                "address",
+                            )
+                                ? errors.address?.message
+                                : undefined
+                        }
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <HomeOutlinedIcon
+                                        sx={{
+                                            fontSize: 18,
+                                            color: "text.secondary",
+                                        }}
+                                    />
+                                </InputAdornment>
+                            ),
+                        }}
+                    />
+
+                    {isAuthenticated ? (
+                        <AppInput
+                            label={tCheckout("apartment")}
+                            {...checkoutFieldProps}
+                            sx={checkoutInputRadiusSx}
+                            {...register("apartment", {
+                                onChange: () => setSelectedAddressId(""),
+                            })}
+                        />
+                    ) : null}
+
+                    {isAuthenticated ? (
+                        <Stack spacing={1}>
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={Boolean(saveAddress)}
+                                        onChange={(event) =>
+                                            handleSaveAddressToggle(event.target.checked)
+                                        }
+                                    />
+                                }
+                                label={tCheckout("save_address")}
+                            />
+                            {saveAddress ? (
+                                <AppInput
+                                    label={tProfile("addresses.labelField")}
+                                    {...checkoutFieldProps}
+                                    sx={checkoutInputRadiusSx}
+                                    {...register("saveAddressLabel")}
                                 />
-                            </InputAdornment>
-                        ),
-                    }}
-                />
+                            ) : null}
+                        </Stack>
+                    ) : null}
+                </>
             )}
         </Paper>
     );

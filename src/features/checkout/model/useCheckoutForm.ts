@@ -46,6 +46,7 @@ type UseCheckoutFormParams = {
 
 export function useCheckoutForm({ sessionUser, hasItems }: UseCheckoutFormParams) {
     const t = useTranslations("checkout.form");
+    const tProfile = useTranslations("profile");
     const locale = useLocale() as AppLocale;
     const schemaMessages = useSchemaMessages();
     const checkoutSchema = useMemo(
@@ -75,7 +76,10 @@ export function useCheckoutForm({ sessionUser, hasItems }: UseCheckoutFormParams
             email: draft?.email ?? "",
             phone: draft?.phone ?? "",
             address: draft?.address ?? "",
+            apartment: draft?.apartment ?? "",
             comment: draft?.comment ?? "",
+            saveAddress: false,
+            saveAddressLabel: "",
             payment: draft?.payment ?? "cash",
             delivery: draft?.delivery ?? "delivery",
             deliveryZoneId: draft?.deliveryZoneId,
@@ -233,6 +237,25 @@ export function useCheckoutForm({ sessionUser, hasItems }: UseCheckoutFormParams
             });
 
             if (result?.ok && result.order?.id && result.order.accessToken) {
+                if (
+                    sessionUser &&
+                    data.saveAddress &&
+                    data.delivery === "delivery" &&
+                    data.address.trim().length >= 3
+                ) {
+                    void fetch("/api/profile/addresses", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            label:
+                                data.saveAddressLabel.trim() ||
+                                tProfile("label_home"),
+                            street: data.address.trim(),
+                            apartment: data.apartment.trim() || undefined,
+                        }),
+                    }).catch(() => undefined);
+                }
+
                 useCartStore.getState().clear();
                 try {
                     localStorage.removeItem(DRAFT_STORAGE_KEY);

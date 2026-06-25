@@ -317,6 +317,7 @@ export function CheckoutWizard() {
 
                                         <DeliverySection
                                             isDelivery={delivery.isDelivery}
+                                            isAuthenticated={Boolean(sessionUser)}
                                             deliveryZones={delivery.deliveryZones}
                                             zonesLoading={delivery.zonesLoading}
                                             zonesError={delivery.zonesError}
