@@ -4,6 +4,7 @@ import createIntlMiddleware from "next-intl/middleware";
 
 import { routing } from "@/i18n/routing";
 import { verifyAdminSessionToken } from "@/lib/admin-session";
+import { shouldRedirectToCanonicalHost } from "@/lib/canonical-host";
 
 const handleI18nRouting = createIntlMiddleware(routing);
 
@@ -31,6 +32,14 @@ async function handleAdminAuth(
 export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
+    const canonicalHost = shouldRedirectToCanonicalHost(request.nextUrl.hostname);
+    if (canonicalHost) {
+        const redirectUrl = request.nextUrl.clone();
+        redirectUrl.hostname = canonicalHost;
+        redirectUrl.protocol = "https:";
+        return NextResponse.redirect(redirectUrl, 308);
+    }
+
     if (
         pathname.startsWith("/api") ||
         pathname.startsWith("/_next") ||
@@ -47,5 +56,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"],
+    // Включая /api и статику — apex должен уходить на www до SW и POST-запросов.
+    matcher: ["/((?!_next|_vercel).*)"],
 };
