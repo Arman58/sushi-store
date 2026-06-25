@@ -90,11 +90,20 @@ export async function updateOrderStatus(
         throw new UpdateOrderStatusError("Order is cancelled", "CANCELLED_LOCKED");
     }
 
-    return prisma.order.update({
+    const updated = await prisma.order.update({
         where: { id: orderId },
         data: { status: newStatus },
         select: { id: true, status: true },
     });
+
+    if (updated.status !== existing.status) {
+        const { notifyOrderStatusPush } = await import("@/lib/push-notifications");
+        void notifyOrderStatusPush(updated.id, updated.status).catch((error) => {
+            console.error("[PUSH ERROR]", error);
+        });
+    }
+
+    return updated;
 }
 
 export async function updateOrderEstimatedDeliveryAt(

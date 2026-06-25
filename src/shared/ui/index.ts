@@ -8,5 +8,6 @@ export { default as LanguageSwitcher } from "./LanguageSwitcher";
 export * from "./layout-shell";
 export * from "./mobile-bottom-nav";
 export * from "./page-container";
+export { PushPermissionPrompt } from "./PushPermissionPrompt";
 export * from "./section-title";
 export * from "./theme";

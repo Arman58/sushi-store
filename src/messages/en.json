@@ -427,6 +427,15 @@
             "resend": "Resend email",
             "resendFailed": "Could not send email. Try again later.",
             "resendSuccess": "Email sent to your inbox"
+        },
+        "push": {
+            "title": "Order notifications",
+            "description": "Get push alerts when your order status changes in the kitchen.",
+            "enable": "Enable order notifications",
+            "loading": "Enabling…",
+            "enabled": "Push notifications are enabled",
+            "denied": "Allow notifications in your browser settings",
+            "unsupported": "Your browser does not support push notifications"
         }
     },
     "auth": {

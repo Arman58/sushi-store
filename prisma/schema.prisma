@@ -172,6 +172,18 @@ model User {
   image         String?
   createdAt     DateTime  @default(now())
   orders        Order[]
+  subscriptions PushSubscription[]
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  endpoint  String   @unique
+  keys      Json
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId    Int?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model OrderItem {

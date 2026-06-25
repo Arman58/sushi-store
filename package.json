@@ -13,7 +13,8 @@
     "format": "prettier \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\" --write",
     "prisma:migrate": "dotenv -e .env.local -- prisma migrate dev",
     "prisma:seed": "dotenv -e .env.local -- ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"node\"}' prisma/seed.ts",
-    "prisma:seed-zones": "dotenv -e .env.local -- ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"node\"}' prisma/seed-zones.ts"
+    "prisma:seed-zones": "dotenv -e .env.local -- ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"node\"}' prisma/seed-zones.ts",
+    "generate:vapid": "node scripts/generate-vapid.js"
   },
   "prisma": {
     "seed": "npm run prisma:seed"
@@ -46,6 +47,7 @@
     "react-hook-form": "^7.68.0",
     "resend": "^6.12.4",
     "swiper": "^12.1.3",
+    "web-push": "^3.6.7",
     "zod": "^3.25.28",
     "zustand": "^5.0.9"
   },
@@ -56,6 +58,7 @@
     "@types/node": "^20.19.25",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "concurrently": "^9.2.1",
     "dotenv-cli": "^11.0.0",
     "esbuild": "^0.28.1",

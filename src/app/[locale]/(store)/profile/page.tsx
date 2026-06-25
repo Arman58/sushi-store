@@ -14,7 +14,7 @@ import { formatPhoneForDisplay } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import { NOINDEX_METADATA } from "@/lib/seo/metadata";
 import { translateOrderStatus } from "@/shared/lib/order-status-labels";
-import { EmptyCart, PageContainer, SectionTitle } from "@/shared/ui";
+import { EmptyCart, PageContainer, PushPermissionPrompt, SectionTitle } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
 
 import { ProfileEmailVerificationAlert } from "./profile-email-verification-alert";
@@ -120,6 +120,8 @@ export default async function ProfilePage() {
                 {user.emailVerified == null && user.email ? (
                     <ProfileEmailVerificationAlert email={user.email} />
                 ) : null}
+
+                {user.emailVerified != null ? <PushPermissionPrompt /> : null}
 
                 <Paper
                     elevation={0}
