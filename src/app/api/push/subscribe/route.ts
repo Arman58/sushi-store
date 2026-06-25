@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
-import { areVapidKeysConfigured } from "@/lib/push-vapid";
 import { prisma } from "@/lib/prisma";
 
 const pushSubscribeSchema = z.object({
@@ -14,39 +13,33 @@ const pushSubscribeSchema = z.object({
 });
 
 export async function POST(request: Request) {
+    if (!process.env.VAPID_PRIVATE_KEY || !process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
+        return NextResponse.json({ error: "Server VAPID keys missing" }, { status: 500 });
+    }
+
+    let json: unknown;
     try {
-        if (!areVapidKeysConfigured()) {
-            return NextResponse.json(
-                { error: "VAPID keys are not configured" },
-                { status: 500 },
-            );
-        }
+        json = await request.json();
+    } catch {
+        return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
 
-        let json: unknown;
-        try {
-            json = await request.json();
-        } catch {
-            return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-        }
+    const parsed = pushSubscribeSchema.safeParse(json);
+    if (!parsed.success) {
+        return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
+    }
 
-        const parsed = pushSubscribeSchema.safeParse(json);
-        if (!parsed.success) {
-            return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
-        }
+    const session = await auth();
+    if (!session?.user?.id || !Number.isFinite(Number(session.user.id))) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-        const session = await auth();
-        const userId =
-            session?.user?.id != null && Number.isFinite(Number(session.user.id))
-                ? Number(session.user.id)
-                : null;
+    const userId = Number(session.user.id);
+    const { endpoint, keys } = parsed.data;
 
-        console.log(
-            "[PUSH SUBSCRIBE] Received subscription for user:",
-            userId ?? "guest",
-        );
+    console.log("[PUSH] Saving subscription for user:", userId);
 
-        const { endpoint, keys } = parsed.data;
-
+    try {
         await prisma.pushSubscription.upsert({
             where: { endpoint },
             create: {
@@ -59,10 +52,11 @@ export async function POST(request: Request) {
                 userId,
             },
         });
-
-        return NextResponse.json({ ok: true });
     } catch (error) {
+        const message = error instanceof Error ? error.message : "Database error";
         console.error("[PUSH SUBSCRIBE ERROR]", error);
-        return NextResponse.json({ error: "Failed" }, { status: 500 });
+        return NextResponse.json({ error: message }, { status: 500 });
     }
+
+    return NextResponse.json({ ok: true });
 }

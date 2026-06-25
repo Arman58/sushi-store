@@ -2,11 +2,6 @@ import type { OrderStatus } from "@prisma/client";
 import webpush from "web-push";
 
 import { orderStatusLabel } from "@/lib/order-status";
-import {
-    getVapidPrivateKey,
-    getVapidPublicKey,
-    getVapidSubject,
-} from "@/lib/push-vapid";
 import { prisma } from "@/lib/prisma";
 
 export type PushNotificationPayload = {
@@ -17,18 +12,20 @@ export type PushNotificationPayload = {
 
 const PUSH_NOTIFY_STATUSES: OrderStatus[] = ["COOKING", "DELIVERING", "DONE"];
 
+const VAPID_SUBJECT = "mailto:noreply@eastwestnh.com";
+
 let vapidConfigured = false;
 
 function ensureVapidConfigured(): boolean {
     if (vapidConfigured) return true;
 
-    const publicKey = getVapidPublicKey();
-    const privateKey = getVapidPrivateKey();
+    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
+    const privateKey = process.env.VAPID_PRIVATE_KEY?.trim();
     if (!publicKey || !privateKey) {
         return false;
     }
 
-    webpush.setVapidDetails(getVapidSubject(), publicKey, privateKey);
+    webpush.setVapidDetails(VAPID_SUBJECT, publicKey, privateKey);
     vapidConfigured = true;
     return true;
 }

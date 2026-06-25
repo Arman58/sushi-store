@@ -62,6 +62,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-    // Включая /api и статику — apex должен уходить на www до SW и POST-запросов.
-    matcher: ["/((?!_next|_vercel).*)"],
+    // Статику (лого, favicon, sw.js) не трогаем — иначе i18n роутер отдаёт 404.
+    // Apex → www для /api и страниц; статика на apex редиректится Vercel на edge.
+    matcher: ["/((?!_next|_vercel|.*\\..*).*)"],
 };
