@@ -204,10 +204,7 @@ const serwist = new Serwist({
     skipWaiting: true,
     clientsClaim: true,
     navigationPreload: true,
-    runtimeCaching:
-        process.env.NODE_ENV !== "production"
-            ? [{ matcher: /.*/i, handler: new NetworkOnly() }]
-            : productionRuntimeCaching,
+    runtimeCaching: productionRuntimeCaching,
     fallbacks: {
         entries: [
             {
@@ -273,17 +270,6 @@ self.addEventListener("notificationclick", (event: NotificationEvent) => {
                 return undefined;
             }),
     );
-});
-
-self.addEventListener("message", (event: ExtendableMessageEvent) => {
-    if (
-        event.data &&
-        typeof event.data === "object" &&
-        "type" in event.data &&
-        event.data.type === "SKIP_WAITING"
-    ) {
-        void self.skipWaiting();
-    }
 });
 
 serwist.addEventListeners();
