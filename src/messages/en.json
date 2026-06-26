@@ -441,13 +441,13 @@
             "enable": "Enable order notifications",
             "loading": "Enabling…",
             "success": "Notifications are enabled",
-            "dev_warning": "Push testing in dev mode may not work without a Service Worker. Test in production or via npm run start.",
+            "dev_warning": "Push testing in dev mode may not work. Test in production.",
             "no_support": "Your browser does not support push notifications",
             "vapid_missing": "VAPID public key is not configured on the server",
-            "denied": "You denied notifications. Allow them in your browser settings.",
-            "sw_timeout": "Service Worker is not responding. Reload the page.",
-            "sw_preparing": "Preparing notifications…",
+            "denied": "You denied notifications",
+            "sw_timeout": "Service Worker is not responding. Reload the page (Ctrl+Shift+R).",
             "subscribe_error": "Could not subscribe to push notifications",
+            "server_error": "Server error",
             "backend_error": "Server could not save the subscription"
         },
         "addresses": {

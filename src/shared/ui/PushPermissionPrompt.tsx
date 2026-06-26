@@ -8,135 +8,114 @@ import Typography from "@mui/material/Typography";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
-import {
-    getServiceWorkerRegistrationForPush,
-    urlBase64ToUint8Array,
-} from "@/lib/push-utils";
+import { urlBase64ToUint8Array } from "@/lib/push-utils";
 import { AppButton } from "@/shared/ui";
 
+const SW_URL = "/sw.js";
+const SW_SCOPE = "/";
+const SW_READY_TIMEOUT_MS = 5_000;
 const IS_DEV = process.env.NODE_ENV === "development";
 
-function isPushSupported(): boolean {
-    return (
-        typeof window !== "undefined" &&
-        "serviceWorker" in navigator &&
-        "PushManager" in window &&
-        "Notification" in window
-    );
-}
+type PushStatus = "idle" | "loading" | "success" | "error";
 
 export function PushPermissionPrompt() {
     const t = useTranslations("profile.push");
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState(false);
+    const [status, setStatus] = useState<PushStatus>("idle");
+    const [errorMessage, setErrorMessage] = useState("");
 
     useEffect(() => {
-        if (!isPushSupported()) return;
+        if (!("serviceWorker" in navigator)) return;
 
         let cancelled = false;
 
-        void (async () => {
-            try {
-                console.log("[PUSH] Checking existing subscription on profile mount…");
-                const registration = await getServiceWorkerRegistrationForPush();
-                if (cancelled) return;
-
-                const existing = await registration.pushManager.getSubscription();
-                if (existing) {
-                    console.log("[PUSH] Existing subscription found:", existing.endpoint);
-                    setSuccess(true);
-                } else {
-                    console.log("[PUSH] No existing subscription");
-                }
-            } catch (warmupError) {
-                console.warn("[PUSH] Profile mount SW check failed:", warmupError);
-            }
-        })();
+        void navigator.serviceWorker
+            .getRegistration(SW_SCOPE)
+            .then((registration) => {
+                if (cancelled || !registration) return null;
+                return registration.pushManager.getSubscription();
+            })
+            .then((subscription) => {
+                if (cancelled || !subscription) return;
+                setStatus("success");
+            })
+            .catch(() => {
+                /* ignore — не блокируем UI */
+            });
 
         return () => {
             cancelled = true;
         };
     }, []);
 
-    const handleEnablePush = async () => {
-        setError(null);
-
-        if (!isPushSupported()) {
-            console.error("[PUSH] Browser does not support push");
-            setError(t("no_support"));
-            return;
-        }
-
-        const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
-        if (!vapidPublicKey) {
-            console.error("[PUSH] NEXT_PUBLIC_VAPID_PUBLIC_KEY is missing");
-            setError(t("vapid_missing"));
-            return;
-        }
-
-        setIsLoading(true);
+    const handleRequestPush = async () => {
+        setStatus("loading");
+        setErrorMessage("");
 
         try {
+            if (
+                !("serviceWorker" in navigator) ||
+                !("PushManager" in window) ||
+                !("Notification" in window)
+            ) {
+                setStatus("error");
+                setErrorMessage(t("no_support"));
+                return;
+            }
+
+            const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
+            if (!vapidPublicKey) {
+                setStatus("error");
+                setErrorMessage(t("vapid_missing"));
+                return;
+            }
+
             console.log("[PUSH] Requesting notification permission…");
             const permission = await Notification.requestPermission();
             console.log("[PUSH] Notification permission:", permission);
 
             if (permission !== "granted") {
-                setError(t("denied"));
+                setStatus("error");
+                setErrorMessage(t("denied"));
                 return;
             }
 
-            let registration: ServiceWorkerRegistration;
-            try {
-                registration = await getServiceWorkerRegistrationForPush();
-            } catch (swError) {
-                const message =
-                    swError instanceof Error && swError.message === "SW_TIMEOUT"
-                        ? t("sw_timeout")
-                        : swError instanceof Error
-                          ? swError.message
-                          : t("sw_timeout");
-                console.error("[PUSH] Service worker registration failed:", swError);
-                setError(message);
-                return;
+            console.log("[PUSH] Registering service worker…");
+            await navigator.serviceWorker.register(SW_URL, {
+                scope: SW_SCOPE,
+                updateViaCache: "none",
+            });
+
+            const reg = await Promise.race([
+                navigator.serviceWorker.ready,
+                new Promise<ServiceWorkerRegistration>((_, reject) => {
+                    window.setTimeout(() => {
+                        reject(new Error("SW timeout"));
+                    }, SW_READY_TIMEOUT_MS);
+                }),
+            ]);
+
+            console.log("[PUSH] Service worker ready, scope:", reg.scope);
+
+            let sub = await reg.pushManager.getSubscription();
+            if (!sub) {
+                console.log("[PUSH] Subscribing to push manager…");
+                sub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(
+                        vapidPublicKey,
+                    ) as BufferSource,
+                });
+                console.log("[PUSH] Push subscription created:", sub.endpoint);
             }
 
-            let subscription = await registration.pushManager.getSubscription();
-            console.log(
-                "[PUSH] Existing push subscription:",
-                subscription ? subscription.endpoint : "none",
-            );
-
-            if (!subscription) {
-                try {
-                    console.log("[PUSH] Subscribing to push manager…");
-                    subscription = await registration.pushManager.subscribe({
-                        userVisibleOnly: true,
-                        applicationServerKey: urlBase64ToUint8Array(
-                            vapidPublicKey,
-                        ) as BufferSource,
-                    });
-                    console.log("[PUSH] Push subscription created:", subscription.endpoint);
-                } catch (subscribeError) {
-                    console.error("[PUSH] pushManager.subscribe failed:", subscribeError);
-                    setError(
-                        subscribeError instanceof Error
-                            ? subscribeError.message
-                            : t("subscribe_error"),
-                    );
-                    return;
-                }
-            }
-
-            const subscriptionJson = subscription.toJSON();
+            const subscriptionJson = sub.toJSON();
             if (
                 !subscriptionJson.endpoint ||
                 !subscriptionJson.keys?.p256dh ||
                 !subscriptionJson.keys?.auth
             ) {
-                console.error("[PUSH] Invalid subscription JSON:", subscriptionJson);
-                setError(t("subscribe_error"));
+                setStatus("error");
+                setErrorMessage(t("subscribe_error"));
                 return;
             }
 
@@ -156,26 +135,30 @@ export function PushPermissionPrompt() {
             }
 
             if (!res.ok) {
-                console.error("[PUSH] Backend subscribe failed:", res.status, data);
-                setError(data.error ?? t("backend_error"));
+                setStatus("error");
+                setErrorMessage(data.error ?? t("server_error"));
                 return;
             }
 
             console.log("[PUSH] Subscription saved successfully");
-            setSuccess(true);
-        } catch (unexpectedError) {
-            console.error("[PUSH] Unexpected subscribe error:", unexpectedError);
-            setError(
-                unexpectedError instanceof Error
-                    ? unexpectedError.message
-                    : t("subscribe_error"),
+            setStatus("success");
+        } catch (error) {
+            console.error("[PUSH] Subscribe flow failed:", error);
+
+            if (error instanceof Error && error.message === "SW timeout") {
+                setStatus("error");
+                setErrorMessage(t("sw_timeout"));
+                return;
+            }
+
+            setStatus("error");
+            setErrorMessage(
+                error instanceof Error ? error.message : t("subscribe_error"),
             );
-        } finally {
-            setIsLoading(false);
         }
     };
 
-    if (success) {
+    if (status === "success") {
         return (
             <Alert severity="success" icon={<NotificationsActiveOutlinedIcon />} sx={{ mb: 3 }}>
                 {t("success")}
@@ -187,9 +170,9 @@ export function PushPermissionPrompt() {
         <Stack spacing={2} sx={{ mb: 3 }}>
             {IS_DEV ? <Alert severity="info">{t("dev_warning")}</Alert> : null}
 
-            {error ? (
-                <Alert severity="error" onClose={() => setError(null)}>
-                    {error}
+            {status === "error" && errorMessage ? (
+                <Alert severity="error" onClose={() => setStatus("idle")}>
+                    {errorMessage}
                 </Alert>
             ) : null}
 
@@ -216,10 +199,10 @@ export function PushPermissionPrompt() {
                 <AppButton
                     variant="outlined"
                     color="primary"
-                    disabled={isLoading}
-                    onClick={() => void handleEnablePush()}
+                    disabled={status === "loading"}
+                    onClick={() => void handleRequestPush()}
                     startIcon={
-                        isLoading ? (
+                        status === "loading" ? (
                             <CircularProgress size={18} color="inherit" />
                         ) : (
                             <NotificationsActiveOutlinedIcon />
@@ -227,7 +210,7 @@ export function PushPermissionPrompt() {
                     }
                     sx={{ whiteSpace: "nowrap" }}
                 >
-                    {isLoading ? t("loading") : t("enable")}
+                    {status === "loading" ? t("loading") : t("enable")}
                 </AppButton>
             </Stack>
         </Stack>
