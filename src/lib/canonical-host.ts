@@ -1,9 +1,18 @@
 import { SITE_URL } from "@/lib/site-config";
 
-/** Apex-домены, с которых push/SW не работают (sw.js редиректится на www). */
+/** Apex-домен продакшена (канонический — www). */
 export const APEX_HOSTNAMES = ["eastwestnh.com"] as const;
 
 export const CANONICAL_HOSTNAME = "www.eastwestnh.com";
+
+/** Пути PWA/SW — не редиректим на www, иначе ломается регистрация Service Worker. */
+const PWA_ASSET_PATHS = ["/sw.js", "/manifest.webmanifest"] as const;
+
+export function isPwaAssetPath(pathname: string): boolean {
+    return PWA_ASSET_PATHS.some(
+        (path) => pathname === path || pathname.startsWith(`${path}/`),
+    );
+}
 
 const APEX_TO_CANONICAL: Record<string, string> = {
     "eastwestnh.com": CANONICAL_HOSTNAME,
@@ -90,26 +99,14 @@ export function buildWwwUrl(
 }
 
 /**
- * Inline-скрипт: редирект до React/SW.
- * Хардкод — не зависит от env при сборке.
+ * @deprecated Редирект apex → www выполняется только на Edge (proxy.ts).
+ * Клиентский редирект отменён — он прерывал регистрацию Service Worker.
  */
 export function buildCanonicalRedirectScript(): string {
-    return `(function(){try{if(location.hostname==="eastwestnh.com"){location.replace("https://www.eastwestnh.com"+location.pathname+location.search+location.hash);}}catch(e){}})();`;
+    return "";
 }
 
-/** Редирект на канонический хост (клиент). */
+/** @deprecated Используйте серверный 308 в proxy.ts */
 export function redirectToCanonicalHost(): boolean {
-    if (typeof window === "undefined") return false;
-
-    if (shouldSkipCanonicalRedirect(window.location.hostname)) {
-        return false;
-    }
-
-    const canonicalHost = shouldRedirectToCanonicalHost(window.location.hostname);
-    if (!canonicalHost) return false;
-
-    window.location.replace(
-        buildWwwUrl(window.location.pathname, window.location.search, window.location.hash),
-    );
-    return true;
+    return false;
 }

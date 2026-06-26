@@ -21,6 +21,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { LoginButton } from "@/features/auth";
 import { useCartStore } from "@/features/cart";
 import { Link, usePathname } from "@/i18n/server";
+import { SITE_LOGO_PATH } from "@/lib/site-config";
 import { PageTransition } from "@/shared/ui/page-transition";
 
 const CartDrawer = dynamic(
@@ -340,12 +341,13 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                 }}
                             >
                                 <Image
-                                    src="/east-west-logo.png"
+                                    src={SITE_LOGO_PATH}
                                     alt={tCommon("logoAlt")}
                                     fill
                                     sizes="36px"
                                     priority
                                     fetchPriority="high"
+                                    unoptimized
                                     style={{ objectFit: "cover" }}
                                 />
                             </Box>

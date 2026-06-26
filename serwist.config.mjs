@@ -14,6 +14,7 @@ export default serwist({
     swDest: "public/sw.js",
     additionalPrecacheEntries: [
         { url: "/offline", revision },
+        { url: "/east-west-logo.png", revision },
         { url: "/menu", revision },
         { url: "/en/menu", revision },
         { url: "/ru/menu", revision },

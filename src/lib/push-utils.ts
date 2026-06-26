@@ -1,6 +1,6 @@
 const SW_URL = "/sw.js";
 const SW_SCOPE = "/";
-const ACTIVATION_TIMEOUT_MS = 30_000;
+export const SW_READY_TIMEOUT_MS = 10_000;
 
 export function urlBase64ToUint8Array(base64String: string): Uint8Array {
     const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -74,6 +74,34 @@ function waitUntilServiceWorkerActive(
     });
 }
 
+/** Регистрация SW + navigator.serviceWorker.ready с таймаутом (для push-подписки). */
+export async function getServiceWorkerRegistrationForPush(
+    timeoutMs = SW_READY_TIMEOUT_MS,
+): Promise<ServiceWorkerRegistration> {
+    if (!("serviceWorker" in navigator)) {
+        throw new Error("Service worker not supported");
+    }
+
+    console.log("[PUSH] Registering service worker at", SW_URL);
+
+    await navigator.serviceWorker.register(SW_URL, {
+        scope: SW_SCOPE,
+        updateViaCache: "none",
+    });
+
+    const registration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<ServiceWorkerRegistration>((_, reject) => {
+            window.setTimeout(() => {
+                reject(new Error("SW_TIMEOUT"));
+            }, timeoutMs);
+        }),
+    ]);
+
+    console.log("[PUSH] Service worker ready, scope:", registration.scope);
+    return registration;
+}
+
 /** Регистрация + ожидание active worker (не только navigator.serviceWorker.ready). */
 export async function getPushServiceWorkerRegistration(): Promise<ServiceWorkerRegistration> {
     if (!("serviceWorker" in navigator)) {
@@ -94,7 +122,7 @@ export async function getPushServiceWorkerRegistration(): Promise<ServiceWorkerR
     }
 
     try {
-        await waitUntilServiceWorkerActive(registration, ACTIVATION_TIMEOUT_MS);
+        await waitUntilServiceWorkerActive(registration, SW_READY_TIMEOUT_MS * 3);
         return registration;
     } catch {
         await registration.unregister().catch(() => undefined);
@@ -104,27 +132,28 @@ export async function getPushServiceWorkerRegistration(): Promise<ServiceWorkerR
             updateViaCache: "none",
         });
 
-        await waitUntilServiceWorkerActive(freshRegistration, ACTIVATION_TIMEOUT_MS);
+        await waitUntilServiceWorkerActive(freshRegistration, SW_READY_TIMEOUT_MS * 3);
         return freshRegistration;
     }
 }
 
-/** @deprecated Use getPushServiceWorkerRegistration */
+/** @deprecated Use getServiceWorkerRegistrationForPush */
 export async function waitForServiceWorkerReady(
-    timeoutMs = ACTIVATION_TIMEOUT_MS,
+    timeoutMs = SW_READY_TIMEOUT_MS,
 ): Promise<ServiceWorkerRegistration> {
-    const registration = await getPushServiceWorkerRegistration();
-    if (!registration.active) {
-        await waitUntilServiceWorkerActive(registration, timeoutMs);
-    }
-    return registration;
+    return getServiceWorkerRegistrationForPush(timeoutMs);
 }
 
 /** Прогрев SW при загрузке приложения — к моменту клика worker уже active. */
 export function warmUpPushServiceWorker(): void {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
-    void getPushServiceWorkerRegistration().catch((error: unknown) => {
-        console.warn("[PUSH] Service worker warmup failed:", error);
-    });
+    console.log("[PUSH] Warming up service worker…");
+    void getPushServiceWorkerRegistration()
+        .then((registration) => {
+            console.log("[PUSH] Service worker warmup complete, scope:", registration.scope);
+        })
+        .catch((error: unknown) => {
+            console.warn("[PUSH] Service worker warmup failed:", error);
+        });
 }

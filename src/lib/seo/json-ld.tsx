@@ -6,6 +6,7 @@ import {
     KITCHEN_ADDRESS,
     OPENING_HOURS,
     SERVES_CUISINE,
+    SITE_LOGO_PATH,
     SITE_NAME,
     SITE_URL,
 } from "@/lib/site-config";
@@ -54,7 +55,7 @@ export function restaurantJsonLd() {
         telephone: CONTACT_PHONE,
         openingHours: OPENING_HOURS.schema,
         image: `${SITE_URL}${DEFAULT_OG_IMAGE}`,
-        logo: `${SITE_URL}/east-west-logo.png`,
+        logo: `${SITE_URL}${SITE_LOGO_PATH}`,
         address: {
             "@type": "PostalAddress",
             streetAddress: KITCHEN_ADDRESS.street,

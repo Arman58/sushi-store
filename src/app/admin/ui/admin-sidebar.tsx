@@ -24,6 +24,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import { SITE_LOGO_PATH } from "@/lib/site-config";
+
 const DRAWER_WIDTH = 260;
 
 const NAV_ITEMS = [
@@ -148,10 +150,11 @@ function SidebarBrand() {
                 }}
             >
                 <Image
-                    src="/east-west-logo.png"
+                    src={SITE_LOGO_PATH}
                     alt="East West"
                     fill
                     sizes="36px"
+                    unoptimized
                     style={{ objectFit: "cover" }}
                 />
             </Box>

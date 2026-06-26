@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SessionProvider } from "next-auth/react";
 import { type ReactNode, useState } from "react";
 
-import { CanonicalHostRedirect } from "@/shared/ui/CanonicalHostRedirect";
 import { ServiceWorkerWarmup } from "@/shared/ui/ServiceWorkerWarmup";
 import theme from "@/shared/ui/theme";
 
@@ -34,7 +33,6 @@ export function AppProviders({ children }: AppProvidersProps) {
             <QueryClientProvider client={queryClient}>
                 <ThemeProvider theme={theme}>
                     <CssBaseline />
-                    <CanonicalHostRedirect />
                     <ServiceWorkerWarmup />
                     {children}
                 </ThemeProvider>
