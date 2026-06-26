@@ -6,6 +6,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Image from "next/image";
 import { useMemo, useState } from "react";
 
+import { SITE_LOGO_PATH } from "@/lib/site-config";
 import { sanitizeProductImageSrc } from "@/shared/lib/product-cover";
 
 import { tokens } from "./theme";
@@ -43,10 +44,11 @@ export function ProductCoverPlaceholder() {
                 }}
             >
                 <Image
-                    src="/east-west-logo.png"
+                    src={SITE_LOGO_PATH}
                     alt=""
                     width={40}
                     height={40}
+                    unoptimized
                     style={{ objectFit: "cover" }}
                 />
             </Box>

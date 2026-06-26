@@ -52,14 +52,29 @@ export async function sendPushNotification(
     userId: number,
     payload: PushNotificationPayload,
 ): Promise<void> {
-    if (!ensureVapidConfigured()) return;
+    if (!ensureVapidConfigured()) {
+        console.error("[PUSH] VAPID not configured, skipping send for user:", userId);
+        return;
+    }
 
     const subscriptions = await prisma.pushSubscription.findMany({
         where: { userId },
         select: { id: true, endpoint: true, keys: true },
     });
 
-    if (subscriptions.length === 0) return;
+    if (subscriptions.length === 0) {
+        console.log("[PUSH] No subscriptions for user:", userId);
+        return;
+    }
+
+    console.log(
+        "[PUSH] Sending notification to user:",
+        userId,
+        "subscriptions:",
+        subscriptions.length,
+        "payload:",
+        payload.title,
+    );
 
     const message = JSON.stringify(payload);
 
@@ -79,6 +94,7 @@ export async function sendPushNotification(
                     toWebPushSubscription(subscription.endpoint, keys),
                     message,
                 );
+                console.log("[PUSH] Sent to subscription:", subscription.id);
             } catch (error) {
                 const statusCode =
                     error &&
@@ -89,6 +105,12 @@ export async function sendPushNotification(
                         : null;
 
                 if (statusCode === 410 || statusCode === 404) {
+                    console.log(
+                        "[PUSH] Removing dead subscription:",
+                        subscription.id,
+                        "status:",
+                        statusCode,
+                    );
                     await prisma.pushSubscription
                         .delete({ where: { id: subscription.id } })
                         .catch(() => undefined);

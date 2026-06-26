@@ -8,9 +8,8 @@ import Typography from "@mui/material/Typography";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
-import { isApexHost, redirectToCanonicalHost } from "@/lib/canonical-host";
 import {
-    getPushServiceWorkerRegistration,
+    getServiceWorkerRegistrationForPush,
     urlBase64ToUint8Array,
 } from "@/lib/push-utils";
 import { AppButton } from "@/shared/ui";
@@ -31,27 +30,27 @@ export function PushPermissionPrompt() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
-    const [swReady, setSwReady] = useState(false);
 
     useEffect(() => {
-        if (redirectToCanonicalHost()) return;
-        if (!isPushSupported() || isApexHost()) return;
+        if (!isPushSupported()) return;
 
         let cancelled = false;
 
         void (async () => {
             try {
-                const registration = await getPushServiceWorkerRegistration();
+                console.log("[PUSH] Checking existing subscription on profile mount…");
+                const registration = await getServiceWorkerRegistrationForPush();
                 if (cancelled) return;
-
-                setSwReady(true);
 
                 const existing = await registration.pushManager.getSubscription();
                 if (existing) {
+                    console.log("[PUSH] Existing subscription found:", existing.endpoint);
                     setSuccess(true);
+                } else {
+                    console.log("[PUSH] No existing subscription");
                 }
             } catch (warmupError) {
-                console.warn("[PUSH] SW warmup on profile:", warmupError);
+                console.warn("[PUSH] Profile mount SW check failed:", warmupError);
             }
         })();
 
@@ -64,25 +63,25 @@ export function PushPermissionPrompt() {
         setError(null);
 
         if (!isPushSupported()) {
+            console.error("[PUSH] Browser does not support push");
             setError(t("no_support"));
             return;
         }
 
         const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
         if (!vapidPublicKey) {
+            console.error("[PUSH] NEXT_PUBLIC_VAPID_PUBLIC_KEY is missing");
             setError(t("vapid_missing"));
-            return;
-        }
-
-        if (isApexHost()) {
-            redirectToCanonicalHost();
             return;
         }
 
         setIsLoading(true);
 
         try {
+            console.log("[PUSH] Requesting notification permission…");
             const permission = await Notification.requestPermission();
+            console.log("[PUSH] Notification permission:", permission);
+
             if (permission !== "granted") {
                 setError(t("denied"));
                 return;
@@ -90,8 +89,7 @@ export function PushPermissionPrompt() {
 
             let registration: ServiceWorkerRegistration;
             try {
-                registration = await getPushServiceWorkerRegistration();
-                setSwReady(true);
+                registration = await getServiceWorkerRegistrationForPush();
             } catch (swError) {
                 const message =
                     swError instanceof Error && swError.message === "SW_TIMEOUT"
@@ -99,21 +97,29 @@ export function PushPermissionPrompt() {
                         : swError instanceof Error
                           ? swError.message
                           : t("sw_timeout");
+                console.error("[PUSH] Service worker registration failed:", swError);
                 setError(message);
                 return;
             }
 
             let subscription = await registration.pushManager.getSubscription();
+            console.log(
+                "[PUSH] Existing push subscription:",
+                subscription ? subscription.endpoint : "none",
+            );
 
             if (!subscription) {
                 try {
+                    console.log("[PUSH] Subscribing to push manager…");
                     subscription = await registration.pushManager.subscribe({
                         userVisibleOnly: true,
                         applicationServerKey: urlBase64ToUint8Array(
                             vapidPublicKey,
                         ) as BufferSource,
                     });
+                    console.log("[PUSH] Push subscription created:", subscription.endpoint);
                 } catch (subscribeError) {
+                    console.error("[PUSH] pushManager.subscribe failed:", subscribeError);
                     setError(
                         subscribeError instanceof Error
                             ? subscribeError.message
@@ -129,10 +135,12 @@ export function PushPermissionPrompt() {
                 !subscriptionJson.keys?.p256dh ||
                 !subscriptionJson.keys?.auth
             ) {
+                console.error("[PUSH] Invalid subscription JSON:", subscriptionJson);
                 setError(t("subscribe_error"));
                 return;
             }
 
+            console.log("[PUSH] Sending subscription to backend…");
             const res = await fetch("/api/push/subscribe", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -144,17 +152,19 @@ export function PushPermissionPrompt() {
             try {
                 data = (await res.json()) as { error?: string };
             } catch {
-                /* ignore */
+                console.warn("[PUSH] Backend response is not JSON, status:", res.status);
             }
 
             if (!res.ok) {
+                console.error("[PUSH] Backend subscribe failed:", res.status, data);
                 setError(data.error ?? t("backend_error"));
                 return;
             }
 
+            console.log("[PUSH] Subscription saved successfully");
             setSuccess(true);
         } catch (unexpectedError) {
-            console.error("[PUSH SUBSCRIBE] Unexpected error:", unexpectedError);
+            console.error("[PUSH] Unexpected subscribe error:", unexpectedError);
             setError(
                 unexpectedError instanceof Error
                     ? unexpectedError.message
@@ -176,10 +186,6 @@ export function PushPermissionPrompt() {
     return (
         <Stack spacing={2} sx={{ mb: 3 }}>
             {IS_DEV ? <Alert severity="info">{t("dev_warning")}</Alert> : null}
-
-            {!swReady && !isLoading && !IS_DEV ? (
-                <Alert severity="info">{t("sw_preparing")}</Alert>
-            ) : null}
 
             {error ? (
                 <Alert severity="error" onClose={() => setError(null)}>
@@ -210,7 +216,7 @@ export function PushPermissionPrompt() {
                 <AppButton
                     variant="outlined"
                     color="primary"
-                    disabled={isLoading || (!swReady && !IS_DEV)}
+                    disabled={isLoading}
                     onClick={() => void handleEnablePush()}
                     startIcon={
                         isLoading ? (

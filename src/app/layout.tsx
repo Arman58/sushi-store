@@ -14,10 +14,10 @@ import {
 } from "@/lib/seo/json-ld";
 import {
     DEFAULT_OG_IMAGE,
+    SITE_LOGO_PATH,
     SITE_NAME,
     SITE_URL,
 } from "@/lib/site-config";
-import { CanonicalRedirectScript } from "@/shared/ui/CanonicalRedirectScript";
 
 import { interFont } from "./fonts";
 import { AppProviders } from "./providers";
@@ -60,7 +60,7 @@ export const metadata: Metadata = {
         canonical: "./",
     },
     icons: {
-        icon: "/east-west-logo.png",
+        icon: SITE_LOGO_PATH,
         apple: "/pwa/icon-192x192.png",
     },
     openGraph: {
@@ -107,7 +107,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 suppressHydrationWarning
                 className={interFont.className}
             >
-                <CanonicalRedirectScript />
                 <JsonLd
                     data={[restaurantJsonLd(), foodDeliveryServiceJsonLd()]}
                 />

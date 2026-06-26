@@ -7,6 +7,7 @@ import { verifyAdminSessionToken } from "@/lib/admin-session";
 import {
     CANONICAL_HOSTNAME,
     isApexHost,
+    isPwaAssetPath,
     shouldRedirectToCanonicalHost,
     shouldSkipCanonicalRedirect,
 } from "@/lib/canonical-host";
@@ -37,6 +38,11 @@ async function handleAdminAuth(
 export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
+    // SW и manifest должны отдаваться с текущего origin (apex или www) без 308.
+    if (isPwaAssetPath(pathname)) {
+        return NextResponse.next();
+    }
+
     if (!shouldSkipCanonicalRedirect(request.nextUrl.hostname)) {
         const canonicalHost = isApexHost(request.nextUrl.hostname)
             ? CANONICAL_HOSTNAME
@@ -65,7 +71,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-    // Статику (лого, favicon, sw.js) не трогаем — иначе i18n роутер отдаёт 404.
-    // Apex → www для /api и страниц; статика на apex редиректится Vercel на edge.
-    matcher: ["/((?!_next|_vercel|.*\\..*).*)"],
+    // sw.js и manifest.webmanifest явно в matcher — proxy пропускает их без редиректа.
+    // Остальная статика с расширением (.png и т.д.) matcher не затрагивает.
+    matcher: ["/sw.js", "/manifest.webmanifest", "/((?!_next|_vercel|.*\\..*).*)"],
 };

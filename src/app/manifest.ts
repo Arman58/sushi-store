@@ -1,15 +1,12 @@
 import type { MetadataRoute } from "next";
 
-import { getCanonicalOrigin } from "@/lib/canonical-host";
-
 export default function manifest(): MetadataRoute.Manifest {
-    const canonicalOrigin = getCanonicalOrigin();
-
     return {
         name: "East West Delivery",
         short_name: "East West",
         description: "Sushi & Pizza delivery in Nor Hachn and Yerevan",
-        start_url: canonicalOrigin ? `${canonicalOrigin}/` : "/",
+        start_url: "/",
+        scope: "/",
         display: "standalone",
         background_color: "#ffffff",
         theme_color: "#00B341",

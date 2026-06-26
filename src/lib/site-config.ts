@@ -113,3 +113,6 @@ export const SERVES_CUISINE = [
 ] as const;
 
 export const DEFAULT_OG_IMAGE = "/og-image.png";
+
+/** Локальный логотип в public/ — регистр пути должен совпадать с файлом (Linux/Vercel). */
+export const SITE_LOGO_PATH = "/east-west-logo.png";

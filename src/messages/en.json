@@ -445,12 +445,10 @@
             "no_support": "Your browser does not support push notifications",
             "vapid_missing": "VAPID public key is not configured on the server",
             "denied": "You denied notifications. Allow them in your browser settings.",
-            "sw_timeout": "Service Worker is not responding. Wait a few seconds and try again, or reload the page.",
-            "sw_preparing": "Preparing notifications… wait a few seconds",
+            "sw_timeout": "Service Worker is not responding. Reload the page.",
+            "sw_preparing": "Preparing notifications…",
             "subscribe_error": "Could not subscribe to push notifications",
-            "backend_error": "Server could not save the subscription",
-            "wrong_host": "Open the site at www.eastwestnh.com — push does not work on eastwestnh.com",
-            "open_on_www": "Open on www.eastwestnh.com"
+            "backend_error": "Server could not save the subscription"
         },
         "addresses": {
             "empty": "No saved addresses yet",
