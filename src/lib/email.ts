@@ -46,8 +46,8 @@ function getFromAddress(): string {
 }
 
 /**
- * Resend в тестовом режиме доставляет письма только на email владельца аккаунта.
- * RESEND_DEV_REDIRECT_TO — inbox для локальной разработки (ваш email в Resend).
+ * RESEND_DEV_REDIRECT_TO — на Preview и в .env.local все письма уходят на этот inbox,
+ * чтобы не отправить письмо реальному клиенту при тестах.
  */
 function resolveRecipient(to: string): {
     recipient: string;
@@ -56,11 +56,7 @@ function resolveRecipient(to: string): {
     const redirect = process.env.RESEND_DEV_REDIRECT_TO?.trim().toLowerCase();
     const normalizedTo = to.trim().toLowerCase();
 
-    if (
-        process.env.NODE_ENV === "development" &&
-        redirect &&
-        normalizedTo !== redirect
-    ) {
+    if (redirect && normalizedTo !== redirect) {
         return {
             recipient: redirect,
             devRedirectNote: normalizedTo,
@@ -71,8 +67,7 @@ function resolveRecipient(to: string): {
 }
 
 function buildMenuUrl(): string {
-    const base = SITE_URL || "https://eastwestnh.com";
-    return `${base.replace(/\/$/, "")}/menu`;
+    return `${SITE_URL.replace(/\/$/, "")}/menu`;
 }
 
 function formatResendError(

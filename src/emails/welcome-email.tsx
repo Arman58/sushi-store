@@ -11,7 +11,7 @@ import {
 } from "@react-email/components";
 
 import type { AppLocale } from "@/i18n/routing";
-import { CONTACT_PHONE_DISPLAY, SITE_NAME } from "@/lib/site-config";
+import { CONTACT_PHONE_DISPLAY, SITE_NAME, SITE_URL } from "@/lib/site-config";
 
 const BRAND_GREEN = "#00B341";
 const PAGE_BG = "#f6f9fc";
@@ -69,7 +69,7 @@ export type WelcomeEmailProps = {
 
 export function WelcomeEmail({
     locale = "hy",
-    menuUrl = "https://eastwestnh.com/menu",
+    menuUrl = `${SITE_URL}/menu`,
     devRedirectNote = null,
 }: WelcomeEmailProps) {
     const copy = COPY[locale] ?? COPY.hy;

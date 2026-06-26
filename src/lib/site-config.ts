@@ -13,9 +13,22 @@ function normalizeSiteUrl(raw: string): string {
     }
 }
 
-export const SITE_URL = normalizeSiteUrl(
-    process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXTAUTH_URL ?? "",
-);
+function resolveSiteUrlRaw(): string {
+    return (
+        process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
+        process.env.NEXTAUTH_URL?.trim() ||
+        (process.env.VERCEL_URL
+            ? `https://${process.env.VERCEL_URL}`
+            : "http://localhost:3000")
+    );
+}
+
+/** Канонический origin витрины: prod → NEXT_PUBLIC_SITE_URL, Preview → VERCEL_URL. */
+export const SITE_URL = normalizeSiteUrl(resolveSiteUrlRaw());
+
+export function getSiteUrl(): string {
+    return SITE_URL;
+}
 
 export const SITE_NAME = "East West Delivery";
 

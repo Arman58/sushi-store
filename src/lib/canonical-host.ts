@@ -1,3 +1,5 @@
+import { SITE_URL } from "@/lib/site-config";
+
 /** Apex-домены, с которых push/SW не работают (sw.js редиректится на www). */
 export const APEX_HOSTNAMES = ["eastwestnh.com"] as const;
 
@@ -15,10 +17,9 @@ export function isApexHost(hostname?: string): boolean {
 
 /** Канонический hostname (www, не apex). */
 export function resolveCanonicalHostname(hostname: string): string {
-    const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-    if (fromEnv) {
+    if (SITE_URL) {
         try {
-            const envHost = new URL(fromEnv).hostname;
+            const envHost = new URL(SITE_URL).hostname;
             return APEX_TO_CANONICAL[envHost] ?? envHost;
         } catch {
             /* fall through */
@@ -29,10 +30,9 @@ export function resolveCanonicalHostname(hostname: string): string {
 }
 
 export function getCanonicalHostname(): string {
-    const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-    if (fromEnv) {
+    if (SITE_URL) {
         try {
-            return resolveCanonicalHostname(new URL(fromEnv).hostname);
+            return resolveCanonicalHostname(new URL(SITE_URL).hostname);
         } catch {
             /* fall through */
         }

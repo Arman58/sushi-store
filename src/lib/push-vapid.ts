@@ -1,3 +1,5 @@
+import { SITE_URL } from "@/lib/site-config";
+
 export function areVapidKeysConfigured(): boolean {
     const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
     const privateKey = process.env.VAPID_PRIVATE_KEY?.trim();
@@ -17,10 +19,9 @@ export function getVapidSubject(): string {
         }
     }
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-    if (siteUrl) {
+    if (SITE_URL) {
         try {
-            return new URL(siteUrl).origin;
+            return new URL(SITE_URL).origin;
         } catch {
             /* fall through */
         }
