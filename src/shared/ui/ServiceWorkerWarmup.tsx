@@ -2,13 +2,17 @@
 
 import { useEffect } from "react";
 
-import { warmUpPushServiceWorker } from "@/lib/push-utils";
-
-/** Регистрирует SW заранее, чтобы push не ждал активации по клику. */
+/** Прогрев SW — только register, без ожидания ready (не блокирует UI). */
 export function ServiceWorkerWarmup() {
     useEffect(() => {
         if (process.env.NODE_ENV === "development") return;
-        warmUpPushServiceWorker();
+        if (!("serviceWorker" in navigator)) return;
+
+        void navigator.serviceWorker
+            .register("/sw.js", { scope: "/", updateViaCache: "none" })
+            .catch((error: unknown) => {
+                console.warn("[PUSH] Service worker warmup register failed:", error);
+            });
     }, []);
 
     return null;

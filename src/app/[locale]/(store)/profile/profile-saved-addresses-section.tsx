@@ -41,6 +41,8 @@ const emptyForm: AddressFormState = {
     comment: "",
 };
 
+const ADDRESS_FETCH_TIMEOUT_MS = 15_000;
+
 export function ProfileSavedAddressesSection() {
     const t = useTranslations("profile");
     const tCommon = useTranslations("common");
@@ -54,8 +56,15 @@ export function ProfileSavedAddressesSection() {
 
     const loadAddresses = useCallback(async () => {
         setLoading(true);
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(
+            () => controller.abort(),
+            ADDRESS_FETCH_TIMEOUT_MS,
+        );
         try {
-            const res = await fetch("/api/profile/addresses");
+            const res = await fetch("/api/profile/addresses", {
+                signal: controller.signal,
+            });
             if (res.status === 401) {
                 await handleSessionExpired(() => setLoginOpen(true));
                 setAddresses([]);
@@ -70,6 +79,7 @@ export function ProfileSavedAddressesSection() {
         } catch {
             showAppToast(tCommon("networkError"), "error");
         } finally {
+            window.clearTimeout(timeoutId);
             setLoading(false);
         }
     }, [t, tCommon]);

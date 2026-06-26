@@ -9,7 +9,7 @@ const revision =
     randomUUID();
 
 /** @type {import("@serwist/next/config").SerwistOptions} */
-export default serwist({
+const serwistOptions = {
     swSrc: "src/app/sw.ts",
     swDest: "public/sw.js",
     additionalPrecacheEntries: [
@@ -18,4 +18,6 @@ export default serwist({
         { url: "/en/menu", revision },
         { url: "/ru/menu", revision },
     ],
-});
+};
+
+export default serwist(serwistOptions);

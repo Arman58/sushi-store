@@ -25,7 +25,11 @@ function ensureVapidConfigured(): boolean {
         return false;
     }
 
-    webpush.setVapidDetails(VAPID_SUBJECT, publicKey, privateKey);
+    webpush.setVapidDetails(
+        VAPID_SUBJECT,
+        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+        process.env.VAPID_PRIVATE_KEY!,
+    );
     vapidConfigured = true;
     return true;
 }

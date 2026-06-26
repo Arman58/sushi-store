@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     const userId = Number(session.user.id);
     const { endpoint, keys } = parsed.data;
 
-    console.log("[PUSH] Saving subscription for user:", userId, "endpoint:", endpoint.slice(0, 48));
+    console.log("[PUSH] Saving subscription for user:", session.user.id);
 
     try {
         await prisma.pushSubscription.upsert({
@@ -57,9 +57,9 @@ export async function POST(request: Request) {
             },
         });
     } catch (error) {
-        const message = error instanceof Error ? error.message : "Database error";
+        const message = error instanceof Error ? error.message : "Unknown database error";
         console.error("[PUSH SUBSCRIBE ERROR]", error);
-        return NextResponse.json({ error: message }, { status: 500 });
+        return NextResponse.json({ error: `DB Error: ${message}` }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true });
