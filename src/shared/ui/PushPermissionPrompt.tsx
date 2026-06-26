@@ -1,7 +1,6 @@
 "use client";
 
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
-import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
@@ -9,8 +8,11 @@ import Typography from "@mui/material/Typography";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
-import { buildWwwUrl, isApexHost, redirectToCanonicalHost } from "@/lib/canonical-host";
-import { urlBase64ToUint8Array, waitForServiceWorkerReady } from "@/lib/push-utils";
+import { isApexHost, redirectToCanonicalHost } from "@/lib/canonical-host";
+import {
+    getPushServiceWorkerRegistration,
+    urlBase64ToUint8Array,
+} from "@/lib/push-utils";
 import { AppButton } from "@/shared/ui";
 
 const IS_DEV = process.env.NODE_ENV === "development";
@@ -29,23 +31,27 @@ export function PushPermissionPrompt() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const [swReady, setSwReady] = useState(false);
 
     useEffect(() => {
         if (redirectToCanonicalHost()) return;
-        if (!isPushSupported()) return;
+        if (!isPushSupported() || isApexHost()) return;
 
         let cancelled = false;
 
         void (async () => {
             try {
-                const registration = await waitForServiceWorkerReady();
-                const existing = await registration.pushManager.getSubscription();
+                const registration = await getPushServiceWorkerRegistration();
                 if (cancelled) return;
+
+                setSwReady(true);
+
+                const existing = await registration.pushManager.getSubscription();
                 if (existing) {
                     setSuccess(true);
                 }
-            } catch {
-                /* пользователь включит вручную */
+            } catch (warmupError) {
+                console.warn("[PUSH] SW warmup on profile:", warmupError);
             }
         })();
 
@@ -54,22 +60,8 @@ export function PushPermissionPrompt() {
         };
     }, []);
 
-    const handleOpenOnWww = () => {
-        window.location.assign(
-            buildWwwUrl(
-                window.location.pathname,
-                window.location.search,
-                window.location.hash,
-            ),
-        );
-    };
-
     const handleEnablePush = async () => {
         setError(null);
-
-        if (IS_DEV) {
-            /* предупреждение показывается в UI, но не блокируем попытку */
-        }
 
         if (!isPushSupported()) {
             setError(t("no_support"));
@@ -98,7 +90,8 @@ export function PushPermissionPrompt() {
 
             let registration: ServiceWorkerRegistration;
             try {
-                registration = await waitForServiceWorkerReady();
+                registration = await getPushServiceWorkerRegistration();
+                setSwReady(true);
             } catch (swError) {
                 const message =
                     swError instanceof Error && swError.message === "SW_TIMEOUT"
@@ -121,11 +114,11 @@ export function PushPermissionPrompt() {
                         ) as BufferSource,
                     });
                 } catch (subscribeError) {
-                    const message =
+                    setError(
                         subscribeError instanceof Error
                             ? subscribeError.message
-                            : t("subscribe_error");
-                    setError(message);
+                            : t("subscribe_error"),
+                    );
                     return;
                 }
             }
@@ -151,7 +144,7 @@ export function PushPermissionPrompt() {
             try {
                 data = (await res.json()) as { error?: string };
             } catch {
-                /* ignore parse errors */
+                /* ignore */
             }
 
             if (!res.ok) {
@@ -162,11 +155,11 @@ export function PushPermissionPrompt() {
             setSuccess(true);
         } catch (unexpectedError) {
             console.error("[PUSH SUBSCRIBE] Unexpected error:", unexpectedError);
-            const message =
+            setError(
                 unexpectedError instanceof Error
                     ? unexpectedError.message
-                    : t("subscribe_error");
-            setError(message);
+                    : t("subscribe_error"),
+            );
         } finally {
             setIsLoading(false);
         }
@@ -182,26 +175,16 @@ export function PushPermissionPrompt() {
 
     return (
         <Stack spacing={2} sx={{ mb: 3 }}>
-            {IS_DEV ? (
-                <Alert severity="info">{t("dev_warning")}</Alert>
+            {IS_DEV ? <Alert severity="info">{t("dev_warning")}</Alert> : null}
+
+            {!swReady && !isLoading && !IS_DEV ? (
+                <Alert severity="info">{t("sw_preparing")}</Alert>
             ) : null}
 
             {error ? (
                 <Alert severity="error" onClose={() => setError(null)}>
                     {error}
                 </Alert>
-            ) : null}
-
-            {error && isApexHost() ? (
-                <AppButton
-                    variant="contained"
-                    color="primary"
-                    onClick={handleOpenOnWww}
-                    startIcon={<OpenInNewOutlinedIcon />}
-                    sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
-                >
-                    {t("open_on_www")}
-                </AppButton>
             ) : null}
 
             <Stack
@@ -227,7 +210,7 @@ export function PushPermissionPrompt() {
                 <AppButton
                     variant="outlined"
                     color="primary"
-                    disabled={isLoading}
+                    disabled={isLoading || (!swReady && !IS_DEV)}
                     onClick={() => void handleEnablePush()}
                     startIcon={
                         isLoading ? (

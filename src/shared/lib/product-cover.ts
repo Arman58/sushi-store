@@ -1,3 +1,5 @@
+import { SITE_URL } from "@/lib/site-config";
+
 /** Хосты, разрешённые в next.config.ts → images.remotePatterns */
 const ALLOWED_REMOTE_HOSTS = new Set([
     "res.cloudinary.com",
@@ -6,14 +8,9 @@ const ALLOWED_REMOTE_HOSTS = new Set([
 ]);
 
 function siteHostname(): string | null {
-    const raw =
-        process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
-        process.env.VERCEL_URL?.trim() ||
-        "";
-    if (!raw) return null;
+    if (!SITE_URL) return null;
     try {
-        const base = raw.startsWith("http") ? raw : `https://${raw}`;
-        return new URL(base).hostname;
+        return new URL(SITE_URL).hostname;
     } catch {
         return null;
     }

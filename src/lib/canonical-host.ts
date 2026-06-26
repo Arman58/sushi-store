@@ -1,3 +1,5 @@
+import { SITE_URL } from "@/lib/site-config";
+
 /** Apex-домены, с которых push/SW не работают (sw.js редиректится на www). */
 export const APEX_HOSTNAMES = ["eastwestnh.com"] as const;
 
@@ -7,6 +9,26 @@ const APEX_TO_CANONICAL: Record<string, string> = {
     "eastwestnh.com": CANONICAL_HOSTNAME,
 };
 
+/** Vercel Preview / локальная разработка — не редиректим на боевой домен. */
+export function isPreviewDeploymentHost(hostname: string): boolean {
+    const host = hostname.toLowerCase();
+    return (
+        host.endsWith(".vercel.app") ||
+        host === "localhost" ||
+        host.endsWith(".localhost")
+    );
+}
+
+export function isPreviewDeployment(): boolean {
+    return process.env.VERCEL_ENV === "preview";
+}
+
+export function shouldSkipCanonicalRedirect(hostname?: string): boolean {
+    if (isPreviewDeployment()) return true;
+    if (hostname && isPreviewDeploymentHost(hostname)) return true;
+    return false;
+}
+
 export function isApexHost(hostname?: string): boolean {
     const host =
         hostname ?? (typeof window !== "undefined" ? window.location.hostname : "");
@@ -15,10 +37,9 @@ export function isApexHost(hostname?: string): boolean {
 
 /** Канонический hostname (www, не apex). */
 export function resolveCanonicalHostname(hostname: string): string {
-    const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-    if (fromEnv) {
+    if (SITE_URL) {
         try {
-            const envHost = new URL(fromEnv).hostname;
+            const envHost = new URL(SITE_URL).hostname;
             return APEX_TO_CANONICAL[envHost] ?? envHost;
         } catch {
             /* fall through */
@@ -29,10 +50,9 @@ export function resolveCanonicalHostname(hostname: string): string {
 }
 
 export function getCanonicalHostname(): string {
-    const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-    if (fromEnv) {
+    if (SITE_URL) {
         try {
-            return resolveCanonicalHostname(new URL(fromEnv).hostname);
+            return resolveCanonicalHostname(new URL(SITE_URL).hostname);
         } catch {
             /* fall through */
         }
@@ -42,6 +62,10 @@ export function getCanonicalHostname(): string {
 }
 
 export function shouldRedirectToCanonicalHost(currentHostname: string): string | null {
+    if (shouldSkipCanonicalRedirect(currentHostname)) {
+        return null;
+    }
+
     if (isApexHost(currentHostname)) {
         return CANONICAL_HOSTNAME;
     }
@@ -76,6 +100,10 @@ export function buildCanonicalRedirectScript(): string {
 /** Редирект на канонический хост (клиент). */
 export function redirectToCanonicalHost(): boolean {
     if (typeof window === "undefined") return false;
+
+    if (shouldSkipCanonicalRedirect(window.location.hostname)) {
+        return false;
+    }
 
     const canonicalHost = shouldRedirectToCanonicalHost(window.location.hostname);
     if (!canonicalHost) return false;

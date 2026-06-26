@@ -8,6 +8,7 @@ import {
     CANONICAL_HOSTNAME,
     isApexHost,
     shouldRedirectToCanonicalHost,
+    shouldSkipCanonicalRedirect,
 } from "@/lib/canonical-host";
 
 const handleI18nRouting = createIntlMiddleware(routing);
@@ -36,14 +37,16 @@ async function handleAdminAuth(
 export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
-    const canonicalHost = isApexHost(request.nextUrl.hostname)
-        ? CANONICAL_HOSTNAME
-        : shouldRedirectToCanonicalHost(request.nextUrl.hostname);
-    if (canonicalHost) {
-        const redirectUrl = request.nextUrl.clone();
-        redirectUrl.hostname = canonicalHost;
-        redirectUrl.protocol = "https:";
-        return NextResponse.redirect(redirectUrl, 308);
+    if (!shouldSkipCanonicalRedirect(request.nextUrl.hostname)) {
+        const canonicalHost = isApexHost(request.nextUrl.hostname)
+            ? CANONICAL_HOSTNAME
+            : shouldRedirectToCanonicalHost(request.nextUrl.hostname);
+        if (canonicalHost) {
+            const redirectUrl = request.nextUrl.clone();
+            redirectUrl.hostname = canonicalHost;
+            redirectUrl.protocol = "https:";
+            return NextResponse.redirect(redirectUrl, 308);
+        }
     }
 
     if (
