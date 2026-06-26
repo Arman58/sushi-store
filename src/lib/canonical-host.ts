@@ -9,6 +9,26 @@ const APEX_TO_CANONICAL: Record<string, string> = {
     "eastwestnh.com": CANONICAL_HOSTNAME,
 };
 
+/** Vercel Preview / локальная разработка — не редиректим на боевой домен. */
+export function isPreviewDeploymentHost(hostname: string): boolean {
+    const host = hostname.toLowerCase();
+    return (
+        host.endsWith(".vercel.app") ||
+        host === "localhost" ||
+        host.endsWith(".localhost")
+    );
+}
+
+export function isPreviewDeployment(): boolean {
+    return process.env.VERCEL_ENV === "preview";
+}
+
+export function shouldSkipCanonicalRedirect(hostname?: string): boolean {
+    if (isPreviewDeployment()) return true;
+    if (hostname && isPreviewDeploymentHost(hostname)) return true;
+    return false;
+}
+
 export function isApexHost(hostname?: string): boolean {
     const host =
         hostname ?? (typeof window !== "undefined" ? window.location.hostname : "");
@@ -42,6 +62,10 @@ export function getCanonicalHostname(): string {
 }
 
 export function shouldRedirectToCanonicalHost(currentHostname: string): string | null {
+    if (shouldSkipCanonicalRedirect(currentHostname)) {
+        return null;
+    }
+
     if (isApexHost(currentHostname)) {
         return CANONICAL_HOSTNAME;
     }
@@ -76,6 +100,10 @@ export function buildCanonicalRedirectScript(): string {
 /** Редирект на канонический хост (клиент). */
 export function redirectToCanonicalHost(): boolean {
     if (typeof window === "undefined") return false;
+
+    if (shouldSkipCanonicalRedirect(window.location.hostname)) {
+        return false;
+    }
 
     const canonicalHost = shouldRedirectToCanonicalHost(window.location.hostname);
     if (!canonicalHost) return false;
