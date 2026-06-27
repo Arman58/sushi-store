@@ -26,6 +26,7 @@ import {
 } from "@/features/cart";
 import { Link, usePathname } from "@/i18n/server";
 import { ApiError, validatePromo } from "@/shared/api";
+import { UpsellCarousel } from "@/widgets/upsell";
 
 import { AppButton } from "./AppButton";
 import { EmptyCart } from "./empty-cart";
@@ -56,9 +57,8 @@ export function CartDrawer() {
 
     const {
         cartLineIssues,
-        cartValidatePending,
-        validationUnavailable,
         hasCartLineProblems,
+        hasPriceMismatchIssues,
         problematicCartItemIds,
     } = useCartLineValidation(items);
 
@@ -75,11 +75,7 @@ export function CartDrawer() {
     );
     const total = Math.max(0, subtotal - promoDiscount);
     const count = items.reduce((s, i) => s + i.quantity, 0);
-    const canProceedToCheckout =
-        hasItems &&
-        !cartValidatePending &&
-        !validationUnavailable &&
-        !hasCartLineProblems;
+    const canProceedToCheckout = hasItems && !hasCartLineProblems;
 
     useEffect(() => {
         if (appliedPromoCode) setPromoInput(appliedPromoCode);
@@ -366,46 +362,49 @@ export function CartDrawer() {
                                         py: 2,
                                     }}
                                 >
-                                    {validationUnavailable && (
-                                        <Alert severity="warning" sx={{ mb: 2 }}>
-                                            {t("drawer_validation_unavailable")}
+                                    {hasCartLineProblems && (
+                                        <Alert severity="error" sx={{ mb: 2 }}>
+                                            {hasPriceMismatchIssues
+                                                ? t("validation.orderPriceAlert")
+                                                : t("lineProblems.pageAlert")}
                                         </Alert>
                                     )}
-                                    {hasCartLineProblems &&
-                                        !validationUnavailable && (
-                                            <Alert severity="error" sx={{ mb: 2 }}>
-                                                {t("lineProblems.pageAlert")}
-                                            </Alert>
-                                        )}
                                     <Stack spacing={0} divider={null}>
                                         {items.map((item, index) => (
-                                            <CartLineItem
+                                            <motion.div
                                                 key={item.cartItemId}
-                                                item={item}
-                                                lineIssue={
-                                                    cartLineIssues[item.cartItemId]
-                                                }
-                                                showUnavailableBadge={problematicCartItemIds.includes(
-                                                    item.cartItemId,
-                                                )}
-                                                variant="drawer"
-                                                showDivider={index < items.length - 1}
-                                                onIncrease={() =>
-                                                    setItemQty(
+                                                layout
+                                                initial={{ opacity: 0, scale: 0.9 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                transition={{ duration: 0.15 }}
+                                            >
+                                                <CartLineItem
+                                                    item={item}
+                                                    lineIssue={
+                                                        cartLineIssues[item.cartItemId]
+                                                    }
+                                                    showUnavailableBadge={problematicCartItemIds.includes(
                                                         item.cartItemId,
-                                                        item.quantity + 1,
-                                                    )
-                                                }
-                                                onDecrease={() =>
-                                                    setItemQty(
-                                                        item.cartItemId,
-                                                        item.quantity - 1,
-                                                    )
-                                                }
-                                                onRemove={() =>
-                                                    removeItem(item.cartItemId)
-                                                }
-                                            />
+                                                    )}
+                                                    variant="drawer"
+                                                    showDivider={index < items.length - 1}
+                                                    onIncrease={() =>
+                                                        setItemQty(
+                                                            item.cartItemId,
+                                                            item.quantity + 1,
+                                                        )
+                                                    }
+                                                    onDecrease={() =>
+                                                        setItemQty(
+                                                            item.cartItemId,
+                                                            item.quantity - 1,
+                                                        )
+                                                    }
+                                                    onRemove={() =>
+                                                        removeItem(item.cartItemId)
+                                                    }
+                                                />
+                                            </motion.div>
                                         ))}
                                     </Stack>
 
@@ -490,6 +489,17 @@ export function CartDrawer() {
                                             }}
                                         />
                                     </Box>
+                                </Box>
+
+                                <Box sx={{ px: 3, pt: 2, pb: 1 }}>
+                                    <Typography
+                                        variant="overline"
+                                        color="text.secondary"
+                                        sx={{ display: "block", mb: 1.25, letterSpacing: "0.08em" }}
+                                    >
+                                        {t("upsell_title")}
+                                    </Typography>
+                                    <UpsellCarousel cartItems={items} />
                                 </Box>
 
                                 {/* ── Footer: totals + CTA ── */}

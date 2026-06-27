@@ -108,6 +108,14 @@ type OrderJsonLdInput = {
     items: { name: string; quantity: number; price: number }[];
 };
 
+type ProductJsonLdInput = {
+    name: string;
+    description: string | null;
+    image: string | null;
+    price: number;
+    url: string;
+};
+
 export function orderJsonLd(order: OrderJsonLdInput) {
     const orderStatus = ORDER_STATUS_TO_SCHEMA[order.status];
     if (!orderStatus) return null;
@@ -137,6 +145,41 @@ export function orderJsonLd(order: OrderJsonLdInput) {
                     priceCurrency: "AMD",
                 },
             },
+        })),
+    };
+}
+
+export function productJsonLd(input: ProductJsonLdInput) {
+    return {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        name: input.name,
+        ...(input.description ? { description: input.description } : {}),
+        ...(input.image ? { image: [input.image] } : {}),
+        offers: {
+            "@type": "Offer",
+            price: input.price,
+            priceCurrency: "AMD",
+            availability: "https://schema.org/InStock",
+            url: input.url,
+        },
+    };
+}
+
+type BreadcrumbJsonLdItem = {
+    name: string;
+    url: string;
+};
+
+export function breadcrumbListJsonLd(items: BreadcrumbJsonLdItem[]) {
+    return {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: items.map((item, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            name: item.name,
+            item: item.url,
         })),
     };
 }

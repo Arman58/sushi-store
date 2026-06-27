@@ -42,9 +42,8 @@ export function CheckoutWizard() {
     const tCart = useTranslations("cart");
 
     const {
-        cartValidatePending,
-        validationUnavailable,
         hasCartLineProblems,
+        hasPriceMismatchIssues,
         validSubtotal: cartSubtotal,
     } = useCartLineValidation(items);
 
@@ -80,8 +79,6 @@ export function CheckoutWizard() {
         isBusySubmit ||
         isPlacingOrder ||
         delivery.deliveryBlocked ||
-        cartValidatePending ||
-        validationUnavailable ||
         hasCartLineProblems;
 
     const softMuted = checkoutIncomplete && !hardSubmitDisabled;
@@ -249,26 +246,13 @@ export function CheckoutWizard() {
                     </Alert>
                 )}
 
-                {hasItems && validationUnavailable && (
+                {hasItems && hasCartLineProblems && (
                     <Alert severity="error" sx={{ mb: 3 }}>
-                        {tCart("validation_unavailable")}
+                        {hasPriceMismatchIssues
+                            ? tCart("validation.orderPriceAlert")
+                            : t("cartLineProblems")}
                     </Alert>
                 )}
-
-                {hasItems && hasCartLineProblems && !validationUnavailable && (
-                    <Alert severity="error" sx={{ mb: 3 }}>
-                        {t("cartLineProblems")}
-                    </Alert>
-                )}
-
-                {hasItems &&
-                    cartValidatePending &&
-                    !hasCartLineProblems &&
-                    !validationUnavailable && (
-                        <Alert severity="info" sx={{ mb: 3 }}>
-                            {t("cartValidating")}
-                        </Alert>
-                    )}
 
                 {hasItems && (
                     <FormProvider {...methods}>

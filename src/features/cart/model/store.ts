@@ -6,8 +6,9 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { buildCartItemId } from "./line-id";
 import type { AddToCartPayload, CartItem } from "./types";
 
-/** Throttle rapid duplicate add-to-cart (double-clicks); 500 ms window; not persisted. */
-let lastAddItemActionAt = 0;
+/** Throttle rapid duplicate add on the same line (double-clicks); per-line, not global. */
+const lastAddByLineAt = new Map<string, number>();
+const ADD_LINE_THROTTLE_MS = 150;
 
 type CartState = {
     // ── Data ────────────────────────────────────────────────────────
@@ -86,14 +87,15 @@ export const useCartStore = create<CartState>()(
 
             // ── Actions ─────────────────────────────────────────────
             addItem: (payload) => {
-                const now = Date.now();
-                if (now - lastAddItemActionAt < 500) return;
-                lastAddItemActionAt = now;
-
                 const cartItemId = buildCartItemId(
                     payload.productId,
                     payload.selectedModifiers,
                 );
+
+                const now = Date.now();
+                const lastAt = lastAddByLineAt.get(cartItemId) ?? 0;
+                if (now - lastAt < ADD_LINE_THROTTLE_MS) return;
+                lastAddByLineAt.set(cartItemId, now);
 
                 set((state) => {
                     const existing = state.items.find(
@@ -162,19 +164,38 @@ export const useCartStore = create<CartState>()(
 
             setItemQuantity: (cartItemId, quantity) =>
                 set((state) => {
+                    const existing = state.items.find(
+                        (item) => item.cartItemId === cartItemId,
+                    );
+
                     if (quantity <= 0) {
+                        lastAddByLineAt.delete(cartItemId);
                         return {
                             items: state.items.filter(
                                 (item) => item.cartItemId !== cartItemId,
                             ),
                         };
                     }
+
+                    const isIncrease =
+                        existing != null && quantity > existing.quantity;
+                    const toastId = isIncrease ? Date.now() : state.addToast;
+
                     return {
                         items: state.items.map((item) =>
                             item.cartItemId === cartItemId
                                 ? { ...item, quantity }
                                 : item,
                         ),
+                        ...(isIncrease && existing
+                            ? {
+                                  lastAddedTitle: existing.name,
+                                  lastAddedAt: toastId,
+                                  addToast: toastId,
+                                  appToastMessage: null,
+                                  appToastSeverity: null,
+                              }
+                            : {}),
                     };
                 }),
 

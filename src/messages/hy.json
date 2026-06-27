@@ -159,7 +159,8 @@
             "decrease": "Նվազեցնել քանակը՝ {name}",
             "increase": "Ավելացնել քանակը՝ {name}",
             "add": "Ավելացնել {name}",
-            "openDetails": "Բացել {name} նկարագրությունը"
+            "openDetails": "Բացել {name} նկարագրությունը",
+            "viewProduct": "Ապրանքի էջ՝ {name}"
         },
         "modifiers": {
             "fromPrice": "սկսած {price} ֏",
@@ -172,6 +173,13 @@
             "addToCart": "Ավելացնել զամբյուղում"
         }
     },
+    "productPage": {
+        "backToMenu": "Մենյու",
+        "breadcrumbsLabel": "Կայքի նավիգացիա",
+        "composition": "Բաղադրություն",
+        "weight": "{weight} գ",
+        "addToCart": "Ավելացնել զամբյուղում"
+    },
     "cart": {
         "pageTitle": "Զամբյուղ",
         "items": "Ապրանքներ",
@@ -179,6 +187,7 @@
         "deliveryAtCheckout": "ձևակերպելիս",
         "deliveryFree": "Անվճար",
         "total": "Ընդհանուր",
+        "upsell_title": "Ավելացրեք ձեր պատվերին",
         "checkout": "Պատվերի ձևակերպում",
         "clear": "Մաքրել զամբյուղը",
         "returnToCheckout": "Վերադառնալ ձևակերպմանը",
@@ -225,6 +234,7 @@
             "unavailable": "Ապրանքը այլևս հասանելի չէ։ Հեռացրեք այն զամբյուղից։",
             "priceChanged": "Գինը փոխվել է։ Այժմ {price} ֏ մեկ հատի համար։",
             "priceChangedGeneric": "Գինը փոխվել է։ Հեռացրեք տողը կամ վերակազմեք պատվերը։",
+            "orderPriceAlert": "Մեկ կամ մի քանի ապրանքի գինը փոխվել է — ստուգեք պատվերը",
             "modifiersChanged": "Հավելումները փոխվել են։ Հեռացրեք ապրանքը և ավելացրեք կրկին։"
         }
     },
@@ -599,6 +609,9 @@
         "offer": {
             "title": "Հանրային առաջարկ",
             "description": "East West Delivery-ի հանրային առաջարկ — պատվերի, վճարման և առաքման պայմաններ։"
+        },
+        "product": {
+            "fallbackDescription": "Պատվիրեք {name} առաքմամբ Երևանում և Կոտայքում — East West Delivery."
         }
     },
     "admin": {

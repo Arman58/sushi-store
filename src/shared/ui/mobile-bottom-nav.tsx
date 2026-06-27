@@ -202,7 +202,7 @@ export function MobileBottomNav() {
                         animate={
                             cartPulse === 0
                                 ? { scale: 1 }
-                                : { scale: [1, 1.2, 1] }
+                                : { scale: [1, 1.1, 1] }
                         }
                         transition={
                             cartPulse === 0
@@ -231,6 +231,11 @@ export function MobileBottomNav() {
                     <Typography
                         variant="caption"
                         noWrap
+                        component={motion.span}
+                        key={cartTotal}
+                        initial={{ opacity: 0.75 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.12 }}
                         sx={{
                             fontSize: { xs: 10, sm: 11 },
                             fontWeight: 700,
@@ -239,6 +244,7 @@ export function MobileBottomNav() {
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                             fontVariantNumeric: "tabular-nums",
+                            display: "block",
                         }}
                     >
                         {totalItems > 0 ? `${fmt.format(cartTotal)} ֏` : t("cart")}
