@@ -1,14 +1,16 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { usePathname, useRouter } from "@/i18n/server";
+import { usePathname } from "@/i18n/server";
 
 import {
     DEFAULT_CATEGORY_SLUG,
     type PriceRange,
 } from "./types";
+
+const MENU_FILTERS_URL_EVENT = "menu-filters-url-change";
 
 function parseCategory(
     value: string | null,
@@ -60,6 +62,20 @@ function isDefaultPriceRange(
     return range[0] === minPrice && range[1] === maxPrice;
 }
 
+function readWindowSearchParams(): URLSearchParams {
+    if (typeof window === "undefined") {
+        return new URLSearchParams();
+    }
+    return new URLSearchParams(window.location.search);
+}
+
+function applyMenuFilterParams(pathname: string, params: URLSearchParams) {
+    const qs = params.toString();
+    const href = qs ? `${pathname}?${qs}` : pathname;
+    window.history.pushState(window.history.state, "", href);
+    window.dispatchEvent(new Event(MENU_FILTERS_URL_EVENT));
+}
+
 type PriceFilterable = { price: number };
 type CategoryFilterable = { category?: { slug: string } | null };
 
@@ -70,9 +86,8 @@ type UseMenuFiltersOptions = {
 };
 
 export function useMenuFilters(options: UseMenuFiltersOptions) {
-    const searchParams = useSearchParams();
+    const routerSearchParams = useSearchParams();
     const pathname = usePathname();
-    const router = useRouter();
 
     const validCategorySlugs = useMemo(
         () => options.validCategorySlugs ?? [DEFAULT_CATEGORY_SLUG],
@@ -82,18 +97,39 @@ export function useMenuFilters(options: UseMenuFiltersOptions) {
     const minPrice = options.minPrice;
     const maxPrice = options.maxPrice;
 
+    const [localParams, setLocalParams] = useState<URLSearchParams>(() =>
+        new URLSearchParams(routerSearchParams.toString()),
+    );
+
+    useEffect(() => {
+        setLocalParams(new URLSearchParams(routerSearchParams.toString()));
+    }, [routerSearchParams]);
+
+    useEffect(() => {
+        const syncFromWindow = () => {
+            setLocalParams(readWindowSearchParams());
+        };
+
+        window.addEventListener("popstate", syncFromWindow);
+        window.addEventListener(MENU_FILTERS_URL_EVENT, syncFromWindow);
+        return () => {
+            window.removeEventListener("popstate", syncFromWindow);
+            window.removeEventListener(MENU_FILTERS_URL_EVENT, syncFromWindow);
+        };
+    }, []);
+
     const categorySlug = parseCategory(
-        searchParams.get("category"),
+        localParams.get("category"),
         validCategorySlugs,
     );
-    const priceRange = parsePriceRange(searchParams, minPrice, maxPrice);
+    const priceRange = parsePriceRange(localParams, minPrice, maxPrice);
 
     const pushParams = useCallback(
         (next: {
             category?: string;
             priceRange?: PriceRange;
         }) => {
-            const params = new URLSearchParams(searchParams.toString());
+            const params = new URLSearchParams(localParams.toString());
 
             const newCategory = next.category ?? categorySlug;
             const newRange = next.priceRange ?? priceRange;
@@ -113,17 +149,17 @@ export function useMenuFilters(options: UseMenuFiltersOptions) {
                 params.set("priceMax", String(newRange[1]));
             }
 
-            const qs = params.toString();
-            router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+            const nextParams = new URLSearchParams(params.toString());
+            applyMenuFilterParams(pathname, nextParams);
+            setLocalParams(nextParams);
         },
         [
             categorySlug,
+            localParams,
             maxPrice,
             minPrice,
             pathname,
             priceRange,
-            router,
-            searchParams,
         ],
     );
 
@@ -138,21 +174,12 @@ export function useMenuFilters(options: UseMenuFiltersOptions) {
     );
 
     const resetFilters = useCallback(() => {
-        const params = new URLSearchParams(searchParams.toString());
-        params.delete("sort");
-        params.delete("category");
-        params.delete("price");
-        params.delete("priceMin");
-        params.delete("priceMax");
-        const qs = params.toString();
-        router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-    }, [pathname, router, searchParams]);
+        pushParams({ priceRange: [minPrice, maxPrice] });
+    }, [maxPrice, minPrice, pushParams]);
 
     const hasActiveFilters = useMemo(
-        () =>
-            categorySlug !== DEFAULT_CATEGORY_SLUG ||
-            !isDefaultPriceRange(priceRange, minPrice, maxPrice),
-        [categorySlug, maxPrice, minPrice, priceRange],
+        () => !isDefaultPriceRange(priceRange, minPrice, maxPrice),
+        [maxPrice, minPrice, priceRange],
     );
 
     const filterByCategory = useCallback(

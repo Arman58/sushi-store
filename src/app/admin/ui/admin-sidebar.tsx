@@ -1,5 +1,6 @@
 "use client";
 
+import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 import DiscountIcon from "@mui/icons-material/Discount";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
@@ -29,6 +30,11 @@ import { SITE_LOGO_PATH } from "@/lib/site-config";
 const DRAWER_WIDTH = 260;
 
 const NAV_ITEMS = [
+    {
+        href: "/admin/dashboard",
+        label: "Аналитика",
+        icon: BarChartOutlinedIcon,
+    },
     {
         href: "/admin/orders",
         label: "Заказы",

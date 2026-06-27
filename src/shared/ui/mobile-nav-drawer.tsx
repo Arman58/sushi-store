@@ -55,7 +55,10 @@ function DrawerLanguageSwitcher({ onChange }: { onChange?: () => void }) {
     const t = useTranslations("languageSwitcher");
 
     const handleChange = (newLocale: string) => {
-        const qs = searchParams.toString();
+        const qs =
+            typeof window !== "undefined"
+                ? window.location.search.slice(1)
+                : searchParams.toString();
         const href = qs ? `${pathname}?${qs}` : pathname;
         router.replace(href, { locale: newLocale });
         onChange?.();
