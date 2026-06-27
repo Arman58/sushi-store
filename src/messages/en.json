@@ -159,7 +159,8 @@
             "decrease": "Decrease quantity: {name}",
             "increase": "Increase quantity: {name}",
             "add": "Add {name}",
-            "openDetails": "Open details for {name}"
+            "openDetails": "Open details for {name}",
+            "viewProduct": "Product page: {name}"
         },
         "modifiers": {
             "fromPrice": "from {price} ֏",
@@ -172,6 +173,13 @@
             "addToCart": "Add to cart"
         }
     },
+    "productPage": {
+        "backToMenu": "Menu",
+        "breadcrumbsLabel": "Breadcrumb navigation",
+        "composition": "Ingredients",
+        "weight": "{weight} g",
+        "addToCart": "Add to cart"
+    },
     "cart": {
         "pageTitle": "Cart",
         "items": "Items",
@@ -179,6 +187,7 @@
         "deliveryAtCheckout": "at checkout",
         "deliveryFree": "Free",
         "total": "Total",
+        "upsell_title": "Frequently bought together",
         "checkout": "Checkout",
         "clear": "Clear cart",
         "returnToCheckout": "Return to checkout",
@@ -225,6 +234,7 @@
             "unavailable": "Item is no longer available. Remove it from the cart.",
             "priceChanged": "Price changed. Now {price} ֏ per unit.",
             "priceChangedGeneric": "Price changed. Remove the line or rebuild your order.",
+            "orderPriceAlert": "The price of one or more items has changed — please review your order",
             "modifiersChanged": "Item options changed. Remove and add it again."
         }
     },
@@ -599,6 +609,9 @@
         "offer": {
             "title": "Terms of Service",
             "description": "Public offer for East West Delivery — ordering, payment and delivery terms."
+        },
+        "product": {
+            "fallbackDescription": "Order {name} for delivery in Yerevan and Kotayk — East West Delivery."
         }
     },
     "admin": {

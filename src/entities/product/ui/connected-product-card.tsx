@@ -1,14 +1,16 @@
 "use client";
 
-import { memo, startTransition, useCallback } from "react";
+import { memo, useCallback } from "react";
 
 import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
 import type { ProductBadge } from "@/entities/product/ui/product-card";
 import { ProductCard } from "@/entities/product/ui/product-card";
 import { buildCartItemId, useCartStore } from "@/features/cart";
+import { getProductCoverUrl } from "@/shared/lib/product-cover";
 
 export type ConnectableProduct = {
     id: number;
+    slug: string;
     name: string;
     description?: string | null;
     composition?: string | null;
@@ -16,7 +18,7 @@ export type ConnectableProduct = {
     weight?: number | null;
     images?: unknown;
     mainImage?: string | null;
-    category?: { name: string } | null;
+    category?: { name: string; slug?: string } | null;
     modifierGroups?: MenuModifierGroup[];
 };
 
@@ -49,6 +51,7 @@ export const ConnectedProductCard = memo(function ConnectedProductCard({
         ),
     );
     const setItemQuantity = useCartStore((s) => s.setItemQuantity);
+    const addItem = useCartStore((s) => s.addItem);
     const decrementFirstLineForProduct = useCartStore(
         (s) => s.decrementFirstLineForProduct,
     );
@@ -56,22 +59,31 @@ export const ConnectedProductCard = memo(function ConnectedProductCard({
     const hasModifiers = (product.modifierGroups?.length ?? 0) > 0;
 
     const handleAddToCart = useCallback(() => {
-        onOpenModifiers(product);
-    }, [onOpenModifiers, product]);
-
-    const handleOpenDetails = useCallback(() => {
-        onOpenModifiers(product);
-    }, [onOpenModifiers, product]);
+        if (hasModifiers) {
+            onOpenModifiers(product);
+            return;
+        }
+        addItem({
+            productId: product.id,
+            name: product.name,
+            basePrice: product.price,
+            selectedModifiers: [],
+            calculatedItemPrice: product.price,
+            image:
+                getProductCoverUrl({
+                    images: product.images,
+                    mainImage: product.mainImage,
+                }) ?? undefined,
+        });
+    }, [addItem, hasModifiers, onOpenModifiers, product]);
 
     const handleIncrease = useCallback(() => {
         if (hasModifiers) {
             onOpenModifiers(product);
             return;
         }
-        startTransition(() => {
-            const cartItemId = buildCartItemId(product.id, []);
-            setItemQuantity(cartItemId, quantity + 1);
-        });
+        const cartItemId = buildCartItemId(product.id, []);
+        setItemQuantity(cartItemId, quantity + 1);
     }, [
         hasModifiers,
         onOpenModifiers,
@@ -81,10 +93,10 @@ export const ConnectedProductCard = memo(function ConnectedProductCard({
     ]);
 
     const handleDecrease = useCallback(() => {
-        startTransition(() => {
-            decrementFirstLineForProduct(product.id);
-        });
+        decrementFirstLineForProduct(product.id);
     }, [decrementFirstLineForProduct, product.id]);
+
+    const productHref = `/menu/${product.slug}`;
 
     return (
         <ProductCard
@@ -100,8 +112,8 @@ export const ConnectedProductCard = memo(function ConnectedProductCard({
             mainImage={product.mainImage}
             badges={badges}
             quantity={quantity}
+            productHref={productHref}
             onAddToCart={handleAddToCart}
-            onOpenDetails={handleOpenDetails}
             onIncrease={handleIncrease}
             onDecrease={handleDecrease}
         />

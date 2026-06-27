@@ -97,17 +97,25 @@ export function useMenuFilters(options: UseMenuFiltersOptions) {
     const minPrice = options.minPrice;
     const maxPrice = options.maxPrice;
 
-    const [localParams, setLocalParams] = useState<URLSearchParams>(() =>
-        new URLSearchParams(routerSearchParams.toString()),
+    const routerParamsString = routerSearchParams.toString();
+
+    const [localParamsString, setLocalParamsString] = useState(routerParamsString);
+    const [prevRouterParamsString, setPrevRouterParamsString] =
+        useState(routerParamsString);
+
+    if (prevRouterParamsString !== routerParamsString) {
+        setPrevRouterParamsString(routerParamsString);
+        setLocalParamsString(routerParamsString);
+    }
+
+    const localParams = useMemo(
+        () => new URLSearchParams(localParamsString),
+        [localParamsString],
     );
 
     useEffect(() => {
-        setLocalParams(new URLSearchParams(routerSearchParams.toString()));
-    }, [routerSearchParams]);
-
-    useEffect(() => {
         const syncFromWindow = () => {
-            setLocalParams(readWindowSearchParams());
+            setLocalParamsString(readWindowSearchParams().toString());
         };
 
         window.addEventListener("popstate", syncFromWindow);
@@ -151,7 +159,7 @@ export function useMenuFilters(options: UseMenuFiltersOptions) {
 
             const nextParams = new URLSearchParams(params.toString());
             applyMenuFilterParams(pathname, nextParams);
-            setLocalParams(nextParams);
+            setLocalParamsString(nextParams.toString());
         },
         [
             categorySlug,

@@ -9,9 +9,11 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import { alpha } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
+import { AnimatePresence, motion } from "framer-motion";
 import { useLocale, useTranslations } from "next-intl";
 import { memo } from "react";
 
+import { Link } from "@/i18n/server";
 import { formatStorePrice } from "@/shared/lib/format-price";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { buildProductImageAlt } from "@/shared/lib/product-image-alt";
@@ -34,6 +36,8 @@ export type ProductCardProps = {
     images?: unknown;
     mainImage?: string | null;
     badges?: ProductBadge[];
+    /** SEO-страница товара; фото и название ведут на неё. */
+    productHref?: string;
     onAddToCart: () => void;
     onOpenDetails?: () => void;
     quantity?: number;
@@ -70,6 +74,7 @@ export const ProductCard = memo(function ProductCard({
     price,
     images,
     mainImage,
+    productHref,
     onAddToCart,
     onOpenDetails,
     quantity = 0,
@@ -84,6 +89,8 @@ export const ProductCard = memo(function ProductCard({
     const previewText = (description ?? composition)?.trim() ?? "";
 
     const hasInCart = quantity > 0;
+    const productLink = productHref?.trim() || null;
+    const hasProductLink = Boolean(productLink);
 
     const handleAdd = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -100,6 +107,17 @@ export const ProductCard = memo(function ProductCard({
             handleOpenDetails();
         }
     };
+
+    const linkSx = {
+        display: "block",
+        textDecoration: "none",
+        color: "inherit",
+        outline: "none",
+        "&:focus-visible": {
+            boxShadow: (theme: { palette: { primary: { main: string } } }) =>
+                `inset 0 0 0 2px ${theme.palette.primary.main}`,
+        },
+    } as const;
 
     return (
         <Box sx={{ width: "100%", height: "100%", minWidth: 0, ...fadeInSx }}>
@@ -125,51 +143,84 @@ export const ProductCard = memo(function ProductCard({
                 }}
             >
                 <Box
-                    role={onOpenDetails ? "button" : undefined}
-                    tabIndex={onOpenDetails ? 0 : undefined}
+                    role={!hasProductLink && onOpenDetails ? "button" : undefined}
+                    tabIndex={!hasProductLink && onOpenDetails ? 0 : undefined}
                     aria-label={
-                        onOpenDetails
+                        !hasProductLink && onOpenDetails
                             ? t("aria.openDetails", { name })
                             : undefined
                     }
-                    onClick={onOpenDetails ? handleOpenDetails : undefined}
+                    onClick={
+                        !hasProductLink && onOpenDetails
+                            ? handleOpenDetails
+                            : undefined
+                    }
                     onKeyDown={
-                        onOpenDetails ? handleOpenDetailsKeyDown : undefined
+                        !hasProductLink && onOpenDetails
+                            ? handleOpenDetailsKeyDown
+                            : undefined
                     }
                     sx={{
                         flex: 1,
                         minHeight: 0,
                         display: "flex",
                         flexDirection: "column",
-                        cursor: onOpenDetails ? "pointer" : undefined,
+                        cursor:
+                            !hasProductLink && onOpenDetails ? "pointer" : undefined,
                         outline: "none",
-                        "&:focus-visible": onOpenDetails
-                            ? {
-                                  boxShadow: (theme) =>
-                                      `inset 0 0 0 2px ${theme.palette.primary.main}`,
-                              }
-                            : undefined,
+                        "&:focus-visible":
+                            !hasProductLink && onOpenDetails
+                                ? {
+                                      boxShadow: (theme) =>
+                                          `inset 0 0 0 2px ${theme.palette.primary.main}`,
+                                  }
+                                : undefined,
                     }}
                 >
-                {/* 1. Image - fixed aspect ratio, never stretches the card */}
-                <Box
-                    sx={{
-                        position: "relative",
-                        width: "100%",
-                        aspectRatio: "4 / 3",
-                        flexShrink: 0,
-                        overflow: "hidden",
-                        bgcolor: tokens.surfaceHi,
-                    }}
-                >
-                    <ProductCoverImage
-                        src={imageUrl}
-                        alt={imageAlt}
-                        priority={imagePriority}
-                    />
-                </Box>
+                {/* 1. Image */}
+                {hasProductLink ? (
+                    <Box
+                        component={Link}
+                        href={productLink!}
+                        aria-label={t("aria.viewProduct", { name })}
+                        sx={{
+                            ...linkSx,
+                            position: "relative",
+                            width: "100%",
+                            aspectRatio: "4 / 3",
+                            flexShrink: 0,
+                            overflow: "hidden",
+                            bgcolor: tokens.surfaceHi,
+                            borderTopLeftRadius: `${tokens.radiusCardLg}px`,
+                            borderTopRightRadius: `${tokens.radiusCardLg}px`,
+                        }}
+                    >
+                        <ProductCoverImage
+                            src={imageUrl}
+                            alt={imageAlt}
+                            priority={imagePriority}
+                        />
+                    </Box>
+                ) : (
+                    <Box
+                        sx={{
+                            position: "relative",
+                            width: "100%",
+                            aspectRatio: "4 / 3",
+                            flexShrink: 0,
+                            overflow: "hidden",
+                            bgcolor: tokens.surfaceHi,
+                        }}
+                    >
+                        <ProductCoverImage
+                            src={imageUrl}
+                            alt={imageAlt}
+                            priority={imagePriority}
+                        />
+                    </Box>
+                )}
 
-                {/* 2. Content - name + description, grows within card */}
+                {/* 2. Content - name + description */}
                 <Box
                     sx={{
                         flex: 1,
@@ -182,22 +233,45 @@ export const ProductCard = memo(function ProductCard({
                         px: 1.5,
                     }}
                 >
-                    <Typography
-                        variant="body2"
-                        sx={{
-                            fontWeight: 700,
-                            display: "-webkit-box",
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: "vertical",
-                            overflow: "hidden",
-                            whiteSpace: "normal",
-                            wordBreak: "break-word",
-                            color: "text.primary",
-                            lineHeight: 1.25,
-                        }}
-                    >
-                        {name}
-                    </Typography>
+                    {hasProductLink ? (
+                        <Typography
+                            component={Link}
+                            href={productLink!}
+                            variant="body2"
+                            sx={{
+                                ...linkSx,
+                                fontWeight: 700,
+                                display: "-webkit-box",
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                                whiteSpace: "normal",
+                                wordBreak: "break-word",
+                                color: "text.primary",
+                                lineHeight: 1.25,
+                                "&:hover": { color: "primary.main" },
+                            }}
+                        >
+                            {name}
+                        </Typography>
+                    ) : (
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                fontWeight: 700,
+                                display: "-webkit-box",
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                                whiteSpace: "normal",
+                                wordBreak: "break-word",
+                                color: "text.primary",
+                                lineHeight: 1.25,
+                            }}
+                        >
+                            {name}
+                        </Typography>
+                    )}
 
                     {previewText ? (
                         <Typography
@@ -256,87 +330,113 @@ export const ProductCard = memo(function ProductCard({
                         {formatStorePrice(price)}&thinsp;֏
                     </Typography>
 
-                    {hasInCart ? (
-                        <Stack
-                            direction="row"
-                            alignItems="center"
-                            spacing={0.25}
-                            sx={{ flexShrink: 0 }}
-                        >
-                            <IconButton
-                                size="small"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onDecrease?.();
-                                }}
-                                aria-label={t("aria.decrease", { name })}
-                                sx={{
-                                    ...stepperButtonSx,
-                                    bgcolor: "action.hover",
-                                    color: "text.secondary",
-                                    "&:hover": { bgcolor: "action.selected" },
-                                    "&:active": { transform: "scale(0.92)" },
-                                }}
+                    <AnimatePresence mode="wait" initial={false}>
+                        {hasInCart ? (
+                            <motion.div
+                                key="stepper"
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                transition={{ duration: 0.15 }}
+                                style={{ flexShrink: 0 }}
                             >
-                                <RemoveIcon sx={{ fontSize: 20 }} />
-                            </IconButton>
+                                <Stack
+                                    direction="row"
+                                    alignItems="center"
+                                    spacing={0.25}
+                                    sx={{ flexShrink: 0 }}
+                                >
+                                    <IconButton
+                                        size="small"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onDecrease?.();
+                                        }}
+                                        aria-label={t("aria.decrease", { name })}
+                                        sx={{
+                                            ...stepperButtonSx,
+                                            bgcolor: "action.hover",
+                                            color: "text.secondary",
+                                            "&:hover": { bgcolor: "action.selected" },
+                                            "&:active": { transform: "scale(0.92)" },
+                                        }}
+                                    >
+                                        <RemoveIcon sx={{ fontSize: 20 }} />
+                                    </IconButton>
 
-                            <Typography
-                                sx={{
-                                    fontSize: { xs: "0.8rem", sm: "0.875rem" },
-                                    fontWeight: 700,
-                                    minWidth: 20,
-                                    textAlign: "center",
-                                    color: "text.primary",
-                                    lineHeight: 1,
-                                    fontVariantNumeric: "tabular-nums",
-                                    flexShrink: 0,
-                                }}
-                            >
-                                {quantity}
-                            </Typography>
+                                    <Typography
+                                        component={motion.span}
+                                        key={quantity}
+                                        initial={{ scale: 1.25, opacity: 0.6 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        transition={{ duration: 0.15 }}
+                                        sx={{
+                                            fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                                            fontWeight: 700,
+                                            minWidth: 20,
+                                            textAlign: "center",
+                                            color: "text.primary",
+                                            lineHeight: 1,
+                                            fontVariantNumeric: "tabular-nums",
+                                            flexShrink: 0,
+                                            display: "inline-block",
+                                        }}
+                                    >
+                                        {quantity}
+                                    </Typography>
 
-                            <IconButton
-                                size="small"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onIncrease?.();
-                                }}
-                                aria-label={t("aria.increase", { name })}
-                                sx={{
-                                    ...stepperButtonSx,
-                                    bgcolor: "action.hover",
-                                    color: "text.secondary",
-                                    "&:hover": { bgcolor: "action.selected" },
-                                    "&:active": { transform: "scale(0.92)" },
-                                }}
+                                    <IconButton
+                                        size="small"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onIncrease?.();
+                                        }}
+                                        aria-label={t("aria.increase", { name })}
+                                        sx={{
+                                            ...stepperButtonSx,
+                                            bgcolor: "action.hover",
+                                            color: "text.secondary",
+                                            "&:hover": { bgcolor: "action.selected" },
+                                            "&:active": { transform: "scale(0.92)" },
+                                        }}
+                                    >
+                                        <AddIcon sx={{ fontSize: 20 }} />
+                                    </IconButton>
+                                </Stack>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="add"
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                transition={{ duration: 0.15 }}
+                                style={{ flexShrink: 0 }}
                             >
-                                <AddIcon sx={{ fontSize: 20 }} />
-                            </IconButton>
-                        </Stack>
-                    ) : (
-                        <IconButton
-                            size="small"
-                            onClick={handleAdd}
-                            aria-label={t("aria.add", { name })}
-                            sx={{
-                                ...stepperButtonSx,
-                                flexShrink: 0,
-                                bgcolor: "primary.main",
-                                color: "primary.contrastText",
-                                boxShadow: `0 2px 8px ${alpha(tokens.brand, 0.35)}`,
-                                "&:hover": { bgcolor: "primary.dark" },
-                                "&:active": { transform: "scale(0.92)" },
-                            }}
-                        >
-                            <AddIcon
-                                sx={{
-                                    fontSize: 22,
-                                    color: "primary.contrastText",
-                                }}
-                            />
-                        </IconButton>
-                    )}
+                                <IconButton
+                                    size="small"
+                                    onClick={handleAdd}
+                                    aria-label={t("aria.add", { name })}
+                                    sx={{
+                                        ...stepperButtonSx,
+                                        flexShrink: 0,
+                                        bgcolor: "primary.main",
+                                        color: "primary.contrastText",
+                                        boxShadow: `0 2px 8px ${alpha(tokens.brand, 0.35)}`,
+                                        "&:hover": { bgcolor: "primary.dark" },
+                                        "&:active": { transform: "scale(0.92)" },
+                                    }}
+                                >
+                                    <AddIcon
+                                        sx={{
+                                            fontSize: 22,
+                                            color: "primary.contrastText",
+                                        }}
+                                    />
+                                </IconButton>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </Box>
             </Card>
         </Box>

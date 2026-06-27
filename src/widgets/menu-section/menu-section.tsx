@@ -6,6 +6,7 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import { alpha, useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
+import { AnimatePresence, motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useLocale, useTranslations } from "next-intl";
 import { startTransition, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -13,6 +14,7 @@ import { startTransition, Suspense, useCallback, useEffect, useMemo, useRef, use
 import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
 import { type ConnectableProduct,ConnectedProductCard } from "@/entities/product/ui/connected-product-card";
 import { useCartStore } from "@/features/cart";
+import { formatStorePrice } from "@/shared/lib/format-price";
 import { FilterTriggerButton, useMenuFilters } from "@/features/filter";
 import { Link } from "@/i18n/server";
 import type { StorefrontCategory } from "@/lib/i18n-utils";
@@ -126,7 +128,16 @@ function MenuSectionInner({
             0,
         ),
     );
+    const addToast = useCartStore((s) => s.addToast);
     const addItem = useCartStore((s) => s.addItem);
+    const [stickyCartPulse, setStickyCartPulse] = useState(0);
+    const lastAddToastRef = useRef(0);
+
+    useEffect(() => {
+        if (!addToast || addToast === lastAddToastRef.current) return;
+        lastAddToastRef.current = addToast;
+        queueMicrotask(() => setStickyCartPulse((n) => n + 1));
+    }, [addToast]);
     const [modifierProduct, setModifierProduct] = useState<ConnectableProduct | null>(
         null,
     );
@@ -391,92 +402,122 @@ function MenuSectionInner({
             {/* ══════════════════════════════════════════════════════
                 FLOATING CART BAR
             ══════════════════════════════════════════════════════ */}
-            {totalCount > 0 && (
-                <Box
-                    sx={{
-                        display: { xs: "flex", md: "none" },
-                        position: "fixed",
-                        bottom: {
-                            xs: "calc(72px + env(safe-area-inset-bottom))",
-                            md: 0,
-                        },
-                        left: 0,
-                        right: 0,
-                        zIndex: 1250,
-                        px: 1.5,
-                        pb: "calc(16px + env(safe-area-inset-bottom))",
-                        bgcolor: "background.paper",
-                        boxShadow: `0 -2px 10px ${alpha(theme.palette.common.black, 0.06)}`,
-                    }}
-                >
-                    <Button
-                        fullWidth
-                        component={Link}
-                        href="/checkout"
+            <AnimatePresence>
+                {totalCount > 0 && (
+                    <Box
+                        component={motion.div}
+                        key="menu-sticky-cart"
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 16 }}
+                        transition={{ duration: 0.18, ease: "easeOut" }}
                         sx={{
-                            height: 56,
-                            borderRadius: `${tokens.radiusCardLg}px`,
+                            display: { xs: "flex", md: "none" },
+                            position: "fixed",
+                            bottom: {
+                                xs: "calc(72px + env(safe-area-inset-bottom))",
+                                md: 0,
+                            },
+                            left: 0,
+                            right: 0,
+                            zIndex: 1250,
+                            px: 1.5,
+                            pb: "calc(16px + env(safe-area-inset-bottom))",
                             bgcolor: "background.paper",
-                            color: "text.primary",
-                            justifyContent: "space-between",
-                            px: 2,
-                            textTransform: "none",
-                            border: "1px solid",
-                            borderColor: "divider",
-                            "&:hover": { bgcolor: "action.hover" },
+                            boxShadow: `0 -2px 10px ${alpha(theme.palette.common.black, 0.06)}`,
                         }}
                     >
-                        <Box
-                            sx={{
-                                display: "flex",
-                                flexDirection: "column",
-                                alignItems: "flex-start",
-                                gap: 0.25,
-                                flex: 1,
-                                minWidth: 0,
-                                overflow: "hidden",
-                            }}
+                        <motion.div
+                            key={stickyCartPulse}
+                            style={{ width: "100%" }}
+                            initial={{ scale: 1 }}
+                            animate={
+                                stickyCartPulse === 0
+                                    ? { scale: 1 }
+                                    : { scale: [1, 1.03, 1] }
+                            }
+                            transition={
+                                stickyCartPulse === 0
+                                    ? { duration: 0 }
+                                    : { duration: 0.22, times: [0, 0.45, 1] }
+                            }
                         >
-                            <Typography
+                            <Button
+                                fullWidth
+                                component={Link}
+                                href="/checkout"
                                 sx={{
-                                    fontWeight: 600,
-                                    fontSize: "0.9rem",
-                                    whiteSpace: "nowrap",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    width: "100%",
+                                    height: 56,
+                                    borderRadius: `${tokens.radiusCardLg}px`,
+                                    bgcolor: "background.paper",
+                                    color: "text.primary",
+                                    justifyContent: "space-between",
+                                    px: 2,
+                                    textTransform: "none",
+                                    border: "1px solid",
+                                    borderColor: "divider",
+                                    "&:hover": { bgcolor: "action.hover" },
                                 }}
                             >
-                                {t("stickyCart.label", { count: totalCount })}
-                            </Typography>
-                            <Typography
-                                sx={{
-                                    fontWeight: 800,
-                                    fontSize: "1rem",
-                                    color: "primary.main",
-                                    fontVariantNumeric: "tabular-nums",
-                                    whiteSpace: "nowrap",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    width: "100%",
-                                }}
-                            >
-                                {totalPrice.toLocaleString("ru-RU")} ֏
-                            </Typography>
-                        </Box>
-                        <Typography
-                            sx={{
-                                color: "primary.main",
-                                fontWeight: 800,
-                                fontSize: "1.2rem",
-                                flexShrink: 0,
-                            }}
-                        >
-                            →
-                        </Typography>
-                    </Button>
-                </Box>
-            )}
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        alignItems: "flex-start",
+                                        gap: 0.25,
+                                        flex: 1,
+                                        minWidth: 0,
+                                        overflow: "hidden",
+                                    }}
+                                >
+                                    <Typography
+                                        sx={{
+                                            fontWeight: 600,
+                                            fontSize: "0.9rem",
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            width: "100%",
+                                        }}
+                                    >
+                                        {t("stickyCart.label", { count: totalCount })}
+                                    </Typography>
+                                    <Typography
+                                        component={motion.span}
+                                        key={totalPrice}
+                                        initial={{ opacity: 0.7 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ duration: 0.12 }}
+                                        sx={{
+                                            fontWeight: 800,
+                                            fontSize: "1rem",
+                                            color: "primary.main",
+                                            fontVariantNumeric: "tabular-nums",
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            width: "100%",
+                                            display: "block",
+                                        }}
+                                    >
+                                        {formatStorePrice(totalPrice)} ֏
+                                    </Typography>
+                                </Box>
+                                <Typography
+                                    sx={{
+                                        color: "primary.main",
+                                        fontWeight: 800,
+                                        fontSize: "1.2rem",
+                                        flexShrink: 0,
+                                    }}
+                                >
+                                    →
+                                </Typography>
+                            </Button>
+                        </motion.div>
+                    </Box>
+                )}
+            </AnimatePresence>
             <ProductModifiersDialog
                 open={modifierProduct !== null}
                 onClose={() => setModifierProduct(null)}
@@ -490,19 +531,17 @@ function MenuSectionInner({
                 modifierGroups={modifierProduct?.modifierGroups ?? []}
                 onConfirm={({ selectedModifiers, calculatedItemPrice }) => {
                     if (!modifierProduct) return;
-                    startTransition(() => {
-                        addItem({
-                            productId: modifierProduct.id,
-                            name: modifierProduct.name,
-                            basePrice: modifierProduct.price,
-                            selectedModifiers,
-                            calculatedItemPrice,
-                            image:
-                                getProductCoverUrl({
-                                    images: modifierProduct.images,
-                                    mainImage: modifierProduct.mainImage,
-                                }) || "",
-                        });
+                    addItem({
+                        productId: modifierProduct.id,
+                        name: modifierProduct.name,
+                        basePrice: modifierProduct.price,
+                        selectedModifiers,
+                        calculatedItemPrice,
+                        image:
+                            getProductCoverUrl({
+                                images: modifierProduct.images,
+                                mainImage: modifierProduct.mainImage,
+                            }) || "",
                     });
                 }}
             />

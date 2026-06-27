@@ -6,6 +6,7 @@ import ListAltIcon from "@mui/icons-material/ListAlt";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
+import RestaurantIcon from "@mui/icons-material/Restaurant";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
@@ -55,6 +56,12 @@ const NAV_ITEMS = [
         label: "Промокоды",
         icon: DiscountIcon,
     },
+    {
+        href: "/admin/kitchen",
+        label: "Экран кухни",
+        icon: RestaurantIcon,
+        openInNewTab: true,
+    },
 ] as const;
 
 function resolvePageTitle(pathname: string): string {
@@ -69,14 +76,20 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 
     return (
         <List sx={{ flex: 1, px: 1, py: 1 }}>
-            {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+            {NAV_ITEMS.map((item) => {
+                const { href, label, icon: Icon } = item;
+                const openInNewTab = "openInNewTab" in item && item.openInNewTab;
                 const active =
-                    pathname === href || pathname.startsWith(`${href}/`);
+                    !openInNewTab &&
+                    (pathname === href || pathname.startsWith(`${href}/`));
                 return (
                     <ListItemButton
                         key={href}
-                        component={Link}
+                        component={openInNewTab ? "a" : Link}
                         href={href}
+                        {...(openInNewTab
+                            ? { target: "_blank", rel: "noopener noreferrer" }
+                            : {})}
                         selected={active}
                         onClick={onNavigate}
                         sx={(theme) => ({
@@ -236,6 +249,12 @@ export function AdminShell({ children }: AdminShellProps) {
     const pathname = usePathname();
     const [mobileOpen, setMobileOpen] = useState(false);
     const pageTitle = useMemo(() => resolvePageTitle(pathname), [pathname]);
+
+    if (pathname.startsWith("/admin/kitchen")) {
+        return (
+            <Box sx={{ width: "100%", height: "100vh" }}>{children}</Box>
+        );
+    }
 
     return (
         <Box

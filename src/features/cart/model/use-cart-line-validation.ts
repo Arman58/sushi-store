@@ -51,6 +51,9 @@ export function useCartLineIssueMessage() {
     return (issue: CartLineIssue) => cartLineIssueMessage(issue, t);
 }
 
+/** Задержка фоновой проверки после optimistic-обновления корзины. */
+const VALIDATION_DEBOUNCE_MS = 650;
+
 export function useCartLineValidation(items: CartItem[]) {
     const [cartLineIssues, setCartLineIssues] = useState<
         Record<string, CartLineIssue>
@@ -131,7 +134,7 @@ export function useCartLineValidation(items: CartItem[]) {
                     }
                 }
             })();
-        }, 500);
+        }, VALIDATION_DEBOUNCE_MS);
 
         return () => {
             window.clearTimeout(timer);
@@ -141,6 +144,15 @@ export function useCartLineValidation(items: CartItem[]) {
 
     const hasCartLineProblems = useMemo(
         () => items.some((item) => Boolean(cartLineIssues[item.cartItemId])),
+        [items, cartLineIssues],
+    );
+
+    const hasPriceMismatchIssues = useMemo(
+        () =>
+            items.some(
+                (item) =>
+                    cartLineIssues[item.cartItemId]?.reason === "price_mismatch",
+            ),
         [items, cartLineIssues],
     );
 
@@ -166,6 +178,7 @@ export function useCartLineValidation(items: CartItem[]) {
         cartValidatePending,
         validationUnavailable,
         hasCartLineProblems,
+        hasPriceMismatchIssues,
         problematicCartItemIds,
         validSubtotal,
     };

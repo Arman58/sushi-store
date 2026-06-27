@@ -22,6 +22,7 @@ export type HomeProductPayload = Prisma.ProductGetPayload<{
 export function mapProductToPopular(p: HomeProductPayload, locale = "hy") {
     return {
         id: p.id,
+        slug: p.slug,
         name: getLocalizedField(p.name, locale),
         description: getLocalizedField(p.description, locale) || null,
         price: p.price,
@@ -29,7 +30,10 @@ export function mapProductToPopular(p: HomeProductPayload, locale = "hy") {
         images: p.images,
         mainImage: p.mainImage,
         category: p.category
-            ? { name: getLocalizedField(p.category.name, locale) }
+            ? {
+                  name: getLocalizedField(p.category.name, locale),
+                  slug: p.category.slug,
+              }
             : null,
         composition: getLocalizedField(p.composition, locale) || undefined,
         modifierGroups: toStorefrontModifierGroups(

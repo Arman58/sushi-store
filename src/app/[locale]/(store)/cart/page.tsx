@@ -13,6 +13,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 
 import {
     CartLineItem,
@@ -22,6 +23,7 @@ import {
 import { Link } from "@/i18n/server";
 import { ApiError, validatePromo } from "@/shared/api";
 import { AppButton, EmptyCart, PageContainer, SectionTitle } from "@/shared/ui";
+import { UpsellCarousel } from "@/widgets/upsell";
 
 export default function CartPage() {
     const t = useTranslations("cart");
@@ -37,18 +39,13 @@ export default function CartPage() {
 
     const {
         cartLineIssues,
-        cartValidatePending,
-        validationUnavailable,
         hasCartLineProblems,
+        hasPriceMismatchIssues,
         problematicCartItemIds,
         validSubtotal: subtotal,
     } = useCartLineValidation(items);
 
-    const canProceedToCheckout =
-        hasItems &&
-        !cartValidatePending &&
-        !validationUnavailable &&
-        !hasCartLineProblems;
+    const canProceedToCheckout = hasItems && !hasCartLineProblems;
 
     const handleRemoveUnavailable = () => {
         for (const cartItemId of problematicCartItemIds) {
@@ -142,23 +139,13 @@ export default function CartPage() {
                         alignItems="flex-start"
                     >
                         <Box flex={2} sx={{ minWidth: 0 }}>
-                            {validationUnavailable && (
+                            {hasCartLineProblems && (
                                 <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
-                                    {t("validation_unavailable")}
+                                    {hasPriceMismatchIssues
+                                        ? t("validation.orderPriceAlert")
+                                        : t("lineProblems.pageAlert")}
                                 </Alert>
                             )}
-                            {hasCartLineProblems && !validationUnavailable && (
-                                <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
-                                    {t("lineProblems.pageAlert")}
-                                </Alert>
-                            )}
-                            {cartValidatePending &&
-                                !hasCartLineProblems &&
-                                !validationUnavailable && (
-                                    <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
-                                        {t("validating")}
-                                    </Alert>
-                                )}
                             <Box
                                 sx={{
                                     borderRadius: 3,
@@ -170,20 +157,27 @@ export default function CartPage() {
                                 }}
                             >
                                 {items.map((item, index) => (
-                                    <CartLineItem
+                                    <motion.div
                                         key={item.cartItemId}
-                                        item={item}
-                                        lineIssue={cartLineIssues[item.cartItemId]}
-                                        variant="page"
-                                        showDivider={index < items.length - 1}
-                                        onIncrease={() =>
-                                            setItemQuantity(item.cartItemId, item.quantity + 1)
-                                        }
-                                        onDecrease={() =>
-                                            setItemQuantity(item.cartItemId, item.quantity - 1)
-                                        }
-                                        onRemove={() => removeItem(item.cartItemId)}
-                                    />
+                                        layout
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ duration: 0.15 }}
+                                    >
+                                        <CartLineItem
+                                            item={item}
+                                            lineIssue={cartLineIssues[item.cartItemId]}
+                                            variant="page"
+                                            showDivider={index < items.length - 1}
+                                            onIncrease={() =>
+                                                setItemQuantity(item.cartItemId, item.quantity + 1)
+                                            }
+                                            onDecrease={() =>
+                                                setItemQuantity(item.cartItemId, item.quantity - 1)
+                                            }
+                                            onRemove={() => removeItem(item.cartItemId)}
+                                        />
+                                    </motion.div>
                                 ))}
                             </Box>
 
@@ -193,7 +187,7 @@ export default function CartPage() {
                                 sx={{ mt: 1.5 }}
                                 alignItems={{ xs: "stretch", sm: "center" }}
                             >
-                                {hasCartLineProblems && !validationUnavailable && (
+                                {hasCartLineProblems && (
                                     <AppButton
                                         variant="outlined"
                                         color="error"
@@ -279,6 +273,17 @@ export default function CartPage() {
                                     </Typography>
                                 </Stack>
                             </Stack>
+
+                            <Box sx={{ my: 2 }}>
+                                <Typography
+                                    variant="overline"
+                                    color="text.secondary"
+                                    sx={{ display: "block", mb: 1.25, letterSpacing: "0.08em" }}
+                                >
+                                    {t("upsell_title")}
+                                </Typography>
+                                <UpsellCarousel cartItems={items} />
+                            </Box>
 
                             <Divider sx={{ my: 1.5 }} />
 

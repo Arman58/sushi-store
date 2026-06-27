@@ -6,7 +6,7 @@ import ButtonBase from "@mui/material/ButtonBase";
 import Typography from "@mui/material/Typography";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
-import { startTransition, useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 
 import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
 import type { ConnectableProduct } from "@/entities/product/ui/connected-product-card";
@@ -30,6 +30,7 @@ const ProductModifiersDialog = dynamic(
 
 export type PopularProduct = {
     id: number;
+    slug: string;
     name: string;
     description?: string | null;
     price: number;
@@ -227,15 +228,13 @@ export function PopularSection({
                         images: modifierProduct.images,
                         mainImage: modifierProduct.mainImage,
                     });
-                    startTransition(() => {
-                        addItem({
-                            productId: modifierProduct.id,
-                            name: modifierProduct.name,
-                            basePrice: modifierProduct.price,
-                            selectedModifiers,
-                            calculatedItemPrice,
-                            image: thumb,
-                        });
+                    addItem({
+                        productId: modifierProduct.id,
+                        name: modifierProduct.name,
+                        basePrice: modifierProduct.price,
+                        selectedModifiers,
+                        calculatedItemPrice,
+                        image: thumb,
                     });
                 }}
             />

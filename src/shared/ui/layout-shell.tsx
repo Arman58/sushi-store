@@ -118,7 +118,7 @@ function CartHeaderButton() {
         if (!addToast || addToast === lastAddToastRef.current) return;
         lastAddToastRef.current = addToast;
         queueMicrotask(() => setCartIconPulse(true));
-        const timer = window.setTimeout(() => setCartIconPulse(false), 220);
+        const timer = window.setTimeout(() => setCartIconPulse(false), 320);
         return () => window.clearTimeout(timer);
     }, [addToast]);
 
@@ -168,11 +168,12 @@ function CartHeaderButton() {
                     display: "inline-flex",
                     lineHeight: 0,
                     animation: cartIconPulse
-                        ? "cart-icon-pulse 0.22s ease-out"
+                        ? "cart-icon-pulse 0.32s ease-out"
                         : "none",
                     "@keyframes cart-icon-pulse": {
                         "0%": { transform: "scale(1)" },
-                        "40%": { transform: "scale(1.2)" },
+                        "40%": { transform: "scale(1.1)" },
+                        "70%": { transform: "scale(0.97)" },
                         "100%": { transform: "scale(1)" },
                     },
                 }}

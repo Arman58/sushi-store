@@ -26,15 +26,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const baseUrl = SITE_URL;
 
     let categories: { slug: string }[] = [];
+    let products: { slug: string; createdAt: Date }[] = [];
     try {
-        categories = await prisma.category.findMany({
-            where: {
-                isActive: true,
-                products: { some: { isActive: true } },
-            },
-            select: { slug: true },
-            orderBy: { position: "asc" },
-        });
+        [categories, products] = await Promise.all([
+            prisma.category.findMany({
+                where: {
+                    isActive: true,
+                    products: { some: { isActive: true } },
+                },
+                select: { slug: true },
+                orderBy: { position: "asc" },
+            }),
+            prisma.product.findMany({
+                where: { isActive: true },
+                select: { slug: true, createdAt: true },
+                orderBy: { id: "asc" },
+            }),
+        ]);
     } catch {
     }
 
@@ -68,5 +76,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             })),
     );
 
-    return [...staticPages, ...categoryPages];
+    const productPages: MetadataRoute.Sitemap = routing.locales.flatMap(
+        (locale) =>
+            products.map((product) => ({
+                url: `${baseUrl}${localizedPath(locale, `/menu/${product.slug}`)}`,
+                lastModified: product.createdAt,
+                changeFrequency: "weekly" as const,
+                priority: 0.7,
+            })),
+    );
+
+    return [...staticPages, ...categoryPages, ...productPages];
 }

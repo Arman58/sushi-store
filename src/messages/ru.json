@@ -159,7 +159,8 @@
             "decrease": "Уменьшить количество: {name}",
             "increase": "Увеличить количество: {name}",
             "add": "Добавить {name}",
-            "openDetails": "Открыть описание: {name}"
+            "openDetails": "Открыть описание: {name}",
+            "viewProduct": "Страница товара: {name}"
         },
         "modifiers": {
             "fromPrice": "от {price} ֏",
@@ -172,6 +173,13 @@
             "addToCart": "В корзину"
         }
     },
+    "productPage": {
+        "backToMenu": "Меню",
+        "breadcrumbsLabel": "Навигация по сайту",
+        "composition": "Состав",
+        "weight": "{weight} г",
+        "addToCart": "В корзину"
+    },
     "cart": {
         "pageTitle": "Корзина",
         "items": "Товары",
@@ -179,6 +187,7 @@
         "deliveryAtCheckout": "при оформлении",
         "deliveryFree": "Бесплатно",
         "total": "Итого",
+        "upsell_title": "С этим часто заказывают",
         "checkout": "Оформить заказ",
         "clear": "Очистить корзину",
         "returnToCheckout": "Вернуться к оформлению",
@@ -225,6 +234,7 @@
             "unavailable": "Товар больше недоступен. Удалите позицию из корзины.",
             "priceChanged": "Цена изменилась. Сейчас {price} ֏ за единицу.",
             "priceChangedGeneric": "Цена изменилась. Удалите строку или пересоберите заказ.",
+            "orderPriceAlert": "Цена на один или несколько товаров изменилась — проверьте заказ",
             "modifiersChanged": "Добавки изменились. Удалите позицию и добавьте её заново."
         }
     },
@@ -599,6 +609,9 @@
         "offer": {
             "title": "Публичная оферта",
             "description": "Публичная оферта сервиса доставки East West Delivery — условия заказа, оплаты и доставки."
+        },
+        "product": {
+            "fallbackDescription": "Закажите {name} с доставкой в Ереване и Котайке — East West Delivery."
         }
     },
     "admin": {
