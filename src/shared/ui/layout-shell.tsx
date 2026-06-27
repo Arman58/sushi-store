@@ -16,7 +16,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 
 import { LoginButton } from "@/features/auth";
 import { useCartStore } from "@/features/cart";
@@ -441,7 +441,9 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                     display: { xs: "none", sm: "flex" },
                                 }}
                             >
-                                <LanguageSwitcher />
+                                <Suspense fallback={<Box sx={{ width: 40, height: 40 }} />}>
+                                    <LanguageSwitcher />
+                                </Suspense>
                             </Box>
                             <Box sx={HEADER_ACTION_SLOT_SX}>
                                 <MobileNavDrawer />

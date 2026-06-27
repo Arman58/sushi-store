@@ -3,22 +3,23 @@
 import RestaurantMenuOutlined from "@mui/icons-material/RestaurantMenuOutlined";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import { alpha, useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import dynamic from "next/dynamic";
 import { useLocale, useTranslations } from "next-intl";
-import { startTransition, useCallback, useMemo, useState } from "react";
+import { startTransition, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
 import { type ConnectableProduct,ConnectedProductCard } from "@/entities/product/ui/connected-product-card";
 import { useCartStore } from "@/features/cart";
 import { FilterTriggerButton, useMenuFilters } from "@/features/filter";
 import { Link } from "@/i18n/server";
+import type { StorefrontCategory } from "@/lib/i18n-utils";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { AppInput } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
+import { CategoryPillsList } from "@/widgets/category-pills";
 
 const ProductModifiersDialog = dynamic(
     () =>
@@ -63,7 +64,31 @@ type MenuSectionProps = {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function MenuSection({
+function MenuSectionFiltersFallback() {
+    return (
+        <Box
+            aria-busy="true"
+            sx={{ mt: 3, display: "flex", flexDirection: "column", gap: 2 }}
+        >
+            <Box
+                sx={{
+                    height: 44,
+                    borderRadius: `${tokens.radiusInput}px`,
+                    bgcolor: "action.hover",
+                }}
+            />
+            <Box
+                sx={{
+                    height: 40,
+                    borderRadius: 999,
+                    bgcolor: "action.hover",
+                }}
+            />
+        </Box>
+    );
+}
+
+function MenuSectionInner({
     categories,
     products,
     minPrice,
@@ -106,6 +131,35 @@ export function MenuSection({
         null,
     );
     const [search, setSearch] = useState("");
+    const stickySentinelRef = useRef<HTMLDivElement>(null);
+    const [isStickyHeaderElevated, setIsStickyHeaderElevated] = useState(false);
+
+    useEffect(() => {
+        const sentinel = stickySentinelRef.current;
+        if (!sentinel) return;
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry) {
+                    setIsStickyHeaderElevated(!entry.isIntersecting);
+                }
+            },
+            { threshold: 0 },
+        );
+
+        observer.observe(sentinel);
+        return () => observer.disconnect();
+    }, []);
+
+    const storefrontCategories = useMemo<StorefrontCategory[]>(
+        () =>
+            categories.map((category) => ({
+                id: category.id,
+                slug: category.slug,
+                name: category.name,
+            })),
+        [categories],
+    );
 
     const openFilterDrawer = useCallback(() => {
         startTransition(() => {
@@ -159,14 +213,23 @@ export function MenuSection({
     return (
         <Box sx={{ mt: 3, display: "flex", flexDirection: "column", gap: 2 }}>
             {/* ══════════════════════════════════════════════════════
-                FILTER HEADER
+                FILTER HEADER (sticky search + category pills)
             ══════════════════════════════════════════════════════ */}
+            <Box ref={stickySentinelRef} sx={{ height: 0 }} aria-hidden />
+
             <Box
                 sx={{
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 1100,
+                    bgcolor: "background.paper",
+                    py: 1,
+                    mx: { xs: -2, md: -3 },
                     px: { xs: 2, md: 3 },
-                    py: 2,
-                    width: "100%",
-                    overflow: "visible",
+                    boxShadow: isStickyHeaderElevated
+                        ? `0 2px 8px ${alpha(theme.palette.common.black, 0.08)}`
+                        : "none",
+                    transition: "box-shadow 0.2s ease",
                 }}
             >
                 <Stack
@@ -194,19 +257,24 @@ export function MenuSection({
                         hasActiveFilters={hasActiveFilters}
                     />
                 </Stack>
-                <Divider sx={{ mt: 2 }} />
+
+                {storefrontCategories.length > 0 ? (
+                    <CategoryPillsList
+                        categories={storefrontCategories}
+                        activeSlug={categorySlug}
+                        mode="interactive"
+                        onChange={setCategorySlug}
+                    />
+                ) : null}
             </Box>
 
             <FilterDrawer
                 isOpen={filterDrawerOpen}
                 onClose={closeFilterDrawer}
-                categories={categories}
-                categorySlug={categorySlug}
                 priceRange={priceRange}
                 minPrice={minPrice}
                 maxPrice={maxPrice}
                 resultCount={filteredProducts.length}
-                onCategoryChange={setCategorySlug}
                 onPriceRangeChange={setPriceRange}
                 onReset={resetFilters}
             />
@@ -439,5 +507,13 @@ export function MenuSection({
                 }}
             />
         </Box>
+    );
+}
+
+export function MenuSection(props: MenuSectionProps) {
+    return (
+        <Suspense fallback={<MenuSectionFiltersFallback />}>
+            <MenuSectionInner {...props} />
+        </Suspense>
     );
 }

@@ -9,6 +9,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 import { buildLocalizedMetadata } from "@/lib/seo/metadata";
+import { HomeCategoryPillsSection } from "@/widgets/home/home-category-pills-section";
 import { HomeHeroSection } from "@/widgets/home/home-hero-section";
 import { HomeNewArrivalsSection } from "@/widgets/home/home-new-arrivals-section";
 import { HomePromoCarouselSection } from "@/widgets/home/home-promo-carousel-section";
@@ -58,6 +59,10 @@ export default function HomePage() {
             >
                 <HomePromoCarouselSection />
             </Container>
+
+            <Suspense fallback={null}>
+                <HomeCategoryPillsSection />
+            </Suspense>
 
             <Suspense fallback={
                 <Container sx={{ ...sectionContainerSx, mt: { xs: 3, md: 6 } }}>

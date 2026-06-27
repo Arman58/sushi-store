@@ -2,12 +2,9 @@
 
 import CloseIcon from "@mui/icons-material/Close";
 import Box from "@mui/material/Box";
-import Chip from "@mui/material/Chip";
-import Divider from "@mui/material/Divider";
 import Drawer from "@mui/material/Drawer";
 import IconButton from "@mui/material/IconButton";
 import Slider from "@mui/material/Slider";
-import Stack from "@mui/material/Stack";
 import { alpha, useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { useTranslations } from "next-intl";
@@ -16,18 +13,15 @@ import { startTransition } from "react";
 import { AppButton } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
 
-import type { MenuCategoryOption, PriceRange } from "./types";
+import type { PriceRange } from "./types";
 
 type FilterDrawerProps = {
     isOpen: boolean;
     onClose: () => void;
-    categories: MenuCategoryOption[];
-    categorySlug: string;
     priceRange: PriceRange;
     minPrice: number;
     maxPrice: number;
     resultCount: number;
-    onCategoryChange: (slug: string) => void;
     onPriceRangeChange: (range: PriceRange) => void;
     onReset: () => void;
 };
@@ -51,38 +45,13 @@ function sliderStep(minPrice: number, maxPrice: number): number {
     return 250;
 }
 
-function categoryChipSx(isSelected: boolean) {
-    return {
-        height: 36,
-        fontWeight: isSelected ? 600 : 400,
-        borderColor: isSelected ? "primary.main" : "grey.300",
-        ...(isSelected
-            ? {
-                  bgcolor: "primary.main",
-                  color: "primary.contrastText",
-                  border: "none",
-                  boxShadow: `0 2px 8px ${alpha(tokens.brand, 0.35)}`,
-                  "& .MuiChip-label": { color: "inherit", px: 1.25 },
-                  "&:hover": { bgcolor: "primary.dark" },
-              }
-            : {
-                  bgcolor: "background.paper",
-                  color: "text.secondary",
-                  "&:hover": { bgcolor: "grey.100" },
-              }),
-    } as const;
-}
-
 export function FilterDrawer({
     isOpen,
     onClose,
-    categories,
-    categorySlug,
     priceRange,
     minPrice,
     maxPrice,
     resultCount,
-    onCategoryChange,
     onPriceRangeChange,
     onReset,
 }: FilterDrawerProps) {
@@ -103,16 +72,6 @@ export function FilterDrawer({
             : t("show_results");
 
     const priceSliderDisabled = minPrice >= maxPrice;
-
-    const handleCategorySelect = (slug: string) => {
-        startTransition(() => {
-            if (slug === "all") {
-                onCategoryChange("all");
-                return;
-            }
-            onCategoryChange(categorySlug === slug ? "all" : slug);
-        });
-    };
 
     return (
         <Drawer
@@ -180,39 +139,6 @@ export function FilterDrawer({
                     py: 2.5,
                 }}
             >
-                {/* Categories */}
-                <Typography variant="subtitle2" sx={sectionTitleSx}>
-                    {t("filter_category")}
-                </Typography>
-
-                <Stack direction="row" flexWrap="wrap" gap={1}>
-                    <Chip
-                        label={t("all_categories")}
-                        clickable
-                        variant={categorySlug === "all" ? "filled" : "outlined"}
-                        color={categorySlug === "all" ? "primary" : "default"}
-                        onClick={() => handleCategorySelect("all")}
-                        sx={categoryChipSx(categorySlug === "all")}
-                    />
-                    {categories.map((category) => {
-                        const isSelected = categorySlug === category.slug;
-                        return (
-                            <Chip
-                                key={category.slug}
-                                label={category.name}
-                                clickable
-                                variant={isSelected ? "filled" : "outlined"}
-                                color={isSelected ? "primary" : "default"}
-                                onClick={() => handleCategorySelect(category.slug)}
-                                sx={categoryChipSx(isSelected)}
-                            />
-                        );
-                    })}
-                </Stack>
-
-                <Divider sx={{ my: 2 }} />
-
-                {/* Price range */}
                 <Typography variant="subtitle2" sx={sectionTitleSx}>
                     {t("price_range")}
                 </Typography>
