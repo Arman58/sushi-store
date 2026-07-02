@@ -15,6 +15,8 @@ model Category {
   /** Порядок на витрине (меньше - выше). */
   position  Int       @default(0)
   isActive  Boolean   @default(true)
+  /** Фото категории на витрине (Cloudinary URL). null - берётся обложка первого товара. */
+  image     String?
   products  Product[]
   createdAt DateTime  @default(now())
 }
@@ -36,6 +38,49 @@ model Product {
   categoryId     Int?
   createdAt      DateTime        @default(now())
   modifierGroups ModifierGroup[]
+
+  /** Денормализованные агрегаты отзывов; пересчитываются в транзакции при изменении отзывов. */
+  ratingAvg   Float    @default(0)
+  ratingCount Int      @default(0)
+  reviews     Review[]
+}
+
+/** Отзыв покупателя. Один отзыв на товар от пользователя (upsert-семантика в API). */
+model Review {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /** 1..5 - валидируется в API. */
+  rating    Int
+  /** Текст отзыва; может быть пустым (оценка без текста). */
+  text      String   @default("")
+  /** true - у автора есть доставленный заказ с этим товаром на момент создания. */
+  verifiedPurchase Boolean @default(false)
+  /** Денормализованный счётчик голосов «Полезно». */
+  helpfulCount Int   @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  votes ReviewVote[]
+
+  @@unique([productId, userId])
+  @@index([productId, createdAt])
+  @@index([productId, rating])
+}
+
+/** Голос «Полезно» - один на отзыв от пользователя. */
+model ReviewVote {
+  id       Int    @id @default(autoincrement())
+  reviewId Int
+  review   Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  userId   Int
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([reviewId, userId])
+  @@index([userId])
 }
 
 /** Группа опций к товару (размер, добавки). maxChoices: 0 = без верхней границы. */
@@ -174,6 +219,8 @@ model User {
   orders        Order[]
   subscriptions PushSubscription[]
   savedAddresses SavedAddress[]
+  reviews       Review[]
+  reviewVotes   ReviewVote[]
 }
 
 model SavedAddress {

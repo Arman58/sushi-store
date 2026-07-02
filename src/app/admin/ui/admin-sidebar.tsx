@@ -1,6 +1,7 @@
 "use client";
 
 import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
+import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import DiscountIcon from "@mui/icons-material/Discount";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
@@ -45,6 +46,11 @@ const NAV_ITEMS = [
         href: "/admin/products",
         label: "Товары",
         icon: StorefrontIcon,
+    },
+    {
+        href: "/admin/categories",
+        label: "Категории",
+        icon: CategoryOutlinedIcon,
     },
     {
         href: "/admin/delivery-zones",

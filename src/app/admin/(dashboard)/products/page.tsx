@@ -20,12 +20,20 @@ import {
     TableBody,
     TableCell,
     TableHead,
+    TablePagination,
     TableRow,
+    TableSortLabel,
     Typography,
 } from "@mui/material";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { startTransition, useCallback, useEffect, useState } from "react";
+import {
+    startTransition,
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 
 import { getLocalizedField } from "@/lib/i18n-utils";
 import { getProductCoverUrl, getProductImageUrls } from "@/shared/lib/product-cover";
@@ -33,6 +41,13 @@ import { PageContainer, SectionTitle } from "@/shared/ui";
 
 import { ProductFormDialogShell } from "./product-form-dialog-shell";
 import type { ProductSavePayload } from "./product-form-types";
+import {
+    DEFAULT_PRODUCT_VIEW,
+    filterAndSortProducts,
+    type ProductSortBy,
+    ProductsToolbar,
+    type ProductTableView,
+} from "./products-table-controls";
 
 const ProductFormDialog = dynamic(
     () =>
@@ -51,6 +66,7 @@ type ProductRow = {
     mainImage?: string | null;
     isActive: boolean;
     categoryId: number | null;
+    createdAt?: string;
     category: { name: unknown } | null;
     modifierGroups?: {
         id: number;
@@ -186,6 +202,55 @@ export default function AdminProductsPage() {
     const [hideUndoOpen, setHideUndoOpen] = useState(false);
     const [hideUndoProductId, setHideUndoProductId] = useState<number | null>(null);
     const [rotatingMainId, setRotatingMainId] = useState<number | null>(null);
+    const [view, setView] = useState<ProductTableView>(DEFAULT_PRODUCT_VIEW);
+
+    const patchView = useCallback((patch: Partial<ProductTableView>) => {
+        setView((prev) => ({ ...prev, ...patch }));
+    }, []);
+
+    const handleSort = useCallback((column: ProductSortBy) => {
+        setView((prev) => ({
+            ...prev,
+            sortBy: column,
+            sortDir:
+                prev.sortBy === column && prev.sortDir === "asc"
+                    ? "desc"
+                    : "asc",
+            page: 0,
+        }));
+    }, []);
+
+    const categoryOptions = useMemo(() => {
+        const map = new Map<number, string>();
+        for (const p of products) {
+            if (p.categoryId !== null && p.category) {
+                map.set(
+                    p.categoryId,
+                    getLocalizedField(p.category.name, "ru") ||
+                        getLocalizedField(p.category.name, "hy"),
+                );
+            }
+        }
+        return [...map.entries()]
+            .map(([id, label]) => ({ id, label }))
+            .sort((a, b) => a.label.localeCompare(b.label, "ru"));
+    }, [products]);
+
+    const filteredProducts = useMemo(
+        () => filterAndSortProducts(products, view),
+        [products, view],
+    );
+
+    /** Страница не выходит за пределы после сужения фильтра/удаления. */
+    const safePage = Math.min(
+        view.page,
+        Math.max(0, Math.ceil(filteredProducts.length / view.rowsPerPage) - 1),
+    );
+
+    const pagedProducts = useMemo(() => {
+        const start = safePage * view.rowsPerPage;
+        return filteredProducts.slice(start, start + view.rowsPerPage);
+    }, [filteredProducts, safePage, view.rowsPerPage]);
 
     const load = useCallback(async (options?: { silent?: boolean }) => {
         const silent = options?.silent === true;
@@ -536,6 +601,16 @@ export default function AdminProductsPage() {
                     Добавить товар
                 </Button>
 
+                {!loading && !error && products.length > 0 ? (
+                    <ProductsToolbar
+                        view={view}
+                        categories={categoryOptions}
+                        totalCount={products.length}
+                        filteredCount={filteredProducts.length}
+                        onChange={patchView}
+                    />
+                ) : null}
+
                 <Paper elevation={0} variant="outlined" sx={{ overflow: "auto" }}>
                     {loading ? (
                         <>
@@ -587,24 +662,90 @@ export default function AdminProductsPage() {
                         <Box sx={{ p: 2 }}>
                             <Typography color="text.secondary">Список пуст.</Typography>
                         </Box>
+                    ) : filteredProducts.length === 0 ? (
+                        <Box sx={{ p: 3, textAlign: "center" }}>
+                            <Typography color="text.secondary" sx={{ mb: 1 }}>
+                                Ничего не найдено по заданным фильтрам.
+                            </Typography>
+                            <Button
+                                size="small"
+                                onClick={() =>
+                                    patchView({
+                                        ...DEFAULT_PRODUCT_VIEW,
+                                        rowsPerPage: view.rowsPerPage,
+                                    })
+                                }
+                            >
+                                Сбросить фильтры
+                            </Button>
+                        </Box>
                     ) : (
                         <>
                             <Box sx={{ display: { xs: "none", md: "block" } }}>
                                 <Table size="small" stickyHeader>
                                     <TableHead>
                                         <TableRow>
-                                            <TableCell>ID</TableCell>
+                                            <TableCell sortDirection={view.sortBy === "id" ? view.sortDir : false}>
+                                                <TableSortLabel
+                                                    active={view.sortBy === "id"}
+                                                    direction={view.sortBy === "id" ? view.sortDir : "asc"}
+                                                    onClick={() => handleSort("id")}
+                                                >
+                                                    ID
+                                                </TableSortLabel>
+                                            </TableCell>
                                             <TableCell>Картинка</TableCell>
-                                            <TableCell>Название</TableCell>
+                                            <TableCell sortDirection={view.sortBy === "name" ? view.sortDir : false}>
+                                                <TableSortLabel
+                                                    active={view.sortBy === "name"}
+                                                    direction={view.sortBy === "name" ? view.sortDir : "asc"}
+                                                    onClick={() => handleSort("name")}
+                                                >
+                                                    Название
+                                                </TableSortLabel>
+                                            </TableCell>
                                             <TableCell>Состав</TableCell>
-                                            <TableCell>Категория</TableCell>
-                                            <TableCell align="right">Цена</TableCell>
-                                            <TableCell align="right">На витрине</TableCell>
+                                            <TableCell sortDirection={view.sortBy === "category" ? view.sortDir : false}>
+                                                <TableSortLabel
+                                                    active={view.sortBy === "category"}
+                                                    direction={view.sortBy === "category" ? view.sortDir : "asc"}
+                                                    onClick={() => handleSort("category")}
+                                                >
+                                                    Категория
+                                                </TableSortLabel>
+                                            </TableCell>
+                                            <TableCell align="right" sortDirection={view.sortBy === "price" ? view.sortDir : false}>
+                                                <TableSortLabel
+                                                    active={view.sortBy === "price"}
+                                                    direction={view.sortBy === "price" ? view.sortDir : "asc"}
+                                                    onClick={() => handleSort("price")}
+                                                >
+                                                    Цена
+                                                </TableSortLabel>
+                                            </TableCell>
+                                            <TableCell align="right" sortDirection={view.sortBy === "createdAt" ? view.sortDir : false}>
+                                                <TableSortLabel
+                                                    active={view.sortBy === "createdAt"}
+                                                    direction={view.sortBy === "createdAt" ? view.sortDir : "asc"}
+                                                    onClick={() => handleSort("createdAt")}
+                                                >
+                                                    Создан
+                                                </TableSortLabel>
+                                            </TableCell>
+                                            <TableCell align="right" sortDirection={view.sortBy === "isActive" ? view.sortDir : false}>
+                                                <TableSortLabel
+                                                    active={view.sortBy === "isActive"}
+                                                    direction={view.sortBy === "isActive" ? view.sortDir : "asc"}
+                                                    onClick={() => handleSort("isActive")}
+                                                >
+                                                    На витрине
+                                                </TableSortLabel>
+                                            </TableCell>
                                             <TableCell align="right" width={100} />
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
-                                        {products.map((product) => {
+                                        {pagedProducts.map((product) => {
                                             const thumb = getProductCoverUrl(product);
                                             const canCycleMain =
                                                 getProductImageUrls(product.images).length >= 2;
@@ -683,6 +824,19 @@ export default function AdminProductsPage() {
                                                     </TableCell>
                                                     <TableCell align="right">
                                                         {product.price.toLocaleString("ru-RU")} ֏
+                                                    </TableCell>
+                                                    <TableCell align="right">
+                                                        <Typography
+                                                            variant="caption"
+                                                            color="text.secondary"
+                                                            sx={{ whiteSpace: "nowrap" }}
+                                                        >
+                                                            {product.createdAt
+                                                                ? new Date(
+                                                                      product.createdAt,
+                                                                  ).toLocaleDateString("ru-RU")
+                                                                : "—"}
+                                                        </Typography>
                                                     </TableCell>
                                                     <TableCell align="right">
                                                         <ShelfToggle
@@ -768,7 +922,7 @@ export default function AdminProductsPage() {
                                 </Table>
                             </Box>
                             <Box sx={{ display: { xs: "block", md: "none" }, mt: 2 }}>
-                                {products.map((product) => {
+                                {pagedProducts.map((product) => {
                                     const imageUrl = getProductCoverUrl(product);
                                     const showImage = Boolean(imageUrl);
                                     const canCycleMain =
@@ -928,6 +1082,25 @@ export default function AdminProductsPage() {
                                     );
                                 })}
                             </Box>
+
+                            <TablePagination
+                                component="div"
+                                count={filteredProducts.length}
+                                page={safePage}
+                                rowsPerPage={view.rowsPerPage}
+                                onPageChange={(_, page) => patchView({ page })}
+                                onRowsPerPageChange={(e) =>
+                                    patchView({
+                                        rowsPerPage: Number(e.target.value),
+                                        page: 0,
+                                    })
+                                }
+                                rowsPerPageOptions={[10, 25, 50, 100]}
+                                labelRowsPerPage="Строк на странице:"
+                                labelDisplayedRows={({ from, to, count }) =>
+                                    `${from}–${to} из ${count}`
+                                }
+                            />
                         </>
                     )}
                 </Paper>

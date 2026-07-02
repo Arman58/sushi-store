@@ -176,6 +176,8 @@ export type StorefrontCategory = {
     name: string;
     position?: number;
     isActive?: boolean;
+    /** Фото для карточки категории на витрине (обложка первого товара). */
+    image?: string | null;
 };
 
 /** Гарантированно отдаёт категорию с plain-string name для клиента. */
@@ -243,6 +245,10 @@ export type StorefrontProduct = {
     mainImage: string | null;
     category: StorefrontCategory | null;
     modifierGroups?: MenuModifierGroup[];
+    /** Денормализованный средний рейтинг (0 - нет отзывов). */
+    ratingAvg: number;
+    /** Кол-во опубликованных отзывов. */
+    ratingCount: number;
 };
 
 /** Гарантированно отдаёт товар с plain-string полями для клиента. */
@@ -271,6 +277,16 @@ export function toStorefrontProduct(
         mainImage:
             typeof product.mainImage === "string" ? product.mainImage : null,
         category,
+        ratingAvg:
+            typeof product.ratingAvg === "number" &&
+            Number.isFinite(product.ratingAvg)
+                ? product.ratingAvg
+                : 0,
+        ratingCount:
+            typeof product.ratingCount === "number" &&
+            Number.isFinite(product.ratingCount)
+                ? product.ratingCount
+                : 0,
         ...(Array.isArray(product.modifierGroups)
             ? {
                   modifierGroups: toStorefrontModifierGroups(

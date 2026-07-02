@@ -15,20 +15,6 @@ export type HeroPageData = {
     promo: HeroPromo | null;
 };
 
-type PromoAvailability = Pick<
-    PromoCode,
-    "isActive" | "expiresAt" | "maxUsages" | "timesUsed"
->;
-
-function isPromoAvailable(promo: PromoAvailability, now: Date): boolean {
-    if (!promo.isActive) return false;
-    if (promo.expiresAt && promo.expiresAt.getTime() < now.getTime()) return false;
-    if (promo.maxUsages != null && promo.maxUsages > 0 && promo.timesUsed >= promo.maxUsages) {
-        return false;
-    }
-    return true;
-}
-
 export function formatDeliveryStat(
     zone: { name: string; deliveryPrice: number } | null,
 ): DeliveryStat {
@@ -40,39 +26,16 @@ export function formatDeliveryStat(
 }
 
 export async function fetchHeroPageData(locale: string): Promise<HeroPageData> {
-    const now = new Date();
-
     try {
-        const [freeDeliveryZone, percentagePromos] = await Promise.all([
-            prisma.deliveryZone.findFirst({
-                where: {
-                    isActive: true,
-                    deliveryPrice: 0,
-                    requiresManagerApproval: false,
-                },
-                orderBy: { position: "asc" },
-                select: { name: true, deliveryPrice: true },
-            }),
-            prisma.promoCode.findMany({
-                where: {
-                    isActive: true,
-                    discountType: "PERCENTAGE",
-                    OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-                },
-                orderBy: { id: "desc" },
-                take: 5,
-                select: {
-                    code: true,
-                    discountValue: true,
-                    maxUsages: true,
-                    timesUsed: true,
-                    expiresAt: true,
-                    isActive: true,
-                },
-            }),
-        ]);
-
-        const promoRow = percentagePromos.find((p) => isPromoAvailable(p, now)) ?? null;
+        const freeDeliveryZone = await prisma.deliveryZone.findFirst({
+            where: {
+                isActive: true,
+                deliveryPrice: 0,
+                requiresManagerApproval: false,
+            },
+            orderBy: { position: "asc" },
+            select: { name: true, deliveryPrice: true },
+        });
 
         const localizedZone = freeDeliveryZone
             ? {
@@ -83,9 +46,7 @@ export async function fetchHeroPageData(locale: string): Promise<HeroPageData> {
 
         return {
             deliveryStat: formatDeliveryStat(localizedZone),
-            promo: promoRow
-                ? { code: promoRow.code, discountValue: promoRow.discountValue }
-                : null,
+            promo: null,
         };
     } catch {
         // Error logged in production monitoring

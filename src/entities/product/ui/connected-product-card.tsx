@@ -20,6 +20,8 @@ export type ConnectableProduct = {
     mainImage?: string | null;
     category?: { name: string; slug?: string } | null;
     modifierGroups?: MenuModifierGroup[];
+    ratingAvg?: number;
+    ratingCount?: number;
 };
 
 type ConnectedProductCardProps = {
@@ -100,6 +102,7 @@ export const ConnectedProductCard = memo(function ConnectedProductCard({
 
     return (
         <ProductCard
+            productId={product.id}
             index={index}
             imagePriority={imagePriority}
             name={product.name}
@@ -112,6 +115,8 @@ export const ConnectedProductCard = memo(function ConnectedProductCard({
             mainImage={product.mainImage}
             badges={badges}
             quantity={quantity}
+            ratingAvg={product.ratingAvg}
+            ratingCount={product.ratingCount}
             productHref={productHref}
             onAddToCart={handleAddToCart}
             onIncrease={handleIncrease}

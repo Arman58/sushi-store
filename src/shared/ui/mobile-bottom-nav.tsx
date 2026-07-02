@@ -1,5 +1,7 @@
 "use client";
 
+import FavoriteBorderRoundedIcon from "@mui/icons-material/FavoriteBorderRounded";
+import FavoriteRoundedIcon from "@mui/icons-material/FavoriteRounded";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
 import RestaurantMenuRoundedIcon from "@mui/icons-material/RestaurantMenuRounded";
@@ -16,6 +18,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
 import { useCartStore } from "@/features/cart";
+import { useFavorites } from "@/features/favorites";
 import { Link, usePathname } from "@/i18n/server";
 
 import { tokens } from "./theme";
@@ -46,15 +49,18 @@ export function MobileBottomNav() {
     );
 
     const { status } = useSession();
+    const { ids: favoriteIds } = useFavorites();
 
     const activeKey =
         pathname === "/"
             ? "home"
             : pathname.startsWith("/menu")
               ? "menu"
-              : pathname.startsWith("/profile")
-                ? "profile"
-                : "";
+              : pathname.startsWith("/favorites")
+                ? "favorites"
+                : pathname.startsWith("/profile")
+                  ? "profile"
+                  : "";
 
     return (
         <Box
@@ -140,6 +146,59 @@ export function MobileBottomNav() {
                     </Typography>
                 </ButtonBase>
 
+                {/* Favorites */}
+                <ButtonBase
+                    component={Link}
+                    href="/favorites"
+                    sx={{
+                        flex: 1,
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 0.3,
+                        minHeight: 48,
+                        py: 1,
+                        borderRadius: 2,
+                        color:
+                            activeKey === "favorites"
+                                ? tokens.brand
+                                : tokens.textMuted,
+                        transition: "all 0.15s",
+                        "&:active": { transform: "scale(0.92)" },
+                    }}
+                >
+                    <Badge
+                        badgeContent={favoriteIds.length}
+                        invisible={favoriteIds.length === 0}
+                        sx={{
+                            "& .MuiBadge-badge": {
+                                bgcolor: "#E74C3C",
+                                color: "#FFFFFF",
+                                fontWeight: 800,
+                                fontSize: 9,
+                                minWidth: 15,
+                                height: 15,
+                                padding: "0 3px",
+                            },
+                        }}
+                    >
+                        {activeKey === "favorites" ? (
+                            <FavoriteRoundedIcon fontSize="small" />
+                        ) : (
+                            <FavoriteBorderRoundedIcon fontSize="small" />
+                        )}
+                    </Badge>
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            fontSize: { xs: 10, sm: 11 },
+                            fontWeight: activeKey === "favorites" ? 700 : 500,
+                            lineHeight: 1,
+                        }}
+                    >
+                        {t("favorites")}
+                    </Typography>
+                </ButtonBase>
+
                 {/* Profile */}
                 <ButtonBase
                     component={Link}
@@ -196,7 +255,7 @@ export function MobileBottomNav() {
                     }}
                 >
                     <motion.div
-                        key={cartPulse}
+                        key={`cart-pulse-${cartPulse}`}
                         style={{ display: "inline-flex", lineHeight: 0 }}
                         initial={{ scale: 1 }}
                         animate={
@@ -232,7 +291,7 @@ export function MobileBottomNav() {
                         variant="caption"
                         noWrap
                         component={motion.span}
-                        key={cartTotal}
+                        key={`cart-total-${cartTotal}`}
                         initial={{ opacity: 0.75 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.12 }}

@@ -114,6 +114,9 @@ type ProductJsonLdInput = {
     image: string | null;
     price: number;
     url: string;
+    /** Средний рейтинг из отзывов; aggregateRating добавляется при count > 0. */
+    ratingAvg?: number;
+    ratingCount?: number;
 };
 
 export function orderJsonLd(order: OrderJsonLdInput) {
@@ -163,6 +166,17 @@ export function productJsonLd(input: ProductJsonLdInput) {
             availability: "https://schema.org/InStock",
             url: input.url,
         },
+        ...(input.ratingCount && input.ratingCount > 0 && input.ratingAvg
+            ? {
+                  aggregateRating: {
+                      "@type": "AggregateRating",
+                      ratingValue: input.ratingAvg,
+                      reviewCount: input.ratingCount,
+                      bestRating: 5,
+                      worstRating: 1,
+                  },
+              }
+            : {}),
     };
 }
 

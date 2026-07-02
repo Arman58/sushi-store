@@ -107,6 +107,18 @@ export const adminCategoryCreateSchema = z.object({
     name: localizedRequiredSchema,
 });
 
+export const adminCategoryPatchSchema = z
+    .object({
+        name: localizedRequiredSchema.optional(),
+        /** Cloudinary URL или null - убрать фото. */
+        image: z.string().url().max(2048).nullable().optional(),
+        isActive: z.boolean().optional(),
+        position: nonNegativeIntSchema.optional(),
+    })
+    .refine((data) => Object.keys(data).length > 0, {
+        message: "At least one field is required",
+    });
+
 // ─── Admin: delivery zones ────────────────────────────────────────────────────
 
 export const adminDeliveryZoneCreateSchema = z.object({

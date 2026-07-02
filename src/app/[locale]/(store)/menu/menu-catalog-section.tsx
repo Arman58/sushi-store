@@ -6,6 +6,7 @@ import {
     toStorefrontProducts,
 } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
+import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { MenuSection } from "@/widgets/menu-section";
 
 import { MenuLoadError } from "./menu-load-error";
@@ -19,6 +20,14 @@ const getMenuData = cache(async (locale: string) => {
                     products: { some: { isActive: true } },
                 },
                 orderBy: { position: "asc" },
+                include: {
+                    products: {
+                        where: { isActive: true },
+                        orderBy: { id: "asc" },
+                        take: 1,
+                        select: { mainImage: true, images: true },
+                    },
+                },
             }),
             prisma.product.findMany({
                 where: { isActive: true },
@@ -42,7 +51,21 @@ const getMenuData = cache(async (locale: string) => {
             }),
         ]);
 
-        const categories = toStorefrontCategories(categoriesRaw, locale);
+        const categories = toStorefrontCategories(categoriesRaw, locale).map(
+            (category, i) => {
+                const raw = categoriesRaw[i];
+                const ownImage =
+                    typeof raw?.image === "string" && raw.image.trim()
+                        ? raw.image
+                        : null;
+                return {
+                    ...category,
+                    image:
+                        ownImage ??
+                        getProductCoverUrl(raw?.products[0] ?? {}),
+                };
+            },
+        );
         const products = toStorefrontProducts(productsRaw, locale).sort((a, b) =>
             a.name.localeCompare(b.name, locale),
         );
