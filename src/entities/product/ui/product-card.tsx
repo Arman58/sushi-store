@@ -1,7 +1,10 @@
 "use client";
 
 import AddIcon from "@mui/icons-material/Add";
+import FavoriteBorderOutlinedIcon from "@mui/icons-material/FavoriteBorderOutlined";
+import FavoriteOutlinedIcon from "@mui/icons-material/FavoriteOutlined";
 import RemoveIcon from "@mui/icons-material/Remove";
+import StarIcon from "@mui/icons-material/Star";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import IconButton from "@mui/material/IconButton";
@@ -13,6 +16,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useLocale, useTranslations } from "next-intl";
 import { memo } from "react";
 
+import { useIsFavorite } from "@/features/favorites";
 import { Link } from "@/i18n/server";
 import { formatStorePrice } from "@/shared/lib/format-price";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
@@ -46,12 +50,29 @@ export type ProductCardProps = {
     index?: number;
     /** Prefer preloading this card image - use once per viewport for LCP (e.g. first tile on home). */
     imagePriority?: boolean;
+    /** Product ID – used for localStorage-based favorites. */
+    productId?: number;
+    /** Реальный средний рейтинг из отзывов (0 - отзывов нет). */
+    ratingAvg?: number;
+    /** Кол-во отзывов. */
+    ratingCount?: number;
 };
 
-const cardHoverShadow =
-    `0 8px 24px ${alpha(tokens.textPrimary, 0.08)}, 0 22px 52px ${alpha(tokens.textPrimary, 0.14)}`;
+// ─── Badge config ─────────────────────────────────────────────────────────────
 
-const STEPPER_SIZE = 36;
+const BADGE_STYLE: Record<
+    ProductBadge,
+    { bg: string; color: string }
+> = {
+    hit:      { bg: "#2D3436", color: "#FFFFFF" },
+    new:      { bg: "#27AE60", color: "#FFFFFF" },
+    spicy:    { bg: "#E67E22", color: "#FFFFFF" },
+    discount: { bg: "#E74C3C", color: "#FFFFFF" },
+};
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const STEPPER_SIZE = 40;
 
 const stepperButtonSx = {
     flexShrink: 0,
@@ -72,8 +93,10 @@ export const ProductCard = memo(function ProductCard({
     description,
     composition,
     price,
+    originalPrice,
     images,
     mainImage,
+    badges,
     productHref,
     onAddToCart,
     onOpenDetails,
@@ -81,6 +104,9 @@ export const ProductCard = memo(function ProductCard({
     onIncrease,
     onDecrease,
     imagePriority = false,
+    productId,
+    ratingAvg = 0,
+    ratingCount = 0,
 }: ProductCardProps) {
     const t = useTranslations("product");
     const locale = useLocale();
@@ -91,6 +117,57 @@ export const ProductCard = memo(function ProductCard({
     const hasInCart = quantity > 0;
     const productLink = productHref?.trim() || null;
     const hasProductLink = Boolean(productLink);
+    const formattedPrice = `${formatStorePrice(price)} ֏`;
+    const productLinkAriaLabel = t("aria.viewProductWithPrice", {
+        name,
+        price: formattedPrice,
+    });
+
+    // Favorites (общий store — синхронизирован с хедером и страницей избранного)
+    const { isFavorite, toggle: toggleFavorite } = useIsFavorite(productId);
+
+    // Реальный рейтинг из отзывов; блок показывается только при наличии отзывов
+    const hasRating = ratingCount > 0 && ratingAvg > 0;
+
+    // Discount calculation
+    const hasDiscount =
+        originalPrice != null && originalPrice > 0 && originalPrice > price;
+    const discountPercent = hasDiscount
+        ? Math.round(((originalPrice! - price) / originalPrice!) * 100)
+        : 0;
+
+    // Badge data for rendering
+    const badgeEntries: {
+        key: ProductBadge;
+        label: string;
+        bg: string;
+        color: string;
+    }[] = [];
+
+    if (badges?.length) {
+        for (const b of badges) {
+            if (b === "discount") {
+                if (hasDiscount) {
+                    badgeEntries.push({
+                        key: "discount",
+                        label: `-${discountPercent}%`,
+                        ...BADGE_STYLE.discount,
+                    });
+                }
+            } else {
+                const labelMap: Record<string, string> = {
+                    hit: t("badge.hit"),
+                    new: t("badge.new"),
+                    spicy: t("badge.spicy"),
+                };
+                badgeEntries.push({
+                    key: b,
+                    label: labelMap[b] ?? b,
+                    ...BADGE_STYLE[b],
+                });
+            }
+        }
+    }
 
     const handleAdd = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -119,6 +196,109 @@ export const ProductCard = memo(function ProductCard({
         },
     } as const;
 
+    // ── Image area (shared between link & non-link variants) ──
+    const imageArea = (
+        <Box
+            sx={{
+                position: "relative",
+                width: "100%",
+                aspectRatio: "4 / 3",
+                flexShrink: 0,
+                overflow: "hidden",
+                bgcolor: tokens.surfaceHi,
+                borderTopLeftRadius: `${tokens.radiusCardLg}px`,
+                borderTopRightRadius: `${tokens.radiusCardLg}px`,
+            }}
+        >
+            <ProductCoverImage
+                src={imageUrl}
+                alt={imageAlt}
+                priority={imagePriority}
+            />
+
+            {/* Badges – top-left */}
+            {badgeEntries.length > 0 && (
+                <Stack
+                    direction="column"
+                    spacing={0.5}
+                    sx={{
+                        position: "absolute",
+                        top: 8,
+                        left: 8,
+                        zIndex: 1,
+                    }}
+                >
+                    {badgeEntries.map((b) => (
+                        <Box
+                            key={b.key}
+                            sx={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                px: 1,
+                                py: 0.25,
+                                borderRadius: 1.5,
+                                backgroundColor: b.bg,
+                                color: b.color,
+                                fontSize: "0.6875rem",
+                                fontWeight: 700,
+                                lineHeight: 1.3,
+                                letterSpacing: 0.02,
+                                whiteSpace: "nowrap",
+                            }}
+                        >
+                            {b.label}
+                        </Box>
+                    ))}
+                </Stack>
+            )}
+
+            {/* Favorite heart – top-right */}
+            {productId !== undefined && (
+                <IconButton
+                    size="small"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        toggleFavorite();
+                    }}
+                    aria-label={
+                        isFavorite
+                            ? t("aria.removeFromFavorites", { name })
+                            : t("aria.addToFavorites", { name })
+                    }
+                    sx={{
+                        position: "absolute",
+                        top: 6,
+                        right: 6,
+                        zIndex: 1,
+                        width: 36,
+                        height: 36,
+                        minWidth: 36,
+                        minHeight: 36,
+                        bgcolor: "rgba(255,255,255,0.92)",
+                        backdropFilter: "blur(4px)",
+                        WebkitBackdropFilter: "blur(4px)",
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.10)",
+                        color: isFavorite ? "#E74C3C" : "#999999",
+                        "&:hover": {
+                            bgcolor: "rgba(255,255,255,1)",
+                            color: isFavorite ? "#C0392B" : "#E74C3C",
+                        },
+                        "&:active": { transform: "scale(0.88)" },
+                        transition: "color 0.18s ease, transform 0.12s ease, background-color 0.18s ease",
+                    }}
+                >
+                    {isFavorite ? (
+                        <FavoriteOutlinedIcon sx={{ fontSize: 18 }} />
+                    ) : (
+                        <FavoriteBorderOutlinedIcon sx={{ fontSize: 18 }} />
+                    )}
+                </IconButton>
+            )}
+        </Box>
+    );
+
     return (
         <Box sx={{ width: "100%", height: "100%", minWidth: 0, ...fadeInSx }}>
             <Card
@@ -132,14 +312,6 @@ export const ProductCard = memo(function ProductCard({
                     borderRadius: `${tokens.radiusCardLg}px`,
                     overflow: "hidden",
                     bgcolor: "background.paper",
-                    transition:
-                        "transform 200ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1)",
-                    "@media (hover: hover) and (pointer: fine)": {
-                        "&:hover": {
-                            transform: "translateY(-4px)",
-                            boxShadow: cardHoverShadow,
-                        },
-                    },
                 }}
             >
                 <Box
@@ -177,12 +349,12 @@ export const ProductCard = memo(function ProductCard({
                                 : undefined,
                     }}
                 >
-                {/* 1. Image */}
+                {/* 1. Image (with badges & favorite) */}
                 {hasProductLink ? (
                     <Box
                         component={Link}
                         href={productLink!}
-                        aria-label={t("aria.viewProduct", { name })}
+                        aria-label={productLinkAriaLabel}
                         sx={{
                             ...linkSx,
                             position: "relative",
@@ -200,24 +372,91 @@ export const ProductCard = memo(function ProductCard({
                             alt={imageAlt}
                             priority={imagePriority}
                         />
+
+                        {/* Badges – top-left */}
+                        {badgeEntries.length > 0 && (
+                            <Stack
+                                direction="column"
+                                spacing={0.5}
+                                sx={{
+                                    position: "absolute",
+                                    top: 8,
+                                    left: 8,
+                                    zIndex: 1,
+                                }}
+                            >
+                                {badgeEntries.map((b) => (
+                                    <Box
+                                        key={b.key}
+                                        sx={{
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            px: 1,
+                                            py: 0.25,
+                                            borderRadius: 1.5,
+                                            backgroundColor: b.bg,
+                                            color: b.color,
+                                            fontSize: "0.6875rem",
+                                            fontWeight: 700,
+                                            lineHeight: 1.3,
+                                            letterSpacing: 0.02,
+                                            whiteSpace: "nowrap",
+                                        }}
+                                    >
+                                        {b.label}
+                                    </Box>
+                                ))}
+                            </Stack>
+                        )}
+
+                        {/* Favorite heart – top-right */}
+                        {productId !== undefined && (
+                            <IconButton
+                                size="small"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    toggleFavorite();
+                                }}
+                                aria-label={
+                                    isFavorite
+                                        ? t("aria.removeFromFavorites", { name })
+                                        : t("aria.addToFavorites", { name })
+                                }
+                                sx={{
+                                    position: "absolute",
+                                    top: 6,
+                                    right: 6,
+                                    zIndex: 1,
+                                    width: 36,
+                                    height: 36,
+                                    minWidth: 36,
+                                    minHeight: 36,
+                                    bgcolor: "rgba(255,255,255,0.92)",
+                                    backdropFilter: "blur(4px)",
+                                    WebkitBackdropFilter: "blur(4px)",
+                                    boxShadow: "0 1px 4px rgba(0,0,0,0.10)",
+                                    color: isFavorite ? "#E74C3C" : "#999999",
+                                    "&:hover": {
+                                        bgcolor: "rgba(255,255,255,1)",
+                                        color: isFavorite ? "#C0392B" : "#E74C3C",
+                                    },
+                                    "&:active": { transform: "scale(0.88)" },
+                                    transition:
+                                        "color 0.18s ease, transform 0.12s ease, background-color 0.18s ease",
+                                }}
+                            >
+                                {isFavorite ? (
+                                    <FavoriteOutlinedIcon sx={{ fontSize: 18 }} />
+                                ) : (
+                                    <FavoriteBorderOutlinedIcon sx={{ fontSize: 18 }} />
+                                )}
+                            </IconButton>
+                        )}
                     </Box>
                 ) : (
-                    <Box
-                        sx={{
-                            position: "relative",
-                            width: "100%",
-                            aspectRatio: "4 / 3",
-                            flexShrink: 0,
-                            overflow: "hidden",
-                            bgcolor: tokens.surfaceHi,
-                        }}
-                    >
-                        <ProductCoverImage
-                            src={imageUrl}
-                            alt={imageAlt}
-                            priority={imagePriority}
-                        />
-                    </Box>
+                    imageArea
                 )}
 
                 {/* 2. Content - name + description */}
@@ -290,10 +529,62 @@ export const ProductCard = memo(function ProductCard({
                             {previewText}
                         </Typography>
                     ) : null}
+
+                    {/* Rating + delivery time */}
+                    <Stack
+                        direction="row"
+                        alignItems="center"
+                        spacing={0.5}
+                        sx={{ mt: 0.75 }}
+                    >
+                        {hasRating && (
+                            <>
+                                <StarIcon
+                                    sx={{
+                                        fontSize: 14,
+                                        color: "#FFB800",
+                                        flexShrink: 0,
+                                    }}
+                                />
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontWeight: 600,
+                                        fontSize: "0.75rem",
+                                        color: tokens.textSecondary,
+                                        lineHeight: 1,
+                                    }}
+                                >
+                                    {ratingAvg}
+                                </Typography>
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        color: tokens.textMuted,
+                                        fontSize: "0.75rem",
+                                        lineHeight: 1,
+                                    }}
+                                >
+                                    ({ratingCount})
+                                </Typography>
+                            </>
+                        )}
+                        <Typography
+                            variant="caption"
+                            sx={{
+                                color: tokens.textMuted,
+                                fontSize: "0.75rem",
+                                lineHeight: 1,
+                                ml: hasRating ? 1 : 0,
+                            }}
+                        >
+                            {t("deliveryTime")}
+                        </Typography>
+                    </Stack>
                 </Box>
                 </Box>
 
-                {/* 3. Footer - price truncates before action controls */}
+                {/* 3. Footer - price + action controls */}
                 <Box
                     sx={{
                         display: "flex",
@@ -311,24 +602,45 @@ export const ProductCard = memo(function ProductCard({
                         pt: 1,
                     }}
                 >
-                    <Typography
-                        component="span"
-                        sx={{
-                            flex: 1,
-                            minWidth: 0,
-                            fontWeight: 800,
-                            fontSize: { xs: "0.8rem", sm: "0.95rem" },
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            lineHeight: 1,
-                            color: "text.primary",
-                            letterSpacing: -0.02,
-                            fontVariantNumeric: "tabular-nums",
-                        }}
+                    <Stack
+                        direction="row"
+                        alignItems="baseline"
+                        spacing={0.75}
+                        sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}
                     >
-                        {formatStorePrice(price)}&thinsp;֏
-                    </Typography>
+                        <Typography
+                            component="span"
+                            sx={{
+                                fontWeight: 800,
+                                fontSize: { xs: "0.9rem", sm: "1.05rem" },
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                lineHeight: 1,
+                                color: "text.primary",
+                                letterSpacing: -0.02,
+                                fontVariantNumeric: "tabular-nums",
+                            }}
+                        >
+                            {formatStorePrice(price)}&thinsp;֏
+                        </Typography>
+                        {hasDiscount && (
+                            <Typography
+                                component="span"
+                                sx={{
+                                    fontWeight: 500,
+                                    fontSize: { xs: "0.7rem", sm: "0.8rem" },
+                                    whiteSpace: "nowrap",
+                                    color: tokens.textMuted,
+                                    textDecoration: "line-through",
+                                    lineHeight: 1,
+                                    fontVariantNumeric: "tabular-nums",
+                                }}
+                            >
+                                {formatStorePrice(originalPrice!)}&thinsp;֏
+                            </Typography>
+                        )}
+                    </Stack>
 
                     <AnimatePresence mode="wait" initial={false}>
                         {hasInCart ? (
@@ -420,17 +732,23 @@ export const ProductCard = memo(function ProductCard({
                                     sx={{
                                         ...stepperButtonSx,
                                         flexShrink: 0,
-                                        bgcolor: "primary.main",
-                                        color: "primary.contrastText",
-                                        boxShadow: `0 2px 8px ${alpha(tokens.brand, 0.35)}`,
-                                        "&:hover": { bgcolor: "primary.dark" },
+                                        bgcolor: "#FFFFFF",
+                                        border: `1.5px solid ${tokens.brand}`,
+                                        color: tokens.brand,
+                                        transition:
+                                            "background-color 0.18s ease, color 0.18s ease, transform 0.12s ease",
+                                        "&:hover": {
+                                            bgcolor: tokens.brand,
+                                            color: "#FFFFFF",
+                                            boxShadow: `0 2px 8px ${alpha(tokens.brand, 0.35)}`,
+                                        },
                                         "&:active": { transform: "scale(0.92)" },
                                     }}
                                 >
                                     <AddIcon
                                         sx={{
                                             fontSize: 22,
-                                            color: "primary.contrastText",
+                                            color: "inherit",
                                         }}
                                     />
                                 </IconButton>

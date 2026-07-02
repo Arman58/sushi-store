@@ -3,36 +3,36 @@ import { alpha,createTheme } from "@mui/material/styles";
 // ─── Design tokens (food delivery - синхронизируй palette.primary с tokens.brand) ─
 
 export const tokens = {
-    // Surfaces - тёплый «кремовый» офф-белый контраст к карточкам
-    bg:         "#F6F4F1",
+    // Surfaces - чисто белый (как на референсе)
+    bg:         "#FFFFFF",
     surface:    "#FFFFFF",
     surfaceUp:  "#FFFFFF",
-    surfaceHi:  "#FBF9F7",
-    border:     "#EBE7E3",
-    borderHi:   "#DED8D3",
+    surfaceHi:  "#F5F5F5",
+    border:     "#EAEAEA",
+    borderHi:   "#D5D5D5",
 
-    // Brand - свежий аппетитный зелёный (food-delivery 2025–2026)
-    brand:      "#00B341",
-    brandHi:    "#2BC760",
-    brandDim:   "rgba(0, 179, 65, 0.10)",
-    brandGlow:  "rgba(0, 179, 65, 0.25)",
+    // Brand - зелёный как на референсе #27AE60
+    brand:      "#27AE60",
+    brandHi:    "#2ECC71",
+    brandDim:   "rgba(39, 174, 96, 0.10)",
+    brandGlow:  "rgba(39, 174, 96, 0.25)",
 
     // Promo / ошибки
-    red:        "#E53935",
-    redDim:     "rgba(229,57,53,0.12)",
+    red:        "#E74C3C",
+    redDim:     "rgba(231,76,60,0.12)",
 
-    // Success - чуть более «мягкий» зелёный для сумм / «бесплатно»
-    green:      "#1FA97A",
-    greenDim:   "rgba(31,169,122,0.12)",
+    // Success
+    green:      "#27AE60",
+    greenDim:   "rgba(39,174,96,0.12)",
 
-    // Text scale (WCAG AA 4.5:1+ on #FFFFFF; secondary не светлее #757575)
-    textPrimary:   "#1C1917",
-    textSecondary: "#616161",
-    textMuted:     "#757575",
+    // Text scale
+    textPrimary:   "#000000",
+    textSecondary: "#333333",
+    textMuted:     "#666666",
 
     /** Радиус мелких контролов (инпуты, чипы) - задаётся в overrides, не через shape */
-    radiusInput: 8,
-    radiusCardLg: 12,
+    radiusInput: 10,
+    radiusCardLg: 14,
 
     // Spacing (multiples of 4)
     s1: 4,
@@ -48,7 +48,7 @@ export const tokens = {
 /** Premium gradient shimmer for MUI `<Skeleton />`. */
 export const skeletonShimmerSx = {
     background:
-        "linear-gradient(90deg, #EFECE8 22%, #E8E4DF 48%, #EFECE8 78%)",
+        "linear-gradient(90deg, #F0F0F0 22%, #E8E8E8 48%, #F0F0F0 78%)",
     backgroundSize: "200% 100%",
     animation: "shimmer 1.5s infinite",
 } as const;
@@ -68,7 +68,7 @@ const focusVisibleRing = {
 
 /** Мягкая тень для карточек продукта / Paper - без жёсткого «дефолтного MUI». */
 const cardElevationShadow =
-    `0 1px 2px ${alpha(tokens.textPrimary, 0.04)}, 0 4px 14px ${alpha(tokens.textPrimary, 0.07)}`;
+    `0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06)`;
 
 const theme = createTheme({
     palette: {
@@ -76,7 +76,7 @@ const theme = createTheme({
         primary: {
             main: primaryMain,
             light: tokens.brandHi,
-            dark: "#008C33",
+            dark: "#1E8449",
             contrastText: "#FFFFFF",
         },
         secondary: {
@@ -344,16 +344,14 @@ const theme = createTheme({
                 root: {
                     backgroundColor: tokens.surface,
                     backgroundImage: "none",
-                    border: "none",
+                    border: "1px solid #EAEAEA",
                     borderRadius: tokens.radiusCardLg,
                     boxShadow: cardElevationShadow,
                     overflow: "hidden",
                     transition:
-                        "transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease",
+                        "box-shadow 0.22s ease, border-color 0.22s ease",
                     "&:hover": {
-                        boxShadow:
-                            `0 2px 6px ${alpha(tokens.textPrimary, 0.05)}, 0 12px 28px ${alpha(tokens.textPrimary, 0.1)}`,
-                        transform: "translateY(-2px)",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
                     },
                 },
             },
@@ -548,7 +546,7 @@ const theme = createTheme({
             styleOverrides: {
                 root: {
                     backgroundImage: "none",
-                    backgroundColor: alpha(tokens.bg, 0.88),
+                    backgroundColor: alpha("#FFFFFF", 0.92),
                     backdropFilter: "saturate(160%) blur(12px)",
                     WebkitBackdropFilter: "saturate(160%) blur(12px)",
                     borderBottom: `1px solid ${tokens.border}`,

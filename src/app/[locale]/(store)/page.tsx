@@ -12,8 +12,8 @@ import { buildLocalizedMetadata } from "@/lib/seo/metadata";
 import { HomeCategoryPillsSection } from "@/widgets/home/home-category-pills-section";
 import { HomeHeroSection } from "@/widgets/home/home-hero-section";
 import { HomeNewArrivalsSection } from "@/widgets/home/home-new-arrivals-section";
-import { HomePromoCarouselSection } from "@/widgets/home/home-promo-carousel-section";
 import { FeaturesBlock } from "@/widgets/home/lazy-home-widgets";
+import { CategoryPillsSkeleton } from "@/widgets/home/skeletons/category-pills-skeleton";
 import { HeroSectionSkeleton } from "@/widgets/home/skeletons/hero-section-skeleton";
 import { PopularSectionSkeleton } from "@/widgets/home/skeletons/popular-section-skeleton";
 import { SeoText } from "@/widgets/seo-text";
@@ -51,16 +51,7 @@ export default function HomePage() {
                 </Suspense>
             </Container>
 
-            <Container
-                sx={{
-                    ...sectionContainerSx,
-                    mt: { xs: 3, md: 6 },
-                }}
-            >
-                <HomePromoCarouselSection />
-            </Container>
-
-            <Suspense fallback={null}>
+            <Suspense fallback={<CategoryPillsSkeleton />}>
                 <HomeCategoryPillsSection />
             </Suspense>
 

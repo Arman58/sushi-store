@@ -51,9 +51,28 @@ export default function LanguageSwitcher() {
       <IconButton
         onClick={handleClick}
         size="small"
-        sx={{ flexShrink: 0, minWidth: 40, width: 40, height: 40 }}
+        aria-label={currentLanguage.label}
+        sx={{
+          flexShrink: 0,
+          minWidth: 48,
+          height: 40,
+          px: 1,
+          borderRadius: "10px",
+          fontSize: 13,
+          fontWeight: 700,
+          letterSpacing: 0.3,
+          color: "text.primary",
+          gap: 0.25,
+        }}
       >
-        {currentLanguage.flag}
+        {currentLanguage.code.toUpperCase()}
+        <Box
+          component="span"
+          aria-hidden
+          sx={{ fontSize: 10, lineHeight: 1, color: "text.disabled" }}
+        >
+          ▼
+        </Box>
       </IconButton>
       <Menu
         anchorEl={anchorEl}

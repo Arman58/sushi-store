@@ -1,5 +1,6 @@
 "use client";
 
+import StarIcon from "@mui/icons-material/Star";
 import Box from "@mui/material/Box";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Stack from "@mui/material/Stack";
@@ -9,15 +10,16 @@ import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useState } from "react";
 
-import type { StorefrontProduct } from "@/lib/i18n-utils";
 import { useCartStore } from "@/features/cart";
 import { Link } from "@/i18n/server";
+import type { StorefrontProduct } from "@/lib/i18n-utils";
 import { formatStorePrice } from "@/shared/lib/format-price";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { buildProductImageAlt } from "@/shared/lib/product-image-alt";
 import { AppButton } from "@/shared/ui/AppButton";
 import { ProductCoverImage } from "@/shared/ui/product-cover-image";
 import { tokens } from "@/shared/ui/theme";
+import { ProductReviewsSection } from "@/widgets/reviews";
 
 const ProductModifiersDialog = dynamic(
     () =>
@@ -207,6 +209,31 @@ export function ProductPageView({ product, locale, breadcrumbs }: Props) {
                     {product.name}
                 </Typography>
 
+                {product.ratingCount > 0 && (
+                    <Stack
+                        direction="row"
+                        alignItems="center"
+                        spacing={0.5}
+                        component="a"
+                        href="#reviews"
+                        sx={{ mb: 1, textDecoration: "none", width: "fit-content" }}
+                    >
+                        <StarIcon sx={{ fontSize: 18, color: "#FFB800" }} />
+                        <Typography variant="body2" fontWeight={700}>
+                            {product.ratingAvg}
+                        </Typography>
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                color: tokens.textMuted,
+                                "&:hover": { color: tokens.brand },
+                            }}
+                        >
+                            · {t("reviewsCount", { count: product.ratingCount })}
+                        </Typography>
+                    </Stack>
+                )}
+
                 <Stack
                     direction="row"
                     alignItems="baseline"
@@ -274,6 +301,10 @@ export function ProductPageView({ product, locale, breadcrumbs }: Props) {
                         </Typography>
                     </Box>
                 ) : null}
+
+                <Box id="reviews" sx={{ scrollMarginTop: 96 }}>
+                    <ProductReviewsSection productId={product.id} />
+                </Box>
             </Box>
 
             <Box

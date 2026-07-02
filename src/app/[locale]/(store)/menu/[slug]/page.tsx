@@ -5,7 +5,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { getPathname } from "@/i18n/server";
 import { getActiveProductBySlug } from "@/lib/product-by-slug";
 import { absoluteProductImageUrl } from "@/lib/seo/absolute-image-url";
-import { JsonLd, breadcrumbListJsonLd, productJsonLd } from "@/lib/seo/json-ld";
+import { breadcrumbListJsonLd, JsonLd, productJsonLd } from "@/lib/seo/json-ld";
 import { buildLocalizedMetadata } from "@/lib/seo/metadata";
 import { truncateMetaDescription } from "@/lib/seo/truncate-meta";
 import { SITE_NAME, SITE_URL } from "@/lib/site-config";
@@ -106,6 +106,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
         image: imageUrl,
         price: product.price,
         url: productUrl,
+        ratingAvg: product.ratingAvg,
+        ratingCount: product.ratingCount,
     });
 
     const breadcrumbItems = [

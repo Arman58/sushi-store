@@ -10,8 +10,8 @@ export function HeroSectionSkeleton() {
             sx={{
                 position: "relative",
                 mb: { xs: 0, sm: 4 },
-                borderRadius: { xs: 0, sm: "24px" },
-                minHeight: { xs: 380, sm: 420, md: 460 },
+                borderRadius: { xs: 0, sm: "16px" },
+                minHeight: { xs: 320, sm: 400, md: 460 },
                 overflow: "hidden",
                 border: { xs: "none", sm: "1px solid" },
                 borderColor: "divider",
@@ -23,8 +23,8 @@ export function HeroSectionSkeleton() {
                 sx={{
                     width: "100%",
                     height: "100%",
-                    minHeight: { xs: 380, sm: 420, md: 460 },
-                    borderRadius: { xs: 0, sm: "24px" },
+                    minHeight: { xs: 320, sm: 400, md: 460 },
+                    borderRadius: { xs: 0, sm: "16px" },
                     ...skeletonSurfaceSx,
                 }}
             />

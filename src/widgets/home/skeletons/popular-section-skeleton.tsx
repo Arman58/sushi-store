@@ -5,7 +5,7 @@ import Stack from "@mui/material/Stack";
 import { ProductCardSkeleton } from "@/entities/product/ui/product-card";
 import { skeletonSurfaceSx } from "@/shared/ui/skeleton-styles";
 
-const CARD_COUNT = 8;
+const CARD_COUNT = 6;
 
 export function PopularSectionSkeleton() {
     return (
@@ -47,8 +47,9 @@ export function PopularSectionSkeleton() {
                     gap: { xs: 1.5, sm: 2, md: 2.5 },
                     gridTemplateColumns: {
                         xs: "repeat(2, minmax(0, 1fr))",
-                        sm: "repeat(3, minmax(0, 1fr))",
-                        md: "repeat(4, minmax(0, 1fr))",
+                        sm: "repeat(2, minmax(0, 1fr))",
+                        md: "repeat(3, minmax(0, 1fr))",
+                        lg: "repeat(4, minmax(0, 1fr))",
                     },
                 }}
             >

@@ -2,8 +2,11 @@
 
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
-import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
+import FavoriteBorderOutlinedIcon from "@mui/icons-material/FavoriteBorderOutlined";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import SearchIcon from "@mui/icons-material/Search";
+import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
@@ -14,12 +17,14 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 
 import { LoginButton } from "@/features/auth";
 import { useCartStore } from "@/features/cart";
+import { useFavorites } from "@/features/favorites";
 import { Link, usePathname } from "@/i18n/server";
 import { SITE_LOGO_PATH } from "@/lib/site-config";
 import { PageTransition } from "@/shared/ui/page-transition";
@@ -49,42 +54,141 @@ const HEADER_ACTION_SLOT_SX = {
     justifyContent: "center",
 } as const;
 
-const STORE_NAV_HREFS = [
-    { href: "/", key: "home" },
-    { href: "/menu", key: "menu" },
-    { href: "/contacts", key: "contacts" },
-] as const;
+// ─── Search bar ──────────────────────────────────────────────────────────────
 
-// ─── Desktop nav link ───────────────────────────────────────────────────────────
-
-function NavLink({
-    href,
-    labelKey,
-}: {
-    href: (typeof STORE_NAV_HREFS)[number]["href"];
-    labelKey: (typeof STORE_NAV_HREFS)[number]["key"];
-}) {
+function SearchBar({ variant = "desktop" }: { variant?: "desktop" | "mobile" }) {
     const t = useTranslations("nav");
+    const router = useRouter();
+    const [query, setQuery] = useState("");
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (query.trim()) {
+            router.push(`/menu?search=${encodeURIComponent(query.trim())}`);
+        }
+    };
+
+    return (
+        <Box
+            component="form"
+            onSubmit={handleSubmit}
+            sx={
+                variant === "desktop"
+                    ? {
+                          display: { xs: "none", md: "flex" },
+                          alignItems: "center",
+                          flex: "1 1 auto",
+                          minWidth: 200,
+                          maxWidth: 480,
+                          mx: 2,
+                      }
+                    : {
+                          display: { xs: "flex", md: "none" },
+                          alignItems: "center",
+                          width: "100%",
+                      }
+            }
+        >
+            <Box
+                sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    width: "100%",
+                    minHeight: 44,
+                    gap: 1,
+                    px: 2.25,
+                    py: 0.75,
+                    borderRadius: 999,
+                    border: "1px solid transparent",
+                    bgcolor: tokens.surfaceHi,
+                    transition: "border-color 0.2s, box-shadow 0.2s, background-color 0.2s",
+                    "&:focus-within": {
+                        borderColor: "primary.main",
+                        bgcolor: "background.paper",
+                        boxShadow: "0 0 0 2px rgba(39,174,96,0.15)",
+                    },
+                }}
+            >
+                <SearchIcon sx={{ fontSize: 18, color: "text.muted", flexShrink: 0 }} />
+                <input
+                    ref={inputRef}
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder={t("searchPlaceholder") || "Поиск..."}
+                    aria-label={t("search") || "Поиск"}
+                    style={{
+                        border: "none",
+                        outline: "none",
+                        background: "transparent",
+                        width: "100%",
+                        fontSize: "0.875rem",
+                        color: "inherit",
+                        lineHeight: 1.4,
+                    }}
+                />
+            </Box>
+        </Box>
+    );
+}
+
+// ─── Favorites button ─────────────────────────────────────────────────────────
+
+function FavoritesHeaderButton() {
+    const t = useTranslations("favorites");
+    const { ids } = useFavorites();
+    const count = ids.length;
 
     return (
         <ButtonBase
             component={Link}
-            href={href}
+            href="/favorites"
+            aria-label={t("aria_open")}
             sx={{
-                px: 1.5,
-                py: 0.75,
-                borderRadius: 1.5,
+                position: "relative",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 44,
+                height: 44,
+                borderRadius: "12px",
                 color: tokens.textSecondary,
-                fontSize: 14,
-                fontWeight: 600,
-                transition: "background-color 0.15s, color 0.15s",
+                transition: "all 0.18s ease",
                 "&:hover": {
-                    color: tokens.textPrimary,
+                    color: "#E74C3C",
                     bgcolor: tokens.surfaceHi,
                 },
+                "&:active": { transform: "scale(0.94)" },
             }}
         >
-            {t(labelKey)}
+            <FavoriteBorderOutlinedIcon sx={{ fontSize: 22 }} />
+            {count > 0 && (
+                <Box
+                    sx={{
+                        position: "absolute",
+                        top: 4,
+                        right: 2,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minWidth: 16,
+                        height: 16,
+                        borderRadius: 999,
+                        bgcolor: "#E74C3C",
+                        color: "#FFFFFF",
+                        fontSize: 9.5,
+                        fontWeight: 800,
+                        px: 0.4,
+                        border: "2px solid #FFFFFF",
+                        boxSizing: "content-box",
+                        fontVariantNumeric: "tabular-nums",
+                        lineHeight: 1,
+                    }}
+                >
+                    {count > 99 ? "99+" : count}
+                </Box>
+            )}
         </ButtonBase>
     );
 }
@@ -134,37 +238,30 @@ function CartHeaderButton() {
                     : tCommon("aria.openCart")
             }
             aria-disabled={isCheckoutPage}
-            sx={(theme) => ({
+            sx={{
                 display: "flex",
                 alignItems: "center",
-                gap: 1,
+                gap: 1.25,
                 flexShrink: 0,
                 minWidth: 40,
-                px: { xs: 1.5, sm: 2 },
+                px: { xs: 1, sm: 1.25 },
                 py: 1,
-                borderRadius: 2,
+                borderRadius: "12px",
                 ...(isCheckoutPage
                     ? { opacity: 0.55, cursor: "default" }
                     : {}),
-                bgcolor: count > 0 ? tokens.brand : "background.paper",
-                border: "1px solid",
-                borderColor: count > 0 ? tokens.brand : theme.palette.divider,
-                color:
-                    count > 0 ? theme.palette.primary.contrastText : "text.secondary",
+                bgcolor: "transparent",
+                color: tokens.brand,
                 transition: "all 0.18s ease",
                 "&:hover": {
-                    bgcolor: count > 0 ? tokens.brandHi : "action.hover",
-                    transform: "translateY(-1px)",
-                    boxShadow:
-                        count > 0
-                            ? `0 1px 4px ${alpha(theme.palette.common.black, 0.08)}`
-                            : `0 1px 3px ${alpha(theme.palette.common.black, 0.06)}`,
+                    bgcolor: tokens.brandDim,
                 },
                 "&:active": { transform: "scale(0.97)" },
-            })}
+            }}
         >
             <Box
                 sx={{
+                    position: "relative",
                     display: "inline-flex",
                     lineHeight: 0,
                     animation: cartIconPulse
@@ -178,29 +275,31 @@ function CartHeaderButton() {
                     },
                 }}
             >
-                <ShoppingBagOutlinedIcon
+                <ShoppingCartOutlinedIcon
                     id="cart-icon"
                     aria-hidden
                     focusable="false"
-                    sx={{ fontSize: 18 }}
+                    sx={{ fontSize: 22, color: tokens.brand }}
                 />
-            </Box>
-
-            {count > 0 ? (
-                <>
+                {count > 0 && (
                     <Box
                         sx={{
-                            display: { xs: "none", sm: "flex" },
+                            position: "absolute",
+                            top: -6,
+                            right: -8,
+                            display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            minWidth: 20,
-                            height: 20,
-                            borderRadius: "50%",
-                            bgcolor: (theme) =>
-                                alpha(theme.palette.primary.contrastText, 0.28),
-                            fontSize: 11,
+                            minWidth: 17,
+                            height: 17,
+                            borderRadius: 999,
+                            bgcolor: tokens.brand,
+                            color: "#FFFFFF",
+                            fontSize: 10,
                             fontWeight: 800,
                             px: 0.5,
+                            border: "2px solid #FFFFFF",
+                            boxSizing: "content-box",
                         }}
                     >
                         <Box
@@ -213,34 +312,32 @@ function CartHeaderButton() {
                             {count}
                         </Box>
                     </Box>
-                    <Typography
-                        component="span"
-                        variant="body2"
-                        fontWeight={700}
-                        sx={{
-                            fontSize: { xs: 12, sm: 13 },
-                            display: { xs: "none", sm: "inline-flex" },
-                            fontVariantNumeric: "tabular-nums",
-                            alignItems: "baseline",
-                        }}
-                    >
-                        {total.toLocaleString("ru-RU")}&nbsp;֏
-                    </Typography>
-                    <Box
-                        sx={{
-                            display: { xs: "block", sm: "none" },
-                            fontSize: 12,
-                            fontWeight: 800,
-                            fontVariantNumeric: "tabular-nums",
-                        }}
-                    >
-                        {count}
-                    </Box>
-                </>
+                )}
+            </Box>
+
+            {count > 0 ? (
+                <Typography
+                    component="span"
+                    variant="body2"
+                    fontWeight={800}
+                    sx={{
+                        fontSize: { xs: 13, sm: 14 },
+                        display: { xs: "none", sm: "inline-flex" },
+                        fontVariantNumeric: "tabular-nums",
+                        alignItems: "baseline",
+                        color: tokens.textPrimary,
+                    }}
+                >
+                    {total.toLocaleString("ru-RU")}&nbsp;֏
+                </Typography>
             ) : (
                 <Typography
                     variant="body2"
-                    sx={{ display: { xs: "none", sm: "block" } }}
+                    sx={{
+                        display: { xs: "none", sm: "block" },
+                        color: tokens.textSecondary,
+                        fontWeight: 600,
+                    }}
                 >
                     {tNav("cart")}
                 </Typography>
@@ -357,60 +454,70 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                     variant="subtitle1"
                                     sx={{
                                         fontWeight: 900,
-                                        fontSize: "1.4rem",
+                                        fontSize: "1.35rem",
                                         lineHeight: 1,
-                                        letterSpacing: -0.3,
-                                        background:
-                                            `linear-gradient(135deg, ${tokens.brand} 0%, ${tokens.brandHi} 100%)`,
-                                        backgroundClip: "text",
-                                        WebkitBackgroundClip: "text",
-                                        color: "transparent",
-                                        WebkitTextFillColor: "transparent",
+                                        letterSpacing: -0.5,
+                                        color: tokens.textPrimary,
                                     }}
                                 >
                                     {tCommon("brandName")}
                                 </Typography>
+                            </Box>
+                        </Box>
+
+                        {/* Location indicator */}
+                        <Box
+                            sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: { xs: 0.5, md: 0.75 },
+                                flex: "0 1 auto",
+                                minWidth: 0,
+                                overflow: "hidden",
+                                ml: { xs: 0, md: 1 },
+                            }}
+                        >
+                            <LocationOnIcon
+                                aria-hidden
+                                focusable="false"
+                                sx={{ fontSize: 20, color: tokens.brand }}
+                            />
+                            <Box sx={{ minWidth: 0 }}>
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 0.25,
+                                    }}
+                                >
+                                    <Typography
+                                        variant="body2"
+                                        fontWeight={700}
+                                        sx={{ fontSize: 13.5, lineHeight: 1.2 }}
+                                    >
+                                        {tCommon("location.city")}
+                                    </Typography>
+                                    <KeyboardArrowDownIcon
+                                        aria-hidden
+                                        focusable="false"
+                                        sx={{ fontSize: 16, color: tokens.textMuted }}
+                                    />
+                                </Box>
                                 <Typography
                                     variant="caption"
-                                    sx={{ color: tokens.textMuted, display: "block", lineHeight: 1.2 }}
+                                    sx={{
+                                        color: tokens.textMuted,
+                                        display: "block",
+                                        lineHeight: 1.2,
+                                        fontSize: 11.5,
+                                    }}
                                 >
-                                    {tCommon("brandTagline")}
+                                    {tCommon("location.deliveryEta")}
                                 </Typography>
                             </Box>
                         </Box>
 
-                        {/* Location indicator - desktop only */}
-                        <Box
-                            sx={{
-                                display: { xs: "none", md: "flex" },
-                                alignItems: "center",
-                                gap: 0.75,
-                                px: 2,
-                                py: 0.75,
-                                borderRadius: 999,
-                                bgcolor: "background.paper",
-                                border: "1px solid",
-                                borderColor: "divider",
-                                flex: "0 1 auto",
-                                minWidth: 0,
-                                mx: { md: "auto" },
-                            }}
-                        >
-                            <LocationOnOutlinedIcon
-                                aria-hidden
-                                focusable="false"
-                                sx={{ fontSize: 15, color: "primary.dark" }}
-                            />
-                            <Typography variant="body2" fontWeight={600} sx={{ fontSize: 13 }}>
-                                {tCommon("location.city")}
-                            </Typography>
-                            <Typography
-                                variant="caption"
-                                sx={{ color: tokens.textMuted }}
-                            >
-                                · {tCommon("location.deliveryEta")}
-                            </Typography>
-                        </Box>
+                        <SearchBar />
 
                         {/* Right actions */}
                         <Box
@@ -423,20 +530,6 @@ export function LayoutShell({ children }: LayoutShellProps) {
                             }}
                         >
                             <Box
-                                component="nav"
-                                aria-label={tCommon("aria.mainNav")}
-                                sx={{
-                                    display: { xs: "none", sm: "flex" },
-                                    gap: 0.5,
-                                    flexShrink: 0,
-                                }}
-                            >
-                                {STORE_NAV_HREFS.map(({ href, key }) => (
-                                    <NavLink key={href} href={href} labelKey={key} />
-                                ))}
-                            </Box>
-
-                            <Box
                                 sx={{
                                     ...HEADER_ACTION_SLOT_SX,
                                     display: { xs: "none", sm: "flex" },
@@ -445,6 +538,14 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                 <Suspense fallback={<Box sx={{ width: 40, height: 40 }} />}>
                                     <LanguageSwitcher />
                                 </Suspense>
+                            </Box>
+                            <Box
+                                sx={{
+                                    ...HEADER_ACTION_SLOT_SX,
+                                    display: { xs: "none", sm: "flex" },
+                                }}
+                            >
+                                <FavoritesHeaderButton />
                             </Box>
                             <Box sx={HEADER_ACTION_SLOT_SX}>
                                 <MobileNavDrawer />
@@ -463,6 +564,18 @@ export function LayoutShell({ children }: LayoutShellProps) {
                         </Box>
                     </Container>
                 </Toolbar>
+
+                {/* Mobile search row (mobile-first: поиск всегда под рукой) */}
+                <Container
+                    maxWidth="lg"
+                    sx={{
+                        display: { xs: "block", md: "none" },
+                        px: 2,
+                        pb: 1.25,
+                    }}
+                >
+                    <SearchBar variant="mobile" />
+                </Container>
             </AppBar>
             </Box>
 

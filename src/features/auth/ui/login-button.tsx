@@ -2,6 +2,7 @@
 
 import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
+import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import Avatar from "@mui/material/Avatar";
 import Button from "@mui/material/Button";
@@ -50,15 +51,17 @@ export function LoginButton() {
         return (
             <>
                 <Button
-                    variant="outlined"
+                    variant="text"
                     size="small"
-                    startIcon={<LoginOutlinedIcon />}
+                    startIcon={<PersonOutlineOutlinedIcon />}
                     onClick={() => setDialogOpen(true)}
                     sx={{
                         display: { xs: "none", sm: "inline-flex" },
-                        fontWeight: 700,
+                        fontWeight: 600,
                         borderRadius: 2,
                         textTransform: "none",
+                        color: "text.primary",
+                        "&:hover": { bgcolor: tokens.surfaceHi },
                     }}
                 >
                     {t("login")}

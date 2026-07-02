@@ -40,6 +40,8 @@ export type PopularProduct = {
     category?: { name: string } | null;
     composition?: string | null;
     modifierGroups?: MenuModifierGroup[];
+    ratingAvg?: number;
+    ratingCount?: number;
 };
 
 type Props = {
@@ -74,35 +76,24 @@ function SectionHeader({
                 gap: 1,
             }}
         >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0, flex: 1, overflow: "hidden" }}>
-                {/* Brand accent bar */}
-                <Box
-                    sx={{
-                        width: 4,
-                        height: { xs: 22, sm: 28 },
-                        borderRadius: 999,
-                        background: `linear-gradient(180deg, ${tokens.brand} 0%, #008C33 100%)`,
-                        boxShadow: `0 2px 12px ${tokens.brandGlow}`,
-                        flexShrink: 0,
-                    }}
-                />
-                <Typography
-                    component="h2"
-                    variant="h5"
-                    fontWeight={900}
-                    sx={{
-                        letterSpacing: -0.5,
-                        fontSize: { xs: "1.2rem", sm: "1.4rem" },
-                        lineHeight: 1.1,
-                        color: tokens.textPrimary,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                    }}
-                >
-                    {title}
-                </Typography>
-            </Box>
+            <Typography
+                component="h2"
+                variant="h5"
+                fontWeight={800}
+                sx={{
+                    letterSpacing: -0.5,
+                    fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                    lineHeight: 1.1,
+                    color: tokens.textPrimary,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    minWidth: 0,
+                    flex: 1,
+                }}
+            >
+                {title}
+            </Typography>
 
             {seeAllHref && (
                 <ButtonBase
@@ -111,20 +102,14 @@ function SectionHeader({
                     sx={{
                         display: "flex",
                         alignItems: "center",
-                        gap: 0.5,
-                        px: 1.5,
-                        py: 0.75,
-                        borderRadius: "10px",
-                        border: `1px solid ${tokens.border}`,
-                        bgcolor: "transparent",
-                        color: "primary.dark",
+                        gap: 0.75,
+                        px: 0.5,
+                        py: 0.5,
+                        borderRadius: "8px",
+                        color: tokens.brand,
                         flexShrink: 0,
                         transition: "all 0.18s ease",
-                        "&:hover": {
-                            bgcolor: tokens.brandDim,
-                            borderColor: tokens.brand + "44",
-                            gap: 0.9,
-                        },
+                        "&:hover": { gap: 1.1, color: "#1E8449" },
                         "&:active": { transform: "scale(0.95)" },
                     }}
                 >
@@ -133,13 +118,13 @@ function SectionHeader({
                         fontWeight={700}
                         sx={{
                             color: "inherit",
-                            fontSize: 12,
-                            letterSpacing: 0.2,
+                            fontSize: 14,
+                            letterSpacing: 0.1,
                         }}
                     >
                         {seeAllLabel}
                     </Typography>
-                    <ArrowForwardIcon sx={{ fontSize: 13, color: "inherit" }} />
+                    <ArrowForwardIcon sx={{ fontSize: 16, color: "inherit" }} />
                 </ButtonBase>
             )}
         </Box>
@@ -186,7 +171,7 @@ export function PopularSection({
                     gridTemplateColumns: {
                         xs: "repeat(2, minmax(0, 1fr))",
                         sm: "repeat(3, minmax(0, 1fr))",
-                        md: "repeat(4, minmax(0, 1fr))",
+                        md: "repeat(3, minmax(0, 1fr))",
                     },
                 }}
             >

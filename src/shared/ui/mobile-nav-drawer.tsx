@@ -42,6 +42,7 @@ const LANGUAGES = [
 const STORE_NAV_HREFS = [
     { href: "/", key: "home" },
     { href: "/menu", key: "menu" },
+    { href: "/favorites", key: "favorites" },
     { href: "/contacts", key: "contacts" },
 ] as const;
 

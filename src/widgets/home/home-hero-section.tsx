@@ -38,7 +38,6 @@ export async function HomeHeroSection() {
         <HeroSection
             deliveryStat={deliveryStat}
             openingHoursStat={openingHoursStat}
-            promo={heroData.promo}
         />
     );
 }

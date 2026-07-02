@@ -44,7 +44,10 @@
         "menu": "Menu",
         "contacts": "Contacts",
         "cart": "Cart",
-        "profile": "Profile"
+        "profile": "Profile",
+        "search": "Search",
+        "searchPlaceholder": "What would you like to order?",
+        "favorites": "Favorites"
     },
     "hero": {
         "promoBadge": "{value}% off your first order with promo {code}",
@@ -53,7 +56,7 @@
         "titleLine3": "Hot and fast - at your door.",
         "subtitle": "Order your favorite food with fast delivery across Kotayk and Yerevan. Fresh rolls, hot pizza, and juicy shawarma.",
         "seoLine": "Hot sushi, pizza and shawarma with fast delivery in Yerevan and Nor Hachn. Free delivery in Nor Hachn.",
-        "orderNow": "Order now →",
+        "orderNow": "Order now",
         "stats": {
             "fastDelivery": "Fast delivery",
             "freeDeliveryIn": "Free delivery in {zone}",
@@ -95,7 +98,8 @@
         "feature_support_title": "We are in touch",
         "feature_support_desc": "24/7 support in Telegram",
         "seo_text_title": "Sushi & Pizza Delivery in Nor Hachn and Yerevan",
-        "seo_text_body": "East West Delivery is your fast food delivery service. Order fresh sushi, rolls, hot pizza, shawarma and lahmajo with delivery in 45-60 minutes. We cook from quality ingredients and deliver your order hot. Place an order online in just a few clicks!"
+        "seo_text_body": "East West Delivery is your fast food delivery service. Order fresh sushi, rolls, hot pizza, shawarma and lahmajo with delivery in 45-60 minutes. We cook from quality ingredients and deliver your order hot. Place an order online in just a few clicks!",
+        "categories": "Categories"
     },
     "menu": {
         "title": "Menu",
@@ -155,12 +159,21 @@
     },
     "product": {
         "perUnit": "֏/pc",
+        "badge": {
+            "hit": "Bestseller",
+            "new": "New",
+            "spicy": "Spicy"
+        },
+        "deliveryTime": "45-60 min",
         "aria": {
             "decrease": "Decrease quantity: {name}",
             "increase": "Increase quantity: {name}",
             "add": "Add {name}",
             "openDetails": "Open details for {name}",
-            "viewProduct": "Product page: {name}"
+            "viewProduct": "Product page: {name}",
+            "viewProductWithPrice": "Order {name} for {price}",
+            "addToFavorites": "Add to favorites: {name}",
+            "removeFromFavorites": "Remove from favorites: {name}"
         },
         "modifiers": {
             "fromPrice": "from {price} ֏",
@@ -178,7 +191,8 @@
         "breadcrumbsLabel": "Breadcrumb navigation",
         "composition": "Ingredients",
         "weight": "{weight} g",
-        "addToCart": "Add to cart"
+        "addToCart": "Add to cart",
+        "reviewsCount": "{count, plural, one {# review} other {# reviews}}"
     },
     "cart": {
         "pageTitle": "Cart",
@@ -612,6 +626,10 @@
         },
         "product": {
             "fallbackDescription": "Order {name} for delivery in Yerevan and Kotayk — East West Delivery."
+        },
+        "favorites": {
+            "title": "Favorites",
+            "description": "Your favorite East West dishes: sushi, pizza and shawarma with fast delivery."
         }
     },
     "admin": {
@@ -645,6 +663,72 @@
             "dismissCta": "Not now",
             "dismissAria": "Dismiss install prompt",
             "logoAlt": "East West app icon"
+        }
+    },
+    "favorites": {
+        "title": "Favorites",
+        "empty_title": "No favorites yet",
+        "empty_hint": "Tap the heart on any dish card and it will appear here.",
+        "go_to_menu": "Go to menu",
+        "load_error": "Couldn't load favorites. Please try again.",
+        "retry": "Retry",
+        "aria_open": "Open favorites"
+    },
+    "reviews": {
+        "title": "Reviews",
+        "write": "Write a review",
+        "load_more": "Show more",
+        "loading_more": "Loading…",
+        "summary": {
+            "count": "{count, plural, one {# review} other {# reviews}}",
+            "filter_by_star": "Show {star}-star reviews"
+        },
+        "sort": {
+            "label": "Sort",
+            "new": "Newest first",
+            "helpful": "Most helpful",
+            "rating_desc": "Rating: high to low",
+            "rating_asc": "Rating: low to high"
+        },
+        "filter": {
+            "stars": "Rating: {star} ★",
+            "no_results": "No reviews match the selected filter."
+        },
+        "empty": {
+            "title": "No reviews yet",
+            "hint": "Share your experience — help others choose.",
+            "cta": "Write the first review"
+        },
+        "item": {
+            "you": "{name} (you)",
+            "verified": "Verified purchase",
+            "edit": "Edit",
+            "delete": "Delete",
+            "helpful": "Helpful"
+        },
+        "form": {
+            "title_create": "Your review",
+            "title_edit": "Edit review",
+            "rating_label": "Rating",
+            "rating_required": "Please rate from 1 to 5",
+            "text_label": "Comment (optional)",
+            "text_placeholder": "What did you like or dislike?",
+            "cancel": "Cancel",
+            "submitting": "Saving…",
+            "submit_create": "Publish",
+            "submit_edit": "Save"
+        },
+        "delete_confirm": {
+            "title": "Delete review?",
+            "text": "Your review and rating will be permanently removed."
+        },
+        "toast": {
+            "created": "Review published",
+            "updated": "Review updated",
+            "deleted": "Review deleted",
+            "save_error": "Couldn't save. Please try again.",
+            "load_error": "Couldn't load reviews",
+            "vote_error": "Couldn't vote"
         }
     }
 }
