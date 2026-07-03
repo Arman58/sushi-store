@@ -135,14 +135,22 @@ export async function notifyOrderStatusPush(
 
     const order = await prisma.order.findUnique({
         where: { id: orderId },
-        select: {
-            id: true,
-            userId: true,
-            user: { select: { emailVerified: true } },
-        },
+        select: { id: true, userId: true },
     });
 
-    if (!order?.userId || order.user?.emailVerified == null) return;
+    // Подписка на пуши - самостоятельное согласие; emailVerified не требуем
+    // (Lazy Verification: почти у всех пользователей email не подтверждён,
+    // из-за этого условия пуши не уходили никому).
+    if (!order?.userId) return;
+
+    if (status === "DONE") {
+        await sendPushNotification(order.userId, {
+            title: `Заказ #${order.id} доставлен 🎉`,
+            body: "Приятного аппетита! Оцените блюда - это займёт минуту.",
+            url: `/order/${order.id}`,
+        });
+        return;
+    }
 
     await sendPushNotification(order.userId, {
         title: `Заказ #${order.id}`,

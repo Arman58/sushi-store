@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { JsonLd, orderJsonLd } from "@/lib/seo/json-ld";
 import { NOINDEX_METADATA } from "@/lib/seo/metadata";
 import type { OrderStatusResponse } from "@/shared/api/order-api";
+import { PushPermissionPrompt } from "@/shared/ui/PushPermissionPrompt";
 
 import { OrderTracker } from "./order-tracker";
 
@@ -108,7 +109,11 @@ export default async function OrderPage({ params, searchParams }: PageProps) {
                     bgcolor: "background.default",
                 }}
             >
-                <OrderTracker order={orderPayload} phone={order.phone} />
+                <Box sx={{ width: "100%", maxWidth: 600 }}>
+                    {/* Лучший момент подписки на пуши - ожидание заказа */}
+                    <PushPermissionPrompt />
+                    <OrderTracker order={orderPayload} phone={order.phone} />
+                </Box>
             </Box>
         </>
     );

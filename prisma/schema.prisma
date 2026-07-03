@@ -34,6 +34,16 @@ model Product {
   mainImage      String?
   /** На витрине: если false - гость не видит товар в меню/на главной; при заказе из сохранённой корзины - понятная ошибка. */
   isActive       Boolean         @default(true)
+  /** Стоп-лист: false - «закончилось сегодня», товар виден, но заказ заблокирован. */
+  isAvailable    Boolean         @default(true)
+  /** Минимальное количество в заказе (первое добавление кладёт столько). */
+  minQty         Int             @default(1)
+  /** Максимум на заказ; null - без лимита. */
+  maxQty         Int?
+  /** Кросс-селл: что предложить к этому товару (задаётся в админке). */
+  upsells        ProductUpsell[] @relation("UpsellSource")
+  /** Обратная связь: в каких товарах этот предлагается. */
+  upsellOf       ProductUpsell[] @relation("UpsellSuggested")
   category       Category?       @relation(fields: [categoryId], references: [id])
   categoryId     Int?
   createdAt      DateTime        @default(now())
@@ -81,6 +91,37 @@ model ReviewVote {
 
   @@unique([reviewId, userId])
   @@index([userId])
+}
+
+/** Промо-баннер на главной (карусель под hero). Управляется из админки. */
+model Banner {
+  id        Int       @id @default(autoincrement())
+  /** Cloudinary URL (рекомендация: 1200x480). */
+  image     String
+  /** Подпись для доступности и заголовка поверх фото; локализованная. */
+  title     Json      @default("{}") @db.JsonB
+  /** Куда ведёт клик: внутренний путь (/menu?category=...) или https-ссылка. null - некликабельный. */
+  href      String?
+  position  Int       @default(0)
+  isActive  Boolean   @default(true)
+  /** Показ с/по; null - без ограничения. */
+  startsAt  DateTime?
+  endsAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+/** Кросс-селл «с этим берут»: к товару productId предлагается suggested. */
+model ProductUpsell {
+  id          Int     @id @default(autoincrement())
+  productId   Int
+  product     Product @relation("UpsellSource", fields: [productId], references: [id], onDelete: Cascade)
+  suggestedId Int
+  suggested   Product @relation("UpsellSuggested", fields: [suggestedId], references: [id], onDelete: Cascade)
+  /** Порядок показа (меньше - выше). */
+  position    Int     @default(0)
+
+  @@unique([productId, suggestedId])
+  @@index([productId])
 }
 
 /** Группа опций к товару (размер, добавки). maxChoices: 0 = без верхней границы. */

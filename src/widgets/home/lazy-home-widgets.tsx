@@ -47,11 +47,3 @@ export const FeaturesBlock = dynamic(
         import("@/widgets/features-block").then((m) => m.FeaturesBlock),
     { ssr: false },
 );
-
-export const CategoryScroll = dynamic(
-    () =>
-        import("@/widgets/home/category-scroll").then(
-            (m) => m.CategoryScroll,
-        ),
-    { ssr: false, loading: () => null },
-);

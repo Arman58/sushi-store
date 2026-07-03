@@ -61,7 +61,7 @@ export function EmptyCart({
                     justifyContent: "center",
                     bgcolor: tokens.brandDim,
                     border: `1px solid ${alpha(tokens.brand, 0.22)}`,
-                    boxShadow: `0 10px 32px ${alpha(tokens.textPrimary, 0.07)}`,
+                    boxShadow: `0 10px 32px rgba(var(--ew-text-rgb), 0.07)`,
                 }}
             >
                 <TakeoutDiningOutlinedIcon

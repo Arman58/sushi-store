@@ -13,6 +13,8 @@ import { HomeCategoryPillsSection } from "@/widgets/home/home-category-pills-sec
 import { HomeHeroSection } from "@/widgets/home/home-hero-section";
 import { HomeNewArrivalsSection } from "@/widgets/home/home-new-arrivals-section";
 import { FeaturesBlock } from "@/widgets/home/lazy-home-widgets";
+import { PromoBannersSection } from "@/widgets/home/promo-banners-section";
+import { RecentlyViewedSection } from "@/widgets/home/recently-viewed-section";
 import { CategoryPillsSkeleton } from "@/widgets/home/skeletons/category-pills-skeleton";
 import { HeroSectionSkeleton } from "@/widgets/home/skeletons/hero-section-skeleton";
 import { PopularSectionSkeleton } from "@/widgets/home/skeletons/popular-section-skeleton";
@@ -51,6 +53,10 @@ export default function HomePage() {
                 </Suspense>
             </Container>
 
+            <Suspense fallback={null}>
+                <PromoBannersSection />
+            </Suspense>
+
             <Suspense fallback={<CategoryPillsSkeleton />}>
                 <HomeCategoryPillsSection />
             </Suspense>
@@ -62,6 +68,8 @@ export default function HomePage() {
             }>
                 <HomeNewArrivalsSection />
             </Suspense>
+
+            <RecentlyViewedSection />
 
             <Container
                 sx={{

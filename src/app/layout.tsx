@@ -18,6 +18,7 @@ import {
     SITE_NAME,
     SITE_URL,
 } from "@/lib/site-config";
+import { THEME_INIT_SCRIPT } from "@/shared/ui/theme-mode-toggle";
 
 import { interFont } from "./fonts";
 import { AppProviders } from "./providers";
@@ -102,7 +103,18 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             lang={locale}
             className={interFont.variable}
             data-scroll-behavior="smooth"
+            data-theme="light"
+            suppressHydrationWarning
         >
+            <head>
+                {/* Ранние соединения к CDN изображений - быстрее LCP */}
+                <link rel="preconnect" href="https://res.cloudinary.com" />
+                <link rel="preconnect" href="https://images.unsplash.com" />
+                {/* Тема до первой отрисовки - без вспышки светлого фона */}
+                <script
+                    dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }}
+                />
+            </head>
             <body
                 suppressHydrationWarning
                 className={interFont.className}
@@ -112,8 +124,19 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 />
                 <AppRouterCacheProvider options={{ enableCssLayer: true }}>
                     <SerwistProvider
-                        swUrl="/sw.js"
-                        disable={process.env.NODE_ENV === "development"}
+                        // Dev-тест пушей: лёгкий sw-dev.js без precache
+                        // (прод-sw.js падает в dev на precache /_next/static)
+                        swUrl={
+                            process.env.NODE_ENV === "development"
+                                ? "/sw-dev.js"
+                                : "/sw.js"
+                        }
+                        // SW отключён в dev (кэш мешает разработке);
+                        // NEXT_PUBLIC_ENABLE_SW_DEV=1 - включить для теста пушей локально
+                        disable={
+                            process.env.NODE_ENV === "development" &&
+                            process.env.NEXT_PUBLIC_ENABLE_SW_DEV !== "1"
+                        }
                     >
                         <AppProviders>{children}</AppProviders>
                     </SerwistProvider>

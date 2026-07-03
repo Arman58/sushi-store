@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { homeProductInclude } from "@/lib/home-product-include";
+import {
+    homeProductInclude,
+    type HomeProductPayload,
+} from "@/lib/home-product-include";
 import { resolveRequestLocale, toStorefrontProducts } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
 
@@ -33,12 +36,45 @@ async function findUpsellCategoryIds(): Promise<number[]> {
     return [];
 }
 
-/** Публичные допродажи: напитки/соусы или самые дешёвые активные товары. */
+/**
+ * Публичные допродажи. Приоритет:
+ * 1) ручные связи «с этим берут» из админки (для товаров корзины = exclude),
+ * 2) напитки/соусы, 3) самые дешёвые активные товары.
+ */
 export async function GET(request: Request) {
     const locale = resolveRequestLocale(request);
     const excludeIds = parseExcludeIds(request);
 
     try {
+        // 1. Ручные предложения для товаров корзины
+        let curatedRaw: HomeProductPayload[] = [];
+        if (excludeIds.length > 0) {
+            const links = await prisma.productUpsell.findMany({
+                where: { productId: { in: excludeIds } },
+                orderBy: [{ position: "asc" }, { id: "asc" }],
+                select: { suggestedId: true },
+            });
+            const suggestedIds = [
+                ...new Set(links.map((l) => l.suggestedId)),
+            ].filter((id) => !excludeIds.includes(id));
+            if (suggestedIds.length > 0) {
+                const found = await prisma.product.findMany({
+                    where: {
+                        id: { in: suggestedIds },
+                        isActive: true,
+                        isAvailable: true,
+                    },
+                    include: homeProductInclude,
+                });
+                // Сохраняем порядок position из связей
+                const byId = new Map(found.map((p) => [p.id, p]));
+                curatedRaw = suggestedIds
+                    .map((id) => byId.get(id))
+                    .filter((p): p is NonNullable<typeof p> => Boolean(p))
+                    .slice(0, UPSELL_LIMIT);
+            }
+        }
+
         const categoryIds = await findUpsellCategoryIds();
 
         const baseWhere = {
@@ -59,6 +95,15 @@ export async function GET(request: Request) {
                   })
                 : [];
 
+        // Ручные - первыми, категорийные добивают до лимита без дублей
+        if (curatedRaw.length > 0) {
+            const curatedIds = new Set(curatedRaw.map((p) => p.id));
+            productsRaw = [
+                ...curatedRaw,
+                ...productsRaw.filter((p) => !curatedIds.has(p.id)),
+            ].slice(0, UPSELL_LIMIT);
+        }
+
         if (productsRaw.length === 0) {
             productsRaw = await prisma.product.findMany({
                 where: baseWhere,
@@ -73,7 +118,13 @@ export async function GET(request: Request) {
             locale,
         );
 
-        return NextResponse.json(products);
+        return NextResponse.json(products, {
+            headers: {
+                // CDN-кэш: меню меняется редко, stale допустим
+                "Cache-Control":
+                    "public, s-maxage=60, stale-while-revalidate=300",
+            },
+        });
     } catch (error) {
         return NextResponse.json(
             {

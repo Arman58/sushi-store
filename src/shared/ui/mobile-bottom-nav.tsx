@@ -10,7 +10,6 @@ import Badge from "@mui/material/Badge";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
-import { alpha } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
@@ -79,7 +78,8 @@ export function MobileBottomNav() {
                 sx={{
                     position: "absolute",
                     inset: 0,
-                    bgcolor: (theme) => alpha(theme.palette.background.paper, 0.8),
+                    // rgba от CSS-переменной - корректно адаптируется к dark
+                    bgcolor: "rgba(var(--ew-surface-rgb), 0.85)",
                     backdropFilter: "blur(12px)",
                     WebkitBackdropFilter: "blur(12px)",
                 }}

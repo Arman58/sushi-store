@@ -180,6 +180,10 @@ export const adminProductCreateSchema = z.object({
     isActive: z.boolean().optional().default(true),
     slug: z.string().trim().min(1).optional(),
     modifierGroups: z.unknown().optional(),
+    minQty: z.number().int().min(1).max(999).optional().default(1),
+    maxQty: z.number().int().min(1).max(999).nullable().optional(),
+    /** Кросс-селл «с этим берут»: id предложений, порядок = приоритет. */
+    upsellIds: z.array(positiveIntSchema).max(12).optional(),
 });
 
 export const adminProductPatchSchema = z
@@ -195,5 +199,8 @@ export const adminProductPatchSchema = z
         isActive: z.boolean().optional(),
         slug: z.string().trim().min(1).optional(),
         modifierGroups: z.unknown().optional(),
+        minQty: z.number().int().min(1).max(999).optional(),
+        maxQty: z.number().int().min(1).max(999).nullable().optional(),
+        upsellIds: z.array(positiveIntSchema).max(12).optional(),
     })
     .refine((data) => Object.keys(data).length > 0, "Nothing to update");

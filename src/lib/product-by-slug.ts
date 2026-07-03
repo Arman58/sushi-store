@@ -1,7 +1,7 @@
 import { cache } from "react";
 
 import { homeProductInclude } from "@/lib/home-product-include";
-import { toStorefrontProduct, type StorefrontProduct } from "@/lib/i18n-utils";
+import { type StorefrontProduct,toStorefrontProduct } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
 
 export const getActiveProductBySlug = cache(

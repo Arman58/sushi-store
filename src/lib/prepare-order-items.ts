@@ -48,6 +48,9 @@ export async function prepareOrderItems(
             name: true,
             price: true,
             isActive: true,
+            isAvailable: true,
+            minQty: true,
+            maxQty: true,
             modifierGroups: {
                 orderBy: [{ position: "asc" }, { id: "asc" }],
                 select: {
@@ -82,7 +85,20 @@ export async function prepareOrderItems(
 
         const productName = getLocalizedField(product.name, locale);
 
-        if (!product.isActive) {
+        if (!product.isActive || product.isAvailable === false) {
+            return {
+                ok: false,
+                httpStatus: 409,
+                code: "ITEM_UNAVAILABLE",
+                params: { name: productName },
+            };
+        }
+
+        // Лимиты количества на заказ (min/max задаются в админке)
+        if (
+            item.quantity < (product.minQty ?? 1) ||
+            (product.maxQty != null && item.quantity > product.maxQty)
+        ) {
             return {
                 ok: false,
                 httpStatus: 409,
@@ -170,6 +186,9 @@ export async function validateCartLinesForCheckout(
             name: true,
             price: true,
             isActive: true,
+            isAvailable: true,
+            minQty: true,
+            maxQty: true,
             modifierGroups: {
                 orderBy: [{ position: "asc" }, { id: "asc" }],
                 select: {
@@ -195,7 +214,7 @@ export async function validateCartLinesForCheckout(
             return { cartItemId: line.cartItemId, ok: false, reason: "not_found" };
         }
 
-        if (!product.isActive) {
+        if (!product.isActive || product.isAvailable === false) {
             return { cartItemId: line.cartItemId, ok: false, reason: "inactive" };
         }
 

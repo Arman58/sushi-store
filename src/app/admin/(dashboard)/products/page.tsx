@@ -11,6 +11,10 @@ import {
     Button,
     Chip,
     Container,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
     IconButton,
     Paper,
     Skeleton,
@@ -65,6 +69,10 @@ type ProductRow = {
     images?: unknown;
     mainImage?: string | null;
     isActive: boolean;
+    isAvailable?: boolean;
+    minQty?: number;
+    maxQty?: number | null;
+    upsells?: { suggestedId: number }[];
     categoryId: number | null;
     createdAt?: string;
     category: { name: unknown } | null;
@@ -335,6 +343,9 @@ export default function AdminProductsPage() {
             categoryId: payload.categoryId,
             images: payload.images,
             modifierGroups: payload.modifierGroups,
+            minQty: payload.minQty,
+            maxQty: payload.maxQty,
+            upsellIds: payload.upsellIds,
         };
         if (isEdit) {
             body.composition = payload.composition;
@@ -383,8 +394,10 @@ export default function AdminProductsPage() {
         }
     };
 
+    const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+
     const handleDelete = async (id: number) => {
-        if (!window.confirm("Точно удалить?")) return;
+        setConfirmDeleteId(null);
         setDeletingId(id);
         try {
             const res = await fetch(`/api/admin/products/${id}`, {
@@ -441,6 +454,33 @@ export default function AdminProductsPage() {
             setRotatingMainId(null);
         }
     }, []);
+
+    const handleAvailableChange = useCallback(
+        (id: number, isAvailable: boolean) => {
+            setProducts((prev) =>
+                prev.map((p) => (p.id === id ? { ...p, isAvailable } : p)),
+            );
+            void (async () => {
+                try {
+                    const res = await fetch(`/api/admin/products/${id}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "same-origin",
+                        body: JSON.stringify({ isAvailable }),
+                    });
+                    if (!res.ok) throw new Error();
+                } catch {
+                    setProducts((prev) =>
+                        prev.map((p) =>
+                            p.id === id ? { ...p, isAvailable: !isAvailable } : p,
+                        ),
+                    );
+                    alert("Не удалось сохранить «В наличии»");
+                }
+            })();
+        },
+        [],
+    );
 
     const persistProductActive = useCallback(async (id: number, isActive: boolean) => {
         const res = await fetch(`/api/admin/products/${id}`, {
@@ -570,8 +610,40 @@ export default function AdminProductsPage() {
                     </Button>
                 }
             />
+            <Dialog
+                open={confirmDeleteId !== null}
+                onClose={() => setConfirmDeleteId(null)}
+                maxWidth="xs"
+                fullWidth
+            >
+                <DialogTitle>Удалить товар?</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" color="text.secondary">
+                        Товар будет удалён безвозвратно вместе с отзывами.
+                        Если нужно временно убрать с витрины — используйте
+                        переключатель «На витрине».
+                    </Typography>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2 }}>
+                    <Button onClick={() => setConfirmDeleteId(null)} color="inherit">
+                        Отмена
+                    </Button>
+                    <Button
+                        color="error"
+                        variant="contained"
+                        sx={{ fontWeight: 700 }}
+                        onClick={() => {
+                            if (confirmDeleteId !== null)
+                                void handleDelete(confirmDeleteId);
+                        }}
+                    >
+                        Удалить
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
             <Container maxWidth="lg" disableGutters>
-                <SectionTitle>Товары (admin)</SectionTitle>
+                <SectionTitle>Товары</SectionTitle>
 
                 {error && !loading ? (
                     <Box sx={{ mb: 2 }}>
@@ -851,6 +923,42 @@ export default function AdminProductsPage() {
                                                                 )
                                                             }
                                                         />
+                                                        <Box
+                                                            sx={{
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                gap: 0.5,
+                                                                justifyContent: "flex-end",
+                                                            }}
+                                                        >
+                                                            <Typography
+                                                                variant="caption"
+                                                                color={
+                                                                    product.isAvailable === false
+                                                                        ? "error"
+                                                                        : "text.secondary"
+                                                                }
+                                                                sx={{ fontSize: "0.65rem" }}
+                                                            >
+                                                                {product.isAvailable === false
+                                                                    ? "Стоп-лист"
+                                                                    : "В наличии"}
+                                                            </Typography>
+                                                            <Switch
+                                                                size="small"
+                                                                checked={product.isAvailable !== false}
+                                                                disabled={deletingId === product.id}
+                                                                onChange={(e) =>
+                                                                    handleAvailableChange(
+                                                                        product.id,
+                                                                        e.target.checked,
+                                                                    )
+                                                                }
+                                                                inputProps={{
+                                                                    "aria-label": "В наличии",
+                                                                }}
+                                                            />
+                                                        </Box>
                                                     </TableCell>
                                                     <TableCell align="right">
                                                         <Box
@@ -884,7 +992,7 @@ export default function AdminProductsPage() {
                                                                     size="small"
                                                                     color="error"
                                                                     disabled={deletingId === product.id}
-                                                                    onClick={() => void handleDelete(product.id)}
+                                                                    onClick={() => setConfirmDeleteId(product.id)}
                                                                     aria-label="Удалить"
                                                                 >
                                                                     <DeleteIcon fontSize="small" />

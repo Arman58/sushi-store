@@ -24,8 +24,10 @@
             "close": "Close",
             "mainNav": "Main navigation",
             "mobileNavMenu": "Navigation menu",
+            "toggleTheme": "Toggle theme",
             "openCart": "Open cart",
-            "cartOnCheckout": "Cart (on checkout page)"
+            "cartOnCheckout": "Cart (on checkout page)",
+            "toggleTheme": "Toggle theme"
         },
         "toast": {
             "added": "Added to cart",
@@ -99,7 +101,8 @@
         "feature_support_desc": "24/7 support in Telegram",
         "seo_text_title": "Sushi & Pizza Delivery in Nor Hachn and Yerevan",
         "seo_text_body": "East West Delivery is your fast food delivery service. Order fresh sushi, rolls, hot pizza, shawarma and lahmajo with delivery in 45-60 minutes. We cook from quality ingredients and deliver your order hot. Place an order online in just a few clicks!",
-        "categories": "Categories"
+        "categories": "Categories",
+        "recentlyViewed": "Recently viewed"
     },
     "menu": {
         "title": "Menu",
@@ -115,6 +118,7 @@
         "show_results_count": "Show {count} results",
         "filter_category": "Categories",
         "all_categories": "All",
+        "clearSearch": "Clear search",
         "sort_discount": "By discount",
         "price_range": "Price",
         "price_from": "From",
@@ -162,7 +166,8 @@
         "badge": {
             "hit": "Bestseller",
             "new": "New",
-            "spicy": "Spicy"
+            "spicy": "Spicy",
+            "soldOut": "Sold out"
         },
         "deliveryTime": "45-60 min",
         "aria": {
@@ -192,7 +197,12 @@
         "composition": "Ingredients",
         "weight": "{weight} g",
         "addToCart": "Add to cart",
-        "reviewsCount": "{count, plural, one {# review} other {# reviews}}"
+        "reviewsCount": "{count, plural, one {# review} other {# reviews}}",
+        "soldOut": "Sold out",
+        "quickView": {
+            "fullPage": "Details & reviews",
+            "choose": "Choose options"
+        }
     },
     "cart": {
         "pageTitle": "Cart",
@@ -250,7 +260,9 @@
             "priceChangedGeneric": "Price changed. Remove the line or rebuild your order.",
             "orderPriceAlert": "The price of one or more items has changed — please review your order",
             "modifiersChanged": "Item options changed. Remove and add it again."
-        }
+        },
+        "minOrderReached": "Minimum reached — ready to checkout",
+        "minOrderRemaining": "{amount} ֏ left to reach the minimum order"
     },
     "checkout": {
         "title": "Checkout",
@@ -431,6 +443,10 @@
             "body": "We received your order and sent it to the kitchen. A courier will call you to confirm.",
             "hint": "Usually the tracking page opens after checkout. You can also check status anytime.",
             "homeCta": "Back to home"
+        },
+        "rate": {
+            "title": "How was your order?",
+            "subtitle": "Rate the dishes — it helps other guests and us."
         }
     },
     "profile": {

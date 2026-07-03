@@ -41,7 +41,7 @@ export function HeroSection({ deliveryStat, openingHoursStat }: HeroSectionProps
         overflow: "hidden",
         minHeight: { xs: 320, sm: 400, md: 460 },
         display: "flex",
-        bgcolor: "#F8F8F8",
+        bgcolor: tokens.surfaceHi,
       }}
     >
       {/* Background food image - right side, blended into light bg */}
@@ -76,7 +76,7 @@ export function HeroSection({ deliveryStat, openingHoursStat }: HeroSectionProps
               position: "absolute",
               inset: 0,
               background:
-                "linear-gradient(to right, #F8F8F8 0%, rgba(248,248,248,0) 35%)",
+                "linear-gradient(to right, var(--ew-surface-hi) 0%, transparent 35%)",
             }}
           />
         </Box>

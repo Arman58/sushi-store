@@ -11,6 +11,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useState } from "react";
 
 import { useCartStore } from "@/features/cart";
+import { useTrackProductView } from "@/features/recently-viewed";
 import { Link } from "@/i18n/server";
 import type { StorefrontProduct } from "@/lib/i18n-utils";
 import { formatStorePrice } from "@/shared/lib/format-price";
@@ -51,6 +52,9 @@ export function ProductPageView({ product, locale, breadcrumbs }: Props) {
     const addItem = useCartStore((s) => s.addItem);
 
     const [modifiersOpen, setModifiersOpen] = useState(false);
+
+    // История просмотров для блока «Вы недавно смотрели»
+    useTrackProductView(product.id);
 
     const coverUrl = getProductCoverUrl(product);
     const imageAlt = buildProductImageAlt(product.name, locale);
@@ -361,6 +365,7 @@ export function ProductPageView({ product, locale, breadcrumbs }: Props) {
                             color="primary"
                             size="large"
                             onClick={handleAddToCart}
+                            disabled={!product.isAvailable}
                             sx={{
                                 flexShrink: 0,
                                 minWidth: { xs: 148, sm: 180 },
@@ -371,7 +376,9 @@ export function ProductPageView({ product, locale, breadcrumbs }: Props) {
                                 fontWeight: 800,
                             }}
                         >
-                            {t("addToCart")}
+                            {product.isAvailable
+                                ? t("addToCart")
+                                : t("soldOut")}
                         </AppButton>
                     </Stack>
                 </Box>

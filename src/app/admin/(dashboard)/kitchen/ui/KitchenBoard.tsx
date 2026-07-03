@@ -242,7 +242,8 @@ export function KitchenBoard() {
     }, [data?.new.length]);
 
     useEffect(() => {
-        setNowMs(Date.now());
+        // setState только из interval-колбэка (внешняя система - таймер);
+        // начальное значение задаёт useState.
         const id = window.setInterval(() => setNowMs(Date.now()), 1_000);
         return () => window.clearInterval(id);
     }, []);

@@ -42,6 +42,7 @@ export type PopularProduct = {
     modifierGroups?: MenuModifierGroup[];
     ratingAvg?: number;
     ratingCount?: number;
+    isAvailable?: boolean;
 };
 
 type Props = {

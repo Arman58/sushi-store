@@ -249,6 +249,12 @@ export type StorefrontProduct = {
     ratingAvg: number;
     /** Кол-во опубликованных отзывов. */
     ratingCount: number;
+    /** Стоп-лист: false - «закончилось», заказ заблокирован. */
+    isAvailable: boolean;
+    /** Минимальное количество в заказе. */
+    minQty: number;
+    /** Максимум на заказ; null - без лимита. */
+    maxQty: number | null;
 };
 
 /** Гарантированно отдаёт товар с plain-string полями для клиента. */
@@ -287,6 +293,15 @@ export function toStorefrontProduct(
             Number.isFinite(product.ratingCount)
                 ? product.ratingCount
                 : 0,
+        isAvailable: product.isAvailable !== false,
+        minQty:
+            typeof product.minQty === "number" && product.minQty > 1
+                ? product.minQty
+                : 1,
+        maxQty:
+            typeof product.maxQty === "number" && product.maxQty > 0
+                ? product.maxQty
+                : null,
         ...(Array.isArray(product.modifierGroups)
             ? {
                   modifierGroups: toStorefrontModifierGroups(

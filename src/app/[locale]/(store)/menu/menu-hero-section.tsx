@@ -20,7 +20,7 @@ export async function MenuHeroSection() {
                 position: "relative",
                 border: "1px solid",
                 borderColor: "divider",
-                background: `linear-gradient(135deg, ${alpha(tokens.brand, 0.08)}, ${alpha(tokens.surface, 0.98)} 45%, ${alpha(tokens.textPrimary, 0.025)})`,
+                background: `linear-gradient(135deg, ${alpha(tokens.brand, 0.08)}, rgba(var(--ew-surface-rgb), 0.98) 45%, rgba(var(--ew-text-rgb), 0.025))`,
             }}
         >
             <Box
