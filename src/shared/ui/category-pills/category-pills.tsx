@@ -70,7 +70,7 @@ export function CategoryPills({ items, activeSlug, onSelect }: CategoryPillsProp
               }
             : hasImage
               ? {
-                  bgcolor: "#f5f5f5",
+                  bgcolor: "var(--ew-surface-hi)",
                   color: "text.secondary",
                 }
               : {

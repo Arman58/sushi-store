@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import type { MenuProps } from "@mui/material/Menu";
 import type { SelectProps } from "@mui/material/Select";
-import { forwardRef } from "react";
+import { forwardRef, useEffect, useState } from "react";
 
 export type AppSelectProps<Value = unknown> = Omit<
     SelectProps<Value>,
@@ -49,7 +49,8 @@ function mergeMenuProps(menuProps?: Partial<MenuProps>): Partial<MenuProps> {
     const overrideSx = paperProps?.sx;
 
     return {
-        disablePortal: true,
+        // Портал в body (дефолт MUI): с disablePortal меню рендерилось в потоке
+        // и «уплывало» от поля при прокрутке страницы (крит-баг справочников)
         ...menuProps,
         PaperProps: {
             ...paperProps,
@@ -78,6 +79,16 @@ function AppSelectComponent<Value = unknown>(
     }: AppSelectProps<Value>,
     ref: React.ForwardedRef<HTMLDivElement>,
 ) {
+    // Страховка от «уплывания» меню: при скролле страницы закрываем список
+    // (scroll lock MUI покрывает body, это - на случай прочих прокруток).
+    const [open, setOpen] = useState(false);
+    useEffect(() => {
+        if (!open) return;
+        const close = () => setOpen(false);
+        window.addEventListener("scroll", close, { passive: true });
+        return () => window.removeEventListener("scroll", close);
+    }, [open]);
+
     return (
         <FormControl
             fullWidth={fullWidth}
@@ -94,6 +105,9 @@ function AppSelectComponent<Value = unknown>(
             <Select<Value>
                 ref={ref}
                 {...props}
+                open={open}
+                onOpen={() => setOpen(true)}
+                onClose={() => setOpen(false)}
                 MenuProps={mergeMenuProps(MenuProps)}
                 sx={[
                     defaultSelectSx,

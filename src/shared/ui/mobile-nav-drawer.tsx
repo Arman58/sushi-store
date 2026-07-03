@@ -154,10 +154,7 @@ export function MobileNavDrawer() {
                     minWidth: 40,
                     width: 40,
                     height: 40,
-                    border: "1px solid",
-                    borderColor: "divider",
-                    bgcolor: "background.paper",
-                    color: tokens.textSecondary,
+                    color: tokens.textPrimary,
                 }}
             >
                 <MenuIcon aria-hidden focusable="false" />

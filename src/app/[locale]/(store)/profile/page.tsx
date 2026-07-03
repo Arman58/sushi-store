@@ -133,7 +133,7 @@ export default async function ProfilePage() {
                         mb: 3,
                         borderRadius: 2,
                         border: `1px solid ${tokens.border}`,
-                        bgcolor: "#fff",
+                        bgcolor: "var(--ew-surface)",
                     }}
                 >
                     <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }}>
@@ -204,7 +204,7 @@ export default async function ProfilePage() {
                                         p: { xs: 2, md: 2.5 },
                                         borderRadius: 2,
                                         border: `1px solid ${tokens.border}`,
-                                        bgcolor: "#fff",
+                                        bgcolor: "var(--ew-surface)",
                                     }}
                                 >
                                     <Stack

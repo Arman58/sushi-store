@@ -218,7 +218,7 @@ export function ProfileSavedAddressesSection() {
                                     p: 2,
                                     borderRadius: 2,
                                     border: `1px solid ${tokens.border}`,
-                                    bgcolor: "#fff",
+                                    bgcolor: "var(--ew-surface)",
                                 }}
                             >
                                 <Stack
