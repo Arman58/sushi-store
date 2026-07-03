@@ -1,14 +1,7 @@
 "use client";
 
-import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
-import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
-import DiscountIcon from "@mui/icons-material/Discount";
-import ListAltIcon from "@mui/icons-material/ListAlt";
-import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
-import RestaurantIcon from "@mui/icons-material/Restaurant";
-import StorefrontIcon from "@mui/icons-material/Storefront";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -19,72 +12,67 @@ import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
+import Skeleton from "@mui/material/Skeleton";
 import { alpha } from "@mui/material/styles";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 
+import {
+    ADMIN_NAV_ITEMS,
+    resolveAdminPageTitle,
+} from "@/app/admin/config/nav-items";
 import { SITE_LOGO_PATH } from "@/lib/site-config";
 
 const DRAWER_WIDTH = 260;
 
-const NAV_ITEMS = [
-    {
-        href: "/admin/dashboard",
-        label: "Аналитика",
-        icon: BarChartOutlinedIcon,
-    },
-    {
-        href: "/admin/orders",
-        label: "Заказы",
-        icon: ListAltIcon,
-    },
-    {
-        href: "/admin/products",
-        label: "Товары",
-        icon: StorefrontIcon,
-    },
-    {
-        href: "/admin/categories",
-        label: "Категории",
-        icon: CategoryOutlinedIcon,
-    },
-    {
-        href: "/admin/delivery-zones",
-        label: "Зоны доставки",
-        icon: LocalShippingIcon,
-    },
-    {
-        href: "/admin/promocodes",
-        label: "Промокоды",
-        icon: DiscountIcon,
-    },
-    {
-        href: "/admin/kitchen",
-        label: "Экран кухни",
-        icon: RestaurantIcon,
-        openInNewTab: true,
-    },
-] as const;
-
-function resolvePageTitle(pathname: string): string {
-    const item = NAV_ITEMS.find(
-        ({ href }) => pathname === href || pathname.startsWith(`${href}/`),
+/** Avoid SSR/client nav tree mismatch (e.g. Turbopack HMR after nav changes). */
+function useIsClientNavReady() {
+    return useSyncExternalStore(
+        () => () => {},
+        () => true,
+        () => false,
     );
-    return item?.label ?? "Админка";
+}
+
+function SidebarNavSkeleton() {
+    return (
+        <List
+            aria-busy="true"
+            aria-label="Загрузка меню"
+            sx={{ flex: 1, px: 1, py: 1 }}
+        >
+            {Array.from({ length: ADMIN_NAV_ITEMS.length }).map((_, index) => (
+                <ListItemButton
+                    key={index}
+                    disabled
+                    sx={{ borderRadius: 2, mb: 0.5, opacity: 0.85 }}
+                >
+                    <ListItemIcon sx={{ minWidth: 40 }}>
+                        <Skeleton variant="circular" width={20} height={20} />
+                    </ListItemIcon>
+                    <Skeleton variant="text" width="72%" height={20} />
+                </ListItemButton>
+            ))}
+        </List>
+    );
 }
 
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
     const pathname = usePathname();
+    const isClientNavReady = useIsClientNavReady();
+
+    if (!isClientNavReady) {
+        return <SidebarNavSkeleton />;
+    }
 
     return (
         <List sx={{ flex: 1, px: 1, py: 1 }}>
-            {NAV_ITEMS.map((item) => {
-                const { href, label, icon: Icon } = item;
-                const openInNewTab = "openInNewTab" in item && item.openInNewTab;
+            {ADMIN_NAV_ITEMS.map((item) => {
+                const { href, label, icon: Icon, openInNewTab } = item;
                 const active =
                     !openInNewTab &&
                     (pathname === href || pathname.startsWith(`${href}/`));
@@ -254,7 +242,14 @@ type AdminShellProps = {
 export function AdminShell({ children }: AdminShellProps) {
     const pathname = usePathname();
     const [mobileOpen, setMobileOpen] = useState(false);
-    const pageTitle = useMemo(() => resolvePageTitle(pathname), [pathname]);
+    const isClientNavReady = useIsClientNavReady();
+    const pageTitle = useMemo(
+        () =>
+            isClientNavReady
+                ? resolveAdminPageTitle(pathname)
+                : "Админка",
+        [isClientNavReady, pathname],
+    );
 
     if (pathname.startsWith("/admin/kitchen")) {
         return (

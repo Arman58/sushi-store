@@ -34,6 +34,8 @@ import { storePriceFormatter } from "@/shared/lib/format-price";
 import { translateOrderStatus } from "@/shared/lib/order-status-labels";
 import { tokens } from "@/shared/ui/theme";
 
+import { RateOrderItems } from "./rate-order-items";
+
 const POLL_INTERVAL_MS = 5_000;
 const TERMINAL_STATUSES = new Set<OrderStatus>(["DONE", "CANCELLED"]);
 
@@ -252,7 +254,7 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
                 borderRadius: 3,
                 overflow: "hidden",
                 border: `1px solid ${tokens.border}`,
-                boxShadow: `0 8px 32px ${alpha(tokens.textPrimary, 0.08)}`,
+                boxShadow: `0 8px 32px rgba(var(--ew-text-rgb), 0.08)`,
             }}
         >
             <Box
@@ -272,6 +274,13 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
             </Box>
 
             <Stack spacing={3} sx={{ px: { xs: 2.5, sm: 3 }, py: 3 }}>
+                {status === "DONE" && repeatable.length > 0 && (
+                    <RateOrderItems
+                        productIds={repeatable.map(
+                            (i) => i.productId as number,
+                        )}
+                    />
+                )}
                 {isCancelled ? (
                     <Alert severity="error" sx={{ borderRadius: 2 }}>
                         {tTracker("cancelledMessage")}

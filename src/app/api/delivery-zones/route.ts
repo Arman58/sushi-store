@@ -41,7 +41,12 @@ export async function GET(request: Request) {
             requiresManagerApproval: zone.requiresManagerApproval,
         }));
 
-        return NextResponse.json(zones);
+        return NextResponse.json(zones, {
+            headers: {
+                "Cache-Control":
+                    "public, s-maxage=120, stale-while-revalidate=600",
+            },
+        });
     } catch (error) {
         // Error logged in production monitoring
 

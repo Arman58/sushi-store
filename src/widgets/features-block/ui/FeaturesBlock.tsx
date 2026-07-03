@@ -64,19 +64,19 @@ export function FeaturesBlock() {
                             p: { xs: 1.5, md: 2.5 },
                             borderRadius: { xs: 2, md: 3 },
                             border: { xs: "none", md: "1px solid" },
-                            borderColor: "grey.200",
+                            borderColor: tokens.border,
                             display: "flex",
                             flexDirection: "column",
                             alignItems: "center",
                             justifyContent: "center",
                             textAlign: "center",
                             gap: { xs: 0.75, md: 1.25 },
-                            bgcolor: { xs: "grey.50", md: "background.paper" },
+                            bgcolor: { xs: tokens.surfaceHi, md: tokens.surface },
                             transition:
                                 "border-color 0.2s ease, transform 0.2s ease, background-color 0.2s ease",
                             "&:hover": {
-                                borderColor: { xs: "transparent", md: "grey.300" },
-                                bgcolor: { xs: "grey.100", md: "background.paper" },
+                                borderColor: { xs: "transparent", md: tokens.borderHi },
+                                bgcolor: { xs: tokens.surfaceHi, md: tokens.surface },
                                 transform: { xs: "none", md: "translateY(-2px)" },
                             },
                         }}

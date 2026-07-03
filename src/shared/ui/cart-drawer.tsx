@@ -30,6 +30,7 @@ import { UpsellCarousel } from "@/widgets/upsell";
 
 import { AppButton } from "./AppButton";
 import { EmptyCart } from "./empty-cart";
+import { MinOrderProgress } from "./min-order-progress";
 import { tokens } from "./theme";
 
 const DRAWER_WIDTH = 420;
@@ -671,18 +672,7 @@ export function CartDrawer() {
                                         </Typography>
                                     )}
 
-                                    <Typography
-                                        variant="caption"
-                                        sx={{
-                                            display: "block",
-                                            mb: 1.5,
-                                            color: tokens.textMuted,
-                                            textAlign: "center",
-                                            lineHeight: 1.45,
-                                        }}
-                                    >
-                                        {t("minOrderHint")}
-                                    </Typography>
+                                    <MinOrderProgress total={total} />
 
                                     {/* CTA */}
                                     {isCheckoutPage ? (

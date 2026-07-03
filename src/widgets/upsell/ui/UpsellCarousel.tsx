@@ -17,8 +17,8 @@ import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
 import { useCartStore } from "@/features/cart";
 import type { CartItem } from "@/features/cart/model/types";
 import type { StorefrontProduct } from "@/lib/i18n-utils";
-import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { formatStorePrice } from "@/shared/lib/format-price";
+import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { ProductCoverImage } from "@/shared/ui/product-cover-image";
 import { tokens } from "@/shared/ui/theme";
 

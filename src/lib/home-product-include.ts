@@ -38,6 +38,9 @@ export function mapProductToPopular(p: HomeProductPayload, locale = "hy") {
         composition: getLocalizedField(p.composition, locale) || undefined,
         ratingAvg: p.ratingAvg,
         ratingCount: p.ratingCount,
+        isAvailable: p.isAvailable,
+        minQty: p.minQty,
+        maxQty: p.maxQty,
         modifierGroups: toStorefrontModifierGroups(
             (p.modifierGroups ?? []) as unknown as Record<string, unknown>[],
             locale,

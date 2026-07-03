@@ -11,10 +11,11 @@ import { useEffect, useState } from "react";
 import { urlBase64ToUint8Array } from "@/lib/push-utils";
 import { AppButton } from "@/shared/ui";
 
-const SW_URL = "/sw.js";
+const IS_DEV = process.env.NODE_ENV === "development";
+/** В dev прод-sw.js падает на precache /_next/static - используем лёгкий sw-dev.js (только push). */
+const SW_URL = IS_DEV ? "/sw-dev.js" : "/sw.js";
 const SW_SCOPE = "/";
 const SW_READY_TIMEOUT_MS = 5_000;
-const IS_DEV = process.env.NODE_ENV === "development";
 
 type PushStatus = "idle" | "loading" | "success" | "error";
 

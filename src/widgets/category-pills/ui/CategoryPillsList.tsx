@@ -12,10 +12,17 @@ import { tokens } from "@/shared/ui/theme";
 
 export type CategoryPillsMode = "link" | "interactive";
 
+/**
+ * chip (default) - компактные пилюли с круглым фото; единый вид на главной и в меню.
+ * card - крупные фото-карточки (опционально, для промо-блоков).
+ */
+export type CategoryPillsVariant = "card" | "chip";
+
 export type CategoryPillsListProps = {
     categories: StorefrontCategory[];
     activeSlug?: string;
     mode?: CategoryPillsMode;
+    variant?: CategoryPillsVariant;
     onChange?: (slug: string) => void;
 };
 
@@ -95,6 +102,7 @@ export function CategoryPillsList({
     categories,
     activeSlug,
     mode = "link",
+    variant = "chip",
     onChange,
 }: CategoryPillsListProps) {
     const t = useTranslations("menu");
@@ -127,6 +135,8 @@ export function CategoryPillsList({
 
     return (
         <Stack
+            component="ul"
+            aria-label={t("all_categories")}
             direction="row"
             spacing={1.5}
             sx={{
@@ -136,6 +146,8 @@ export function CategoryPillsList({
                 WebkitOverflowScrolling: "touch",
                 scrollBehavior: "smooth",
                 flexWrap: "nowrap",
+                listStyle: "none",
+                m: 0,
                 py: 0.5,
                 mx: { xs: -2, md: 0 },
                 px: { xs: 2, md: 0 },
@@ -149,14 +161,97 @@ export function CategoryPillsList({
                         ? isAllSlug(activeSlug)
                         : activeSlug === pill.slug;
 
-                const pillContent = (
+                const interactiveProps = {
+                    component: (mode === "interactive" ? "button" : "div") as
+                        | "button"
+                        | "div",
+                    type: mode === "interactive" ? ("button" as const) : undefined,
+                    "aria-pressed":
+                        mode === "interactive" ? isActive : undefined,
+                    onClick:
+                        mode === "interactive"
+                            ? () => handleSelect(pill.slug)
+                            : undefined,
+                };
+
+                const pillContent =
+                    variant === "chip" ? (
+                        <Box
+                            {...interactiveProps}
+                            sx={{
+                                font: "inherit",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.75,
+                                pl: 0.5,
+                                pr: 1.5,
+                                py: 0.5,
+                                minHeight: 40,
+                                borderRadius: 999,
+                                border: "1.5px solid",
+                                borderColor: isActive
+                                    ? tokens.brand
+                                    : tokens.border,
+                                bgcolor: isActive
+                                    ? tokens.brandDim
+                                    : tokens.surface,
+                                cursor: "pointer",
+                                flexShrink: 0,
+                                transition:
+                                    "border-color 0.2s, background-color 0.2s, transform 0.15s",
+                                "&:active": { transform: "scale(0.96)" },
+                            }}
+                        >
+                            <Box
+                                sx={{
+                                    position: "relative",
+                                    width: 30,
+                                    height: 30,
+                                    borderRadius: "50%",
+                                    overflow: "hidden",
+                                    bgcolor: tokens.surfaceHi,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    flexShrink: 0,
+                                }}
+                            >
+                                {pill.image ? (
+                                    <Image
+                                        src={pill.image}
+                                        alt=""
+                                        fill
+                                        sizes="30px"
+                                        style={{ objectFit: "cover" }}
+                                    />
+                                ) : (
+                                    <Box
+                                        component="span"
+                                        sx={{ fontSize: 16, lineHeight: 1 }}
+                                    >
+                                        {pill.icon}
+                                    </Box>
+                                )}
+                            </Box>
+                            <Typography
+                                sx={{
+                                    fontSize: "0.8125rem",
+                                    fontWeight: isActive ? 700 : 600,
+                                    color: tokens.textPrimary,
+                                    whiteSpace: "nowrap",
+                                    lineHeight: 1,
+                                }}
+                            >
+                                {pill.name}
+                            </Typography>
+                        </Box>
+                    ) : (
                     <Box
-                        onClick={
-                            mode === "interactive"
-                                ? () => handleSelect(pill.slug)
-                                : undefined
-                        }
+                        {...interactiveProps}
                         sx={{
+                            font: "inherit",
+                            p: 0,
+                            textAlign: "inherit",
                             display: "flex",
                             flexDirection: "column",
                             width: { xs: 108, sm: 124 },
@@ -233,18 +328,24 @@ export function CategoryPillsList({
 
                 if (mode === "link") {
                     return (
-                        <Box
-                            key={pill.slug}
-                            component={Link}
-                            href={hrefForSlug(pill.slug)}
-                            sx={{ textDecoration: "none", color: "inherit" }}
-                        >
-                            {pillContent}
+                        <Box component="li" key={pill.slug} sx={{ flexShrink: 0 }}>
+                            <Box
+                                component={Link}
+                                href={hrefForSlug(pill.slug)}
+                                aria-current={isActive ? "page" : undefined}
+                                sx={{ textDecoration: "none", color: "inherit" }}
+                            >
+                                {pillContent}
+                            </Box>
                         </Box>
                     );
                 }
 
-                return <Box key={pill.slug}>{pillContent}</Box>;
+                return (
+                    <Box component="li" key={pill.slug} sx={{ flexShrink: 0 }}>
+                        {pillContent}
+                    </Box>
+                );
             })}
         </Stack>
     );

@@ -56,6 +56,10 @@ export type ProductCardProps = {
     ratingAvg?: number;
     /** Кол-во отзывов. */
     ratingCount?: number;
+    /** Стоп-лист: false - «закончилось», добавление заблокировано. */
+    isAvailable?: boolean;
+    /** Достигнут максимум на заказ - «+» неактивен. */
+    maxQtyReached?: boolean;
 };
 
 // ─── Badge config ─────────────────────────────────────────────────────────────
@@ -107,6 +111,8 @@ export const ProductCard = memo(function ProductCard({
     productId,
     ratingAvg = 0,
     ratingCount = 0,
+    isAvailable = true,
+    maxQtyReached = false,
 }: ProductCardProps) {
     const t = useTranslations("product");
     const locale = useLocale();
@@ -138,11 +144,20 @@ export const ProductCard = memo(function ProductCard({
 
     // Badge data for rendering
     const badgeEntries: {
-        key: ProductBadge;
+        key: string;
         label: string;
         bg: string;
         color: string;
     }[] = [];
+
+    if (!isAvailable) {
+        badgeEntries.push({
+            key: "soldout",
+            label: t("badge.soldOut"),
+            bg: "#9AA0A6",
+            color: "#FFFFFF",
+        });
+    }
 
     if (badges?.length) {
         for (const b of badges) {
@@ -171,6 +186,7 @@ export const ProductCard = memo(function ProductCard({
 
     const handleAdd = (e: React.MouseEvent) => {
         e.stopPropagation();
+        if (!isAvailable) return;
         onAddToCart();
     };
 
@@ -699,6 +715,7 @@ export const ProductCard = memo(function ProductCard({
 
                                     <IconButton
                                         size="small"
+                                        disabled={maxQtyReached}
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             onIncrease?.();
@@ -728,13 +745,20 @@ export const ProductCard = memo(function ProductCard({
                                 <IconButton
                                     size="small"
                                     onClick={handleAdd}
-                                    aria-label={t("aria.add", { name })}
+                                    disabled={!isAvailable}
+                                    aria-label={
+                                        isAvailable
+                                            ? t("aria.add", { name })
+                                            : t("badge.soldOut")
+                                    }
                                     sx={{
                                         ...stepperButtonSx,
                                         flexShrink: 0,
-                                        bgcolor: "#FFFFFF",
-                                        border: `1.5px solid ${tokens.brand}`,
-                                        color: tokens.brand,
+                                        bgcolor: tokens.surface,
+                                        border: `1.5px solid ${isAvailable ? tokens.brand : tokens.borderHi}`,
+                                        color: isAvailable
+                                            ? tokens.brand
+                                            : tokens.textMuted,
                                         transition:
                                             "background-color 0.18s ease, color 0.18s ease, transform 0.12s ease",
                                         "&:hover": {

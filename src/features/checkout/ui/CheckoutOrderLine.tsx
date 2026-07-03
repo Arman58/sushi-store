@@ -49,7 +49,7 @@ export function CheckoutOrderLine({ item, lineIssue }: CheckoutOrderLineProps) {
                 border: "1px solid",
                 borderColor: lineInvalid
                     ? alpha(tokens.red, 0.4)
-                    : alpha(tokens.textPrimary, 0.08),
+                    : "rgba(var(--ew-text-rgb), 0.08)",
                 bgcolor: lineInvalid ? tokens.redDim : tokens.surfaceHi,
                 minWidth: 0,
                 overflow: "hidden",

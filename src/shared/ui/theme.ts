@@ -2,14 +2,21 @@ import { alpha,createTheme } from "@mui/material/styles";
 
 // ─── Design tokens (food delivery - синхронизируй palette.primary с tokens.brand) ─
 
+/**
+ * Нейтральные цвета - CSS-переменные: значения задаются в MuiCssBaseline
+ * для :root / [data-theme="light"] и [data-theme="dark"]. Компонентные overrides
+ * используют tokens.* и автоматически поддерживают тёмную тему.
+ * palette.text/background в colorSchemes - hex (MUI alpha() не понимает var()).
+ * Бренд/красный - константы (не зависят от темы, безопасны для alpha()).
+ */
 export const tokens = {
-    // Surfaces - чисто белый (как на референсе)
-    bg:         "#FFFFFF",
-    surface:    "#FFFFFF",
-    surfaceUp:  "#FFFFFF",
-    surfaceHi:  "#F5F5F5",
-    border:     "#EAEAEA",
-    borderHi:   "#D5D5D5",
+    // Surfaces
+    bg:         "var(--ew-bg)",
+    surface:    "var(--ew-surface)",
+    surfaceUp:  "var(--ew-surface)",
+    surfaceHi:  "var(--ew-surface-hi)",
+    border:     "var(--ew-border)",
+    borderHi:   "var(--ew-border-hi)",
 
     // Brand - зелёный как на референсе #27AE60
     brand:      "#27AE60",
@@ -26,9 +33,9 @@ export const tokens = {
     greenDim:   "rgba(39,174,96,0.12)",
 
     // Text scale
-    textPrimary:   "#000000",
-    textSecondary: "#333333",
-    textMuted:     "#666666",
+    textPrimary:   "var(--ew-text)",
+    textSecondary: "var(--ew-text-2)",
+    textMuted:     "var(--ew-text-3)",
 
     /** Радиус мелких контролов (инпуты, чипы) - задаётся в overrides, не через shape */
     radiusInput: 10,
@@ -48,7 +55,7 @@ export const tokens = {
 /** Premium gradient shimmer for MUI `<Skeleton />`. */
 export const skeletonShimmerSx = {
     background:
-        "linear-gradient(90deg, #F0F0F0 22%, #E8E8E8 48%, #F0F0F0 78%)",
+        "linear-gradient(90deg, var(--ew-surface-hi) 22%, var(--ew-border) 48%, var(--ew-surface-hi) 78%)",
     backgroundSize: "200% 100%",
     animation: "shimmer 1.5s infinite",
 } as const;
@@ -70,45 +77,82 @@ const focusVisibleRing = {
 const cardElevationShadow =
     `0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06)`;
 
+/** Общие цвета палитры (не зависят от темы). */
+const sharedPalette = {
+    primary: {
+        main: primaryMain,
+        light: tokens.brandHi,
+        dark: "#1E8449",
+        contrastText: "#FFFFFF",
+    },
+    secondary: {
+        main: secondaryMain,
+        light: "#43C9BC",
+        dark: "#138A7F",
+        contrastText: "#FFFFFF",
+    },
+    error: {
+        main: tokens.red,
+    },
+    success: {
+        main: tokens.green,
+    },
+    warning: {
+        main: "#F59E0B",
+    },
+} as const;
+
+/**
+ * MUI вызывает alpha() на palette.text/background — только hex/rgb, не var().
+ * Схемы синхронизированы с --ew-* в MuiCssBaseline и data-theme на <html>.
+ */
+const lightPalette = {
+    ...sharedPalette,
+    mode: "light" as const,
+    background: {
+        default: "#FFFFFF",
+        paper: "#FFFFFF",
+    },
+    text: {
+        primary: "#000000",
+        secondary: "#333333",
+        disabled: "#666666",
+    },
+    divider: "#EAEAEA",
+    action: {
+        hover: "rgba(0, 0, 0, 0.045)",
+        selected: tokens.brandDim,
+        focus: alpha(primaryMain, 0.12),
+    },
+};
+
+const darkPalette = {
+    ...sharedPalette,
+    mode: "dark" as const,
+    background: {
+        default: "#0F1214",
+        paper: "#16191C",
+    },
+    text: {
+        primary: "#F2F4F5",
+        secondary: "#C3C9CD",
+        disabled: "#8A9299",
+    },
+    divider: "#2A2F34",
+    action: {
+        hover: "rgba(242, 244, 245, 0.045)",
+        selected: tokens.brandDim,
+        focus: alpha(primaryMain, 0.12),
+    },
+};
+
 const theme = createTheme({
-    palette: {
-        mode: "light",
-        primary: {
-            main: primaryMain,
-            light: tokens.brandHi,
-            dark: "#1E8449",
-            contrastText: "#FFFFFF",
-        },
-        secondary: {
-            main: secondaryMain,
-            light: "#43C9BC",
-            dark: "#138A7F",
-            contrastText: "#FFFFFF",
-        },
-        error: {
-            main: tokens.red,
-        },
-        success: {
-            main: tokens.green,
-        },
-        warning: {
-            main: "#F59E0B",
-        },
-        background: {
-            default: tokens.bg,
-            paper: tokens.surface,
-        },
-        text: {
-            primary: tokens.textPrimary,
-            secondary: tokens.textSecondary,
-            disabled: tokens.textMuted,
-        },
-        divider: tokens.border,
-        action: {
-            hover: alpha(tokens.textPrimary, 0.045),
-            selected: tokens.brandDim,
-            focus: alpha(primaryMain, 0.12),
-        },
+    cssVariables: {
+        colorSchemeSelector: '[data-theme="%s"]',
+    },
+    colorSchemes: {
+        light: { palette: lightPalette },
+        dark: { palette: darkPalette },
     },
 
     typography: {
@@ -187,6 +231,33 @@ const theme = createTheme({
     components: {
         MuiCssBaseline: {
             styleOverrides: {
+                // Светлая схема (default) и тёмная через data-атрибут на <html>
+                ":root, [data-theme=\"light\"]": {
+                    "--ew-bg": "#FFFFFF",
+                    "--ew-surface": "#FFFFFF",
+                    "--ew-surface-hi": "#F5F5F5",
+                    "--ew-border": "#EAEAEA",
+                    "--ew-border-hi": "#D5D5D5",
+                    "--ew-text": "#000000",
+                    "--ew-text-2": "#333333",
+                    "--ew-text-3": "#666666",
+                    "--ew-text-rgb": "0, 0, 0",
+                    "--ew-surface-rgb": "255, 255, 255",
+                    colorScheme: "light",
+                },
+                '[data-theme="dark"]': {
+                    "--ew-bg": "#0F1214",
+                    "--ew-surface": "#16191C",
+                    "--ew-surface-hi": "#22272B",
+                    "--ew-border": "#2A2F34",
+                    "--ew-border-hi": "#3A4046",
+                    "--ew-text": "#F2F4F5",
+                    "--ew-text-2": "#C3C9CD",
+                    "--ew-text-3": "#8A9299",
+                    "--ew-text-rgb": "242, 244, 245",
+                    "--ew-surface-rgb": "22, 25, 28",
+                    colorScheme: "dark",
+                },
                 "*, *::before, *::after": { boxSizing: "border-box" },
                 body: {
                     backgroundColor: tokens.bg,
@@ -207,7 +278,7 @@ const theme = createTheme({
                     borderRadius: 999,
                 },
                 "::-webkit-scrollbar-thumb:hover": {
-                    background: alpha(tokens.textPrimary, 0.28),
+                    background: "rgba(var(--ew-text-rgb), 0.28)",
                 },
             },
         },
@@ -259,7 +330,7 @@ const theme = createTheme({
                     color: tokens.textPrimary,
                     "&:hover": {
                         borderColor: tokens.borderHi,
-                        backgroundColor: alpha(tokens.textPrimary, 0.03),
+                        backgroundColor: "rgba(var(--ew-text-rgb), 0.03)",
                     },
                 },
                 text: {
@@ -319,21 +390,21 @@ const theme = createTheme({
                 root: {
                     backgroundImage: "none",
                     backgroundColor: tokens.surface,
-                    border: `1px solid ${alpha(tokens.textPrimary, 0.065)}`,
+                    border: `1px solid ${"rgba(var(--ew-text-rgb), 0.065)"}`,
                 },
                 elevation0: {
                     boxShadow: "none",
-                    borderColor: alpha(tokens.textPrimary, 0.065),
+                    borderColor: "rgba(var(--ew-text-rgb), 0.065)",
                 },
                 elevation1: { boxShadow: cardElevationShadow, borderColor: "transparent" },
                 elevation2: {
                     boxShadow:
-                        `0 2px 8px ${alpha(tokens.textPrimary, 0.06)}, 0 12px 24px ${alpha(tokens.textPrimary, 0.08)}`,
+                        `0 2px 8px ${"rgba(var(--ew-text-rgb), 0.06)"}, 0 12px 24px ${"rgba(var(--ew-text-rgb), 0.08)"}`,
                     borderColor: "transparent",
                 },
                 elevation3: {
                     boxShadow:
-                        `0 8px 30px ${alpha(tokens.textPrimary, 0.1)}, 0 2px 8px ${alpha(tokens.textPrimary, 0.04)}`,
+                        `0 8px 30px ${"rgba(var(--ew-text-rgb), 0.1)"}, 0 2px 8px ${"rgba(var(--ew-text-rgb), 0.04)"}`,
                     borderColor: "transparent",
                 },
             },
@@ -344,7 +415,7 @@ const theme = createTheme({
                 root: {
                     backgroundColor: tokens.surface,
                     backgroundImage: "none",
-                    border: "1px solid #EAEAEA",
+                    border: `1px solid ${tokens.border}`,
                     borderRadius: tokens.radiusCardLg,
                     boxShadow: cardElevationShadow,
                     overflow: "hidden",
@@ -546,7 +617,7 @@ const theme = createTheme({
             styleOverrides: {
                 root: {
                     backgroundImage: "none",
-                    backgroundColor: alpha("#FFFFFF", 0.92),
+                    backgroundColor: "rgba(var(--ew-surface-rgb), 0.92)",
                     backdropFilter: "saturate(160%) blur(12px)",
                     WebkitBackdropFilter: "saturate(160%) blur(12px)",
                     borderBottom: `1px solid ${tokens.border}`,
@@ -632,7 +703,7 @@ const theme = createTheme({
                 wave: {
                     "&::after": {
                         background:
-                            `linear-gradient(90deg, transparent, ${alpha(tokens.textPrimary, 0.04)}, transparent)`,
+                            `linear-gradient(90deg, transparent, ${"rgba(var(--ew-text-rgb), 0.04)"}, transparent)`,
                     },
                 },
             },

@@ -37,6 +37,10 @@ export async function GET(request: Request) {
         const products = await prisma.product.findMany({
             include: {
                 category: true,
+                upsells: {
+                    orderBy: { position: "asc" },
+                    select: { suggestedId: true },
+                },
                 modifierGroups: {
                     orderBy: [{ position: "asc" }, { id: "asc" }],
                     include: {
@@ -164,6 +168,20 @@ export async function POST(request: Request) {
                 images,
                 mainImage,
                 isActive: b.isActive ?? true,
+                minQty: b.minQty ?? 1,
+                maxQty: b.maxQty ?? null,
+                ...(b.upsellIds && b.upsellIds.length > 0
+                    ? {
+                          upsells: {
+                              create: [...new Set(b.upsellIds)].map(
+                                  (suggestedId, i) => ({
+                                      suggestedId,
+                                      position: i,
+                                  }),
+                              ),
+                          },
+                      }
+                    : {}),
                 ...(modifierGroupsNested ? { modifierGroups: modifierGroupsNested } : {}),
             },
             include: {

@@ -11,9 +11,9 @@ import Stack from "@mui/material/Stack";
 import { alpha } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 
 import {
     CartLineItem,

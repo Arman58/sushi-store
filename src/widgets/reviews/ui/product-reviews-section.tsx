@@ -71,7 +71,7 @@ function RatingSummary({
                 p: { xs: 2, sm: 2.5 },
                 borderRadius: `${tokens.radiusCardLg}px`,
                 border: `1px solid ${tokens.border}`,
-                bgcolor: "#FAFAFA",
+                bgcolor: tokens.surfaceHi,
                 mb: 2.5,
             }}
         >
@@ -161,7 +161,7 @@ function RatingSummary({
                                     flex: 1,
                                     height: 8,
                                     borderRadius: 999,
-                                    bgcolor: "#EDEDED",
+                                    bgcolor: tokens.surfaceHi,
                                     "& .MuiLinearProgress-bar": {
                                         bgcolor: "#FFB800",
                                         borderRadius: 999,
@@ -231,7 +231,7 @@ function ReviewItem({
                     sx={{
                         width: 40,
                         height: 40,
-                        bgcolor: review.isOwn ? tokens.brand : "#E8E8E8",
+                        bgcolor: review.isOwn ? tokens.brand : tokens.surfaceHi,
                         color: review.isOwn ? "#FFF" : tokens.textSecondary,
                         fontWeight: 700,
                         fontSize: 16,

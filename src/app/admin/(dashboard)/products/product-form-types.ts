@@ -14,6 +14,10 @@ export type ProductSavePayload = {
     weight: number | null;
     images: string[];
     modifierGroups: AdminModifierGroupInput[];
+    minQty: number;
+    maxQty: number | null;
+    /** Кросс-селл «с этим берут» (порядок = приоритет). */
+    upsellIds: number[];
 };
 
 export type ProductRow = {
@@ -27,6 +31,9 @@ export type ProductRow = {
     mainImage?: string | null;
     isActive: boolean;
     categoryId: number | null;
+    minQty?: number;
+    maxQty?: number | null;
+    upsells?: { suggestedId: number }[];
     category: { name: unknown } | null;
     modifierGroups?: {
         id: number;
@@ -49,6 +56,9 @@ export type ProductDialogFormValues = {
     name: LocalizedJson;
     price: string;
     weight: string;
+    minQty: string;
+    maxQty: string;
+    upsellIds: number[];
     categoryId: string;
     composition: LocalizedJson;
     description: LocalizedJson;
@@ -93,6 +103,9 @@ export function emptyProductDialogForm(): ProductDialogFormValues {
         name: emptyLocalizedJson(),
         price: "",
         weight: "",
+        minQty: "1",
+        maxQty: "",
+        upsellIds: [],
         categoryId: "",
         composition: emptyLocalizedJson(),
         description: emptyLocalizedJson(),
@@ -115,6 +128,9 @@ export function productDialogDefaults(
         name: parseLocalizedJson(p.name),
         price: String(p.price),
         weight: p.weight != null ? String(p.weight) : "",
+        minQty: String(p.minQty ?? 1),
+        maxQty: p.maxQty != null ? String(p.maxQty) : "",
+        upsellIds: (p.upsells ?? []).map((u) => u.suggestedId),
         categoryId: p.categoryId != null ? String(p.categoryId) : "",
         composition: parseLocalizedJson(p.composition),
         description: parseLocalizedJson(p.description),

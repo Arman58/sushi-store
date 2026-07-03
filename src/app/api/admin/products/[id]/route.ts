@@ -122,6 +122,27 @@ async function parsePutBodyToPrismaUpdate(
         }
         data.isActive = v;
     }
+    if (has("isAvailable")) {
+        const v = raw.isAvailable;
+        if (typeof v !== "boolean") {
+            return { response: NextResponse.json({ error: "Invalid isAvailable" }, { status: 400 }) };
+        }
+        data.isAvailable = v;
+    }
+    if (has("minQty")) {
+        const v = raw.minQty;
+        if (typeof v !== "number" || !Number.isInteger(v) || v < 1 || v > 999) {
+            return { response: NextResponse.json({ error: "Invalid minQty" }, { status: 400 }) };
+        }
+        data.minQty = v;
+    }
+    if (has("maxQty")) {
+        const v = raw.maxQty;
+        if (v !== null && (typeof v !== "number" || !Number.isInteger(v) || v < 1 || v > 999)) {
+            return { response: NextResponse.json({ error: "Invalid maxQty" }, { status: 400 }) };
+        }
+        data.maxQty = v;
+    }
     if (has("categoryId")) {
         const v = raw.categoryId;
         if (typeof v !== "number" || !Number.isInteger(v)) {
@@ -217,14 +238,40 @@ async function handleProductJsonPartialUpdate(request: Request, params: Promise<
         replacementGroups = modsParsed.groups;
     }
 
+    // Кросс-селл «с этим берут»: полная замена списка
+    let upsellReplacement: number[] | undefined;
+    if (Object.prototype.hasOwnProperty.call(rawBody, "upsellIds")) {
+        const v = rawBody.upsellIds;
+        if (
+            !Array.isArray(v) ||
+            v.some(
+                (x) =>
+                    typeof x !== "number" || !Number.isInteger(x) || x < 1,
+            )
+        ) {
+            return NextResponse.json(
+                { error: "Invalid upsellIds" },
+                { status: 400 },
+            );
+        }
+        upsellReplacement = [...new Set(v as number[])]
+            .filter((x) => x !== idResult.id)
+            .slice(0, 12);
+    }
+
     const rest: Record<string, unknown> = { ...rawBody };
     delete rest.modifierGroups;
+    delete rest.upsellIds;
 
     const parsed = await parsePutBodyToPrismaUpdate(rest, idResult.id);
     if ("response" in parsed) return parsed.response;
 
 
-    if (Object.keys(parsed.data).length === 0 && replacementGroups === undefined) {
+    if (
+        Object.keys(parsed.data).length === 0 &&
+        replacementGroups === undefined &&
+        upsellReplacement === undefined
+    ) {
         return NextResponse.json({ error: "No fields to update" }, { status: 400 });
     }
 
@@ -259,10 +306,29 @@ async function handleProductJsonPartialUpdate(request: Request, params: Promise<
                 await upsertProductModifierGroups(tx, idResult.id, replacementGroups);
             }
 
+            if (upsellReplacement !== undefined) {
+                await tx.productUpsell.deleteMany({
+                    where: { productId: idResult.id },
+                });
+                if (upsellReplacement.length > 0) {
+                    await tx.productUpsell.createMany({
+                        data: upsellReplacement.map((suggestedId, i) => ({
+                            productId: idResult.id,
+                            suggestedId,
+                            position: i,
+                        })),
+                    });
+                }
+            }
+
             return tx.product.findUniqueOrThrow({
                 where: { id: idResult.id },
                 include: {
                     category: true,
+                    upsells: {
+                        orderBy: { position: "asc" },
+                        select: { suggestedId: true },
+                    },
                     modifierGroups: {
                         orderBy: [{ position: "asc" }, { id: "asc" }],
                         include: {

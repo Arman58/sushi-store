@@ -1,5 +1,6 @@
 "use client";
 
+import ClearIcon from "@mui/icons-material/Clear";
 import RestaurantMenuOutlined from "@mui/icons-material/RestaurantMenuOutlined";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -8,16 +9,26 @@ import { alpha, useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { AnimatePresence, motion } from "framer-motion";
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { startTransition, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+    startTransition,
+    Suspense,
+    useCallback,
+    useDeferredValue,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 
 import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
 import { type ConnectableProduct,ConnectedProductCard } from "@/entities/product/ui/connected-product-card";
 import { useCartStore } from "@/features/cart";
-import { formatStorePrice } from "@/shared/lib/format-price";
 import { FilterTriggerButton, useMenuFilters } from "@/features/filter";
 import { Link } from "@/i18n/server";
 import type { StorefrontCategory } from "@/lib/i18n-utils";
+import { formatStorePrice } from "@/shared/lib/format-price";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { AppInput } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
@@ -41,6 +52,8 @@ export type MenuCategory = {
     id: number;
     name: string;
     slug: string;
+    /** Фото категории (как на главной): своё или обложка первого товара. */
+    image?: string | null;
 };
 
 export type MenuProduct = {
@@ -141,7 +154,11 @@ function MenuSectionInner({
     const [modifierProduct, setModifierProduct] = useState<ConnectableProduct | null>(
         null,
     );
-    const [search, setSearch] = useState("");
+    // Инициализация из ?search= (поиск в шапке ведёт на /menu?search=…)
+    const initialSearch = useSearchParams().get("search") ?? "";
+    const [search, setSearch] = useState(initialSearch);
+    /** Отложенное значение: ввод не блокирует рендер большого списка. */
+    const deferredSearch = useDeferredValue(search);
     const stickySentinelRef = useRef<HTMLDivElement>(null);
     const [isStickyHeaderElevated, setIsStickyHeaderElevated] = useState(false);
 
@@ -168,6 +185,7 @@ function MenuSectionInner({
                 id: category.id,
                 slug: category.slug,
                 name: category.name,
+                image: category.image ?? null,
             })),
         [categories],
     );
@@ -190,7 +208,7 @@ function MenuSectionInner({
         const base = filterByCategory(products, categorySlug);
         const byPrice = filterByPriceRange(base, priceRange);
 
-        const query = search.trim().toLowerCase();
+        const query = deferredSearch.trim().toLowerCase();
         const withSearch =
             query.length === 0
                 ? byPrice
@@ -210,7 +228,7 @@ function MenuSectionInner({
         locale,
         priceRange,
         products,
-        search,
+        deferredSearch,
     ]);
 
     const productsInActiveCategory = useMemo(() => {
@@ -244,6 +262,8 @@ function MenuSectionInner({
                 }}
             >
                 <Stack
+                    component="search"
+                    role="search"
                     direction="row"
                     gap={1.5}
                     alignItems="center"
@@ -254,6 +274,25 @@ function MenuSectionInner({
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder={t("search")}
+                        InputProps={{
+                            endAdornment: search ? (
+                                <ClearIcon
+                                    role="button"
+                                    aria-label={t("clearSearch")}
+                                    tabIndex={0}
+                                    onClick={() => setSearch("")}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") setSearch("");
+                                    }}
+                                    sx={{
+                                        fontSize: 18,
+                                        cursor: "pointer",
+                                        color: tokens.textMuted,
+                                        "&:hover": { color: tokens.textPrimary },
+                                    }}
+                                />
+                            ) : undefined,
+                        }}
                         sx={{
                             flex: 1,
                             minWidth: 0,
@@ -274,6 +313,7 @@ function MenuSectionInner({
                         categories={storefrontCategories}
                         activeSlug={categorySlug}
                         mode="interactive"
+                        variant="chip"
                         onChange={setCategorySlug}
                     />
                 ) : null}
@@ -306,7 +346,7 @@ function MenuSectionInner({
                         }}
                     >
                         <RestaurantMenuOutlined
-                            sx={{ fontSize: 80, color: "grey.300", mb: 2 }}
+                            sx={{ fontSize: 80, color: tokens.borderHi, mb: 2 }}
                         />
                         <Typography
                             component="p"
@@ -382,7 +422,16 @@ function MenuSectionInner({
                 >
                     {filteredProducts.map((product, index) => (
                             <Box
-                                key={product.id}
+                                component={motion.div}
+                                // Ремоунт при смене категории/поиска - stagger-появление
+                                key={`${categorySlug}-${product.id}`}
+                                initial={{ opacity: 0, y: 12 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{
+                                    duration: 0.25,
+                                    delay: Math.min(index, 11) * 0.03,
+                                    ease: "easeOut",
+                                }}
                                 sx={{
                                     height: "100%",
                                     minWidth: 0,

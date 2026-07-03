@@ -83,6 +83,42 @@ export function ProductFormDialog(props: {
 
     const categoryIdWatch = useWatch({ control, name: "categoryId" });
     const images = useWatch({ control, name: "images" }) ?? [];
+    const upsellIdsWatch = useWatch({ control, name: "upsellIds" }) ?? [];
+
+    // Список товаров для выбора кросс-селла «с этим берут»
+    const [allProducts, setAllProducts] = useState<
+        { id: number; name: unknown }[]
+    >([]);
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await fetch("/api/admin/products", {
+                    credentials: "same-origin",
+                });
+                if (!res.ok) return;
+                const data = (await res.json()) as unknown;
+                if (!cancelled && Array.isArray(data)) {
+                    setAllProducts(
+                        data
+                            .filter(
+                                (p): p is { id: number; name: unknown } =>
+                                    p !== null &&
+                                    typeof p === "object" &&
+                                    typeof (p as { id: unknown }).id ===
+                                        "number",
+                            )
+                            .map((p) => ({ id: p.id, name: p.name })),
+                    );
+                }
+            } catch {
+                /* ignore */
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     useEffect(() => {
         let cancelled = false;
@@ -275,6 +311,24 @@ export function ProductFormDialog(props: {
             return;
         }
 
+        const minQty = Number.parseInt(values.minQty || "1", 10);
+        if (Number.isNaN(minQty) || minQty < 1 || minQty > 999) {
+            alert("Мин. количество: целое число от 1 до 999");
+            return;
+        }
+        let maxQty: number | null = null;
+        if (values.maxQty.trim() !== "") {
+            maxQty = Number.parseInt(values.maxQty, 10);
+            if (Number.isNaN(maxQty) || maxQty < 1 || maxQty > 999) {
+                alert("Макс. количество: целое число от 1 до 999 (или пусто)");
+                return;
+            }
+            if (maxQty < minQty) {
+                alert("Макс. количество не может быть меньше минимального");
+                return;
+            }
+        }
+
         const modParsed = buildModifierPayload(values.modifierGroups);
         if (!modParsed.ok) {
             alert(modParsed.message);
@@ -305,6 +359,9 @@ export function ProductFormDialog(props: {
             weight,
             images: values.images,
             modifierGroups: modParsed.modifierGroups,
+            minQty,
+            maxQty,
+            upsellIds: values.upsellIds ?? [],
         };
 
         await onSave(payload);
@@ -384,6 +441,70 @@ export function ProductFormDialog(props: {
                                 disabled={submitLoading}
                                 inputProps={{ min: 0, step: 1 }}
                                 sx={TEXT_FIELD_FOCUS_SX}
+                            />
+                            <TextField
+                                {...register("minQty")}
+                                fullWidth
+                                type="number"
+                                label="Мин. кол-во в заказе"
+                                disabled={submitLoading}
+                                inputProps={{ min: 1, max: 999, step: 1 }}
+                                helperText="Первое добавление кладёт столько штук"
+                                sx={TEXT_FIELD_FOCUS_SX}
+                            />
+                            <TextField
+                                {...register("maxQty")}
+                                fullWidth
+                                type="number"
+                                label="Макс. кол-во на заказ"
+                                disabled={submitLoading}
+                                inputProps={{ min: 1, max: 999, step: 1 }}
+                                helperText="Пусто - без лимита"
+                                sx={TEXT_FIELD_FOCUS_SX}
+                            />
+                            <Autocomplete
+                                multiple
+                                size="small"
+                                options={allProducts.filter(
+                                    (p) =>
+                                        !isEdit ||
+                                        !editingProduct ||
+                                        !("id" in editingProduct) ||
+                                        p.id !==
+                                            (editingProduct as { id: number })
+                                                .id,
+                                )}
+                                getOptionLabel={(option) =>
+                                    getLocalizedField(option.name, "ru") ||
+                                    getLocalizedField(option.name, "hy")
+                                }
+                                isOptionEqualToValue={(o, v) => o.id === v.id}
+                                value={upsellIdsWatch
+                                    .map((id) =>
+                                        allProducts.find((p) => p.id === id),
+                                    )
+                                    .filter(
+                                        (
+                                            p,
+                                        ): p is { id: number; name: unknown } =>
+                                            Boolean(p),
+                                    )}
+                                onChange={(_, value) =>
+                                    setValue(
+                                        "upsellIds",
+                                        value.map((p) => p.id).slice(0, 12),
+                                        { shouldDirty: true },
+                                    )
+                                }
+                                disabled={submitLoading}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        label="С этим берут (до 12)"
+                                        helperText="Предложения «Добавить к заказу» в корзине для этого блюда"
+                                        sx={TEXT_FIELD_FOCUS_SX}
+                                    />
+                                )}
                             />
                             <Autocomplete<AdminCategory, false, false, false>
                                 size="small"

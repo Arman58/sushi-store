@@ -44,6 +44,7 @@ const StoreFooter = dynamic(
 import LanguageSwitcher from "./LanguageSwitcher";
 import { MobileNavDrawer } from "./mobile-nav-drawer";
 import { tokens } from "./theme";
+import { ThemeModeToggle } from "./theme-mode-toggle";
 
 const HEADER_ACTION_SLOT_SX = {
     flexShrink: 0,
@@ -180,7 +181,7 @@ function FavoritesHeaderButton() {
                         fontSize: 9.5,
                         fontWeight: 800,
                         px: 0.4,
-                        border: "2px solid #FFFFFF",
+                        border: "2px solid var(--ew-surface)",
                         boxSizing: "content-box",
                         fontVariantNumeric: "tabular-nums",
                         lineHeight: 1,
@@ -298,7 +299,7 @@ function CartHeaderButton() {
                             fontSize: 10,
                             fontWeight: 800,
                             px: 0.5,
-                            border: "2px solid #FFFFFF",
+                            border: "2px solid var(--ew-surface)",
                             boxSizing: "content-box",
                         }}
                     >
@@ -517,7 +518,8 @@ export function LayoutShell({ children }: LayoutShellProps) {
                             </Box>
                         </Box>
 
-                        <SearchBar />
+                        {/* На /menu поиск в шапке скрыт - там свой sticky-поиск с фильтрами */}
+                        {pathname !== "/menu" && <SearchBar />}
 
                         {/* Right actions */}
                         <Box
@@ -545,6 +547,14 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                     display: { xs: "none", sm: "flex" },
                                 }}
                             >
+                                <ThemeModeToggle />
+                            </Box>
+                            <Box
+                                sx={{
+                                    ...HEADER_ACTION_SLOT_SX,
+                                    display: { xs: "none", sm: "flex" },
+                                }}
+                            >
                                 <FavoritesHeaderButton />
                             </Box>
                             <Box sx={HEADER_ACTION_SLOT_SX}>
@@ -565,17 +575,19 @@ export function LayoutShell({ children }: LayoutShellProps) {
                     </Container>
                 </Toolbar>
 
-                {/* Mobile search row (mobile-first: поиск всегда под рукой) */}
-                <Container
-                    maxWidth="lg"
-                    sx={{
-                        display: { xs: "block", md: "none" },
-                        px: 2,
-                        pb: 1.25,
-                    }}
-                >
-                    <SearchBar variant="mobile" />
-                </Container>
+                {/* Mobile search row; на /menu не показываем - там свой sticky-поиск */}
+                {pathname !== "/menu" && (
+                    <Container
+                        maxWidth="lg"
+                        sx={{
+                            display: { xs: "block", md: "none" },
+                            px: 2,
+                            pb: 1.25,
+                        }}
+                    >
+                        <SearchBar variant="mobile" />
+                    </Container>
+                )}
             </AppBar>
             </Box>
 

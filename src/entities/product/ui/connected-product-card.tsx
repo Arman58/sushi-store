@@ -1,10 +1,12 @@
 "use client";
 
-import { memo, useCallback } from "react";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { memo, useCallback, useState } from "react";
 
 import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
 import type { ProductBadge } from "@/entities/product/ui/product-card";
 import { ProductCard } from "@/entities/product/ui/product-card";
+import { ProductQuickView } from "@/entities/product/ui/product-quick-view";
 import { buildCartItemId, useCartStore } from "@/features/cart";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 
@@ -22,6 +24,9 @@ export type ConnectableProduct = {
     modifierGroups?: MenuModifierGroup[];
     ratingAvg?: number;
     ratingCount?: number;
+    isAvailable?: boolean;
+    minQty?: number;
+    maxQty?: number | null;
 };
 
 type ConnectedProductCardProps = {
@@ -77,9 +82,18 @@ export const ConnectedProductCard = memo(function ConnectedProductCard({
                     mainImage: product.mainImage,
                 }) ?? undefined,
         });
-    }, [addItem, hasModifiers, onOpenModifiers, product]);
+        // Минимальная партия: первое добавление кладёт minQty штук
+        const minQty = product.minQty ?? 1;
+        if (minQty > 1 && quantity === 0) {
+            setItemQuantity(buildCartItemId(product.id, []), minQty);
+        }
+    }, [addItem, hasModifiers, onOpenModifiers, product, quantity, setItemQuantity]);
+
+    const maxQty = product.maxQty ?? null;
+    const maxReached = maxQty !== null && quantity >= maxQty;
 
     const handleIncrease = useCallback(() => {
+        if (maxReached) return;
         if (hasModifiers) {
             onOpenModifiers(product);
             return;
@@ -88,6 +102,7 @@ export const ConnectedProductCard = memo(function ConnectedProductCard({
         setItemQuantity(cartItemId, quantity + 1);
     }, [
         hasModifiers,
+        maxReached,
         onOpenModifiers,
         product,
         quantity,
@@ -100,7 +115,15 @@ export const ConnectedProductCard = memo(function ConnectedProductCard({
 
     const productHref = `/menu/${product.slug}`;
 
+    // Mobile-first: на телефоне карточка открывает bottom-sheet (паттерн Wolt),
+    // на десктопе - обычная ссылка на страницу товара (SEO/привычный UX).
+    const isMobile = useMediaQuery("(max-width:600px)");
+    const [quickViewOpen, setQuickViewOpen] = useState(false);
+    const openQuickView = useCallback(() => setQuickViewOpen(true), []);
+    const closeQuickView = useCallback(() => setQuickViewOpen(false), []);
+
     return (
+        <>
         <ProductCard
             productId={product.id}
             index={index}
@@ -117,10 +140,22 @@ export const ConnectedProductCard = memo(function ConnectedProductCard({
             quantity={quantity}
             ratingAvg={product.ratingAvg}
             ratingCount={product.ratingCount}
-            productHref={productHref}
+            isAvailable={product.isAvailable !== false}
+            maxQtyReached={maxReached}
+            productHref={isMobile ? undefined : productHref}
+            onOpenDetails={isMobile ? openQuickView : undefined}
             onAddToCart={handleAddToCart}
             onIncrease={handleIncrease}
             onDecrease={handleDecrease}
         />
+        {isMobile && (
+            <ProductQuickView
+                open={quickViewOpen}
+                onClose={closeQuickView}
+                product={product}
+                onAdd={handleAddToCart}
+            />
+        )}
+        </>
     );
 });

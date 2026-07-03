@@ -27,6 +27,7 @@ import { useState } from "react";
 import { Link, usePathname, useRouter } from "@/i18n/server";
 
 import { tokens } from "./theme";
+import { ThemeModeToggle } from "./theme-mode-toggle";
 
 const LoginDialog = dynamic(
     () => import("@/features/auth/ui/login-dialog").then((m) => m.LoginDialog),
@@ -202,6 +203,7 @@ export function MobileNavDrawer() {
                     }}
                 >
                     <DrawerLanguageSwitcher />
+                    <ThemeModeToggle />
                     <IconButton
                         onClick={closeDrawer}
                         aria-label={tCommon("aria.close")}
