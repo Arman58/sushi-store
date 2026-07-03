@@ -404,25 +404,24 @@ export function LayoutShell({ children }: LayoutShellProps) {
                         sx={{
                             display: "flex",
                             alignItems: "center",
-                            gap: { xs: 1, sm: 2 },
+                            gap: { xs: 0.75, sm: 2 },
                             minWidth: 0,
                             width: "100%",
-                            px: { xs: 2, sm: 3 },
+                            px: { xs: 1.5, sm: 3 },
                             overflow: "visible",
                         }}
                     >
-                        {/* Logo */}
+                        {/* Logo: на xs скрыт - место отдано локации (паттерн Wolt/Glovo) */}
                         <Box
                             component={Link}
                             href="/"
                             sx={{
-                                display: "flex",
+                                display: { xs: "none", sm: "flex" },
                                 alignItems: "center",
                                 gap: 1.25,
                                 textDecoration: "none",
                                 minWidth: 0,
                                 flex: "0 1 auto",
-                                maxWidth: { xs: "38%", sm: "none" },
                                 overflow: "hidden",
                             }}
                         >
@@ -466,24 +465,25 @@ export function LayoutShell({ children }: LayoutShellProps) {
                             </Box>
                         </Box>
 
-                        {/* Location indicator */}
+                        {/* Location: на xs - главный элемент шапки, тексты не переносятся */}
                         <Box
                             sx={{
                                 display: "flex",
                                 alignItems: "center",
-                                gap: { xs: 0.5, md: 0.75 },
-                                flex: "0 1 auto",
-                                minWidth: 0,
-                                overflow: "hidden",
+                                gap: 0.5,
+                                flexShrink: 0,
                                 ml: { xs: 0, md: 1 },
                             }}
                         >
                             <LocationOnIcon
                                 aria-hidden
                                 focusable="false"
-                                sx={{ fontSize: 20, color: tokens.brand }}
+                                sx={{
+                                    fontSize: { xs: 22, sm: 20 },
+                                    color: tokens.brand,
+                                }}
                             />
-                            <Box sx={{ minWidth: 0 }}>
+                            <Box>
                                 <Box
                                     sx={{
                                         display: "flex",
@@ -494,7 +494,11 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                     <Typography
                                         variant="body2"
                                         fontWeight={700}
-                                        sx={{ fontSize: 13.5, lineHeight: 1.2 }}
+                                        noWrap
+                                        sx={{
+                                            fontSize: { xs: 14.5, sm: 13.5 },
+                                            lineHeight: 1.2,
+                                        }}
                                     >
                                         {tCommon("location.city")}
                                     </Typography>
@@ -506,6 +510,7 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                 </Box>
                                 <Typography
                                     variant="caption"
+                                    noWrap
                                     sx={{
                                         color: tokens.textMuted,
                                         display: "block",
@@ -526,17 +531,12 @@ export function LayoutShell({ children }: LayoutShellProps) {
                             sx={{
                                 display: "flex",
                                 alignItems: "center",
-                                gap: 1,
+                                gap: { xs: 0.25, sm: 0.5 },
                                 flexShrink: 0,
                                 ml: "auto",
                             }}
                         >
-                            <Box
-                                sx={{
-                                    ...HEADER_ACTION_SLOT_SX,
-                                    display: { xs: "none", sm: "flex" },
-                                }}
-                            >
+                            <Box sx={HEADER_ACTION_SLOT_SX}>
                                 <Suspense fallback={<Box sx={{ width: 40, height: 40 }} />}>
                                     <LanguageSwitcher />
                                 </Suspense>

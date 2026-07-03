@@ -104,8 +104,6 @@ export function LoginButton() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    border: `1px solid ${tokens.border}`,
-                    bgcolor: tokens.surface,
                     "&:hover": { bgcolor: tokens.surfaceHi },
                 }}
             >

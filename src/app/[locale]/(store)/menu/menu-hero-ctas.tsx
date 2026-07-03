@@ -20,7 +20,7 @@ const actionBoxSx = {
     fontSize: "0.875rem",
     fontWeight: 500,
     "&:hover": {
-        backgroundColor: "#fafafa",
+        backgroundColor: "var(--ew-surface-hi)",
     },
 } as const;
 

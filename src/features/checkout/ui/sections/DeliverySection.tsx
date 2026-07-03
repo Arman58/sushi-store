@@ -480,6 +480,9 @@ export function DeliverySection({
                                 </InputAdornment>
                             ),
                         }}
+                        InputLabelProps={{
+                            shrink: watch("address") ? true : undefined,
+                        }}
                     />
 
                     {isAuthenticated ? (
@@ -490,6 +493,13 @@ export function DeliverySection({
                             {...register("apartment", {
                                 onChange: () => setSelectedAddressId(""),
                             })}
+                            // label не поднимается при setValue из сохранённого
+                            // адреса (uncontrolled input) - форсируем shrink
+                            InputLabelProps={{
+                                shrink: watch("apartment")
+                                    ? true
+                                    : undefined,
+                            }}
                         />
                     ) : null}
 

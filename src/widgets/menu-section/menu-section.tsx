@@ -411,7 +411,8 @@ function MenuSectionInner({
                         pt: 2,
                         pb: {
                             xs: "calc(72px + env(safe-area-inset-bottom))",
-                            sm: 2,
+                            sm: 12,
+                            md: 2,
                         },
                         gridTemplateColumns: {
                             xs: "repeat(2, minmax(0, 1fr))",
@@ -463,9 +464,10 @@ function MenuSectionInner({
                         sx={{
                             display: { xs: "flex", md: "none" },
                             position: "fixed",
+                            // xs: над мобильной bottom-nav; sm: nav нет - к низу
                             bottom: {
                                 xs: "calc(72px + env(safe-area-inset-bottom))",
-                                md: 0,
+                                sm: 0,
                             },
                             left: 0,
                             right: 0,

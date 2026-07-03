@@ -9,6 +9,7 @@ const bannerPatchSchema = z
     .object({
         image: z.string().url().max(2048).optional(),
         title: z.record(z.string()).optional(),
+        ctaText: z.record(z.string()).optional(),
         href: z.string().max(2048).nullable().optional(),
         isActive: z.boolean().optional(),
         position: z.number().int().min(0).optional(),
@@ -48,6 +49,9 @@ export async function PATCH(
                 ...(parsed.data.title !== undefined
                     ? { title: parsed.data.title }
                     : {}),
+                ...(parsed.data.ctaText !== undefined
+                    ? { ctaText: parsed.data.ctaText }
+                    : {}),
                 ...(parsed.data.href !== undefined
                     ? { href: parsed.data.href }
                     : {}),
@@ -74,9 +78,16 @@ export async function PATCH(
             },
         });
         return NextResponse.json(banner);
-    } catch {
+    } catch (error) {
+        console.error("[ADMIN BANNERS] update failed:", error);
         return NextResponse.json(
-            { error: "Failed to update banner" },
+            {
+                error:
+                    process.env.NODE_ENV === "development" &&
+                    error instanceof Error
+                        ? error.message
+                        : "Не удалось сохранить баннер",
+            },
             { status: 500 },
         );
     }

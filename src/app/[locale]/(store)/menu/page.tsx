@@ -6,6 +6,7 @@ import { getLocalizedField } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
 import { buildLocalizedMetadata } from "@/lib/seo/metadata";
 import { PageContainer } from "@/shared/ui";
+import { PromoBannersSection } from "@/widgets/home/promo-banners-section";
 
 import { MenuCatalogSection } from "./menu-catalog-section";
 import { MenuCatalogSkeleton } from "./menu-catalog-skeleton";
@@ -62,6 +63,10 @@ export default function MenuPage() {
         <PageContainer>
             <Suspense fallback={<MenuHeroSkeleton />}>
                 <MenuHeroSection />
+            </Suspense>
+
+            <Suspense fallback={null}>
+                <PromoBannersSection nested />
             </Suspense>
 
             <Suspense fallback={<MenuCatalogSkeleton />}>

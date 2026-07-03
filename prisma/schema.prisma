@@ -100,6 +100,8 @@ model Banner {
   image     String
   /** Подпись для доступности и заголовка поверх фото; локализованная. */
   title     Json      @default("{}") @db.JsonB
+  /** Текст CTA-кнопки; пусто - дефолтный «Смотреть». Локализованный. */
+  ctaText   Json      @default("{}") @db.JsonB
   /** Куда ведёт клик: внутренний путь (/menu?category=...) или https-ссылка. null - некликабельный. */
   href      String?
   position  Int       @default(0)

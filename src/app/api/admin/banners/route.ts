@@ -8,6 +8,7 @@ import { verifyAdmin } from "@/lib/verify-admin";
 const bannerBodySchema = z.object({
     image: z.string().url().max(2048),
     title: z.record(z.string()).optional().default({}),
+    ctaText: z.record(z.string()).optional().default({}),
     href: z.string().max(2048).nullable().optional(),
     isActive: z.boolean().optional().default(true),
     position: z.number().int().min(0).optional().default(0),
@@ -43,6 +44,7 @@ export async function POST(request: Request) {
             data: {
                 image: parsed.data.image,
                 title: parsed.data.title,
+                ctaText: parsed.data.ctaText,
                 href: parsed.data.href ?? null,
                 isActive: parsed.data.isActive,
                 position: parsed.data.position,

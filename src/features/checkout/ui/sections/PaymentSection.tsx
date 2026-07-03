@@ -92,6 +92,10 @@ export function PaymentSection({
                 minRows={2}
                 sx={checkoutInputRadiusSx}
                 {...register("comment")}
+                // setValue из сохранённого адреса не поднимает label - форсируем
+                InputLabelProps={{
+                    shrink: watch("comment") ? true : undefined,
+                }}
                 InputProps={{
                     startAdornment: (
                         <InputAdornment position="start">

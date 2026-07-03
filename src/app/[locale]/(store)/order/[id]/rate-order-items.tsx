@@ -79,7 +79,7 @@ export function RateOrderItems({ productIds }: { productIds: number[] }) {
                             borderRadius: 999,
                             fontWeight: 700,
                             fontSize: 12,
-                            bgcolor: "#FFFFFF",
+                            bgcolor: "var(--ew-surface)",
                             maxWidth: "100%",
                         }}
                     >

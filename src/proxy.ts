@@ -58,7 +58,10 @@ export async function proxy(request: NextRequest) {
     if (
         pathname.startsWith("/api") ||
         pathname.startsWith("/_next") ||
-        pathname.startsWith("/_vercel")
+        pathname.startsWith("/_vercel") ||
+        // offline-fallback для SW живёт вне [locale]; i18n-роутинг делал
+        // редирект на несуществующий /{locale}/offline → 404 → SW не ставился
+        pathname === "/offline"
     ) {
         return NextResponse.next();
     }
