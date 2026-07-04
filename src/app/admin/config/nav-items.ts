@@ -9,65 +9,35 @@ import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
 import RestaurantIcon from "@mui/icons-material/Restaurant";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 
+/** labelKey — ключ в неймспейсе `admin.nav` (перевод в SidebarNav/тайтле). */
 export type AdminNavItem = {
     href: string;
-    label: string;
+    labelKey: string;
     icon: SvgIconComponent;
     openInNewTab?: boolean;
 };
 
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
-    {
-        href: "/admin/dashboard",
-        label: "Аналитика",
-        icon: BarChartOutlinedIcon,
-    },
-    {
-        href: "/admin/orders",
-        label: "Заказы",
-        icon: ListAltIcon,
-    },
-    {
-        href: "/admin/products",
-        label: "Товары",
-        icon: StorefrontIcon,
-    },
-    {
-        href: "/admin/categories",
-        label: "Категории",
-        icon: CategoryOutlinedIcon,
-    },
-    {
-        href: "/admin/banners",
-        label: "Баннеры",
-        icon: CampaignOutlinedIcon,
-    },
-    {
-        href: "/admin/reviews",
-        label: "Отзывы",
-        icon: RateReviewOutlinedIcon,
-    },
-    {
-        href: "/admin/delivery-zones",
-        label: "Зоны доставки",
-        icon: LocalShippingIcon,
-    },
-    {
-        href: "/admin/promocodes",
-        label: "Промокоды",
-        icon: DiscountIcon,
-    },
+    { href: "/admin/dashboard", labelKey: "dashboard", icon: BarChartOutlinedIcon },
+    { href: "/admin/orders", labelKey: "orders", icon: ListAltIcon },
+    { href: "/admin/products", labelKey: "products", icon: StorefrontIcon },
+    { href: "/admin/categories", labelKey: "categories", icon: CategoryOutlinedIcon },
+    { href: "/admin/banners", labelKey: "banners", icon: CampaignOutlinedIcon },
+    { href: "/admin/reviews", labelKey: "reviews", icon: RateReviewOutlinedIcon },
+    { href: "/admin/delivery-zones", labelKey: "deliveryZones", icon: LocalShippingIcon },
+    { href: "/admin/promocodes", labelKey: "promocodes", icon: DiscountIcon },
     {
         href: "/admin/kitchen",
-        label: "Экран кухни",
+        labelKey: "kitchen",
         icon: RestaurantIcon,
         openInNewTab: true,
     },
 ];
 
-export function resolveAdminPageTitle(pathname: string): string {
+/** Возвращает labelKey активного пункта (или null для дефолтного тайтла). */
+export function resolveAdminNavKey(pathname: string): string | null {
     const item = ADMIN_NAV_ITEMS.find(
         ({ href }) => pathname === href || pathname.startsWith(`${href}/`),
     );
-    return item?.label ?? "Админка";
+    return item?.labelKey ?? null;
 }

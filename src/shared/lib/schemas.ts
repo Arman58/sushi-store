@@ -55,6 +55,10 @@ export const checkoutSchema = z
         saveAddress: z.boolean().default(false),
         saveAddressLabel: z.string().default(""),
         payment: z.enum(["cash", "card"]).default("cash"),
+        /** Нужна ли сдача (только для наличных). */
+        needsChange: z.boolean().default(false),
+        /** С какой суммы готовить сдачу (֏). null - без сдачи / не наличные. */
+        changeAmount: z.number().int().positive().nullable().default(null),
         /** Обязательна при delivery; для pickup не используется */
         deliveryZoneId: z.number().int().positive().optional(),
         hp: z.string().default(""),   // honeypot - must stay empty
@@ -92,6 +96,19 @@ export const checkoutSchema = z
                 code: z.ZodIssueCode.custom,
                 path: ["phone"],
                 message: "Введите корректный номер (например, XX XX XX XX)",
+            });
+        }
+
+        // Сдача: при наличных и включённом тумблере нужна корректная сумма.
+        if (
+            data.payment === "cash" &&
+            data.needsChange &&
+            (data.changeAmount == null || data.changeAmount <= 0)
+        ) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ["changeAmount"],
+                message: "Укажите сумму, с которой нужна сдача",
             });
         }
     });

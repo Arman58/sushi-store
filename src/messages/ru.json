@@ -26,8 +26,7 @@
             "mobileNavMenu": "Меню навигации",
             "toggleTheme": "Переключить тему",
             "openCart": "Открыть корзину",
-            "cartOnCheckout": "Корзина (на странице оформления)",
-            "toggleTheme": "Переключить тему"
+            "cartOnCheckout": "Корзина (на странице оформления)"
         },
         "toast": {
             "added": "Добавлено в корзину",
@@ -49,7 +48,9 @@
         "profile": "Профиль",
         "search": "Поиск",
         "searchPlaceholder": "Что хотите заказать?",
-        "favorites": "Избранное"
+        "favorites": "Избранное",
+        "back": "Назад",
+        "forward": "Вперёд"
     },
     "hero": {
         "promoBadge": "Скидка {value}% на первый заказ по промокоду {code}",
@@ -203,7 +204,8 @@
         "quickView": {
             "fullPage": "Подробнее и отзывы",
             "choose": "Выбрать опции"
-        }
+        },
+        "frequentlyBought": "С этим часто берут"
     },
     "cart": {
         "pageTitle": "Корзина",
@@ -263,7 +265,8 @@
             "modifiersChanged": "Добавки изменились. Удалите позицию и добавьте её заново."
         },
         "minOrderReached": "Минимальная сумма набрана — можно оформлять",
-        "minOrderRemaining": "До минимальной суммы заказа осталось {amount} ֏"
+        "minOrderRemaining": "До минимальной суммы заказа осталось {amount} ֏",
+        "addonsTitle": "Часто берут к заказу"
     },
     "checkout": {
         "title": "Оформление заказа",
@@ -361,7 +364,13 @@
             "cashSublabel": "Курьеру при доставке",
             "card": "Картой курьеру",
             "cardSublabel": "Терминал при получении, не на сайте",
-            "comment": "Комментарий к заказу"
+            "comment": "Комментарий к заказу",
+            "changeQuestion": "Нужна сдача?",
+            "changeAmountLabel": "С какой суммы",
+            "changeResult": "Сдача: {amount} ֏",
+            "changeTooLow": "Сумма должна быть не меньше {total} ֏",
+            "exactAmountHint": "Без сдачи: приготовьте, пожалуйста, {amount} ֏",
+            "changeDueHint": "Курьер привезёт сдачу: {amount} ֏"
         },
         "summary": {
             "title": "Ваш заказ",
@@ -437,7 +446,10 @@
             "phone": "Телефон",
             "address": "Адрес",
             "deliveryType": "Способ получения",
-            "payment": "Оплата"
+            "payment": "Оплата",
+            "live": "Обновляется автоматически",
+            "changeFrom": "Сдача с",
+            "changeDue": "Привезём сдачу"
         },
         "success": {
             "title": "Спасибо за заказ!",
@@ -652,7 +664,69 @@
     "admin": {
         "imageUpload": {
             "unsupportedFormat": "Неподдерживаемый формат изображения. Загрузите JPG, PNG, WEBP, GIF или HEIC."
-        }
+        },
+        "title": "Админка",
+        "nav": {
+            "dashboard": "Аналитика",
+            "orders": "Заказы",
+            "products": "Товары",
+            "categories": "Категории",
+            "banners": "Баннеры",
+            "reviews": "Отзывы",
+            "deliveryZones": "Зоны доставки",
+            "promocodes": "Промокоды",
+            "kitchen": "Экран кухни"
+        },
+        "banners": {
+            "title": "Баннеры",
+            "subtitle": "Баннеры показываются в промо-карусели на главной странице. Поле «Ссылка» — куда перейдёт клиент по клику на баннер (это не место показа).",
+            "linkLabel": "Ссылка баннера",
+            "linkPlaceholder": "/menu?category=sets",
+            "uploadCreate": "Загрузить фото",
+            "creating": "Создаём…",
+            "loadError": "Не удалось загрузить баннеры.",
+            "saveError": "Не удалось сохранить.",
+            "fileTooBig": "Файл больше 5 МБ",
+            "uploadError": "Не удалось загрузить фото",
+            "createError": "Не удалось создать баннер",
+            "deleteError": "Не удалось удалить",
+            "draftCreated": "Баннер создан скрытым. Настройте подпись и даты, затем включите показ.",
+            "emptyTitle": "Баннеров пока нет",
+            "emptyHint": "Загрузите фото — баннер создастся скрытым. Настройте его и включите показ.",
+            "link": "Ссылка",
+            "addCaption": "Добавить подпись",
+            "editCaption": "Подпись",
+            "showFrom": "Показ с",
+            "showTo": "по (включительно)",
+            "statusHidden": "Скрыт",
+            "statusScheduled": "Запланирован",
+            "statusExpired": "Истёк",
+            "statusLive": "На витрине",
+            "moveUp": "Выше",
+            "moveDown": "Ниже",
+            "shown": "Показывается",
+            "hiddenTip": "Скрыт",
+            "deleteBanner": "Удалить баннер",
+            "captionDialogTitle": "Подпись баннера",
+            "captionDialogHint": "Показывается поверх фото с затемнением. Если есть ссылка — появится кнопка. Пусто — просто фото.",
+            "captionField": "Заголовок",
+            "ctaField": "Текст кнопки (пусто — «Смотреть»)",
+            "cancel": "Отмена",
+            "save": "Сохранить",
+            "deleteTitle": "Удалить баннер?",
+            "deleteHint": "Баннер исчезнет с главной страницы.",
+            "delete": "Удалить",
+            "linkClickLabel": "Ссылка при клике (необязательно)",
+            "linkHelp": "Внутренний путь: /menu или /menu?category=sets. Пусто — баннер без перехода.",
+            "errFormat": "Начните с «/» (например /menu) или укажите полный https:// адрес.",
+            "errForbidden": "Разделы /admin и /api использовать нельзя.",
+            "presets": "Быстрый выбор",
+            "presetHome": "Главная",
+            "presetMenu": "Меню"
+        },
+        "logout": "Выйти",
+        "openMenu": "Открыть меню",
+        "menuLoading": "Загрузка меню"
     },
     "notFound": {
         "title": "404",
@@ -747,5 +821,24 @@
             "load_error": "Не удалось загрузить отзывы",
             "vote_error": "Не удалось проголосовать"
         }
+    },
+    "search": {
+        "placeholder": "Поиск блюд и категорий…",
+        "popular": "Популярное",
+        "products": "Товары",
+        "categories": "Категории",
+        "noResults": "Ничего не найдено",
+        "noResultsHint": "Попробуйте другой запрос",
+        "showAll": "Показать все результаты",
+        "close": "Закрыть",
+        "open": "Поиск",
+        "minHint": "Введите минимум 2 символа",
+        "unavailable": "Нет в наличии",
+        "popularQueries": [
+            "Ролл",
+            "Пицца",
+            "Сет",
+            "Шаурма"
+        ]
     }
 }

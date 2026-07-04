@@ -38,14 +38,19 @@ type UpsellProduct = Pick<
 };
 
 type Props = {
-    cartItems: CartItem[];
+    /** Товары корзины — их id уходят в exclude (и как якорь «с этим берут»). */
+    cartItems?: CartItem[];
+    /** Явный список id для exclude (напр. [productId] на странице товара). */
+    excludeIds?: number[];
+    /** Заголовок над каруселью; рендерится только когда есть что показать. */
+    title?: string;
 };
 
 function hasRequiredModifiers(groups: MenuModifierGroup[] | undefined): boolean {
     return (groups ?? []).some((group) => group.required);
 }
 
-export function UpsellCarousel({ cartItems }: Props) {
+export function UpsellCarousel({ cartItems, excludeIds, title }: Props) {
     const locale = useLocale();
     const addItem = useCartStore((s) => s.addItem);
 
@@ -54,11 +59,12 @@ export function UpsellCarousel({ cartItems }: Props) {
     const [modifierProduct, setModifierProduct] = useState<UpsellProduct | null>(null);
 
     const excludeKey = useMemo(
-        () =>
-            [...new Set(cartItems.map((item) => item.productId))]
-                .sort((a, b) => a - b)
-                .join(","),
-        [cartItems],
+        () => {
+            const ids =
+                excludeIds ?? cartItems?.map((item) => item.productId) ?? [];
+            return [...new Set(ids)].sort((a, b) => a - b).join(",");
+        },
+        [excludeIds, cartItems],
     );
 
     useEffect(() => {
@@ -128,6 +134,15 @@ export function UpsellCarousel({ cartItems }: Props) {
 
     return (
         <>
+            {title ? (
+                <Typography
+                    variant="overline"
+                    color="text.secondary"
+                    sx={{ display: "block", mb: 1.25, letterSpacing: "0.08em" }}
+                >
+                    {title}
+                </Typography>
+            ) : null}
             <Box
                 sx={{
                     mx: { xs: -0.5, sm: 0 },

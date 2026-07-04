@@ -18,6 +18,9 @@ export type KitchenOrderDto = {
     deliveryType: DeliveryType;
     paymentMethod: PaymentMethod;
     comment: string | null;
+    /** Наличные: с какой суммы готовить сдачу (null — точная сумма). */
+    changeFrom: number | null;
+    totalPrice: number;
     items: KitchenOrderItemDto[];
 };
 
@@ -42,6 +45,8 @@ function mapOrder(
         delivery: DeliveryType;
         payment: PaymentMethod;
         comment: string | null;
+        changeFrom: number | null;
+        totalPrice: number;
         items: {
             id: number;
             name: string;
@@ -57,6 +62,8 @@ function mapOrder(
         status: order.status,
         deliveryType: order.delivery,
         paymentMethod: order.payment,
+        changeFrom: order.changeFrom,
+        totalPrice: order.totalPrice,
         comment: order.comment?.trim() ? order.comment.trim() : null,
         items: order.items.map((item) => ({
             id: item.id,

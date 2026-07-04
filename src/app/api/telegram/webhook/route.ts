@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { telegramWebhookBodySchema } from "@/lib/api-schemas";
+import { debugLog } from "@/lib/debug-log";
 import {
     type KitchenButtonStatus,
     orderStatusLabel,
@@ -120,7 +121,7 @@ export async function POST(request: Request) {
         const { orderId, status } = statusParsed;
 
         try {
-            console.log("[TELEGRAM WEBHOOK] Updating order:", orderId, "to", status);
+            debugLog("[TELEGRAM WEBHOOK] Updating order:", orderId, "to", status);
             const updated = await updateOrderStatus(orderId, status);
             const label = orderStatusLabel(updated.status);
 

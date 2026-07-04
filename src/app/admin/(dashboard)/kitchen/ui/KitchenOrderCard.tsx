@@ -101,6 +101,15 @@ export function KitchenOrderCard({
                     label={order.deliveryType === "PICKUP" ? "Самовывоз" : "Доставка"}
                 />
                 <OrderTag label={paymentLabel(order.paymentMethod)} />
+                {order.paymentMethod === "CASH" ? (
+                    <OrderTag
+                        label={
+                            order.changeFrom != null
+                                ? `💵 Сдача ${(order.changeFrom - order.totalPrice).toLocaleString("ru-RU")} ֏ (с ${order.changeFrom.toLocaleString("ru-RU")} ֏)`
+                                : "💵 Без сдачи"
+                        }
+                    />
+                ) : null}
             </Stack>
 
             <Divider sx={{ my: 1.5, borderColor: "#F1F5F9" }} />

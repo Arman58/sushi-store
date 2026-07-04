@@ -144,7 +144,7 @@ export function OrdersTable({
                     }}
                 >
                     <TableHead>
-                        <TableRow sx={{ bgcolor: "grey.50" }}>
+                        <TableRow sx={{ bgcolor: "action.hover" }}>
                             <TableCell sx={{ ...TABLE_HEAD_CELL_SX, width: 88 }}>
                                 {renderSortLabel(
                                     "ID",

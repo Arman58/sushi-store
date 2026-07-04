@@ -8,6 +8,7 @@ import Typography from "@mui/material/Typography";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
+import { debugLog } from "@/lib/debug-log";
 import { urlBase64ToUint8Array } from "@/lib/push-utils";
 import { AppButton } from "@/shared/ui";
 
@@ -70,9 +71,9 @@ export function PushPermissionPrompt() {
                 return;
             }
 
-            console.log("[PUSH] Requesting notification permission…");
+            debugLog("[PUSH] Requesting notification permission…");
             const permission = await Notification.requestPermission();
-            console.log("[PUSH] Notification permission:", permission);
+            debugLog("[PUSH] Notification permission:", permission);
 
             if (permission !== "granted") {
                 setStatus("error");
@@ -80,7 +81,7 @@ export function PushPermissionPrompt() {
                 return;
             }
 
-            console.log("[PUSH] Registering service worker…");
+            debugLog("[PUSH] Registering service worker…");
             await navigator.serviceWorker.register(SW_URL, {
                 scope: SW_SCOPE,
                 updateViaCache: "none",
@@ -95,18 +96,18 @@ export function PushPermissionPrompt() {
                 }),
             ]);
 
-            console.log("[PUSH] Service worker ready, scope:", reg.scope);
+            debugLog("[PUSH] Service worker ready, scope:", reg.scope);
 
             let sub = await reg.pushManager.getSubscription();
             if (!sub) {
-                console.log("[PUSH] Subscribing to push manager…");
+                debugLog("[PUSH] Subscribing to push manager…");
                 sub = await reg.pushManager.subscribe({
                     userVisibleOnly: true,
                     applicationServerKey: urlBase64ToUint8Array(
                         vapidPublicKey,
                     ) as BufferSource,
                 });
-                console.log("[PUSH] Push subscription created:", sub.endpoint);
+                debugLog("[PUSH] Push subscription created:", sub.endpoint);
             }
 
             const subscriptionJson = sub.toJSON();
@@ -120,7 +121,7 @@ export function PushPermissionPrompt() {
                 return;
             }
 
-            console.log("[PUSH] Sending subscription to backend…");
+            debugLog("[PUSH] Sending subscription to backend…");
             const res = await fetch("/api/push/subscribe", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -141,7 +142,7 @@ export function PushPermissionPrompt() {
                 return;
             }
 
-            console.log("[PUSH] Subscription saved successfully");
+            debugLog("[PUSH] Subscription saved successfully");
             setStatus("success");
         } catch (error) {
             console.error("[PUSH] Subscribe flow failed:", error);

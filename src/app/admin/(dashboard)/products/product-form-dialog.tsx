@@ -676,7 +676,8 @@ export function ProductFormDialog(props: {
                     <DialogActions
                         sx={{
                             p: 2,
-                            borderTop: "1px solid #eee",
+                            borderTop: 1,
+                            borderColor: "divider",
                             flexShrink: 0,
                             flexDirection: isMobile ? "column-reverse" : "row",
                             gap: isMobile ? 1 : 0,

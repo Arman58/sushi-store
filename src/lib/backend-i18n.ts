@@ -1,3 +1,4 @@
+import type { OrderStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import {
@@ -43,6 +44,11 @@ export const BACKEND_ERROR_MESSAGES: Record<ApiErrorCode, BackendMessageTemplate
             hy: "Զամբյուղի տվյալները անվավեր են։ Թարմացրեք զամբյուղը և կրկին փորձեք։",
             ru: "Некорректные данные корзины. Обновите корзину и оформите заказ снова.",
             en: "Invalid cart data. Refresh your cart and try again.",
+        },
+        CHANGE_FROM_TOO_SMALL: {
+            hy: "Մանրի համար նշված գումարը փոքր է պատվերի գումարից։",
+            ru: "Сумма для сдачи меньше суммы заказа.",
+            en: "The cash amount for change is less than the order total.",
         },
         SUBTOTAL_MISMATCH: {
             hy: "Ապրանքների գումարը չի համընկնում սերվերի հաշվարկի հետ։ Թարմացրեք էջը։",
@@ -134,6 +140,121 @@ export function getInvalidCartPayloadMessage(
 ): string {
     const resolved = resolveBackendLocale(locale);
     return INVALID_CART_PAYLOAD_MESSAGES[reason][resolved];
+}
+
+type PushCopyTemplate = {
+    title: BackendMessageTemplate;
+    body: BackendMessageTemplate;
+};
+
+const PUSH_ORDER_FALLBACK_TITLE: BackendMessageTemplate = {
+    hy: "Պատվեր #{id}",
+    ru: "Заказ #{id}",
+    en: "Order #{id}",
+};
+
+const PUSH_STATUS_PREFIX: BackendMessageTemplate = {
+    hy: "Կարգավիճակ",
+    ru: "Статус",
+    en: "Status",
+};
+
+/** Тексты push при смене статуса заказа (COOKING / DELIVERING / DONE). */
+export const PUSH_ORDER_STATUS_MESSAGES: Partial<
+    Record<OrderStatus, PushCopyTemplate>
+> = {
+    COOKING: {
+        title: {
+            hy: "Պատվեր #{id} պատրաստվում է 👨‍🍳",
+            ru: "Заказ #{id} готовится 👨‍🍳",
+            en: "Order #{id} is being prepared 👨‍🍳",
+        },
+        body: {
+            hy: "Արդեն խոհանոցում է — շուտով կփոխանցենք առաքիչին։",
+            ru: "Уже на кухне — скоро передадим курьеру.",
+            en: "Already in the kitchen — we'll hand it to the courier soon.",
+        },
+    },
+    DELIVERING: {
+        title: {
+            hy: "Պատվեր #{id} ճանապարհին է 🛵",
+            ru: "Заказ #{id} в пути 🛵",
+            en: "Order #{id} is on the way 🛵",
+        },
+        body: {
+            hy: "Առաքիչը արդեն գալիս է։ Հետևեք առաքմանը օնլայն։",
+            ru: "Курьер уже едет к вам. Отслеживайте доставку онлайн.",
+            en: "Your courier is on the way. Track delivery online.",
+        },
+    },
+    DONE: {
+        title: {
+            hy: "Պատվեր #{id} առաքված է 🎉",
+            ru: "Заказ #{id} доставлен 🎉",
+            en: "Order #{id} delivered 🎉",
+        },
+        body: {
+            hy: "Բարի ախորժակ! Գնահատեք ուտեստները — դա կվերցնի մեկ րոպե։",
+            ru: "Приятного аппетита! Оцените блюда — это займёт минуту.",
+            en: "Enjoy your meal! Rate your dishes — it only takes a minute.",
+        },
+    },
+};
+
+export const ORDER_STATUS_LABELS: Record<OrderStatus, BackendMessageTemplate> = {
+    NEW: {
+        hy: "Պատվերը ընդունված է",
+        ru: "Заказ принят",
+        en: "Order received",
+    },
+    COOKING: {
+        hy: "Պատրաստվում է",
+        ru: "Готовится",
+        en: "Preparing",
+    },
+    DELIVERING: {
+        hy: "Ճանապարհին",
+        ru: "В пути",
+        en: "On the way",
+    },
+    DONE: {
+        hy: "Առաքված",
+        ru: "Доставлен",
+        en: "Delivered",
+    },
+    CANCELLED: {
+        hy: "Չեղարկված",
+        ru: "Отменён",
+        en: "Cancelled",
+    },
+};
+
+export function getPushOrderStatusCopy(
+    status: OrderStatus,
+    orderId: number,
+    locale?: string | null,
+): { title: string; body: string } {
+    const resolved = resolveBackendLocale(locale);
+    const template = PUSH_ORDER_STATUS_MESSAGES[status];
+    if (template) {
+        return {
+            title: interpolate(template.title[resolved], { id: orderId }),
+            body: template.body[resolved],
+        };
+    }
+    return {
+        title: interpolate(PUSH_ORDER_FALLBACK_TITLE[resolved], { id: orderId }),
+        body: `${PUSH_STATUS_PREFIX[resolved]}: ${ORDER_STATUS_LABELS[status][resolved]}`,
+    };
+}
+
+/** Путь к странице заказа с учётом localePrefix: as-needed. */
+export function orderPagePath(orderId: number, locale?: string | null): string {
+    const resolved = resolveBackendLocale(locale);
+    if (resolved === DEFAULT_STORE_LOCALE) {
+        return `/order/${orderId}`;
+    }
+    return `/${resolved}/order/${orderId}`;
 }
 
 /** Читает locale из payload заказа, Accept-Language или X-App-Locale. */

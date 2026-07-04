@@ -134,12 +134,7 @@ export function BannerCarousel({ items }: { items: BannerCarouselItem[] }) {
                         <Box
                             sx={{
                                 position: "relative",
-                                width: {
-                                    xs: "86vw",
-                                    sm: 480,
-                                    md: items.length === 1 ? "100%" : 560,
-                                },
-                                maxWidth: "100%",
+                                width: "100%",
                                 aspectRatio: "5 / 2",
                                 borderRadius: `${tokens.radiusCardLg}px`,
                                 overflow: "hidden",
@@ -150,7 +145,7 @@ export function BannerCarousel({ items }: { items: BannerCarouselItem[] }) {
                                 src={banner.image}
                                 alt={banner.title || "promo"}
                                 fill
-                                sizes="(max-width: 600px) 86vw, 560px"
+                                sizes="(max-width: 600px) 86vw, (max-width: 900px) 480px, 1152px"
                                 style={{ objectFit: "cover" }}
                             />
                             {banner.title ? (
@@ -218,7 +213,12 @@ export function BannerCarousel({ items }: { items: BannerCarouselItem[] }) {
                         <Box
                             component="li"
                             key={banner.id}
-                            sx={{ flexShrink: 0, scrollSnapAlign: "start" }}
+                            sx={{
+                                flexShrink: 0,
+                                scrollSnapAlign: "start",
+                                width: { xs: "86vw", sm: 480, md: "100%" },
+                                maxWidth: "100%",
+                            }}
                         >
                             {banner.href?.startsWith("/") ? (
                                 <Link

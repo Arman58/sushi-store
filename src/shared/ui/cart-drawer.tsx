@@ -26,7 +26,7 @@ import {
 } from "@/features/cart";
 import { Link, usePathname } from "@/i18n/server";
 import { ApiError, validatePromo } from "@/shared/api";
-import { UpsellCarousel } from "@/widgets/upsell";
+import { SauceStrip, UpsellCarousel } from "@/widgets/upsell";
 
 import { AppButton } from "./AppButton";
 import { EmptyCart } from "./empty-cart";
@@ -493,6 +493,10 @@ export function CartDrawer() {
                                 </Box>
 
                                 <Box sx={{ px: 3, pt: 2, pb: 1 }}>
+                                    <SauceStrip cartItems={items} />
+                                </Box>
+
+                                <Box sx={{ px: 3, pt: 1, pb: 1 }}>
                                     <Typography
                                         variant="overline"
                                         color="text.secondary"

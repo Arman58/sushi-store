@@ -92,6 +92,8 @@ export const orderPayloadSchema = z
         payment: z.enum(["cash", "card"], {
             errorMap: () => ({ message: "Некорректный способ оплаты" }),
         }),
+        /** Наличные: сумма, с которой готовить сдачу (֏). null - не нужна. */
+        changeFrom: PositiveInt.nullable().optional(),
         delivery: z.enum(["delivery", "pickup"], {
             errorMap: () => ({ message: "Некорректный тип доставки" }),
         }),

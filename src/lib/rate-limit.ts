@@ -10,7 +10,11 @@ export type RateLimitBucket =
     | "verifyOtp"
     | "resendOtp"
     | "validateCart"
-    | "validatePromo";
+    | "validatePromo"
+    | "orderStatus"
+    | "search"
+    | "reviewHelpful"
+    | "pushSubscribe";
 
 type BucketConfig = {
     requests: number;
@@ -26,6 +30,10 @@ export const RATE_LIMIT_BUCKETS: Record<RateLimitBucket, BucketConfig> = {
     resendOtp: { requests: 5, window: "15 m", prefix: "rl:resend-otp" },
     validateCart: { requests: 20, window: "60 s", prefix: "rl:validate-cart" },
     validatePromo: { requests: 10, window: "60 s", prefix: "rl:validate-promo" },
+    orderStatus: { requests: 10, window: "60 s", prefix: "rl:order-status" },
+    search: { requests: 30, window: "60 s", prefix: "rl:search" },
+    reviewHelpful: { requests: 20, window: "60 s", prefix: "rl:review-helpful" },
+    pushSubscribe: { requests: 10, window: "60 s", prefix: "rl:push-subscribe" },
 };
 
 const isProduction = process.env.NODE_ENV === "production";
@@ -57,6 +65,10 @@ const limiters: Record<RateLimitBucket, Ratelimit | null> = {
     resendOtp: createLimiter("resendOtp"),
     validateCart: createLimiter("validateCart"),
     validatePromo: createLimiter("validatePromo"),
+    orderStatus: createLimiter("orderStatus"),
+    search: createLimiter("search"),
+    reviewHelpful: createLimiter("reviewHelpful"),
+    pushSubscribe: createLimiter("pushSubscribe"),
 };
 
 export function isUpstashRateLimitConfigured(): boolean {

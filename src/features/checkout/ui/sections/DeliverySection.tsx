@@ -102,9 +102,32 @@ export function DeliverySection({
                 if (!res.ok || cancelled) return;
                 const data = (await res.json()) as { addresses?: SavedAddressDto[] };
                 if (!cancelled) {
-                    setSavedAddresses(
-                        Array.isArray(data.addresses) ? data.addresses : [],
-                    );
+                    const list = Array.isArray(data.addresses)
+                        ? data.addresses
+                        : [];
+                    setSavedAddresses(list);
+
+                    // Автозаполнение: для вернувшихся клиентов сразу подставляем
+                    // самый свежий адрес, если поле пустое — меньше трения.
+                    const currentAddress = (watch("address") ?? "").trim();
+                    if (list.length > 0 && !currentAddress) {
+                        const newest = [...list].sort((a, b) =>
+                            b.createdAt.localeCompare(a.createdAt),
+                        )[0];
+                        setSelectedAddressId(String(newest.id));
+                        setValue("address", newest.street, {
+                            shouldValidate: true,
+                            shouldDirty: false,
+                        });
+                        setValue("apartment", newest.apartment ?? "", {
+                            shouldValidate: false,
+                        });
+                        if (newest.comment) {
+                            setValue("comment", newest.comment, {
+                                shouldValidate: false,
+                            });
+                        }
+                    }
                 }
             } catch {
                 if (!cancelled) setSavedAddresses([]);
@@ -116,7 +139,7 @@ export function DeliverySection({
         return () => {
             cancelled = true;
         };
-    }, [isAuthenticated, isDelivery]);
+    }, [isAuthenticated, isDelivery, setValue, watch]);
 
     const deliveryTypes: DeliveryType[] = ["delivery", "pickup"];
 

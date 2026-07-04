@@ -5,13 +5,20 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import * as Sentry from "@sentry/nextjs";
+import { useEffect } from "react";
 
 export default function Error({
+    error,
     reset,
 }: {
     error: Error & { digest?: string };
     reset: () => void;
 }) {
+    useEffect(() => {
+        Sentry.captureException(error);
+    }, [error]);
+
     return (
         <Box
             sx={{
