@@ -281,14 +281,14 @@ export default function AdminDashboardPage() {
     const chartSx = useMemo(
         () => ({
             [`& .${chartsGridClasses.line}`]: {
-                stroke: "#f0f0f0",
+                stroke: "var(--ew-border)",
                 strokeDasharray: "3 3",
             },
             "& .MuiChartsAxis-root line": {
-                stroke: "#ececec",
+                stroke: "var(--ew-border-hi)",
             },
             "& .MuiChartsAxis-tickLabel": {
-                fill: "#888 !important",
+                fill: "var(--ew-text-3) !important",
                 fontSize: "12px !important",
             },
             "& .MuiChartsLegend-label": {

@@ -271,6 +271,38 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
                 <Typography variant="h5" fontWeight={800} sx={{ mt: 0.5, lineHeight: 1.2 }}>
                     {isCancelled ? tTracker("cancelled") : tTracker("tracking")}
                 </Typography>
+                {!TERMINAL_STATUSES.has(status) && (
+                    <Stack
+                        direction="row"
+                        alignItems="center"
+                        spacing={0.75}
+                        sx={{ mt: 1 }}
+                    >
+                        <Box
+                            sx={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: "50%",
+                                bgcolor: "primary.main",
+                                flexShrink: 0,
+                                animation: "ew-live-pulse 1.6s ease-in-out infinite",
+                                "@keyframes ew-live-pulse": {
+                                    "0%, 100%": {
+                                        opacity: 1,
+                                        boxShadow: `0 0 0 0 ${alpha(theme.palette.primary.main, 0.5)}`,
+                                    },
+                                    "70%": {
+                                        opacity: 0.7,
+                                        boxShadow: `0 0 0 6px ${alpha(theme.palette.primary.main, 0)}`,
+                                    },
+                                },
+                            }}
+                        />
+                        <Typography variant="caption" color="text.secondary">
+                            {tTracker("live")}
+                        </Typography>
+                    </Stack>
+                )}
             </Box>
 
             <Stack spacing={3} sx={{ px: { xs: 2.5, sm: 3 }, py: 3 }}>
@@ -425,6 +457,21 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
                             label={tTracker("payment")}
                             value={tPayment(order.payment === "CASH" ? "cash" : "card")}
                         />
+                        {order.changeFrom != null && (
+                            <InfoRow
+                                label={tTracker("changeFrom")}
+                                value={`${numberFormatter.format(order.changeFrom)} ֏`}
+                            />
+                        )}
+                        {order.changeFrom != null &&
+                            order.changeFrom - order.totalPrice > 0 && (
+                                <InfoRow
+                                    label={tTracker("changeDue")}
+                                    value={`${numberFormatter.format(
+                                        order.changeFrom - order.totalPrice,
+                                    )} ֏`}
+                                />
+                            )}
                     </Stack>
                 </Paper>
 

@@ -240,9 +240,19 @@ model Order {
   userId Int?
   user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  /** Язык витрины на момент оформления (push, письма). */
+  locale String @default("hy")
+
+  /** Наличные: сумма, с которой готовить сдачу (֏). null - сдача не нужна. */
+  changeFrom Int?
+
   items      OrderItem[]
 
   @@index([userId])
+  /** Кухня/админка: выборки по статусу с сортировкой по времени. */
+  @@index([status, createdAt])
+  /** Админ-список и аналитика: сортировка/фильтр по дате. */
+  @@index([createdAt])
 }
 
 /**

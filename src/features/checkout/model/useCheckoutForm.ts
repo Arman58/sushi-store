@@ -16,6 +16,7 @@ import { normalizePhoneToE164Digits } from "@/lib/phone";
 import { ApiError, placeOrder } from "@/shared/api";
 import { API_ERROR_CODES } from "@/shared/lib/api-error";
 import { createCheckoutSchema } from "@/shared/lib/create-schemas";
+import { formatStorePrice } from "@/shared/lib/format-price";
 import {
     type CheckoutFormValues,
     type DeliveryType,
@@ -46,6 +47,7 @@ type UseCheckoutFormParams = {
 
 export function useCheckoutForm({ sessionUser, hasItems }: UseCheckoutFormParams) {
     const t = useTranslations("checkout.form");
+    const tPayment = useTranslations("checkout.payment");
     const tProfile = useTranslations("profile");
     const locale = useLocale() as AppLocale;
     const schemaMessages = useSchemaMessages();
@@ -70,7 +72,9 @@ export function useCheckoutForm({ sessionUser, hasItems }: UseCheckoutFormParams
     const draft = useMemo(() => loadDraft(), []);
 
     const form = useForm<CheckoutFormValues>({
-        resolver: zodResolver(checkoutSchema) as Resolver<CheckoutFormValues>,
+        resolver: zodResolver(
+            checkoutSchema,
+        ) as unknown as Resolver<CheckoutFormValues>,
         defaultValues: {
             name: draft?.name ?? "",
             email: draft?.email ?? "",
@@ -81,6 +85,8 @@ export function useCheckoutForm({ sessionUser, hasItems }: UseCheckoutFormParams
             saveAddress: false,
             saveAddressLabel: "",
             payment: draft?.payment ?? "cash",
+            needsChange: false,
+            changeAmount: null,
             delivery: draft?.delivery ?? "delivery",
             deliveryZoneId: draft?.deliveryZoneId,
             hp: "",
@@ -201,6 +207,21 @@ export function useCheckoutForm({ sessionUser, hasItems }: UseCheckoutFormParams
     ) => {
         if (!ctx.hasItems) return;
 
+        // Сдача: сумма клиента должна покрывать итог — не пускаем на сервер.
+        if (
+            data.payment === "cash" &&
+            data.needsChange &&
+            (data.changeAmount == null || data.changeAmount < ctx.grandTotal)
+        ) {
+            const msg = tPayment("changeTooLow", {
+                total: formatStorePrice(ctx.grandTotal),
+            });
+            form.setError("changeAmount", { type: "manual", message: msg });
+            setErrorMessage(msg);
+            showAppToast(msg, "error");
+            return;
+        }
+
         let acquired = false;
         useCartStore.setState((s) => {
             if (s.isPlacingOrder) return s;
@@ -222,6 +243,10 @@ export function useCheckoutForm({ sessionUser, hasItems }: UseCheckoutFormParams
                 address: data.delivery === "delivery" ? data.address.trim() : "",
                 comment: data.comment.trim(),
                 payment: data.payment,
+                changeFrom:
+                    data.payment === "cash" && data.needsChange
+                        ? data.changeAmount
+                        : null,
                 delivery: data.delivery,
                 items: toOrderPayloadItems(ctx.items),
                 totalPrice: ctx.grandTotal,

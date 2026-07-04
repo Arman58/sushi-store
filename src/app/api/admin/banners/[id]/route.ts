@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { validateBannerHref } from "@/lib/banner-href";
 import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
 import { verifyAdmin } from "@/lib/verify-admin";
@@ -39,6 +40,19 @@ export async function PATCH(
     const parsed = await parseJsonBody(request, bannerPatchSchema);
     if (!parsed.ok) return parsed.response;
 
+    // Ссылку валидируем только если её прислали в патче.
+    let normalizedHref: string | null | undefined;
+    if (parsed.data.href !== undefined) {
+        const href = validateBannerHref(parsed.data.href);
+        if (!href.ok) {
+            return NextResponse.json(
+                { error: "Invalid banner href", code: href.code },
+                { status: 400 },
+            );
+        }
+        normalizedHref = href.value;
+    }
+
     try {
         const banner = await prisma.banner.update({
             where: { id },
@@ -52,8 +66,8 @@ export async function PATCH(
                 ...(parsed.data.ctaText !== undefined
                     ? { ctaText: parsed.data.ctaText }
                     : {}),
-                ...(parsed.data.href !== undefined
-                    ? { href: parsed.data.href }
+                ...(normalizedHref !== undefined
+                    ? { href: normalizedHref }
                     : {}),
                 ...(parsed.data.isActive !== undefined
                     ? { isActive: parsed.data.isActive }

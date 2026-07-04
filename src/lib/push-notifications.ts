@@ -1,7 +1,11 @@
 import type { OrderStatus } from "@prisma/client";
 import webpush from "web-push";
 
-import { orderStatusLabel } from "@/lib/order-status";
+import {
+    getPushOrderStatusCopy,
+    orderPagePath,
+} from "@/lib/backend-i18n";
+import { debugLog } from "@/lib/debug-log";
 import { prisma } from "@/lib/prisma";
 
 export type PushNotificationPayload = {
@@ -67,11 +71,11 @@ export async function sendPushNotification(
     });
 
     if (subscriptions.length === 0) {
-        console.log("[PUSH] No subscriptions for user:", userId);
+        debugLog("[PUSH] No subscriptions for user:", userId);
         return;
     }
 
-    console.log(
+    debugLog(
         "[PUSH] Sending notification to user:",
         userId,
         "subscriptions:",
@@ -98,7 +102,7 @@ export async function sendPushNotification(
                     toWebPushSubscription(subscription.endpoint, keys),
                     message,
                 );
-                console.log("[PUSH] Sent to subscription:", subscription.id);
+                debugLog("[PUSH] Sent to subscription:", subscription.id);
             } catch (error) {
                 const statusCode =
                     error &&
@@ -109,7 +113,7 @@ export async function sendPushNotification(
                         : null;
 
                 if (statusCode === 410 || statusCode === 404) {
-                    console.log(
+                    debugLog(
                         "[PUSH] Removing dead subscription:",
                         subscription.id,
                         "status:",
@@ -135,7 +139,7 @@ export async function notifyOrderStatusPush(
 
     const order = await prisma.order.findUnique({
         where: { id: orderId },
-        select: { id: true, userId: true },
+        select: { id: true, userId: true, locale: true },
     });
 
     // Подписка на пуши - самостоятельное согласие; emailVerified не требуем
@@ -143,18 +147,8 @@ export async function notifyOrderStatusPush(
     // из-за этого условия пуши не уходили никому).
     if (!order?.userId) return;
 
-    if (status === "DONE") {
-        await sendPushNotification(order.userId, {
-            title: `Заказ #${order.id} доставлен 🎉`,
-            body: "Приятного аппетита! Оцените блюда - это займёт минуту.",
-            url: `/order/${order.id}`,
-        });
-        return;
-    }
+    const message = getPushOrderStatusCopy(status, order.id, order.locale);
+    const url = orderPagePath(order.id, order.locale);
 
-    await sendPushNotification(order.userId, {
-        title: `Заказ #${order.id}`,
-        body: `Статус: ${orderStatusLabel(status)}`,
-        url: `/order/${order.id}`,
-    });
+    await sendPushNotification(order.userId, { ...message, url });
 }

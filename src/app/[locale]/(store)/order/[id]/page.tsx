@@ -67,6 +67,7 @@ export default async function OrderPage({ params, searchParams }: PageProps) {
         phone: order.phone,
         delivery: order.delivery,
         payment: order.payment,
+        changeFrom: order.changeFrom,
         totalPrice: order.totalPrice,
         createdAt: order.createdAt.toISOString(),
         estimatedDeliveryAt: order.estimatedDeliveryAt?.toISOString() ?? null,

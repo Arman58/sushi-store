@@ -23,7 +23,6 @@ import {
     useMediaQuery,
     useTheme,
 } from "@mui/material";
-import type { ChipProps } from "@mui/material/Chip";
 import type { SelectChangeEvent } from "@mui/material/Select";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -39,172 +38,22 @@ import {
     computeEstimatedDeliveryAt,
     ETA_PRESET_MINUTES,
     formatEstimatedDeliveryTime,
-    orderStatusChipColor,
     orderStatusLabel,
 } from "@/lib/order-status";
 
 const CELL_SX = { px: 2, py: 1.5 };
 
-async function readApiErrorMessage(res: Response, fallback: string): Promise<string> {
-    const text = await res.text();
-    if (!text.trim()) {
-        return `${fallback} (HTTP ${res.status})`;
-    }
+import {
+    highlight,
+    inferEtaPresetMinutes,
+    OrderPaymentChip,
+    type OrderRowProps,
+    OrderStatusChip,
+    readApiErrorMessage,
+} from "./order-row-helpers";
 
-    try {
-        const json = JSON.parse(text) as { error?: unknown; message?: unknown };
-        const detail =
-            typeof json.error === "string"
-                ? json.error
-                : typeof json.message === "string"
-                  ? json.message
-                  : null;
-        if (detail?.trim()) {
-            return detail;
-        }
-    } catch {
-        // ответ не JSON - покажем как есть
-    }
-
-    return text;
-}
-
-/** Ближайший пресет (15/30/45/60), если ETA задано недавно. */
-function inferEtaPresetMinutes(iso: string | null, nowMs = Date.now()): number | null {
-    if (!iso) return null;
-    const etaMs = new Date(iso).getTime();
-    if (Number.isNaN(etaMs)) return null;
-
-    const diffMin = Math.round((etaMs - nowMs) / 60_000);
-    let best: number | null = null;
-    let bestDelta = Infinity;
-
-    for (const minutes of ETA_PRESET_MINUTES) {
-        const delta = Math.abs(diffMin - minutes);
-        if (delta <= 3 && delta < bestDelta) {
-            best = minutes;
-            bestDelta = delta;
-        }
-    }
-
-    return best;
-}
-
-type OrderItem = {
-    id: number;
-    productId?: number | null;
-    name: string;
-    price: number;
-    quantity: number;
-    selectedModifiers?: unknown;
-};
-
-type OrderRowProps = {
-    order: {
-        id: number;
-        createdAtFormatted: string;
-        name: string;
-        phone: string;
-        deliveryLabel: string;
-        paymentLabel: string;
-        payment: string;
-        statusLabel: string;
-        status: string;
-        address: string;
-        subtotalBeforeDiscount: number;
-        discountAmount: number;
-        deliveryPrice: number;
-        totalPrice: number;
-        items: OrderItem[];
-        comment?: string | null;
-        estimatedDeliveryAt?: string | null;
-    };
-    searchQuery: string;
-    variant?: "table" | "card";
-};
-
-function highlight(text: string, query: string) {
-    if (!query.trim()) return text;
-
-    const lowerText = text.toLowerCase();
-    const lowerQuery = query.toLowerCase();
-    const index = lowerText.indexOf(lowerQuery);
-
-    if (index === -1) return text;
-
-    const before = text.slice(0, index);
-    const match = text.slice(index, index + query.length);
-    const after = text.slice(index + query.length);
-
-    return (
-        <>
-            {before}
-            <Box
-                component="span"
-                sx={{
-                    bgcolor: "rgba(249,115,22,0.18)",
-                    borderRadius: 0.5,
-                    px: 0.3,
-                    fontWeight: 700,
-                }}
-            >
-                {match}
-            </Box>
-            {after}
-        </>
-    );
-}
-
-function paymentChipProps(payment: string): Pick<ChipProps, "variant" | "color"> {
-    if (payment === "CARD") {
-        return { variant: "outlined", color: "primary" };
-    }
-    return { variant: "outlined", color: "default" };
-}
-
-export function OrderStatusChip({
-    label,
-    status,
-}: {
-    label: string;
-    status: string;
-}) {
-    return (
-        <Chip
-            label={label}
-            size="small"
-            color={
-                status === "NEW" ||
-                status === "COOKING" ||
-                status === "DELIVERING" ||
-                status === "DONE" ||
-                status === "CANCELLED"
-                    ? orderStatusChipColor(status)
-                    : "default"
-            }
-            sx={{ fontWeight: 600, fontSize: 12 }}
-        />
-    );
-}
-
-export function OrderPaymentChip({
-    label,
-    payment,
-}: {
-    label: string;
-    payment: string;
-}) {
-    const chipProps = paymentChipProps(payment);
-    return (
-        <Chip
-            label={label}
-            size="small"
-            variant={chipProps.variant}
-            color={chipProps.color}
-            sx={{ fontWeight: 500, fontSize: 12 }}
-        />
-    );
-}
+// re-export для обратной совместимости импортов
+export { OrderPaymentChip, OrderStatusChip } from "./order-row-helpers";
 
 export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProps) {
     const theme = useTheme();
@@ -586,6 +435,20 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                             <Typography variant="body2">
                                 Адрес: {order.address || "-"}
                             </Typography>
+                            {order.changeFrom != null && (
+                                <Typography
+                                    variant="body2"
+                                    sx={{ fontWeight: 700, color: "warning.main" }}
+                                >
+                                    💵 Клиент даст{" "}
+                                    {order.changeFrom.toLocaleString("ru-RU")} ֏
+                                    {order.changeFrom - order.totalPrice > 0
+                                        ? ` — подготовить сдачу ${(
+                                              order.changeFrom - order.totalPrice
+                                          ).toLocaleString("ru-RU")} ֏`
+                                        : " (без сдачи)"}
+                                </Typography>
+                            )}
                             {order.comment && (
                                 <Typography variant="body2">
                                     Комментарий: {order.comment}

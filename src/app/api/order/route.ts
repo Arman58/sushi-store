@@ -54,6 +54,7 @@ type KitchenTelegramPayload = {
     address: string | undefined;
     comment: string | undefined;
     payment: OrderPayload["payment"];
+    changeFrom: number | null;
     delivery: OrderPayload["delivery"];
     verifiedItems: VerifiedOrderItem[];
     deliveryFee: number;
@@ -73,6 +74,7 @@ async function notifyKitchenTelegram(payload: KitchenTelegramPayload): Promise<v
         address,
         comment,
         payment,
+        changeFrom,
         delivery,
         verifiedItems,
         deliveryFee,
@@ -101,6 +103,20 @@ async function notifyKitchenTelegram(payload: KitchenTelegramPayload): Promise<v
     lines.push(
         `<b>💳 Оплата:</b> ${payment === "cash" ? "<i>Наличными</i>" : "<i>Картой</i>"}`,
     );
+
+    if (payment === "cash") {
+        if (changeFrom != null) {
+            const changeDue = changeFrom - payableForNotify;
+            lines.push(
+                `<b>💵 Клиент даст:</b> <i>${changeFrom.toLocaleString("ru-RU")} ֏</i>` +
+                    (changeDue > 0
+                        ? ` — подготовить сдачу <b>${changeDue.toLocaleString("ru-RU")} ֏</b>`
+                        : " <i>(без сдачи)</i>"),
+            );
+        } else {
+            lines.push("<b>💵 Сдача:</b> <i>не нужна — клиент даст точную сумму</i>");
+        }
+    }
 
     if (comment) {
         lines.push("");
@@ -235,9 +251,14 @@ export async function POST(request: Request) {
         deliveryZoneId,
         promoCode: promoCodeRaw,
         locale: payloadLocale,
+        changeFrom: changeFromRaw,
     } = payload;
 
     const locale = resolveOrderRequestLocale(request, payloadLocale);
+
+    // Сдача актуальна только для наличных.
+    const changeFrom =
+        payment === "cash" && changeFromRaw != null ? changeFromRaw : null;
 
     // ── Сверка позиций с БД (пересчёт цен, snapshot, правила групп) ──────────
     const declaredItemsTotal = items.reduce(
@@ -347,6 +368,15 @@ export async function POST(request: Request) {
 
     const payableTotal = verifiedTotal - discountAmt + deliveryFee;
 
+    // Сдача не может быть меньше суммы заказа.
+    if (changeFrom != null && changeFrom < payableTotal) {
+        return localizedApiErrorJsonResponse(
+            API_ERROR_CODES.CHANGE_FROM_TOO_SMALL,
+            locale,
+            400,
+        );
+    }
+
     if (declaredSubtotal !== undefined && declaredSubtotal !== verifiedTotal) {
         return localizedApiErrorJsonResponse(
             API_ERROR_CODES.SUBTOTAL_MISMATCH,
@@ -424,6 +454,8 @@ export async function POST(request: Request) {
                     deliveryPrice: deliveryFee,
                     promoCodeId: promoDbId,
                     userId: sessionUserId,
+                    locale,
+                    changeFrom,
                     items: {
                         create: verifiedItems.map((item) => ({
                             productId: item.productId,
@@ -486,6 +518,7 @@ export async function POST(request: Request) {
             address: address ?? undefined,
             comment: comment ?? undefined,
             payment,
+            changeFrom,
             delivery,
             verifiedItems,
             deliveryFee,

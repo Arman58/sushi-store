@@ -26,8 +26,7 @@
             "mobileNavMenu": "Navigation menu",
             "toggleTheme": "Toggle theme",
             "openCart": "Open cart",
-            "cartOnCheckout": "Cart (on checkout page)",
-            "toggleTheme": "Toggle theme"
+            "cartOnCheckout": "Cart (on checkout page)"
         },
         "toast": {
             "added": "Added to cart",
@@ -49,7 +48,9 @@
         "profile": "Profile",
         "search": "Search",
         "searchPlaceholder": "What would you like to order?",
-        "favorites": "Favorites"
+        "favorites": "Favorites",
+        "back": "Back",
+        "forward": "Forward"
     },
     "hero": {
         "promoBadge": "{value}% off your first order with promo {code}",
@@ -203,7 +204,8 @@
         "quickView": {
             "fullPage": "Details & reviews",
             "choose": "Choose options"
-        }
+        },
+        "frequentlyBought": "Frequently bought together"
     },
     "cart": {
         "pageTitle": "Cart",
@@ -263,7 +265,8 @@
             "modifiersChanged": "Item options changed. Remove and add it again."
         },
         "minOrderReached": "Minimum reached — ready to checkout",
-        "minOrderRemaining": "{amount} ֏ left to reach the minimum order"
+        "minOrderRemaining": "{amount} ֏ left to reach the minimum order",
+        "addonsTitle": "Frequently added"
     },
     "checkout": {
         "title": "Checkout",
@@ -361,7 +364,13 @@
             "cashSublabel": "To courier on delivery",
             "card": "Card to courier",
             "cardSublabel": "Terminal on delivery, not on website",
-            "comment": "Order comment"
+            "comment": "Order comment",
+            "changeQuestion": "Need change?",
+            "changeAmountLabel": "Change from",
+            "changeResult": "Change: {amount} ֏",
+            "changeTooLow": "Amount must be at least {total} ֏",
+            "exactAmountHint": "No change: please prepare exactly {amount} ֏",
+            "changeDueHint": "The courier will bring {amount} ֏ in change"
         },
         "summary": {
             "title": "Your order",
@@ -437,7 +446,10 @@
             "phone": "Phone",
             "address": "Address",
             "deliveryType": "Pickup method",
-            "payment": "Payment"
+            "payment": "Payment",
+            "live": "Updates automatically",
+            "changeFrom": "Change from",
+            "changeDue": "Change we will bring"
         },
         "success": {
             "title": "Thank you for your order!",
@@ -652,7 +664,69 @@
     "admin": {
         "imageUpload": {
             "unsupportedFormat": "Unsupported image format. Please upload JPG, PNG, WEBP, GIF, or HEIC."
-        }
+        },
+        "title": "Admin",
+        "nav": {
+            "dashboard": "Analytics",
+            "orders": "Orders",
+            "products": "Products",
+            "categories": "Categories",
+            "banners": "Banners",
+            "reviews": "Reviews",
+            "deliveryZones": "Delivery zones",
+            "promocodes": "Promo codes",
+            "kitchen": "Kitchen screen"
+        },
+        "banners": {
+            "title": "Banners",
+            "subtitle": "Banners appear in the promo carousel on the home page. The “Link” field is where the customer goes when they click the banner (not where it is shown).",
+            "linkLabel": "Banner link",
+            "linkPlaceholder": "/menu?category=sets",
+            "uploadCreate": "Upload photo",
+            "creating": "Creating…",
+            "loadError": "Failed to load banners.",
+            "saveError": "Failed to save.",
+            "fileTooBig": "File is larger than 5 MB",
+            "uploadError": "Failed to upload photo",
+            "createError": "Failed to create banner",
+            "deleteError": "Failed to delete",
+            "draftCreated": "Banner created as hidden. Set the caption and dates, then enable display.",
+            "emptyTitle": "No banners yet",
+            "emptyHint": "Upload a photo — the banner is created hidden. Configure it and turn display on.",
+            "link": "Link",
+            "addCaption": "Add caption",
+            "editCaption": "Caption",
+            "showFrom": "Show from",
+            "showTo": "until (inclusive)",
+            "statusHidden": "Hidden",
+            "statusScheduled": "Scheduled",
+            "statusExpired": "Expired",
+            "statusLive": "Live",
+            "moveUp": "Up",
+            "moveDown": "Down",
+            "shown": "Visible",
+            "hiddenTip": "Hidden",
+            "deleteBanner": "Delete banner",
+            "captionDialogTitle": "Banner caption",
+            "captionDialogHint": "Shown over the photo with a dark overlay. If a link is set, a button appears. Empty — just the photo.",
+            "captionField": "Title",
+            "ctaField": "Button text (empty — “View”)",
+            "cancel": "Cancel",
+            "save": "Save",
+            "deleteTitle": "Delete banner?",
+            "deleteHint": "The banner will disappear from the home page.",
+            "delete": "Delete",
+            "linkClickLabel": "Link on click (optional)",
+            "linkHelp": "Internal path: /menu or /menu?category=sets. Empty — banner has no link.",
+            "errFormat": "Start with “/” (e.g. /menu) or enter a full https:// URL.",
+            "errForbidden": "The /admin and /api sections cannot be used.",
+            "presets": "Quick pick",
+            "presetHome": "Home",
+            "presetMenu": "Menu"
+        },
+        "logout": "Log out",
+        "openMenu": "Open menu",
+        "menuLoading": "Loading menu"
     },
     "notFound": {
         "title": "404",
@@ -747,5 +821,24 @@
             "load_error": "Couldn't load reviews",
             "vote_error": "Couldn't vote"
         }
+    },
+    "search": {
+        "placeholder": "Search dishes and categories…",
+        "popular": "Popular",
+        "products": "Products",
+        "categories": "Categories",
+        "noResults": "Nothing found",
+        "noResultsHint": "Try another query",
+        "showAll": "Show all results",
+        "close": "Close",
+        "open": "Search",
+        "minHint": "Type at least 2 characters",
+        "unavailable": "Out of stock",
+        "popularQueries": [
+            "Roll",
+            "Pizza",
+            "Set",
+            "Shawarma"
+        ]
     }
 }

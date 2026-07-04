@@ -62,3 +62,6 @@ public/swe-worker*
 
 # local SQLite artifact (project uses PostgreSQL)
 /prisma/dev.db
+
+# local sqlite dev database
+prisma/dev.db

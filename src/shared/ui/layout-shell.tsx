@@ -17,7 +17,6 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -43,6 +42,8 @@ const StoreFooter = dynamic(
 );
 import LanguageSwitcher from "./LanguageSwitcher";
 import { MobileNavDrawer } from "./mobile-nav-drawer";
+import { PwaNavArrows } from "./pwa-nav-arrows";
+import { SearchOverlay } from "./search-overlay";
 import { tokens } from "./theme";
 import { ThemeModeToggle } from "./theme-mode-toggle";
 
@@ -57,23 +58,17 @@ const HEADER_ACTION_SLOT_SX = {
 
 // ─── Search bar ──────────────────────────────────────────────────────────────
 
-function SearchBar({ variant = "desktop" }: { variant?: "desktop" | "mobile" }) {
+function SearchBar({
+    variant = "desktop",
+    onOpen,
+}: {
+    variant?: "desktop" | "mobile";
+    onOpen: () => void;
+}) {
     const t = useTranslations("nav");
-    const router = useRouter();
-    const [query, setQuery] = useState("");
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (query.trim()) {
-            router.push(`/menu?search=${encodeURIComponent(query.trim())}`);
-        }
-    };
 
     return (
         <Box
-            component="form"
-            onSubmit={handleSubmit}
             sx={
                 variant === "desktop"
                     ? {
@@ -91,9 +86,12 @@ function SearchBar({ variant = "desktop" }: { variant?: "desktop" | "mobile" }) 
                       }
             }
         >
-            <Box
+            <ButtonBase
+                onClick={onOpen}
+                aria-label={t("search") || "Поиск"}
                 sx={{
                     display: "flex",
+                    justifyContent: "flex-start",
                     alignItems: "center",
                     width: "100%",
                     minHeight: 44,
@@ -103,33 +101,20 @@ function SearchBar({ variant = "desktop" }: { variant?: "desktop" | "mobile" }) 
                     borderRadius: 999,
                     border: "1px solid transparent",
                     bgcolor: tokens.surfaceHi,
-                    transition: "border-color 0.2s, box-shadow 0.2s, background-color 0.2s",
-                    "&:focus-within": {
-                        borderColor: "primary.main",
-                        bgcolor: "background.paper",
-                        boxShadow: "0 0 0 2px rgba(39,174,96,0.15)",
-                    },
+                    color: tokens.textMuted,
+                    transition: "border-color 0.2s, background-color 0.2s",
+                    "&:hover": { bgcolor: "action.hover" },
                 }}
             >
-                <SearchIcon sx={{ fontSize: 18, color: "text.muted", flexShrink: 0 }} />
-                <input
-                    ref={inputRef}
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder={t("searchPlaceholder") || "Поиск..."}
-                    aria-label={t("search") || "Поиск"}
-                    style={{
-                        border: "none",
-                        outline: "none",
-                        background: "transparent",
-                        width: "100%",
-                        fontSize: "0.875rem",
-                        color: "inherit",
-                        lineHeight: 1.4,
-                    }}
-                />
-            </Box>
+                <SearchIcon sx={{ fontSize: 18, flexShrink: 0 }} />
+                <Typography
+                    component="span"
+                    noWrap
+                    sx={{ fontSize: "0.875rem", color: "inherit" }}
+                >
+                    {t("searchPlaceholder") || "Поиск…"}
+                </Typography>
+            </ButtonBase>
         </Box>
     );
 }
@@ -363,6 +348,8 @@ export function LayoutShell({ children }: LayoutShellProps) {
     const appToastMessage    = useCartStore((state) => state.appToastMessage);
     const appToastSeverity   = useCartStore((state) => state.appToastSeverity);
 
+    const [searchOpen, setSearchOpen] = useState(false);
+
     /** Админка - отдельный layout (src/app/admin), без витринного хедера и корзины. */
     if (isAdminRoute) {
         return <>{children}</>;
@@ -411,6 +398,9 @@ export function LayoutShell({ children }: LayoutShellProps) {
                             overflow: "visible",
                         }}
                     >
+                        {/* PWA back/forward - только в standalone (в браузере не рендерится) */}
+                        <PwaNavArrows />
+
                         {/* Logo: на xs скрыт - место отдано локации (паттерн Wolt/Glovo) */}
                         <Box
                             component={Link}
@@ -524,7 +514,9 @@ export function LayoutShell({ children }: LayoutShellProps) {
                         </Box>
 
                         {/* На /menu поиск в шапке скрыт - там свой sticky-поиск с фильтрами */}
-                        {pathname !== "/menu" && <SearchBar />}
+                        {pathname !== "/menu" && (
+                            <SearchBar onOpen={() => setSearchOpen(true)} />
+                        )}
 
                         {/* Right actions */}
                         <Box
@@ -585,7 +577,10 @@ export function LayoutShell({ children }: LayoutShellProps) {
                             pb: 1.25,
                         }}
                     >
-                        <SearchBar variant="mobile" />
+                        <SearchBar
+                            variant="mobile"
+                            onOpen={() => setSearchOpen(true)}
+                        />
                     </Container>
                 )}
             </AppBar>
@@ -681,6 +676,10 @@ export function LayoutShell({ children }: LayoutShellProps) {
 
             {/* Global overlays */}
             <CartDrawer />
+            <SearchOverlay
+                open={searchOpen}
+                onClose={() => setSearchOpen(false)}
+            />
             {!pathname.startsWith("/checkout") && <MobileBottomNav />}
         </Box>
     );

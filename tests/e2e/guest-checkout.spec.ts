@@ -2,10 +2,10 @@ import { expect, test } from "@playwright/test";
 
 import {
     addFirstProductToCart,
-    prepareStorefront,
     fillCheckoutForm,
     goToCheckoutFromCart,
     openCartDrawer,
+    prepareStorefront,
     submitCheckout,
 } from "./helpers";
 

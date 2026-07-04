@@ -1,36 +1,20 @@
 "use client";
 
 import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
-import ImageIcon from "@mui/icons-material/Image";
 import {
     Alert,
-    Avatar,
     Box,
     Button,
-    Chip,
     Container,
     Dialog,
     DialogActions,
     DialogContent,
     DialogTitle,
-    IconButton,
     Paper,
-    Skeleton,
     Snackbar,
-    Switch,
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TablePagination,
-    TableRow,
-    TableSortLabel,
     Typography,
 } from "@mui/material";
 import dynamic from "next/dynamic";
-import Image from "next/image";
 import {
     startTransition,
     useCallback,
@@ -45,6 +29,14 @@ import { PageContainer, SectionTitle } from "@/shared/ui";
 
 import { ProductFormDialogShell } from "./product-form-dialog-shell";
 import type { ProductSavePayload } from "./product-form-types";
+import type {
+    EditingProduct,
+    ProductRow,
+    ProductRowActions,
+} from "./product-row-types";
+import { ProductsDesktopTable } from "./products-desktop-table";
+import { ProductsMobileList } from "./products-mobile-list";
+import { MobileListSkeleton, TableSkeleton } from "./products-skeletons";
 import {
     DEFAULT_PRODUCT_VIEW,
     filterAndSortProducts,
@@ -52,149 +44,13 @@ import {
     ProductsToolbar,
     type ProductTableView,
 } from "./products-table-controls";
+import { ProductsTablePagination } from "./products-table-pagination";
 
 const ProductFormDialog = dynamic(
     () =>
         import("./product-form-dialog").then((m) => m.ProductFormDialog),
     { ssr: false },
 );
-
-type ProductRow = {
-    id: number;
-    name: unknown;
-    description: unknown;
-    composition: unknown;
-    price: number;
-    weight: number | null;
-    images?: unknown;
-    mainImage?: string | null;
-    isActive: boolean;
-    isAvailable?: boolean;
-    minQty?: number;
-    maxQty?: number | null;
-    upsells?: { suggestedId: number }[];
-    categoryId: number | null;
-    createdAt?: string;
-    category: { name: unknown } | null;
-    modifierGroups?: {
-        id: number;
-        name: string;
-        required: boolean;
-        maxChoices: number;
-        position: number;
-        modifiers: {
-            id: number;
-            name: string;
-            priceDelta: number;
-            position: number;
-        }[];
-    }[];
-};
-
-/** `null` - форма закрыта; `{}` - создание; `ProductRow` - редактирование */
-type EditingProduct = null | Record<string, never> | ProductRow;
-
-const MAX_COMP_LEN = 80;
-
-function trimComposition(text: string | null): string {
-    if (!text) return "-";
-    const t = text.replace(/\s+/g, " ").trim();
-    if (t.length <= MAX_COMP_LEN) return t;
-    return `${t.slice(0, MAX_COMP_LEN).trimEnd()}…`;
-}
-
-function TableSkeleton() {
-    return (
-        <Table size="small">
-            <TableHead>
-                <TableRow>
-                    {[
-                        "ID",
-                        "Картинка",
-                        "Название",
-                        "Состав",
-                        "Категория",
-                        "Цена",
-                        "На витрине",
-                        "",
-                    ].map((h) => (
-                        <TableCell key={h}>{h || <span />}</TableCell>
-                    ))}
-                </TableRow>
-            </TableHead>
-            <TableBody>
-                {[0, 1, 2, 3, 4, 5].map((i) => (
-                    <TableRow key={i}>
-                        <TableCell>
-                            <Skeleton width={32} />
-                        </TableCell>
-                        <TableCell>
-                            <Skeleton variant="rectangular" width={50} height={50} />
-                        </TableCell>
-                        <TableCell>
-                            <Skeleton width="80%" />
-                        </TableCell>
-                        <TableCell>
-                            <Skeleton width="90%" />
-                        </TableCell>
-                        <TableCell>
-                            <Skeleton width={100} />
-                        </TableCell>
-                        <TableCell>
-                            <Skeleton width={100} />
-                        </TableCell>
-                        <TableCell>
-                            <Skeleton width={52} />
-                        </TableCell>
-                        <TableCell>
-                            <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-                                <Skeleton variant="circular" width={32} height={32} />
-                                <Skeleton variant="circular" width={32} height={32} sx={{ ml: 0.5 }} />
-                            </Box>
-                        </TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    );
-}
-
-function ShelfToggle(props: {
-    product: ProductRow;
-    disabled: boolean;
-    onChange: (nextActive: boolean) => void;
-}) {
-    const { product, disabled, onChange } = props;
-    return (
-        <Box
-            sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                justifyContent: "flex-end",
-            }}
-        >
-            {!product.isActive ? (
-                <Chip
-                    label="Снято"
-                    size="small"
-                    color="default"
-                    variant="outlined"
-                    sx={{ height: 20, fontSize: "11px" }}
-                />
-            ) : null}
-            <Switch
-                checked={product.isActive}
-                onChange={(e) => onChange(e.target.checked)}
-                disabled={disabled}
-                size="small"
-                inputProps={{
-                    "aria-label": product.isActive ? "На витрине, выключить" : "Показать на витрине",
-                }}
-            />
-        </Box>
-    );
-}
 
 export default function AdminProductsPage() {
     const [products, setProducts] = useState<ProductRow[]>([]);
@@ -211,6 +67,7 @@ export default function AdminProductsPage() {
     const [hideUndoProductId, setHideUndoProductId] = useState<number | null>(null);
     const [rotatingMainId, setRotatingMainId] = useState<number | null>(null);
     const [view, setView] = useState<ProductTableView>(DEFAULT_PRODUCT_VIEW);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
     const patchView = useCallback((patch: Partial<ProductTableView>) => {
         setView((prev) => ({ ...prev, ...patch }));
@@ -321,10 +178,10 @@ export default function AdminProductsPage() {
         setEditingProduct({} as Record<string, never>);
     };
 
-    const handleEditClick = (product: ProductRow) => {
+    const handleEditClick = useCallback((product: ProductRow) => {
         setFormSession((n) => n + 1);
         setEditingProduct(product);
-    };
+    }, []);
 
     const closeProductDialog = () => {
         if (!saveLoading) {
@@ -394,9 +251,7 @@ export default function AdminProductsPage() {
         }
     };
 
-    const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
-
-    const handleDelete = async (id: number) => {
+    const handleDelete = useCallback(async (id: number) => {
         setConfirmDeleteId(null);
         setDeletingId(id);
         try {
@@ -414,7 +269,7 @@ export default function AdminProductsPage() {
         } finally {
             setDeletingId(null);
         }
-    };
+    }, []);
 
     const handleCycleMainCover = useCallback(async (product: ProductRow) => {
         const urls = getProductImageUrls(product.images);
@@ -561,6 +416,30 @@ export default function AdminProductsPage() {
         })();
     }, [hideUndoProductId, persistProductActive]);
 
+    const rowActions: ProductRowActions = useMemo(
+        () => ({
+            deletingId,
+            saveLoading,
+            rotatingMainId,
+            onEdit: handleEditClick,
+            onRequestDelete: setConfirmDeleteId,
+            onDeleteNow: (id) => void handleDelete(id),
+            onCycleMainCover: (product) => void handleCycleMainCover(product),
+            onShelfChange: handleAvailabilityChange,
+            onStockChange: handleAvailableChange,
+        }),
+        [
+            deletingId,
+            saveLoading,
+            rotatingMainId,
+            handleEditClick,
+            handleDelete,
+            handleCycleMainCover,
+            handleAvailabilityChange,
+            handleAvailableChange,
+        ],
+    );
+
     return (
         <PageContainer>
             {isDialogOpen && !shouldRenderForm ? (
@@ -660,12 +539,12 @@ export default function AdminProductsPage() {
                         mb: 2,
                         textTransform: "none",
                         fontWeight: 600,
-                        borderColor: "rgba(0,0,0,0.2)",
+                        borderColor: "divider",
                         color: "text.primary",
                         "&:hover": {
                             borderColor: "primary.main",
                             bgcolor: "primary.main",
-                            color: "#fff",
+                            color: "primary.contrastText",
                         },
                     }}
                 >
@@ -689,42 +568,7 @@ export default function AdminProductsPage() {
                             <Box sx={{ display: { xs: "none", md: "block" } }}>
                                 <TableSkeleton />
                             </Box>
-                            <Box sx={{ display: { xs: "block", md: "none" }, mt: 2 }}>
-                                {[0, 1, 2, 3].map((i) => (
-                                    <Paper
-                                        key={i}
-                                        elevation={0}
-                                        sx={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: 2,
-                                            p: 1.5,
-                                            mb: 1.5,
-                                            borderRadius: 3,
-                                        }}
-                                    >
-                                        <Skeleton variant="rounded" width={56} height={56} />
-                                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                                            <Skeleton width="70%" />
-                                            <Skeleton width="40%" sx={{ mt: 0.5 }} />
-                                        </Box>
-                                        <Box sx={{ textAlign: "right", flexShrink: 0 }}>
-                                            <Skeleton width={64} sx={{ ml: "auto" }} />
-                                            <Box
-                                                sx={{
-                                                    display: "flex",
-                                                    justifyContent: "flex-end",
-                                                    gap: 0.5,
-                                                    mt: 0.5,
-                                                }}
-                                            >
-                                                <Skeleton variant="circular" width={20} height={20} />
-                                                <Skeleton variant="circular" width={20} height={20} />
-                                            </Box>
-                                        </Box>
-                                    </Paper>
-                                ))}
-                            </Box>
+                            <MobileListSkeleton />
                         </>
                     ) : error ? (
                         <Box sx={{ p: 2 }}>
@@ -753,461 +597,21 @@ export default function AdminProductsPage() {
                         </Box>
                     ) : (
                         <>
-                            <Box sx={{ display: { xs: "none", md: "block" } }}>
-                                <Table size="small" stickyHeader>
-                                    <TableHead>
-                                        <TableRow>
-                                            <TableCell sortDirection={view.sortBy === "id" ? view.sortDir : false}>
-                                                <TableSortLabel
-                                                    active={view.sortBy === "id"}
-                                                    direction={view.sortBy === "id" ? view.sortDir : "asc"}
-                                                    onClick={() => handleSort("id")}
-                                                >
-                                                    ID
-                                                </TableSortLabel>
-                                            </TableCell>
-                                            <TableCell>Картинка</TableCell>
-                                            <TableCell sortDirection={view.sortBy === "name" ? view.sortDir : false}>
-                                                <TableSortLabel
-                                                    active={view.sortBy === "name"}
-                                                    direction={view.sortBy === "name" ? view.sortDir : "asc"}
-                                                    onClick={() => handleSort("name")}
-                                                >
-                                                    Название
-                                                </TableSortLabel>
-                                            </TableCell>
-                                            <TableCell>Состав</TableCell>
-                                            <TableCell sortDirection={view.sortBy === "category" ? view.sortDir : false}>
-                                                <TableSortLabel
-                                                    active={view.sortBy === "category"}
-                                                    direction={view.sortBy === "category" ? view.sortDir : "asc"}
-                                                    onClick={() => handleSort("category")}
-                                                >
-                                                    Категория
-                                                </TableSortLabel>
-                                            </TableCell>
-                                            <TableCell align="right" sortDirection={view.sortBy === "price" ? view.sortDir : false}>
-                                                <TableSortLabel
-                                                    active={view.sortBy === "price"}
-                                                    direction={view.sortBy === "price" ? view.sortDir : "asc"}
-                                                    onClick={() => handleSort("price")}
-                                                >
-                                                    Цена
-                                                </TableSortLabel>
-                                            </TableCell>
-                                            <TableCell align="right" sortDirection={view.sortBy === "createdAt" ? view.sortDir : false}>
-                                                <TableSortLabel
-                                                    active={view.sortBy === "createdAt"}
-                                                    direction={view.sortBy === "createdAt" ? view.sortDir : "asc"}
-                                                    onClick={() => handleSort("createdAt")}
-                                                >
-                                                    Создан
-                                                </TableSortLabel>
-                                            </TableCell>
-                                            <TableCell align="right" sortDirection={view.sortBy === "isActive" ? view.sortDir : false}>
-                                                <TableSortLabel
-                                                    active={view.sortBy === "isActive"}
-                                                    direction={view.sortBy === "isActive" ? view.sortDir : "asc"}
-                                                    onClick={() => handleSort("isActive")}
-                                                >
-                                                    На витрине
-                                                </TableSortLabel>
-                                            </TableCell>
-                                            <TableCell align="right" width={100} />
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {pagedProducts.map((product) => {
-                                            const thumb = getProductCoverUrl(product);
-                                            const canCycleMain =
-                                                getProductImageUrls(product.images).length >= 2;
-                                            return (
-                                                <TableRow
-                                                    key={product.id}
-                                                    hover
-                                                    sx={{
-                                                        transition: "all 0.3s ease",
-                                                        opacity: product.isActive ? 1 : 0.6,
-                                                        filter: product.isActive
-                                                            ? "none"
-                                                            : "grayscale(80%)",
-                                                    }}
-                                                >
-                                                    <TableCell>{product.id}</TableCell>
-                                                    <TableCell>
-                                                        <Box
-                                                            sx={{
-                                                                position: "relative",
-                                                                width: 50,
-                                                                height: 50,
-                                                                bgcolor: "action.hover",
-                                                            }}
-                                                        >
-                                                            {thumb ? (
-                                                                <Image
-                                                                    src={thumb}
-                                                                    alt={getLocalizedField(product.name, "hy")}
-                                                                    width={50}
-                                                                    height={50}
-                                                                    style={{ objectFit: "cover" }}
-                                                                    unoptimized
-                                                                />
-                                                            ) : (
-                                                                <Box
-                                                                    sx={{
-                                                                        width: 50,
-                                                                        height: 50,
-                                                                        display: "flex",
-                                                                        alignItems: "center",
-                                                                        justifyContent: "center",
-                                                                        typography: "caption",
-                                                                        color: "text.disabled",
-                                                                    }}
-                                                                >
-                                                                    -
-                                                                </Box>
-                                                            )}
-                                                        </Box>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {getLocalizedField(product.name, "hy")}
-                                                    </TableCell>
-                                                    <TableCell
-                                                        sx={{
-                                                            maxWidth: 280,
-                                                            whiteSpace: "normal",
-                                                            wordBreak: "break-word",
-                                                        }}
-                                                    >
-                                                        {trimComposition(
-                                                            getLocalizedField(
-                                                                product.composition,
-                                                                "hy",
-                                                            ) || null,
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {product.category
-                                                            ? getLocalizedField(
-                                                                  product.category.name,
-                                                                  "hy",
-                                                              )
-                                                            : "-"}
-                                                    </TableCell>
-                                                    <TableCell align="right">
-                                                        {product.price.toLocaleString("ru-RU")} ֏
-                                                    </TableCell>
-                                                    <TableCell align="right">
-                                                        <Typography
-                                                            variant="caption"
-                                                            color="text.secondary"
-                                                            sx={{ whiteSpace: "nowrap" }}
-                                                        >
-                                                            {product.createdAt
-                                                                ? new Date(
-                                                                      product.createdAt,
-                                                                  ).toLocaleDateString("ru-RU")
-                                                                : "—"}
-                                                        </Typography>
-                                                    </TableCell>
-                                                    <TableCell align="right">
-                                                        <ShelfToggle
-                                                            product={product}
-                                                            disabled={
-                                                                deletingId === product.id || saveLoading
-                                                            }
-                                                            onChange={(next) =>
-                                                                handleAvailabilityChange(
-                                                                    product.id,
-                                                                    next,
-                                                                )
-                                                            }
-                                                        />
-                                                        <Box
-                                                            sx={{
-                                                                display: "flex",
-                                                                alignItems: "center",
-                                                                gap: 0.5,
-                                                                justifyContent: "flex-end",
-                                                            }}
-                                                        >
-                                                            <Typography
-                                                                variant="caption"
-                                                                color={
-                                                                    product.isAvailable === false
-                                                                        ? "error"
-                                                                        : "text.secondary"
-                                                                }
-                                                                sx={{ fontSize: "0.65rem" }}
-                                                            >
-                                                                {product.isAvailable === false
-                                                                    ? "Стоп-лист"
-                                                                    : "В наличии"}
-                                                            </Typography>
-                                                            <Switch
-                                                                size="small"
-                                                                checked={product.isAvailable !== false}
-                                                                disabled={deletingId === product.id}
-                                                                onChange={(e) =>
-                                                                    handleAvailableChange(
-                                                                        product.id,
-                                                                        e.target.checked,
-                                                                    )
-                                                                }
-                                                                inputProps={{
-                                                                    "aria-label": "В наличии",
-                                                                }}
-                                                            />
-                                                        </Box>
-                                                    </TableCell>
-                                                    <TableCell align="right">
-                                                        <Box
-                                                            sx={{
-                                                                display: "flex",
-                                                                flexDirection: "column",
-                                                                alignItems: "flex-end",
-                                                                gap: 0.75,
-                                                            }}
-                                                        >
-                                                            <Box
-                                                                sx={{
-                                                                    display: "inline-flex",
-                                                                    alignItems: "center",
-                                                                    justifyContent: "flex-end",
-                                                                }}
-                                                            >
-                                                                <IconButton
-                                                                    size="small"
-                                                                    color="primary"
-                                                                    onClick={() => handleEditClick(product)}
-                                                                    disabled={
-                                                                        deletingId === product.id ||
-                                                                        saveLoading
-                                                                    }
-                                                                    aria-label="Редактировать"
-                                                                >
-                                                                    <EditIcon fontSize="small" />
-                                                                </IconButton>
-                                                                <IconButton
-                                                                    size="small"
-                                                                    color="error"
-                                                                    disabled={deletingId === product.id}
-                                                                    onClick={() => setConfirmDeleteId(product.id)}
-                                                                    aria-label="Удалить"
-                                                                >
-                                                                    <DeleteIcon fontSize="small" />
-                                                                </IconButton>
-                                                            </Box>
-                                                            {canCycleMain ? (
-                                                                <Button
-                                                                    variant="outlined"
-                                                                    size="small"
-                                                                    onClick={() =>
-                                                                        void handleCycleMainCover(product)
-                                                                    }
-                                                                    disabled={
-                                                                        deletingId === product.id ||
-                                                                        saveLoading ||
-                                                                        rotatingMainId === product.id
-                                                                    }
-                                                                    sx={{
-                                                                        fontSize: "0.7rem",
-                                                                        px: 1,
-                                                                        py: 0.25,
-                                                                        minWidth: 0,
-                                                                        whiteSpace: "nowrap",
-                                                                    }}
-                                                                >
-                                                                    Сделать главной
-                                                                </Button>
-                                                            ) : null}
-                                                        </Box>
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
-                                    </TableBody>
-                                </Table>
-                            </Box>
-                            <Box sx={{ display: { xs: "block", md: "none" }, mt: 2 }}>
-                                {pagedProducts.map((product) => {
-                                    const imageUrl = getProductCoverUrl(product);
-                                    const showImage = Boolean(imageUrl);
-                                    const canCycleMain =
-                                        getProductImageUrls(product.images).length >= 2;
-
-                                    return (
-                                        <Paper
-                                            key={product.id}
-                                            elevation={0}
-                                            sx={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: 2,
-                                                p: 1.5,
-                                                mb: 1.5,
-                                                borderRadius: 3,
-                                                transition: "all 0.3s ease",
-                                                opacity: product.isActive ? 1 : 0.6,
-                                                filter: product.isActive
-                                                    ? "none"
-                                                    : "grayscale(80%)",
-                                            }}
-                                        >
-                                            {showImage ? (
-                                                <Avatar
-                                                    src={imageUrl ?? undefined}
-                                                    variant="rounded"
-                                                    sx={{ width: 56, height: 56 }}
-                                                    alt={getLocalizedField(product.name, "hy")}
-                                                />
-                                            ) : (
-                                                <Avatar
-                                                    variant="rounded"
-                                                    sx={{
-                                                        width: 56,
-                                                        height: 56,
-                                                        bgcolor: "#f5f5f5",
-                                                    }}
-                                                >
-                                                    <ImageIcon />
-                                                </Avatar>
-                                            )}
-                                            <Box sx={{ flex: 1, minWidth: 0 }}>
-                                                <Typography noWrap sx={{ fontWeight: 600 }}>
-                                                    {getLocalizedField(product.name, "hy")}
-                                                </Typography>
-                                                <Typography
-                                                    sx={{
-                                                        fontSize: "0.75rem",
-                                                        color: "text.secondary",
-                                                    }}
-                                                    noWrap
-                                                >
-                                                    {product.category
-                                                        ? getLocalizedField(
-                                                              product.category.name,
-                                                              "hy",
-                                                          )
-                                                        : "-"}
-                                                </Typography>
-                                            </Box>
-                                            <Box sx={{ textAlign: "right", flexShrink: 0 }}>
-                                                <Typography sx={{ fontWeight: 700 }}>
-                                                    {product.price.toLocaleString("ru-RU")} ֏
-                                                </Typography>
-                                                <Box sx={{ mt: -0.5 }}>
-                                                    <Typography
-                                                        component="span"
-                                                        variant="caption"
-                                                        color="text.secondary"
-                                                        sx={{
-                                                            fontSize: "0.65rem",
-                                                            lineHeight: 1,
-                                                            display: "block",
-                                                            textAlign: "right",
-                                                        }}
-                                                    >
-                                                        На витрине
-                                                    </Typography>
-                                                    <ShelfToggle
-                                                        product={product}
-                                                        disabled={
-                                                            deletingId === product.id || saveLoading
-                                                        }
-                                                        onChange={(next) =>
-                                                            handleAvailabilityChange(
-                                                                product.id,
-                                                                next,
-                                                            )
-                                                        }
-                                                    />
-                                                </Box>
-                                                <Box
-                                                    sx={{
-                                                        display: "flex",
-                                                        flexDirection: "column",
-                                                        alignItems: "flex-end",
-                                                        gap: 0.5,
-                                                        mt: 0.25,
-                                                    }}
-                                                >
-                                                    <Box
-                                                        sx={{
-                                                            display: "flex",
-                                                            justifyContent: "flex-end",
-                                                            gap: 0,
-                                                        }}
-                                                    >
-                                                        <IconButton
-                                                            size="small"
-                                                            color="primary"
-                                                            onClick={() => handleEditClick(product)}
-                                                            disabled={
-                                                                deletingId === product.id || saveLoading
-                                                            }
-                                                            aria-label="Редактировать"
-                                                        >
-                                                            <EditIcon sx={{ fontSize: 20 }} />
-                                                        </IconButton>
-                                                        <IconButton
-                                                            size="small"
-                                                            color="error"
-                                                            disabled={deletingId === product.id}
-                                                            onClick={() =>
-                                                                void handleDelete(product.id)
-                                                            }
-                                                            aria-label="Удалить"
-                                                        >
-                                                            <DeleteIcon sx={{ fontSize: 20 }} />
-                                                        </IconButton>
-                                                    </Box>
-                                                    {canCycleMain ? (
-                                                        <Button
-                                                            variant="outlined"
-                                                            size="small"
-                                                            onClick={() =>
-                                                                void handleCycleMainCover(product)
-                                                            }
-                                                            disabled={
-                                                                deletingId === product.id ||
-                                                                saveLoading ||
-                                                                rotatingMainId === product.id
-                                                            }
-                                                            sx={{
-                                                                fontSize: "0.7rem",
-                                                                px: 1,
-                                                                py: 0.25,
-                                                                minWidth: 0,
-                                                            }}
-                                                        >
-                                                            Сделать главной
-                                                        </Button>
-                                                    ) : null}
-                                                </Box>
-                                            </Box>
-                                        </Paper>
-                                    );
-                                })}
-                            </Box>
-
-                            <TablePagination
-                                component="div"
+                            <ProductsDesktopTable
+                                products={pagedProducts}
+                                view={view}
+                                onSort={handleSort}
+                                actions={rowActions}
+                            />
+                            <ProductsMobileList
+                                products={pagedProducts}
+                                actions={rowActions}
+                            />
+                            <ProductsTablePagination
                                 count={filteredProducts.length}
                                 page={safePage}
                                 rowsPerPage={view.rowsPerPage}
-                                onPageChange={(_, page) => patchView({ page })}
-                                onRowsPerPageChange={(e) =>
-                                    patchView({
-                                        rowsPerPage: Number(e.target.value),
-                                        page: 0,
-                                    })
-                                }
-                                rowsPerPageOptions={[10, 25, 50, 100]}
-                                labelRowsPerPage="Строк на странице:"
-                                labelDisplayedRows={({ from, to, count }) =>
-                                    `${from}–${to} из ${count}`
-                                }
+                                onPatchView={patchView}
                             />
                         </>
                     )}
@@ -1216,4 +620,3 @@ export default function AdminProductsPage() {
         </PageContainer>
     );
 }
-

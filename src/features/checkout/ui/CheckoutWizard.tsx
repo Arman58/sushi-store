@@ -323,6 +323,7 @@ export function CheckoutWizard() {
                                             requiresManagerApproval={
                                                 delivery.requiresManagerApproval
                                             }
+                                            total={delivery.grandTotal}
                                         />
 
                                         <Box

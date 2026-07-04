@@ -1,13 +1,20 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import {
+    checkRateLimit,
+    rateLimitExceededJsonResponse,
+} from "@/lib/rate-limit";
 import { requireAuthenticatedUserId } from "@/lib/require-auth-user";
 
 /** Тоггл «Полезно». Нельзя голосовать за собственный отзыв. */
 export async function POST(
-    _request: Request,
+    request: Request,
     context: { params: Promise<{ id: string }> },
 ) {
+    const rl = await checkRateLimit(request, "reviewHelpful");
+    if (!rl.allowed) return rateLimitExceededJsonResponse();
+
     const authResult = await requireAuthenticatedUserId();
     if (authResult instanceof NextResponse) return authResult;
     const { userId } = authResult;

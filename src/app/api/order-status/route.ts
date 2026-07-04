@@ -8,6 +8,10 @@ import {
 import { canAccessOrderStatus } from "@/lib/order-status-access";
 import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
+import {
+    checkRateLimit,
+    rateLimitExceededJsonResponse,
+} from "@/lib/rate-limit";
 import { API_ERROR_CODES } from "@/shared/lib/api-error";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +50,7 @@ function buildOrderStatusPayload(order: OrderWithItems) {
         phone: order.phone,
         delivery: order.delivery,
         payment: order.payment,
+        changeFrom: order.changeFrom,
         totalPrice: order.totalPrice,
         createdAt: order.createdAt,
         estimatedDeliveryAt: order.estimatedDeliveryAt,
@@ -65,6 +70,9 @@ function buildOrderStatusPayload(order: OrderWithItems) {
 
 /** Опрос статуса: cookie владельца/гостя, сессия или телефон в query. */
 export async function GET(request: Request) {
+    const rl = await checkRateLimit(request, "orderStatus");
+    if (!rl.allowed) return rateLimitExceededJsonResponse();
+
     const url = new URL(request.url);
     const queryParsed = orderStatusGetQuerySchema.safeParse({
         id: url.searchParams.get("id"),
@@ -101,6 +109,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+    const rl = await checkRateLimit(request, "orderStatus");
+    if (!rl.allowed) return rateLimitExceededJsonResponse();
+
     const parsed = await parseJsonBody(request, orderStatusPostBodySchema);
     if (!parsed.ok) {
         return orderNotFoundResponse(400);

@@ -16,6 +16,7 @@ import {
     PAYMENT_METHOD_LABELS,
     toDayKey,
 } from "@/lib/admin-analytics";
+import { debugLog } from "@/lib/debug-log";
 import { ORDER_STATUS_UI } from "@/lib/order-status";
 import { prisma } from "@/lib/prisma";
 import { verifyAdmin } from "@/lib/verify-admin";
@@ -75,7 +76,7 @@ export async function GET(request: Request) {
         }
 
         const periodDays = parsePeriodDays(new URL(request.url).searchParams);
-        console.log("[ANALYTICS] Fetching data for days:", periodDays);
+        debugLog("[ANALYTICS] Fetching data for days:", periodDays);
 
         const dayKeys = buildDayRange(periodDays);
         const rangeStart = dayKeyToStartUtc(dayKeys[0]!);

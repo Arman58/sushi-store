@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { validateBannerHref } from "@/lib/banner-href";
 import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
 import { verifyAdmin } from "@/lib/verify-admin";
@@ -39,13 +40,21 @@ export async function POST(request: Request) {
     const parsed = await parseJsonBody(request, bannerBodySchema);
     if (!parsed.ok) return parsed.response;
 
+    const href = validateBannerHref(parsed.data.href);
+    if (!href.ok) {
+        return NextResponse.json(
+            { error: "Invalid banner href", code: href.code },
+            { status: 400 },
+        );
+    }
+
     try {
         const banner = await prisma.banner.create({
             data: {
                 image: parsed.data.image,
                 title: parsed.data.title,
                 ctaText: parsed.data.ctaText,
-                href: parsed.data.href ?? null,
+                href: href.value,
                 isActive: parsed.data.isActive,
                 position: parsed.data.position,
                 startsAt: parsed.data.startsAt

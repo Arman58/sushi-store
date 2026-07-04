@@ -9,247 +9,30 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
+
 import {
-    DeliveryType,
-    OrderStatus,
-    PaymentMethod,
-    Prisma,
-} from "@prisma/client";
-
-import { isOrderStatus, orderStatusLabel } from "@/lib/order-status";
-import { prisma } from "@/lib/prisma";
-
+    buildExportHref,
+    buildFilterHref,
+    buildPageHref,
+    buildSortHref,
+    formatDate,
+    mapDeliveryLabel,
+    mapPaymentLabel,
+    mapStatusLabel,
+    renderFilterChip,
+} from "./orders-page-helpers";
+import {
+    type DateRangeFilter,
+    type DeliveryFilter,
+    getOrders,
+    type PaymentFilter,
+    type SortDirection,
+    type SortField,
+    type StatusFilter,
+} from "./orders-query";
 import { OrdersTable } from "./orders-table";
 
-type SortField = "date" | "total" | "name" | "id";
-type SortDirection = "asc" | "desc";
-
-type DeliveryFilter = "all" | "delivery" | "pickup";
-type PaymentFilter = "all" | "cash" | "card";
-type DateRangeFilter = "all" | "today" | "7d" | "30d";
-type StatusFilter = "all" | "new" | "in_progress" | "done" | "cancelled";
-
 const BASE_PATH = "/admin/orders";
-
-async function getOrders(
-    sortField: SortField,
-    sortDir: SortDirection,
-    deliveryFilter: DeliveryFilter,
-    paymentFilter: PaymentFilter,
-    statusFilter: StatusFilter,
-): Promise<
-    Prisma.OrderGetPayload<{
-        include: { items: true };
-    }>[]
-> {
-    let orderBy: Prisma.OrderOrderByWithRelationInput;
-
-    switch (sortField) {
-        case "id":
-            orderBy = { id: sortDir };
-            break;
-        case "name":
-            orderBy = { name: sortDir };
-            break;
-        case "total":
-            orderBy = { totalPrice: sortDir };
-            break;
-        case "date":
-        default:
-            orderBy = { createdAt: sortDir };
-            break;
-    }
-
-    const where: Prisma.OrderWhereInput = {};
-
-    if (deliveryFilter === "delivery") {
-        where.delivery = DeliveryType.DELIVERY;
-    } else if (deliveryFilter === "pickup") {
-        where.delivery = DeliveryType.PICKUP;
-    }
-
-    if (paymentFilter === "cash") {
-        where.payment = PaymentMethod.CASH;
-    } else if (paymentFilter === "card") {
-        where.payment = PaymentMethod.CARD;
-    }
-
-    if (statusFilter === "new") {
-        where.status = OrderStatus.NEW;
-    } else if (statusFilter === "in_progress") {
-        where.status = { in: [OrderStatus.COOKING, OrderStatus.DELIVERING] };
-    } else if (statusFilter === "done") {
-        where.status = OrderStatus.DONE;
-    } else if (statusFilter === "cancelled") {
-        where.status = OrderStatus.CANCELLED;
-    }
-
-    const orders = await prisma.order.findMany({
-        where,
-        orderBy,
-        include: {
-            items: true,
-        },
-    });
-
-    return orders;
-}
-
-// фиксируем локаль и таймзону
-const dateFormatter = new Intl.DateTimeFormat("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Asia/Yerevan",
-});
-
-function formatDate(date: Date): string {
-    return dateFormatter.format(date);
-}
-
-function mapPaymentLabel(payment: PaymentMethod): string {
-    switch (payment) {
-        case "CASH":
-            return "Наличными";
-        case "CARD":
-            return "Картой";
-        default:
-            return payment;
-    }
-}
-
-function mapDeliveryLabel(delivery: DeliveryType): string {
-    switch (delivery) {
-        case "DELIVERY":
-            return "Доставка";
-        case "PICKUP":
-            return "Самовывоз";
-        default:
-            return delivery;
-    }
-}
-
-function mapStatusLabel(status: string): string {
-    if (isOrderStatus(status)) {
-        return orderStatusLabel(status);
-    }
-    return status;
-}
-
-function getNextSortDir(
-    currentField: SortField,
-    currentDir: SortDirection,
-    column: SortField,
-): SortDirection {
-    if (currentField === column) {
-        return currentDir === "desc" ? "asc" : "desc";
-    }
-    return "desc";
-}
-
-function buildSortHref(
-    searchParams: Record<string, string | undefined>,
-    column: SortField,
-    currentField: SortField,
-    currentDir: SortDirection,
-): string {
-    const params = new URLSearchParams();
-
-    for (const [key, value] of Object.entries(searchParams)) {
-        if (value) params.set(key, value);
-    }
-
-    const nextDir = getNextSortDir(currentField, currentDir, column);
-
-    params.set("sort", column);
-    params.set("dir", nextDir);
-
-    const query = params.toString();
-    return query ? `${BASE_PATH}?${query}` : BASE_PATH;
-}
-
-function buildFilterHref(
-    searchParams: Record<string, string | undefined>,
-    updates: Record<string, string | undefined>,
-): string {
-    const params = new URLSearchParams();
-
-    for (const [key, value] of Object.entries(searchParams)) {
-        if (value) params.set(key, value);
-    }
-
-    for (const [key, value] of Object.entries(updates)) {
-        if (value && value !== "all") {
-            params.set(key, value);
-        } else {
-            params.delete(key);
-        }
-    }
-
-    const query = params.toString();
-    return query ? `${BASE_PATH}?${query}` : BASE_PATH;
-}
-
-function buildExportHref(searchParams: Record<string, string | undefined>): string {
-    const params = new URLSearchParams();
-
-    for (const [key, value] of Object.entries(searchParams)) {
-        if (value) params.set(key, value);
-    }
-
-    const query = params.toString();
-    return query ? `/admin/orders/export?${query}` : "/admin/orders/export";
-}
-
-function buildPageHref(
-    searchParams: Record<string, string | undefined>,
-    page: number,
-): string {
-    const params = new URLSearchParams();
-
-    for (const [key, value] of Object.entries(searchParams)) {
-        if (value) params.set(key, value);
-    }
-
-    params.set("page", String(page));
-
-    const query = params.toString();
-    return query ? `${BASE_PATH}?${query}` : BASE_PATH;
-}
-
-function renderFilterChip(
-    label: string,
-    href: string,
-    active: boolean,
-) {
-    return (
-        <a href={href} style={{ textDecoration: "none" }}>
-            <Chip
-                component="span"
-                clickable
-                label={label}
-                size="small"
-                sx={{
-                    borderRadius: 999,
-                    fontSize: 12,
-                    fontWeight: active ? 600 : 500,
-                    bgcolor: active
-                        ? "rgba(249,115,22,0.16)"
-                        : "rgba(148,163,184,0.10)",
-                    color: active ? "warning.main" : "text.secondary",
-                    textDecoration: "none",
-                    "&:hover": {
-                        bgcolor: active
-                            ? "rgba(249,115,22,0.22)"
-                            : "rgba(148,163,184,0.18)",
-                    },
-                }}
-            />
-        </a>
-    );
-}
 
 export const dynamic = "force-dynamic";
 
@@ -427,6 +210,7 @@ export default async function AdminOrdersPage({
         totalPrice: order.totalPrice,
         items: order.items,
         comment: order.comment,
+        changeFrom: order.changeFrom,
         estimatedDeliveryAt: order.estimatedDeliveryAt?.toISOString() ?? null,
     }));
 
@@ -490,8 +274,8 @@ export default async function AdminOrdersPage({
                             sx={{
                                 p: 2.5,
                                 borderRadius: 3,
-                                border: "1px solid rgba(148,163,184,0.35)",
-                                bgcolor: "rgba(248,250,252,0.96)",
+                                border: "1px solid var(--ew-border)",
+                                bgcolor: "var(--ew-surface-hi)",
                                 display: "flex",
                                 flexDirection: { xs: "column", md: "row" },
                                 justifyContent: "space-between",
@@ -690,8 +474,8 @@ export default async function AdminOrdersPage({
                             sx={{
                                 p: 2,
                                 borderRadius: 3,
-                                border: "1px solid rgba(226,232,240,0.9)",
-                                bgcolor: "background.paper",
+                                border: "1px solid var(--ew-border)",
+                                bgcolor: "var(--ew-surface-hi)",
                                 display: "flex",
                                 flexDirection: { xs: "column", sm: "row" },
                                 gap: 1.5,

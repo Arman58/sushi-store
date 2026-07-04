@@ -19,13 +19,16 @@ import Typography from "@mui/material/Typography";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useMemo, useState, useSyncExternalStore } from "react";
 
 import {
     ADMIN_NAV_ITEMS,
-    resolveAdminPageTitle,
+    resolveAdminNavKey,
 } from "@/app/admin/config/nav-items";
 import { SITE_LOGO_PATH } from "@/lib/site-config";
+
+import { AdminHeaderControls } from "./admin-header-controls";
 
 const DRAWER_WIDTH = 260;
 
@@ -39,10 +42,11 @@ function useIsClientNavReady() {
 }
 
 function SidebarNavSkeleton() {
+    const t = useTranslations("admin");
     return (
         <List
             aria-busy="true"
-            aria-label="Загрузка меню"
+            aria-label={t("menuLoading")}
             sx={{ flex: 1, px: 1, py: 1 }}
         >
             {Array.from({ length: ADMIN_NAV_ITEMS.length }).map((_, index) => (
@@ -64,6 +68,7 @@ function SidebarNavSkeleton() {
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
     const pathname = usePathname();
     const isClientNavReady = useIsClientNavReady();
+    const t = useTranslations("admin.nav");
 
     if (!isClientNavReady) {
         return <SidebarNavSkeleton />;
@@ -72,7 +77,8 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
     return (
         <List sx={{ flex: 1, px: 1, py: 1 }}>
             {ADMIN_NAV_ITEMS.map((item) => {
-                const { href, label, icon: Icon, openInNewTab } = item;
+                const { href, labelKey, icon: Icon, openInNewTab } = item;
+                const label = t(labelKey);
                 const active =
                     !openInNewTab &&
                     (pathname === href || pathname.startsWith(`${href}/`));
@@ -184,6 +190,7 @@ function SidebarBrand() {
 }
 
 function LogoutButton() {
+    const t = useTranslations("admin");
     return (
         <Box sx={{ p: 1.5 }}>
             <form action="/api/admin/logout" method="POST">
@@ -206,7 +213,7 @@ function LogoutButton() {
                         },
                     }}
                 >
-                    Выйти
+                    {t("logout")}
                 </Button>
             </form>
         </Box>
@@ -243,13 +250,13 @@ export function AdminShell({ children }: AdminShellProps) {
     const pathname = usePathname();
     const [mobileOpen, setMobileOpen] = useState(false);
     const isClientNavReady = useIsClientNavReady();
-    const pageTitle = useMemo(
-        () =>
-            isClientNavReady
-                ? resolveAdminPageTitle(pathname)
-                : "Админка",
-        [isClientNavReady, pathname],
-    );
+    const tNav = useTranslations("admin.nav");
+    const tAdmin = useTranslations("admin");
+    const pageTitle = useMemo(() => {
+        if (!isClientNavReady) return tAdmin("title");
+        const key = resolveAdminNavKey(pathname);
+        return key ? tNav(key) : tAdmin("title");
+    }, [isClientNavReady, pathname, tNav, tAdmin]);
 
     if (pathname.startsWith("/admin/kitchen")) {
         return (
@@ -318,7 +325,6 @@ export function AdminShell({ children }: AdminShellProps) {
                     elevation={0}
                     color="default"
                     sx={{
-                        display: { xs: "block", md: "none" },
                         borderBottom: 1,
                         borderColor: "divider",
                         bgcolor: "background.paper",
@@ -331,14 +337,15 @@ export function AdminShell({ children }: AdminShellProps) {
                                 sm: 64,
                             },
                             pt: "env(safe-area-inset-top)",
-                            px: { xs: 1.5, sm: 2 },
+                            px: { xs: 1.5, sm: 2.5 },
+                            gap: 1,
                         }}
                     >
                         <IconButton
                             edge="start"
                             onClick={() => setMobileOpen(true)}
-                            aria-label="Открыть меню"
-                            sx={{ flexShrink: 0 }}
+                            aria-label={tAdmin("openMenu")}
+                            sx={{ flexShrink: 0, display: { md: "none" } }}
                         >
                             <MenuIcon />
                         </IconButton>
@@ -346,10 +353,11 @@ export function AdminShell({ children }: AdminShellProps) {
                             variant="subtitle1"
                             fontWeight={700}
                             noWrap
-                            sx={{ ml: 1, flex: 1, minWidth: 0 }}
+                            sx={{ flex: 1, minWidth: 0 }}
                         >
                             {pageTitle}
                         </Typography>
+                        <AdminHeaderControls />
                     </Toolbar>
                 </AppBar>
 

@@ -52,14 +52,6 @@ export const tokens = {
     s16: 64,
 } as const;
 
-/** Premium gradient shimmer for MUI `<Skeleton />`. */
-export const skeletonShimmerSx = {
-    background:
-        "linear-gradient(90deg, var(--ew-surface-hi) 22%, var(--ew-border) 48%, var(--ew-surface-hi) 78%)",
-    backgroundSize: "200% 100%",
-    animation: "shimmer 1.5s infinite",
-} as const;
-
 const primaryMain = tokens.brand;
 
 /** Secondary: тёплая бирюза как контрапт к аппетитному primary - CTA/snackbar вторичный */

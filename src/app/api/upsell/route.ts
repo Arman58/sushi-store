@@ -41,9 +41,55 @@ async function findUpsellCategoryIds(): Promise<number[]> {
  * 1) ручные связи «с этим берут» из админки (для товаров корзины = exclude),
  * 2) напитки/соусы, 3) самые дешёвые активные товары.
  */
+const SAUCES_LIMIT = 8;
+
+/** Только соусы категории `sauces` (для компактной строки «часто берут»). */
+async function loadSauces(
+    request: Request,
+    excludeIds: number[],
+    locale: string,
+) {
+    const category = await prisma.category.findFirst({
+        where: { isActive: true, slug: "sauces" },
+        select: { id: true },
+    });
+    if (!category) return NextResponse.json([]);
+
+    const productsRaw = await prisma.product.findMany({
+        where: {
+            isActive: true,
+            isAvailable: true,
+            categoryId: category.id,
+            ...(excludeIds.length > 0 ? { id: { notIn: excludeIds } } : {}),
+        },
+        orderBy: [{ price: "asc" }, { id: "asc" }],
+        take: SAUCES_LIMIT,
+        include: homeProductInclude,
+    });
+
+    const products = toStorefrontProducts(
+        productsRaw as unknown as Record<string, unknown>[],
+        locale,
+    );
+    return NextResponse.json(products, {
+        headers: {
+            "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        },
+    });
+}
+
 export async function GET(request: Request) {
     const locale = resolveRequestLocale(request);
     const excludeIds = parseExcludeIds(request);
+    const type = new URL(request.url).searchParams.get("type");
+
+    if (type === "sauces") {
+        try {
+            return await loadSauces(request, excludeIds, locale);
+        } catch {
+            return NextResponse.json([]);
+        }
+    }
 
     try {
         // 1. Ручные предложения для товаров корзины

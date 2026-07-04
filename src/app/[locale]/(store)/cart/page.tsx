@@ -23,7 +23,7 @@ import {
 import { Link } from "@/i18n/server";
 import { ApiError, validatePromo } from "@/shared/api";
 import { AppButton, EmptyCart, PageContainer, SectionTitle } from "@/shared/ui";
-import { UpsellCarousel } from "@/widgets/upsell";
+import { SauceStrip, UpsellCarousel } from "@/widgets/upsell";
 
 export default function CartPage() {
     const t = useTranslations("cart");
@@ -273,6 +273,10 @@ export default function CartPage() {
                                     </Typography>
                                 </Stack>
                             </Stack>
+
+                            <Box sx={{ my: 2 }}>
+                                <SauceStrip cartItems={items} />
+                            </Box>
 
                             <Box sx={{ my: 2 }}>
                                 <Typography

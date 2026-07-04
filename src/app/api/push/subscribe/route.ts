@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
+import { debugLog } from "@/lib/debug-log";
 import { prisma } from "@/lib/prisma";
+import {
+    checkRateLimit,
+    rateLimitExceededJsonResponse,
+} from "@/lib/rate-limit";
 
 const pushSubscribeSchema = z.object({
     endpoint: z.string().url(),
@@ -13,7 +18,10 @@ const pushSubscribeSchema = z.object({
 });
 
 export async function POST(request: Request) {
-    console.log("[PUSH] Subscribe request received");
+    const rl = await checkRateLimit(request, "pushSubscribe");
+    if (!rl.allowed) return rateLimitExceededJsonResponse();
+
+    debugLog("[PUSH] Subscribe request received");
 
     if (!process.env.VAPID_PRIVATE_KEY || !process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
         console.error("[PUSH] Server VAPID keys missing");
@@ -41,7 +49,7 @@ export async function POST(request: Request) {
     const userId = Number(session.user.id);
     const { endpoint, keys } = parsed.data;
 
-    console.log("[PUSH] Saving subscription for user:", session.user.id);
+    debugLog("[PUSH] Saving subscription for user:", session.user.id);
 
     try {
         await prisma.pushSubscription.upsert({

@@ -21,6 +21,7 @@ import { AppButton } from "@/shared/ui/AppButton";
 import { ProductCoverImage } from "@/shared/ui/product-cover-image";
 import { tokens } from "@/shared/ui/theme";
 import { ProductReviewsSection } from "@/widgets/reviews";
+import { UpsellCarousel } from "@/widgets/upsell";
 
 const ProductModifiersDialog = dynamic(
     () =>
@@ -55,6 +56,9 @@ export function ProductPageView({ product, locale, breadcrumbs }: Props) {
 
     // История просмотров для блока «Вы недавно смотрели»
     useTrackProductView(product.id);
+
+    // «С этим часто берут»: exclude = текущий товар (его курируемые связи — первыми)
+    const upsellExclude = useMemo(() => [product.id], [product.id]);
 
     const coverUrl = getProductCoverUrl(product);
     const imageAlt = buildProductImageAlt(product.name, locale);
@@ -305,6 +309,13 @@ export function ProductPageView({ product, locale, breadcrumbs }: Props) {
                         </Typography>
                     </Box>
                 ) : null}
+
+                <Box>
+                    <UpsellCarousel
+                        excludeIds={upsellExclude}
+                        title={t("frequentlyBought")}
+                    />
+                </Box>
 
                 <Box id="reviews" sx={{ scrollMarginTop: 96 }}>
                     <ProductReviewsSection productId={product.id} />
