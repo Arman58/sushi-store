@@ -77,7 +77,7 @@ describe("resolveOrderLinePrice", () => {
         );
         assert.ok(!r.ok);
         assert.equal(r.code, "invalid_payload");
-        // NB: ветка "unexpected_modifiers" недостижима — foreign_modifier
+        // NB: ветка "unexpected_modifiers" недостижима - foreign_modifier
         // проверяется раньше и перехватывает этот случай.
         assert.equal(r.invalidReason, "foreign_modifier");
     });

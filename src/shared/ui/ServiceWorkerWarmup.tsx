@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-/** Прогрев SW — только register, без ожидания ready (не блокирует UI). */
+/** Прогрев SW - только register, без ожидания ready (не блокирует UI). */
 export function ServiceWorkerWarmup() {
     useEffect(() => {
         if (process.env.NODE_ENV === "development") return;

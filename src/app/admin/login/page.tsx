@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 import { isAdminSessionConfigured } from "@/lib/admin-session";
@@ -8,6 +9,7 @@ const ADMIN_USER = process.env.ADMIN_USER;
 const ADMIN_PASS = process.env.ADMIN_PASS;
 
 export default async function AdminLoginPage() {
+    const t = await getTranslations("admin.login");
     const envConfigured =
         Boolean(ADMIN_USER && ADMIN_PASS) && isAdminSessionConfigured();
 
@@ -51,13 +53,13 @@ export default async function AdminLoginPage() {
                                 letterSpacing: 0.4,
                             }}
                         >
-                            Admin Area
+                            {t("badge")}
                         </div>
                         <h1 style={{ margin: "12px 0 4px", fontSize: 24, color: "#f8fafc" }}>
-                            Вход в админку
+                            {t("title")}
                         </h1>
                         <p style={{ margin: 0, color: "#94a3b8", fontSize: 14 }}>
-                            Доступ только для авторизованных пользователей.
+                            {t("subtitle")}
                         </p>
                     </div>
                 </div>
@@ -74,8 +76,7 @@ export default async function AdminLoginPage() {
                             fontSize: 13,
                         }}
                     >
-                        ADMIN_USER, ADMIN_PASS или ADMIN_SESSION_SECRET (≥32 символов) не заданы.
-                        Добавьте их в .env.local и перезапустите dev.
+                        {t("envMissing")}
                     </div>
                 )}
 

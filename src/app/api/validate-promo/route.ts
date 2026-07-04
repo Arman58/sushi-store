@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 
 import { validatePromoBodySchema } from "@/lib/api-schemas";
-import { parseJsonBody } from "@/lib/parse-json-body";
+import {
+    getFormValidationMessage,
+    getPromoRejectionMessage,
+    resolveOrderRequestLocale,
+} from "@/lib/backend-i18n";
 import { prisma } from "@/lib/prisma";
 import {
     computePromoDiscountAmount,
-    getPromoRejectionReason,
+    getPromoRejectionCode,
     normalizePromoCode,
 } from "@/lib/promo";
 import {
@@ -19,12 +23,29 @@ export async function POST(request: Request) {
         return rateLimitExceededJsonResponse();
     }
 
-    const parsed = await parseJsonBody(request, validatePromoBodySchema);
-    if (!parsed.ok) return parsed.response;
+    const locale = resolveOrderRequestLocale(request);
+
+    let json: unknown;
+    try {
+        json = await request.json();
+    } catch {
+        return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+    const parsed = validatePromoBodySchema.safeParse(json);
+    if (!parsed.success) {
+        const key = parsed.error.issues[0]?.message ?? "form.generic";
+        return NextResponse.json(
+            { error: getFormValidationMessage(key, locale) },
+            { status: 400 },
+        );
+    }
 
     const code = normalizePromoCode(parsed.data.code);
     if (!code) {
-        return NextResponse.json({ error: "Укажите промокод" }, { status: 400 });
+        return NextResponse.json(
+            { error: getPromoRejectionMessage("codeRequired", locale) },
+            { status: 400 },
+        );
     }
 
     const cartAmount = parsed.data.cartAmount;
@@ -37,17 +58,35 @@ export async function POST(request: Request) {
 
         const grandTotal = cartAmount + deliveryAmount;
 
-        const reason = getPromoRejectionReason(promo, {
+        const rejection = getPromoRejectionCode(promo, {
             cartSubtotal: cartAmount,
             grandTotalBeforeDiscount: grandTotal,
         });
 
-        if (reason) {
-            return NextResponse.json({ error: reason }, { status: 422 });
+        if (rejection) {
+            return NextResponse.json(
+                {
+                    error: getPromoRejectionMessage(
+                        rejection.code,
+                        locale,
+                        rejection.code === "belowMin"
+                            ? {
+                                  amount: rejection.minOrderAmount.toLocaleString(
+                                      "ru-RU",
+                                  ),
+                              }
+                            : undefined,
+                    ),
+                },
+                { status: 422 },
+            );
         }
 
         if (!promo) {
-            return NextResponse.json({ error: "Промокод не найден" }, { status: 422 });
+            return NextResponse.json(
+                { error: getPromoRejectionMessage("notFound", locale) },
+                { status: 422 },
+            );
         }
 
         const discountAmount = computePromoDiscountAmount(
@@ -64,7 +103,7 @@ export async function POST(request: Request) {
     } catch {
         // Error logged in production monitoring
         return NextResponse.json(
-            { error: "Не удалось проверить промокод" },
+            { error: getPromoRejectionMessage("checkFailed", locale) },
             { status: 500 },
         );
     }

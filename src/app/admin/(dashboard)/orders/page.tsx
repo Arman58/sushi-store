@@ -9,6 +9,7 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import {
     buildExportHref,
@@ -19,6 +20,7 @@ import {
     mapDeliveryLabel,
     mapPaymentLabel,
     mapStatusLabel,
+    type OrderDisplayLabels,
     renderFilterChip,
 } from "./orders-page-helpers";
 import {
@@ -53,6 +55,38 @@ export default async function AdminOrdersPage({
                                                   searchParams,
                                               }: AdminOrdersPageProps) {
     const sp = await searchParams;
+    const locale = await getLocale();
+    const t = await getTranslations("admin.orders");
+    const tCommon = await getTranslations("admin.common");
+    const tOrder = await getTranslations("order");
+    const tNav = await getTranslations("nav");
+
+    const orderLabels: OrderDisplayLabels = {
+        paymentCash: tOrder("payment.cash"),
+        paymentCard: tOrder("payment.card"),
+        deliveryDelivery: tCommon("delivery"),
+        deliveryPickup: tCommon("pickup"),
+        status: {
+            NEW: tOrder("status.new"),
+            COOKING: tOrder("status.cooking"),
+            DELIVERING: tOrder("status.delivering"),
+            DONE: tOrder("status.done"),
+            CANCELLED: tOrder("status.cancelled"),
+        },
+    };
+
+    const formatAmount = (value: number) =>
+        `${value.toLocaleString(locale)} ֏`;
+
+    const columnLabels = {
+        id: tCommon("id"),
+        date: tCommon("date"),
+        customerName: t("customerName"),
+        amount: t("amount"),
+        status: t("statusLabel"),
+        payment: t("paymentLabel"),
+        emptyFiltered: t("emptyFiltered"),
+    };
 
     // сортировка
     const sortFieldParam = (sp.sort as SortField) ?? "date";
@@ -195,13 +229,13 @@ export default async function AdminOrdersPage({
     ).length;
     const tableOrders = paginatedOrders.map((order) => ({
         id: order.id,
-        createdAtFormatted: formatDate(order.createdAt),
+        createdAtFormatted: formatDate(order.createdAt, locale),
         name: order.name,
         phone: order.phone,
-        deliveryLabel: mapDeliveryLabel(order.delivery),
+        deliveryLabel: mapDeliveryLabel(order.delivery, orderLabels),
         payment: order.payment,
-        paymentLabel: mapPaymentLabel(order.payment),
-        statusLabel: mapStatusLabel(order.status),
+        paymentLabel: mapPaymentLabel(order.payment, orderLabels),
+        statusLabel: mapStatusLabel(order.status, orderLabels),
         status: order.status,
         address: order.address ?? "-",
         subtotalBeforeDiscount: order.subtotalBeforeDiscount,
@@ -226,15 +260,14 @@ export default async function AdminOrdersPage({
                     }}
                 >
                     <Typography variant="h5" fontWeight={800}>
-                        Заказы
+                        {t("title")}
                     </Typography>
                     <Typography
                         variant="body2"
                         color="text.secondary"
                         sx={{ maxWidth: 520 }}
                     >
-                        Клик по строке открывает детали: телефон, адрес и
-                        состав заказа. Поиск - по имени, телефону или ID.
+                        {t("subtitle")}
                     </Typography>
                     <Stack direction="row" spacing={1} flexWrap="wrap">
                         <Button
@@ -243,7 +276,7 @@ export default async function AdminOrdersPage({
                             variant="outlined"
                             size="small"
                         >
-                            Экспорт CSV
+                            {t("exportCsv")}
                         </Button>
                         <Button
                             href={BASE_PATH}
@@ -251,14 +284,14 @@ export default async function AdminOrdersPage({
                             variant="text"
                             size="small"
                         >
-                            Сбросить фильтры
+                            {t("resetFilters")}
                         </Button>
                     </Stack>
                 </Box>
 
                 {totalCount === 0 && !filtersApplied ? (
                     <Typography color="text.secondary">
-                        Заказов пока нет.
+                        {t("noOrdersYet")}
                     </Typography>
                 ) : (
                     <Box
@@ -292,11 +325,11 @@ export default async function AdminOrdersPage({
                                         letterSpacing: 0.2,
                                     }}
                                 >
-                                    Всего заказов: {totalCount}
+                                    {t("totalOrders", { count: totalCount })}
                                 </Typography>
                                 <Stack direction="row" spacing={1} flexWrap="wrap">
                                     <Chip
-                                        label={`Показано: ${filteredCount}`}
+                                        label={t("shownCount", { count: filteredCount })}
                                         size="small"
                                         sx={{
                                             borderRadius: 999,
@@ -304,9 +337,9 @@ export default async function AdminOrdersPage({
                                         }}
                                     />
                                     <Chip
-                                        label={`Выручка: ${totalRevenue.toLocaleString(
-                                            "ru-RU",
-                                        )} ֏`}
+                                        label={t("revenueChip", {
+                                            amount: formatAmount(totalRevenue),
+                                        })}
                                         size="small"
                                         sx={{
                                             borderRadius: 999,
@@ -315,14 +348,16 @@ export default async function AdminOrdersPage({
                                         }}
                                     />
                                     <Chip
-                                        label={`Средний чек: ${
-                                            filteredCount > 0
-                                                ? Math.round(
-                                                    totalRevenue /
-                                                    filteredCount,
-                                                ).toLocaleString("ru-RU")
-                                                : 0
-                                        } ֏`}
+                                        label={t("avgCheckChip", {
+                                            amount: formatAmount(
+                                                filteredCount > 0
+                                                    ? Math.round(
+                                                          totalRevenue /
+                                                              filteredCount,
+                                                      )
+                                                    : 0,
+                                            ),
+                                        })}
                                         size="small"
                                         sx={{
                                             borderRadius: 999,
@@ -330,7 +365,9 @@ export default async function AdminOrdersPage({
                                         }}
                                     />
                                     <Chip
-                                        label={`Доставки: ${deliveryCount}`}
+                                        label={t("deliveriesCount", {
+                                            count: deliveryCount,
+                                        })}
                                         size="small"
                                         sx={{
                                             borderRadius: 999,
@@ -338,7 +375,9 @@ export default async function AdminOrdersPage({
                                         }}
                                     />
                                     <Chip
-                                        label={`Самовывоз: ${pickupCount}`}
+                                        label={t("pickupCount", {
+                                            count: pickupCount,
+                                        })}
                                         size="small"
                                         sx={{
                                             borderRadius: 999,
@@ -372,31 +411,31 @@ export default async function AdminOrdersPage({
                                             mt: 0.5,
                                         }}
                                     >
-                                        Период
+                                        {t("period")}
                                     </Typography>
                                     {renderFilterChip(
-                                        "Все",
+                                        tCommon("all"),
                                         buildFilterHref(baseSearchParams, {
                                             dateRange: "all",
                                         }),
                                         dateRangeFilter === "all",
                                     )}
                                     {renderFilterChip(
-                                        "Сегодня",
+                                        tCommon("today"),
                                         buildFilterHref(baseSearchParams, {
                                             dateRange: "today",
                                         }),
                                         dateRangeFilter === "today",
                                     )}
                                     {renderFilterChip(
-                                        "7 дней",
+                                        t("last7Days"),
                                         buildFilterHref(baseSearchParams, {
                                             dateRange: "7d",
                                         }),
                                         dateRangeFilter === "7d",
                                     )}
                                     {renderFilterChip(
-                                        "30 дней",
+                                        t("last30Days"),
                                         buildFilterHref(baseSearchParams, {
                                             dateRange: "30d",
                                         }),
@@ -411,7 +450,7 @@ export default async function AdminOrdersPage({
                                             name="q"
                                             size="small"
                                             fullWidth
-                                            placeholder="Поиск: имя, телефон, ID…"
+                                            placeholder={t("searchPlaceholder")}
                                             defaultValue={searchQuery}
                                             InputProps={
                                                 {
@@ -493,24 +532,24 @@ export default async function AdminOrdersPage({
                                         mt: 0.5,
                                     }}
                                 >
-                                    Доставка
+                                    {tCommon("delivery")}
                                 </Typography>
                                 {renderFilterChip(
-                                    "Все",
+                                    tCommon("all"),
                                     buildFilterHref(baseSearchParams, {
                                         delivery: "all",
                                     }),
                                     deliveryFilter === "all",
                                 )}
                                 {renderFilterChip(
-                                    "Доставка",
+                                    tCommon("delivery"),
                                     buildFilterHref(baseSearchParams, {
                                         delivery: "delivery",
                                     }),
                                     deliveryFilter === "delivery",
                                 )}
                                 {renderFilterChip(
-                                    "Самовывоз",
+                                    tCommon("pickup"),
                                     buildFilterHref(baseSearchParams, {
                                         delivery: "pickup",
                                     }),
@@ -533,24 +572,24 @@ export default async function AdminOrdersPage({
                                         mt: 0.5,
                                     }}
                                 >
-                                    Оплата
+                                    {t("paymentLabel")}
                                 </Typography>
                                 {renderFilterChip(
-                                    "Все",
+                                    tCommon("all"),
                                     buildFilterHref(baseSearchParams, {
                                         payment: "all",
                                     }),
                                     paymentFilter === "all",
                                 )}
                                 {renderFilterChip(
-                                    "Нал",
+                                    tCommon("cash"),
                                     buildFilterHref(baseSearchParams, {
                                         payment: "cash",
                                     }),
                                     paymentFilter === "cash",
                                 )}
                                 {renderFilterChip(
-                                    "Карта",
+                                    tCommon("card"),
                                     buildFilterHref(baseSearchParams, {
                                         payment: "card",
                                     }),
@@ -573,10 +612,10 @@ export default async function AdminOrdersPage({
                                         mt: 0.5,
                                     }}
                                 >
-                                    Статус
+                                    {t("statusLabel")}
                                 </Typography>
                                 {renderFilterChip(
-                                    "Все",
+                                    tCommon("all"),
                                     buildFilterHref(baseSearchParams, {
                                         status: "all",
                                         page: undefined,
@@ -584,7 +623,7 @@ export default async function AdminOrdersPage({
                                     statusFilter === "all",
                                 )}
                                 {renderFilterChip(
-                                    "Новые",
+                                    t("statusNew"),
                                     buildFilterHref(baseSearchParams, {
                                         status: "new",
                                         page: undefined,
@@ -592,7 +631,7 @@ export default async function AdminOrdersPage({
                                     statusFilter === "new",
                                 )}
                                 {renderFilterChip(
-                                    "В работе",
+                                    t("statusInProgress"),
                                     buildFilterHref(baseSearchParams, {
                                         status: "in_progress",
                                         page: undefined,
@@ -600,7 +639,7 @@ export default async function AdminOrdersPage({
                                     statusFilter === "in_progress",
                                 )}
                                 {renderFilterChip(
-                                    "Готово",
+                                    t("statusReady"),
                                     buildFilterHref(baseSearchParams, {
                                         status: "done",
                                         page: undefined,
@@ -608,7 +647,7 @@ export default async function AdminOrdersPage({
                                     statusFilter === "done",
                                 )}
                                 {renderFilterChip(
-                                    "Отменён",
+                                    t("statusCancelled"),
                                     buildFilterHref(baseSearchParams, {
                                         status: "cancelled",
                                         page: undefined,
@@ -624,6 +663,7 @@ export default async function AdminOrdersPage({
                             sortField={sortField}
                             sortDir={sortDir}
                             empty={filteredOrders.length === 0}
+                            columnLabels={columnLabels}
                             buildSortHref={(column) =>
                                 buildSortHref(
                                     baseSearchParams,
@@ -645,7 +685,10 @@ export default async function AdminOrdersPage({
                             }}
                         >
                             <Typography variant="body2" color="text.secondary">
-                                Страница {safePage} из {totalPages}
+                                {t("pageOf", {
+                                    page: safePage,
+                                    totalPages,
+                                })}
                             </Typography>
                             <Stack direction="row" spacing={1}>
                                 <Button
@@ -658,7 +701,7 @@ export default async function AdminOrdersPage({
                                     size="small"
                                     disabled={safePage <= 1}
                                 >
-                                    Назад
+                                    {tNav("back")}
                                 </Button>
                                 <Button
                                     component="a"
@@ -670,7 +713,7 @@ export default async function AdminOrdersPage({
                                     size="small"
                                     disabled={safePage >= totalPages}
                                 >
-                                    Вперёд
+                                    {tNav("forward")}
                                 </Button>
                             </Stack>
                         </Box>

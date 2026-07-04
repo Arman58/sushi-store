@@ -11,12 +11,13 @@ import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Typography from "@mui/material/Typography";
+import { useTranslations } from "next-intl";
 import { useState, useSyncExternalStore } from "react";
 
 /**
  * Контролы шапки админки: тема (light/dark) и язык сайта.
  * Админка живёт вне [locale], поэтому компоненты self-contained и НЕ зависят
- * от next-intl — тема управляется атрибутом data-theme на <html>, язык -
+ * от next-intl - тема управляется атрибутом data-theme на <html>, язык -
  * cookie NEXT_LOCALE (влияет на язык витрины).
  */
 
@@ -25,9 +26,9 @@ const LOCALE_COOKIE = "NEXT_LOCALE";
 const DEFAULT_LOCALE = "hy";
 
 const languages = [
-    { code: "hy", label: "Հայերեն", flag: "🇦🇲" },
-    { code: "ru", label: "Русский", flag: "🇷🇺" },
-    { code: "en", label: "English", flag: "🇬🇧" },
+    { code: "hy", labelKey: "localeHy" as const, flag: "🇦🇲" },
+    { code: "ru", labelKey: "localeRu" as const, flag: "🇷🇺" },
+    { code: "en", labelKey: "localeEn" as const, flag: "🇬🇧" },
 ];
 
 // ─── Тема ───────────────────────────────────────────────────────────────────
@@ -48,6 +49,7 @@ function subscribeTheme(onChange: () => void): () => void {
 }
 
 function AdminThemeToggle() {
+    const t = useTranslations("admin.header");
     const mode = useSyncExternalStore(
         subscribeTheme,
         currentMode,
@@ -67,7 +69,7 @@ function AdminThemeToggle() {
     return (
         <IconButton
             onClick={toggle}
-            aria-label={mode === "dark" ? "Светлая тема" : "Тёмная тема"}
+            aria-label={mode === "dark" ? t("lightTheme") : t("darkTheme")}
             sx={{ width: 40, height: 40, color: "text.secondary" }}
         >
             {mode === "dark" ? (
@@ -97,6 +99,8 @@ function readLocaleCookie(): string {
 }
 
 function AdminLangSwitcher() {
+    const t = useTranslations("admin.header");
+    const tLang = useTranslations("languageSwitcher");
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
 
@@ -122,7 +126,7 @@ function AdminLangSwitcher() {
         <>
             <ButtonBase
                 onClick={(e) => setAnchorEl(e.currentTarget)}
-                aria-label="Язык сайта"
+                aria-label={t("siteLanguage")}
                 aria-haspopup="menu"
                 aria-expanded={open}
                 sx={{
@@ -168,7 +172,7 @@ function AdminLangSwitcher() {
                             {lang.flag}
                         </Box>
                         <Typography sx={{ flex: 1, fontSize: 14 }}>
-                            {lang.label}
+                            {tLang(lang.labelKey)}
                         </Typography>
                         {lang.code === locale && (
                             <CheckRoundedIcon

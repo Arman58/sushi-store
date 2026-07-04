@@ -11,8 +11,7 @@ const ONE_YEAR_CACHE = "public, max-age=31536000, immutable";
 
 /**
  * Базовые security-заголовки для всех ответов.
- * CSP не включён: MUI (inline styles), Cloudinary, Sentry и PWA требуют
- * аккуратной настройки — добавлять отдельно в report-only режиме.
+ * CSP в report-only: MUI (inline styles), Cloudinary, Sentry, PWA и Vercel Toolbar.
  */
 const SECURITY_HEADERS = [
     // Запрет встраивания в iframe (кликджекинг, особенно /admin).
@@ -33,18 +32,21 @@ const SECURITY_HEADERS = [
     },
     /**
      * CSP в Report-Only: ничего не блокирует, нарушения видны в DevTools
-     * (Console). После обкатки — перенести в Content-Security-Policy.
+     * (Console). После обкатки - перенести в Content-Security-Policy.
      * 'unsafe-inline'/'unsafe-eval' нужны MUI (Emotion) и Next dev-режиму.
+     * Домены vercel.live / vercel.com - Vercel Toolbar на preview/production:
+     * https://vercel.com/docs/vercel-toolbar/managing-toolbar#using-a-content-security-policy
      */
     {
         key: "Content-Security-Policy-Report-Only",
         value: [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-            "style-src 'self' 'unsafe-inline'",
-            "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://placehold.co",
-            "font-src 'self' data:",
-            "connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live",
+            "style-src 'self' 'unsafe-inline' https://vercel.live",
+            "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://placehold.co https://vercel.live https://vercel.com",
+            "font-src 'self' data: https://vercel.live https://assets.vercel.com",
+            "connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io https://vercel.live wss://ws-us3.pusher.com",
+            "frame-src 'self' https://vercel.live",
             "worker-src 'self' blob:",
             "frame-ancestors 'none'",
             "base-uri 'self'",

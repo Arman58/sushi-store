@@ -32,6 +32,7 @@ import {
     useTheme,
 } from "@mui/material";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { PageContainer, SectionTitle } from "@/shared/ui";
@@ -69,6 +70,9 @@ const emptyCreate = () => ({
 });
 
 export default function AdminPromoCodesPage() {
+    const t = useTranslations("admin.promocodes");
+    const tCommon = useTranslations("admin.common");
+    const tNav = useTranslations("admin.nav");
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down("md"));
     const [rows, setRows] = useState<PromoRow[]>([]);
@@ -83,9 +87,8 @@ export default function AdminPromoCodesPage() {
     const isEditMode = editId !== null;
 
     const title = useMemo(
-        () =>
-            isEditMode ? `Редактировать промокод №${editId}` : "Новый промокод",
-        [isEditMode, editId],
+        () => (isEditMode ? t("editTitle", { id: editId! }) : t("newTitle")),
+        [isEditMode, editId, t],
     );
 
     const load = useCallback(async () => {
@@ -96,7 +99,7 @@ export default function AdminPromoCodesPage() {
             if (!res.ok) {
                 setRows([]);
                 setError(
-                    res.status === 401 ? "Нет доступа" : "Не удалось загрузить промокоды",
+                    res.status === 401 ? tCommon("accessDeniedShort") : t("loadFailed"),
                 );
                 return;
             }
@@ -104,11 +107,11 @@ export default function AdminPromoCodesPage() {
             setRows(Array.isArray(data) ? data : []);
         } catch {
             setRows([]);
-            setError("Не удалось загрузить промокоды");
+            setError(t("loadFailed"));
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [t, tCommon]);
 
     useEffect(() => {
         void load();
@@ -190,7 +193,7 @@ export default function AdminPromoCodesPage() {
                   });
 
             if (!res.ok) {
-                let msg = "Ошибка сохранения";
+                let msg = t("saveFailed");
                 try {
                     const j = (await res.json()) as { error?: string };
                     if (j?.error && typeof j.error === "string") msg = j.error;
@@ -210,7 +213,7 @@ export default function AdminPromoCodesPage() {
     async function handleDelete(id: number) {
         if (
             typeof window !== "undefined" &&
-            !window.confirm("Удалить этот промокод? Заказы с этим промо сохранятся.")
+            !window.confirm(t("deleteConfirm"))
         )
             return;
         setDeleteLoadingId(id);
@@ -220,7 +223,7 @@ export default function AdminPromoCodesPage() {
                 credentials: "same-origin",
             });
             if (!res.ok) {
-                alert("Не удалось удалить");
+                alert(t("deleteFailed"));
                 return;
             }
             void load();
@@ -239,20 +242,20 @@ export default function AdminPromoCodesPage() {
                     sx={{ mb: 2, flexWrap: "wrap", display: { xs: "none", md: "flex" } }}
                 >
                     <Button variant="text" component={Link} href="/admin/orders">
-                        Заказы
+                        {tNav("orders")}
                     </Button>
                     <Button variant="text" component={Link} href="/admin/products">
-                        Товары
+                        {tNav("products")}
                     </Button>
                     <Button variant="text" component={Link} href="/admin/delivery-zones">
-                        Зоны
+                        {t("zonesShort")}
                     </Button>
                     <Button variant="contained" startIcon={<LocalOfferOutlinedIcon />}>
-                        Промокоды
+                        {t("title")}
                     </Button>
                 </Stack>
 
-                <SectionTitle>Промокоды</SectionTitle>
+                <SectionTitle>{t("title")}</SectionTitle>
 
                 {error ? (
                     <Alert severity="error" sx={{ mb: 2 }}>
@@ -265,7 +268,7 @@ export default function AdminPromoCodesPage() {
                     onClick={openCreate}
                     sx={{ mb: 2, textTransform: "none" }}
                 >
-                    Добавить промокод
+                    {t("addPromocode")}
                 </Button>
 
                 <Paper variant="outlined" sx={{ overflow: "auto" }}>
@@ -273,24 +276,24 @@ export default function AdminPromoCodesPage() {
                     <Table size="small">
                         <TableHead>
                             <TableRow>
-                                <TableCell>Код</TableCell>
-                                <TableCell>Тип</TableCell>
-                                <TableCell>Значение</TableCell>
-                                <TableCell>Мин. сумма</TableCell>
-                                <TableCell>Лимит / учтено</TableCell>
-                                <TableCell>Истечение</TableCell>
-                                <TableCell>Активен</TableCell>
+                                <TableCell>{t("code")}</TableCell>
+                                <TableCell>{t("typeColumn")}</TableCell>
+                                <TableCell>{t("valueColumn")}</TableCell>
+                                <TableCell>{t("minAmountColumn")}</TableCell>
+                                <TableCell>{t("limitUsed")}</TableCell>
+                                <TableCell>{t("expiresColumn")}</TableCell>
+                                <TableCell>{t("activeColumn")}</TableCell>
                                 <TableCell align="right" />
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={8}>Загрузка…</TableCell>
+                                    <TableCell colSpan={8}>{tCommon("loading")}</TableCell>
                                 </TableRow>
                             ) : rows.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={8}>Пока пусто</TableCell>
+                                    <TableCell colSpan={8}>{tCommon("empty")}</TableCell>
                                 </TableRow>
                             ) : (
                                 rows.map((r) => (
@@ -299,7 +302,7 @@ export default function AdminPromoCodesPage() {
                                             <Typography fontWeight={600}>{r.code}</Typography>
                                         </TableCell>
                                         <TableCell>
-                                            {r.discountType === "PERCENTAGE" ? "%" : "Фикс."}
+                                            {r.discountType === "PERCENTAGE" ? tCommon("percent") : tCommon("fixed")}
                                         </TableCell>
                                         <TableCell>
                                             {r.discountType === "PERCENTAGE"
@@ -321,17 +324,17 @@ export default function AdminPromoCodesPage() {
                                                 ? new Date(r.expiresAt).toLocaleString("ru-RU")
                                                 : "-"}
                                         </TableCell>
-                                        <TableCell>{r.isActive ? "Да" : "Нет"}</TableCell>
+                                        <TableCell>{r.isActive ? tCommon("yes") : tCommon("no")}</TableCell>
                                         <TableCell align="right">
                                             <IconButton
-                                                aria-label="Редактировать"
+                                                aria-label={tCommon("edit")}
                                                 size="small"
                                                 onClick={() => openEdit(r)}
                                             >
                                                 <EditIcon fontSize="small" />
                                             </IconButton>
                                             <IconButton
-                                                aria-label="Удалить"
+                                                aria-label={tCommon("delete")}
                                                 size="small"
                                                 color="error"
                                                 disabled={deleteLoadingId === r.id}
@@ -350,11 +353,11 @@ export default function AdminPromoCodesPage() {
                     <Stack spacing={1.5} sx={{ display: { xs: "flex", md: "none" }, p: 1.5 }}>
                         {loading ? (
                             <Typography color="text.secondary" sx={{ p: 2 }}>
-                                Загрузка…
+                                {tCommon("loading")}
                             </Typography>
                         ) : rows.length === 0 ? (
                             <Typography color="text.secondary" sx={{ p: 2 }}>
-                                Пока пусто
+                                {tCommon("empty")}
                             </Typography>
                         ) : (
                             rows.map((r) => (
@@ -368,32 +371,36 @@ export default function AdminPromoCodesPage() {
                                             >
                                                 <Typography fontWeight={800}>{r.code}</Typography>
                                                 <Chip
-                                                    label={r.isActive ? "Активен" : "Выключен"}
+                                                    label={r.isActive ? t("activeColumn") : t("disabled")}
                                                     size="small"
                                                     color={r.isActive ? "success" : "default"}
                                                 />
                                             </Stack>
                                             <Typography variant="body2" color="text.secondary">
                                                 {r.discountType === "PERCENTAGE"
-                                                    ? `Скидка ${r.discountValue}%`
-                                                    : `Скидка ${r.discountValue.toLocaleString("ru-RU")} ֏`}
+                                                    ? t("discountPercentShort", { value: r.discountValue })
+                                                    : t("discountFixedShort", {
+                                                          value: `${r.discountValue.toLocaleString("ru-RU")} ֏`,
+                                                      })}
                                             </Typography>
                                             <Typography variant="body2">
-                                                Использовано:{" "}
                                                 {r.maxUsages != null
-                                                    ? `${r.timesUsed} / ${r.maxUsages}`
-                                                    : `${r.timesUsed} / ∞`}
+                                                    ? t("usedCount", {
+                                                          used: r.timesUsed,
+                                                          max: r.maxUsages,
+                                                      })
+                                                    : t("usedCountUnlimited", { used: r.timesUsed })}
                                             </Typography>
                                             <Stack direction="row" justifyContent="flex-end" spacing={0.5}>
                                                 <IconButton
-                                                    aria-label="Редактировать"
+                                                    aria-label={tCommon("edit")}
                                                     color="primary"
                                                     onClick={() => openEdit(r)}
                                                 >
                                                     <EditIcon />
                                                 </IconButton>
                                                 <IconButton
-                                                    aria-label="Удалить"
+                                                    aria-label={tCommon("delete")}
                                                     color="error"
                                                     disabled={deleteLoadingId === r.id}
                                                     onClick={() => void handleDelete(r.id)}
@@ -421,7 +428,7 @@ export default function AdminPromoCodesPage() {
                 <DialogContent>
                     <Stack spacing={2} sx={{ mt: 1 }}>
                         <TextField
-                            label="Код"
+                            label={t("code")}
                             required
                             value={form.code}
                             onChange={(e) =>
@@ -430,12 +437,12 @@ export default function AdminPromoCodesPage() {
                                     code: e.target.value.toUpperCase(),
                                 }))
                             }
-                            helperText="Хранится в верхнем регистре без пробелов"
+                            helperText={t("codeHelper")}
                             fullWidth
                         />
                         <TextField
                             select
-                            label="Тип скидки"
+                            label={t("discountType")}
                             value={form.discountType}
                             onChange={(e) =>
                                 setForm((f) => ({
@@ -445,14 +452,14 @@ export default function AdminPromoCodesPage() {
                             }
                             fullWidth
                         >
-                            <MenuItem value="PERCENTAGE">Процент (%)</MenuItem>
-                            <MenuItem value="FIXED">Фикс. сумма (֏)</MenuItem>
+                            <MenuItem value="PERCENTAGE">{t("discountPercent")}</MenuItem>
+                            <MenuItem value="FIXED">{t("discountFixed")}</MenuItem>
                         </TextField>
                         <TextField
                             label={
                                 form.discountType === "PERCENTAGE"
-                                    ? "Процент (целое)"
-                                    : "Сумма (֏)"
+                                    ? t("percentValue")
+                                    : t("amountValue")
                             }
                             type="number"
                             required
@@ -468,7 +475,7 @@ export default function AdminPromoCodesPage() {
                             }}
                         />
                         <TextField
-                            label="Мин. сумма заказа (товары); пусто - нет порога"
+                            label={t("minOrderOptional")}
                             type="number"
                             value={form.minOrderAmount}
                             onChange={(e) =>
@@ -478,7 +485,7 @@ export default function AdminPromoCodesPage() {
                             inputProps={{ step: 1, min: 0 }}
                         />
                         <TextField
-                            label="Макс. использований; пусто - без лимита"
+                            label={t("maxUsagesOptional")}
                             type="number"
                             value={form.maxUsages}
                             onChange={(e) =>
@@ -488,7 +495,7 @@ export default function AdminPromoCodesPage() {
                             inputProps={{ step: 1, min: 1 }}
                         />
                         <TextField
-                            label="Истечение"
+                            label={t("expiresAt")}
                             type="datetime-local"
                             value={form.expiresLocal}
                             onChange={(e) =>
@@ -506,7 +513,7 @@ export default function AdminPromoCodesPage() {
                                     }
                                 />
                             }
-                            label="Активен"
+                            label={t("activeColumn")}
                         />
                     </Stack>
                 </DialogContent>
@@ -520,7 +527,7 @@ export default function AdminPromoCodesPage() {
                     }}
                 >
                     <Button onClick={() => setDialogOpen(false)} size={isMobile ? "large" : "medium"}>
-                        Отмена
+                        {tCommon("cancel")}
                     </Button>
                     <Button
                         variant="contained"
@@ -532,7 +539,7 @@ export default function AdminPromoCodesPage() {
                         }
                         size={isMobile ? "large" : "medium"}
                     >
-                        Сохранить
+                        {tCommon("save")}
                     </Button>
                 </DialogActions>
             </Dialog>

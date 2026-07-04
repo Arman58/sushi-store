@@ -22,7 +22,7 @@ const sessionCookieOptions = {
 
 /**
  * NextAuth: JWT-сессии, вход по email + пароль.
- * emailVerified обязателен — без OTP-подтверждения вход блокируется.
+ * emailVerified обязателен - без OTP-подтверждения вход блокируется.
  */
 export const authOptions: NextAuthOptions = {
     session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 /* 30 дней */ },

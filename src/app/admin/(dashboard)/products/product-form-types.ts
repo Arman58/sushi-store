@@ -153,7 +153,7 @@ export function productDialogDefaults(
 
 export function buildModifierPayload(
     groups: ProductDialogFormValues["modifierGroups"],
-): { ok: true; modifierGroups: AdminModifierGroupInput[] } | { ok: false; message: string } {
+): { ok: true; modifierGroups: AdminModifierGroupInput[] } | { ok: false; groupIndex: number } {
     const modifierGroups: AdminModifierGroupInput[] = [];
     for (let gi = 0; gi < groups.length; gi++) {
         const g = groups[gi];
@@ -170,7 +170,7 @@ export function buildModifierPayload(
         if (!hasLocalizedText(name)) {
             return {
                 ok: false,
-                message: `Группа ${String(gi + 1)}: укажите название (или удалите опции).`,
+                groupIndex: gi + 1,
             };
         }
         let maxChoices = Number.parseInt(String(g.maxChoices), 10);

@@ -1,6 +1,7 @@
 "use client";
 
 import { TablePagination } from "@mui/material";
+import { useTranslations } from "next-intl";
 
 import type { ProductTableView } from "./products-table-controls";
 
@@ -11,6 +12,8 @@ export function ProductsTablePagination(props: {
     onPatchView: (patch: Partial<ProductTableView>) => void;
 }) {
     const { count, page, rowsPerPage, onPatchView } = props;
+    const tCommon = useTranslations("admin.common");
+
     return (
         <TablePagination
             component="div"
@@ -25,9 +28,9 @@ export function ProductsTablePagination(props: {
                 })
             }
             rowsPerPageOptions={[10, 25, 50, 100]}
-            labelRowsPerPage="Строк на странице:"
+            labelRowsPerPage={tCommon("rowsPerPage")}
             labelDisplayedRows={({ from, to, count: total }) =>
-                `${from}–${to} из ${total}`
+                tCommon("paginationRange", { from, to, total })
             }
         />
     );

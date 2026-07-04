@@ -31,6 +31,7 @@ import {
     useTheme,
 } from "@mui/material";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
@@ -81,6 +82,9 @@ function formatRub(v: number) {
 }
 
 export default function AdminDeliveryZonesPage() {
+    const t = useTranslations("admin.deliveryZones");
+    const tCommon = useTranslations("admin.common");
+    const tNav = useTranslations("admin.nav");
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down("md"));
     const [rows, setRows] = useState<ZoneRow[]>([]);
@@ -95,9 +99,8 @@ export default function AdminDeliveryZonesPage() {
 
     const isEditMode = editId !== null;
     const title = useMemo(
-        () =>
-            isEditMode ? `Редактировать зону №${editId}` : "Новая зона доставки",
-        [isEditMode, editId],
+        () => (isEditMode ? t("editTitle", { id: editId! }) : t("newTitle")),
+        [isEditMode, editId, t],
     );
 
     const load = useCallback(async () => {
@@ -111,8 +114,8 @@ export default function AdminDeliveryZonesPage() {
                 setRows([]);
                 setError(
                     res.status === 401
-                        ? "Нет доступа"
-                        : "Не удалось загрузить зоны доставки",
+                        ? tCommon("accessDeniedShort")
+                        : t("loadFailed"),
                 );
                 return;
             }
@@ -120,11 +123,11 @@ export default function AdminDeliveryZonesPage() {
             setRows(Array.isArray(data) ? data : []);
         } catch {
             setRows([]);
-            setError("Не удалось загрузить зоны доставки");
+            setError(t("loadFailed"));
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [t, tCommon]);
 
     useEffect(() => {
         void load();
@@ -189,7 +192,7 @@ export default function AdminDeliveryZonesPage() {
                   });
 
             if (!res.ok) {
-                let msg = "Ошибка сохранения";
+                let msg = t("saveFailed");
                 try {
                     const j = (await res.json()) as { error?: string };
                     if (j?.error && typeof j.error === "string") msg = j.error;
@@ -209,9 +212,7 @@ export default function AdminDeliveryZonesPage() {
     async function handleDelete(id: number) {
         if (
             typeof window !== "undefined" &&
-            !window.confirm(
-                "Удалить зону? Старые заказы сохранят ссылку; новые клиенты не увидят зону.",
-            )
+            !window.confirm(t("deleteConfirm"))
         )
             return;
         setDeleteLoadingId(id);
@@ -221,7 +222,7 @@ export default function AdminDeliveryZonesPage() {
                 credentials: "same-origin",
             });
             if (!res.ok) {
-                alert("Не удалось удалить");
+                alert(t("deleteFailed"));
                 return;
             }
             void load();
@@ -248,7 +249,7 @@ export default function AdminDeliveryZonesPage() {
                         r.id === row.id ? { ...r, isActive: row.isActive } : r,
                     ),
                 );
-                alert("Не удалось обновить статус");
+                alert(t("statusUpdateFailed"));
             }
         } catch {
             setRows((prev) =>
@@ -256,7 +257,7 @@ export default function AdminDeliveryZonesPage() {
                     r.id === row.id ? { ...r, isActive: row.isActive } : r,
                 ),
             );
-            alert("Ошибка сети");
+            alert(tCommon("networkError"));
         } finally {
             setToggleLoadingId(null);
         }
@@ -272,20 +273,20 @@ export default function AdminDeliveryZonesPage() {
                         sx={{ mb: 2, flexWrap: "wrap", display: { xs: "none", md: "flex" } }}
                     >
                         <Button variant="text" component={Link} href="/admin/orders">
-                            Заказы
+                            {tNav("orders")}
                         </Button>
                         <Button variant="text" component={Link} href="/admin/products">
-                            Товары
+                            {tNav("products")}
                         </Button>
                         <Button variant="text" component={Link} href="/admin/promocodes">
-                            Промокоды
+                            {tNav("promocodes")}
                         </Button>
                         <Button variant="contained" startIcon={<LocalShippingOutlinedIcon />}>
-                            Зоны доставки
+                            {t("title")}
                         </Button>
                     </Stack>
 
-                    <SectionTitle>Зоны доставки</SectionTitle>
+                    <SectionTitle>{t("title")}</SectionTitle>
 
                     {error ? (
                         <Alert severity="error" sx={{ mb: 2, borderRadius: tokens.radiusCardLg }}>
@@ -298,7 +299,7 @@ export default function AdminDeliveryZonesPage() {
                         onClick={openCreate}
                         sx={{ mb: 2 }}
                     >
-                        Добавить зону
+                        {t("addZone")}
                     </Button>
 
                     <Paper
@@ -313,22 +314,22 @@ export default function AdminDeliveryZonesPage() {
                         <Table size="small">
                             <TableHead>
                                 <TableRow>
-                                    <TableCell>Название</TableCell>
-                                    <TableCell>Доставка</TableCell>
-                                    <TableCell>Мин. сумма</TableCell>
-                                    <TableCell>Подтверждение</TableCell>
-                                    <TableCell>Активна</TableCell>
+                                    <TableCell>{tCommon("name")}</TableCell>
+                                    <TableCell>{tCommon("delivery")}</TableCell>
+                                    <TableCell>{t("minOrderShort")}</TableCell>
+                                    <TableCell>{tCommon("confirmation")}</TableCell>
+                                    <TableCell>{tCommon("active")}</TableCell>
                                     <TableCell align="right" />
                                 </TableRow>
                             </TableHead>
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={6}>Загрузка…</TableCell>
+                                        <TableCell colSpan={6}>{tCommon("loading")}</TableCell>
                                     </TableRow>
                                 ) : rows.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={6}>Пока пусто</TableCell>
+                                        <TableCell colSpan={6}>{tCommon("empty")}</TableCell>
                                     </TableRow>
                                 ) : (
                                     rows.map((r) => (
@@ -357,7 +358,7 @@ export default function AdminDeliveryZonesPage() {
                                                             : "text.secondary"
                                                     }
                                                 >
-                                                    {r.requiresManagerApproval ? "Да" : "Нет"}
+                                                    {r.requiresManagerApproval ? tCommon("yes") : tCommon("no")}
                                                 </Typography>
                                             </TableCell>
                                             <TableCell>
@@ -369,20 +370,20 @@ export default function AdminDeliveryZonesPage() {
                                                         void handleToggleActive(r, checked)
                                                     }
                                                     inputProps={{
-                                                        "aria-label": `${r.isActive ? "Выключить" : "Включить"} зону ${getLocalizedField(r.name, "hy")}`,
+                                                        "aria-label": `${r.isActive ? tCommon("disableZone") : tCommon("enableZone")} ${getLocalizedField(r.name, "hy")}`,
                                                     }}
                                                 />
                                             </TableCell>
                                             <TableCell align="right">
                                                 <IconButton
-                                                    aria-label="Редактировать"
+                                                    aria-label={tCommon("edit")}
                                                     size="small"
                                                     onClick={() => openEdit(r)}
                                                 >
                                                     <EditIcon fontSize="small" />
                                                 </IconButton>
                                                 <IconButton
-                                                    aria-label="Удалить"
+                                                    aria-label={tCommon("delete")}
                                                     size="small"
                                                     color="error"
                                                     disabled={deleteLoadingId === r.id}
@@ -401,11 +402,11 @@ export default function AdminDeliveryZonesPage() {
                         <Stack spacing={1.5} sx={{ display: { xs: "flex", md: "none" }, p: 1.5 }}>
                             {loading ? (
                                 <Typography color="text.secondary" sx={{ p: 2 }}>
-                                    Загрузка…
+                                    {tCommon("loading")}
                                 </Typography>
                             ) : rows.length === 0 ? (
                                 <Typography color="text.secondary" sx={{ p: 2 }}>
-                                    Пока пусто
+                                    {tCommon("empty")}
                                 </Typography>
                             ) : (
                                 rows.map((r) => (
@@ -416,10 +417,10 @@ export default function AdminDeliveryZonesPage() {
                                                     {getLocalizedField(r.name, "hy")}
                                                 </Typography>
                                                 <Typography variant="body2">
-                                                    Доставка: {formatRub(r.deliveryPrice)}
+                                                    {tCommon("delivery")}: {formatRub(r.deliveryPrice)}
                                                 </Typography>
                                                 <Typography variant="body2">
-                                                    Мин. заказ: {formatRub(r.minOrderAmount)}
+                                                    {t("minOrderShort")}: {formatRub(r.minOrderAmount)}
                                                 </Typography>
                                                 <Stack
                                                     direction="row"
@@ -427,7 +428,7 @@ export default function AdminDeliveryZonesPage() {
                                                     justifyContent="space-between"
                                                 >
                                                     <Typography variant="body2" color="text.secondary">
-                                                        Активна
+                                                        {tCommon("active")}
                                                     </Typography>
                                                     <Switch
                                                         checked={r.isActive}
@@ -440,14 +441,14 @@ export default function AdminDeliveryZonesPage() {
                                                 </Stack>
                                                 <Stack direction="row" justifyContent="flex-end" spacing={0.5}>
                                                     <IconButton
-                                                        aria-label="Редактировать"
+                                                        aria-label={tCommon("edit")}
                                                         color="primary"
                                                         onClick={() => openEdit(r)}
                                                     >
                                                         <EditIcon />
                                                     </IconButton>
                                                     <IconButton
-                                                        aria-label="Удалить"
+                                                        aria-label={tCommon("delete")}
                                                         color="error"
                                                         disabled={deleteLoadingId === r.id}
                                                         onClick={() => void handleDelete(r.id)}
@@ -481,13 +482,13 @@ export default function AdminDeliveryZonesPage() {
                     <DialogContent>
                         <Stack spacing={2} sx={{ mt: 1 }}>
                             <LocalizedTextFields
-                                label="Название"
+                                label={tCommon("name")}
                                 required
                                 value={form.name}
                                 onChange={(name) => setForm((f) => ({ ...f, name }))}
                             />
                             <TextField
-                                label="Стоимость доставки"
+                                label={t("deliveryFee")}
                                 type="number"
                                 required
                                 value={form.deliveryPrice}
@@ -506,7 +507,7 @@ export default function AdminDeliveryZonesPage() {
                                 inputProps={{ step: 1, min: 0 }}
                             />
                             <TextField
-                                label="Минимальная сумма заказа"
+                                label={t("minOrder")}
                                 type="number"
                                 required
                                 value={form.minOrderAmount}
@@ -525,7 +526,7 @@ export default function AdminDeliveryZonesPage() {
                                 inputProps={{ step: 1, min: 0 }}
                             />
                             <LocalizedTextFields
-                                label="Описание"
+                                label={tCommon("description")}
                                 value={form.description}
                                 onChange={(description) =>
                                     setForm((f) => ({ ...f, description }))
@@ -546,7 +547,7 @@ export default function AdminDeliveryZonesPage() {
                                         color="warning"
                                     />
                                 }
-                                label="Требует подтверждения менеджером"
+                                label={t("requiresManagerApproval")}
                             />
                             <FormControlLabel
                                 control={
@@ -561,7 +562,7 @@ export default function AdminDeliveryZonesPage() {
                                         color="primary"
                                     />
                                 }
-                                label="Активна"
+                                label={tCommon("active")}
                             />
                         </Stack>
                     </DialogContent>
@@ -575,7 +576,7 @@ export default function AdminDeliveryZonesPage() {
                         }}
                     >
                         <Button onClick={() => setDialogOpen(false)} size={isMobile ? "large" : "medium"}>
-                            Отмена
+                            {tCommon("cancel")}
                         </Button>
                         <Button
                             variant="contained"
@@ -589,7 +590,7 @@ export default function AdminDeliveryZonesPage() {
                             }
                             size={isMobile ? "large" : "medium"}
                         >
-                            Сохранить
+                            {tCommon("save")}
                         </Button>
                     </DialogActions>
                 </Dialog>

@@ -54,14 +54,14 @@ export function PwaNavArrows() {
     return (
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.25, flexShrink: 0 }}>
             <ButtonBase
-                aria-label={t("back") || "Назад"}
+                aria-label={t("back")}
                 onClick={() => router.back()}
                 sx={btnSx}
             >
                 <ArrowBackRoundedIcon sx={{ fontSize: 22 }} />
             </ButtonBase>
             <ButtonBase
-                aria-label={t("forward") || "Вперёд"}
+                aria-label={t("forward")}
                 onClick={() => router.forward()}
                 sx={btnSx}
             >

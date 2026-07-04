@@ -6,6 +6,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
+import { useTranslations } from "next-intl";
 
 type ProductFormDialogShellProps = {
     open: boolean;
@@ -18,6 +19,7 @@ export function ProductFormDialogShell({
     isEdit,
     onClose,
 }: ProductFormDialogShellProps) {
+    const t = useTranslations("admin.products");
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -42,7 +44,7 @@ export function ProductFormDialogShell({
             }}
         >
             <DialogTitle sx={{ flexShrink: 0 }}>
-                {isEdit ? "Редактирование товара" : "Новый товар"}
+                {isEdit ? t("editProduct") : t("newProduct")}
             </DialogTitle>
             <DialogContent
                 sx={{

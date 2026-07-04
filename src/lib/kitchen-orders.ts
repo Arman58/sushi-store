@@ -18,7 +18,7 @@ export type KitchenOrderDto = {
     deliveryType: DeliveryType;
     paymentMethod: PaymentMethod;
     comment: string | null;
-    /** Наличные: с какой суммы готовить сдачу (null — точная сумма). */
+    /** Наличные: с какой суммы готовить сдачу (null - точная сумма). */
     changeFrom: number | null;
     totalPrice: number;
     /** Предзаказ «ко времени» (ISO); null - как можно скорее. */

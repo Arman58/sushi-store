@@ -10,6 +10,7 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
+import { useTranslations } from "next-intl";
 
 import { getLocalizedField } from "@/lib/i18n-utils";
 
@@ -164,6 +165,8 @@ export function ProductsToolbar({
     filteredCount,
     onChange,
 }: ProductsToolbarProps) {
+    const t = useTranslations("admin.products");
+    const tCommon = useTranslations("admin.common");
     const activeFilters = countActiveFilters(view);
 
     return (
@@ -183,8 +186,8 @@ export function ProductsToolbar({
                     onChange={(e) =>
                         onChange({ search: e.target.value, page: 0 })
                     }
-                    placeholder="Поиск: название, состав, ID…"
-                    aria-label="Поиск товаров"
+                    placeholder={t("searchPlaceholder")}
+                    aria-label={t("searchAria")}
                     sx={{ flex: "1 1 240px", minWidth: 200, maxWidth: 380 }}
                     InputProps={{
                         startAdornment: (
@@ -199,7 +202,7 @@ export function ProductsToolbar({
                                     onClick={() =>
                                         onChange({ search: "", page: 0 })
                                     }
-                                    aria-label="Очистить поиск"
+                                    aria-label={t("clearSearch")}
                                 />
                             </InputAdornment>
                         ) : undefined,
@@ -220,10 +223,10 @@ export function ProductsToolbar({
                             page: 0,
                         })
                     }
-                    label="Категория"
+                    label={tCommon("category")}
                     sx={{ minWidth: 160 }}
                 >
-                    <MenuItem value="all">Все категории</MenuItem>
+                    <MenuItem value="all">{t("allCategories")}</MenuItem>
                     {categories.map((c) => (
                         <MenuItem key={c.id} value={c.id}>
                             {c.label}
@@ -243,12 +246,12 @@ export function ProductsToolbar({
                             page: 0,
                         })
                     }
-                    label="Статус"
+                    label={tCommon("status")}
                     sx={{ minWidth: 140 }}
                 >
-                    <MenuItem value="all">Все</MenuItem>
-                    <MenuItem value="active">На витрине</MenuItem>
-                    <MenuItem value="hidden">Скрытые</MenuItem>
+                    <MenuItem value="all">{tCommon("all")}</MenuItem>
+                    <MenuItem value="active">{tCommon("onShelf")}</MenuItem>
+                    <MenuItem value="hidden">{t("statusHidden")}</MenuItem>
                 </TextField>
 
                 {/* Price range */}
@@ -259,8 +262,8 @@ export function ProductsToolbar({
                     onChange={(e) =>
                         onChange({ priceMin: e.target.value, page: 0 })
                     }
-                    label="Цена от"
-                    inputProps={{ min: 0, "aria-label": "Минимальная цена" }}
+                    label={t("priceFrom")}
+                    inputProps={{ min: 0, "aria-label": t("minPriceAria") }}
                     sx={{ width: 110 }}
                 />
                 <TextField
@@ -270,8 +273,8 @@ export function ProductsToolbar({
                     onChange={(e) =>
                         onChange({ priceMax: e.target.value, page: 0 })
                     }
-                    label="до"
-                    inputProps={{ min: 0, "aria-label": "Максимальная цена" }}
+                    label={t("priceTo")}
+                    inputProps={{ min: 0, "aria-label": t("maxPriceAria") }}
                     sx={{ width: 110 }}
                 />
 
@@ -283,7 +286,7 @@ export function ProductsToolbar({
                     onChange={(e) =>
                         onChange({ dateFrom: e.target.value, page: 0 })
                     }
-                    label="Создан с"
+                    label={t("createdFrom")}
                     InputLabelProps={{ shrink: true }}
                     sx={{ width: 160 }}
                 />
@@ -294,7 +297,7 @@ export function ProductsToolbar({
                     onChange={(e) =>
                         onChange({ dateTo: e.target.value, page: 0 })
                     }
-                    label="по"
+                    label={t("createdTo")}
                     InputLabelProps={{ shrink: true }}
                     sx={{ width: 160 }}
                 />
@@ -312,12 +315,15 @@ export function ProductsToolbar({
             >
                 <Typography variant="caption" color="text.secondary">
                     {activeFilters > 0
-                        ? `Показано ${filteredCount} из ${totalCount}`
-                        : `Всего товаров: ${totalCount}`}
+                        ? t("shownOfTotal", {
+                              filtered: filteredCount,
+                              total: totalCount,
+                          })
+                        : t("totalProducts", { total: totalCount })}
                 </Typography>
                 {activeFilters > 0 && (
                     <Chip
-                        label={`Сбросить фильтры (${activeFilters})`}
+                        label={t("resetFiltersChip", { count: activeFilters })}
                         size="small"
                         onDelete={() =>
                             onChange({

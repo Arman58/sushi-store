@@ -2,6 +2,7 @@
 
 import { Box, Button, Divider, Stack, Typography } from "@mui/material";
 import type { PaymentMethod } from "@prisma/client";
+import { useLocale, useTranslations } from "next-intl";
 
 import type { KitchenOrderDto } from "@/lib/kitchen-orders";
 
@@ -20,24 +21,30 @@ const TAG_SX = {
     lineHeight: 1.4,
 };
 
-export function formatKitchenTimer(iso: string, nowMs: number): string {
+type KitchenTimerLabels = {
+    now: string;
+    minutes: (minutes: number) => string;
+    hours: (hours: number) => string;
+    hoursMinutes: (hours: number, minutes: number) => string;
+};
+
+export function formatKitchenTimer(
+    iso: string,
+    nowMs: number,
+    labels: KitchenTimerLabels,
+): string {
     const diffMs = Math.max(0, nowMs - new Date(iso).getTime());
     const mins = Math.floor(diffMs / 60_000);
-    if (mins < 1) return "сейчас";
-    if (mins < 60) return `${mins} мин`;
+    if (mins < 1) return labels.now;
+    if (mins < 60) return labels.minutes(mins);
     const hours = Math.floor(mins / 60);
     const restMins = mins % 60;
-    if (restMins === 0) return `${hours} ч`;
-    return `${hours} ч ${restMins} мин`;
+    if (restMins === 0) return labels.hours(hours);
+    return labels.hoursMinutes(hours, restMins);
 }
 
 export function isKitchenOrderOverdue(iso: string, nowMs: number): boolean {
     return nowMs - new Date(iso).getTime() > OVERDUE_MS;
-}
-
-function paymentLabel(paymentMethod: PaymentMethod): string {
-    if (paymentMethod === "CASH") return "Наличные";
-    return "Карта";
 }
 
 function OrderTag({ label }: { label: string }) {
@@ -63,6 +70,33 @@ export function KitchenOrderCard({
     isUpdating,
     dimmed,
 }: KitchenOrderCardProps) {
+    const locale = useLocale();
+    const t = useTranslations("admin.kitchen");
+    const tCommon = useTranslations("admin.common");
+    const tOrder = useTranslations("order");
+
+    const timerLabels: KitchenTimerLabels = {
+        now: tCommon("now"),
+        minutes: (minutes) => t("timerMinutes", { minutes }),
+        hours: (hours) => t("timerHours", { hours }),
+        hoursMinutes: (hours, minutes) =>
+            t("timerHoursMinutes", { hours, minutes }),
+    };
+
+    const formatScheduled = (iso: string) =>
+        new Intl.DateTimeFormat(locale, {
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: "Asia/Yerevan",
+        }).format(new Date(iso));
+
+    const paymentLabel = (paymentMethod: PaymentMethod) =>
+        paymentMethod === "CASH"
+            ? tOrder("payment.cash")
+            : tOrder("payment.card");
+
     const overdue = nowMs !== null && isKitchenOrderOverdue(order.createdAt, nowMs);
 
     return (
@@ -92,17 +126,25 @@ export function KitchenOrderCard({
                         whiteSpace: "nowrap",
                     }}
                 >
-                    {nowMs === null ? "—" : formatKitchenTimer(order.createdAt, nowMs)}
+                    {nowMs === null
+                        ? "-"
+                        : formatKitchenTimer(order.createdAt, nowMs, timerLabels)}
                 </Typography>
             </Stack>
 
             <Stack direction="row" spacing={0.75} sx={{ mt: 1.5, flexWrap: "wrap", gap: 0.75 }}>
                 <OrderTag
-                    label={order.deliveryType === "PICKUP" ? "Самовывоз" : "Доставка"}
+                    label={
+                        order.deliveryType === "PICKUP"
+                            ? tCommon("pickup")
+                            : tCommon("delivery")
+                    }
                 />
                 {order.scheduledFor ? (
                     <OrderTag
-                        label={`⏰ Ко времени ${new Date(order.scheduledFor).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`}
+                        label={t("scheduledAt", {
+                            time: formatScheduled(order.scheduledFor),
+                        })}
                     />
                 ) : null}
                 <OrderTag label={paymentLabel(order.paymentMethod)} />
@@ -110,8 +152,13 @@ export function KitchenOrderCard({
                     <OrderTag
                         label={
                             order.changeFrom != null
-                                ? `💵 Сдача ${(order.changeFrom - order.totalPrice).toLocaleString("ru-RU")} ֏ (с ${order.changeFrom.toLocaleString("ru-RU")} ֏)`
-                                : "💵 Без сдачи"
+                                ? t("changeWith", {
+                                      change: (
+                                          order.changeFrom - order.totalPrice
+                                      ).toLocaleString(locale),
+                                      from: order.changeFrom.toLocaleString(locale),
+                                  })
+                                : t("noChangeCash")
                         }
                     />
                 ) : null}
@@ -201,7 +248,7 @@ export function KitchenOrderCard({
                         "&.Mui-disabled": { bgcolor: "#CBD5E1", color: "#FFFFFF" },
                     }}
                 >
-                    Начать готовить
+                    {t("startCooking")}
                 </Button>
             ) : null}
             {onMarkReady ? (
@@ -230,7 +277,7 @@ export function KitchenOrderCard({
                         "&.Mui-disabled": { color: "#94A3B8", borderColor: "#E2E8F0" },
                     }}
                 >
-                    Готово
+                    {t("markReady")}
                 </Button>
             ) : null}
             {onPickedUp ? (
@@ -259,7 +306,7 @@ export function KitchenOrderCard({
                         "&.Mui-disabled": { color: "#94A3B8", borderColor: "#E2E8F0" },
                     }}
                 >
-                    Клиент забрал
+                    {t("pickedUp")}
                 </Button>
             ) : null}
         </Box>

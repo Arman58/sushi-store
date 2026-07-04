@@ -1,4 +1,4 @@
-# East West Delivery — Архитектурный манифест
+# East West Delivery - Архитектурный манифест
 
 > Финальный документ по архитектуре проекта.  
 > Версия стека: Next.js 16.2.3 · React 19 · Prisma 6 · MUI 7  
@@ -10,9 +10,9 @@
 
 ### Что это за проект
 
-**East West Delivery** — онлайн-витрина доставки еды в **Нор Ачне** (Kotayk, Армения). Бренд объединяет кухни суши, пиццы и шаурмы под одной крышей. Физический адрес кухни: **19 Charents St., Nor Hachn**. Режим работы: **ежедневно 12:00–00:00** (Asia/Yerevan).
+**East West Delivery** - онлайн-витрина доставки еды в **Нор Ачне** (Kotayk, Армения). Бренд объединяет кухни суши, пиццы и шаурмы под одной крышей. Физический адрес кухни: **19 Charents St., Nor Hachn**. Режим работы: **ежедневно 12:00–00:00** (Asia/Yerevan).
 
-Сайт — полноценный e-commerce для food delivery: каталог с модификаторами, корзина с промокодами, чекаут с зонами доставки, трекинг заказа и изолированная админ-панель для операционной команды.
+Сайт - полноценный e-commerce для food delivery: каталог с модификаторами, корзина с промокодами, чекаут с зонами доставки, трекинг заказа и изолированная админ-панель для операционной команды.
 
 ### Основной флоу пользователя (Storefront)
 
@@ -22,18 +22,18 @@
 
 | Этап | Маршрут | Что происходит |
 |------|---------|----------------|
-| **Витрина** | `/`, `/menu`, `/menu?category={slug}` | Server Components загружают каталог из PostgreSQL. Контент локализуется на сервере до отправки на клиент. Фильтры, поиск, модификаторы — client-side поверх уже локализованных DTO. |
+| **Витрина** | `/`, `/menu`, `/menu?category={slug}` | Server Components загружают каталог из PostgreSQL. Контент локализуется на сервере до отправки на клиент. Фильтры, поиск, модификаторы - client-side поверх уже локализованных DTO. |
 | **Корзина** | `/cart` (drawer + страница) | Zustand (`sushi-cart-v2`, persist в localStorage). Промокод валидируется через `/api/validate-promo`. Цены перепроверяются через `/api/validate-cart`. |
 | **Чекаут** | `/checkout` | React Hook Form + Zod. Секции: контакт, доставка/самовывоз, зона, оплата, итог. Черновик сохраняется в localStorage. Honeypot-поле против ботов. |
 | **Создание заказа** | `POST /api/order` | Серверная валидация: цены, модификаторы, промокод, subtotal/discount/total. Снимок позиций в `OrderItem`. HttpOnly cookie `order_access_{id}`. Уведомление кухни в Telegram. |
 | **Трекинг** | `/order/[id]` | Доступ: cookie **или** legacy `?key=` **или** сессия владельца (NextAuth). React Query polling каждые 10 с для статусов NEW/COOKING/DELIVERING. |
-| **Поиск по телефону** | `/order-status` | Требует **id + phone** одновременно — защита от перебора заказов. |
+| **Поиск по телефону** | `/order-status` | Требует **id + phone** одновременно - защита от перебора заказов. |
 
 **Дополнительные пользовательские сценарии:**
-- Регистрация/логин (NextAuth Credentials, JWT-сессия) — `/profile`
-- Lazy email verification — не блокирует оформление заказа
-- Самовывоз (`DeliveryType.PICKUP`) — без адреса и зоны, `deliveryPrice = 0`
-- Зоны с `requiresManagerApproval` — оформление как заявка, менеджер перезванивает
+- Регистрация/логин (NextAuth Credentials, JWT-сессия) - `/profile`
+- Lazy email verification - не блокирует оформление заказа
+- Самовывоз (`DeliveryType.PICKUP`) - без адреса и зоны, `deliveryPrice = 0`
+- Зоны с `requiresManagerApproval` - оформление как заявка, менеджер перезванивает
 
 ### Флоу админа
 
@@ -44,16 +44,16 @@
 | Слой | Механизм | Файл |
 |------|----------|------|
 | **Edge (proxy)** | Проверка JWT в cookie `admin_auth` на всех `/admin/*` кроме `/admin/login` | `src/proxy.ts` |
-| **Layout (Server)** | `requireAdminSession()` — повторная проверка на уровне React Server Components | `src/app/admin/(dashboard)/layout.tsx` |
-| **API (Route Handlers)** | `verifyAdmin()` — JWT cookie **или** Basic Auth fallback для скриптов/Postman | `src/lib/verify-admin.ts` |
+| **Layout (Server)** | `requireAdminSession()` - повторная проверка на уровне React Server Components | `src/app/admin/(dashboard)/layout.tsx` |
+| **API (Route Handlers)** | `verifyAdmin()` - JWT cookie **или** Basic Auth fallback для скриптов/Postman | `src/lib/verify-admin.ts` |
 
 Админ-панель **изолирована** от витрины: без `LayoutShell`, без next-intl, UI на русском, редактирование JSONB-полей через `LocalizedTextFields`.
 
 **Разделы админки:**
-- **Заказы** — статусы, ETA, экспорт CSV, синхронизация с Telegram webhook
-- **Товары** — CRUD, модификаторы, загрузка изображений в Cloudinary
-- **Промокоды** — PERCENTAGE / FIXED, лимиты использования, минимальная сумма
-- **Зоны доставки** — цена, минимальный заказ, флаг «требует звонка менеджера»
+- **Заказы** - статусы, ETA, экспорт CSV, синхронизация с Telegram webhook
+- **Товары** - CRUD, модификаторы, загрузка изображений в Cloudinary
+- **Промокоды** - PERCENTAGE / FIXED, лимиты использования, минимальная сумма
+- **Зоны доставки** - цена, минимальный заказ, флаг «требует звонка менеджера»
 
 ### Интеграции
 
@@ -80,9 +80,9 @@
 ### База данных
 
 - **PostgreSQL** (Neon / Supabase / Vercel Postgres через Marketplace)
-- **Prisma 6.19** — ORM, миграции, seed
+- **Prisma 6.19** - ORM, миграции, seed
 
-**Особенность схемы — JSONB для i18n контента:**
+**Особенность схемы - JSONB для i18n контента:**
 
 Мультиязычные поля хранятся как `{ hy: string, ru: string, en: string }` в PostgreSQL JSONB:
 
@@ -91,15 +91,15 @@
 - `ModifierGroup.name`, `Modifier.name`
 - `DeliveryZone.name`, `description`
 
-Снимки заказов (`OrderItem.name`, `Order.deliveryZoneName`) — **plain string** на момент оформления, чтобы история не менялась при редактировании меню.
+Снимки заказов (`OrderItem.name`, `Order.deliveryZoneName`) - **plain string** на момент оформления, чтобы история не менялась при редактировании меню.
 
-**Build pipeline:** `prisma migrate deploy && prisma generate && next build` — миграции применяются автоматически при деплое.
+**Build pipeline:** `prisma migrate deploy && prisma generate && next build` - миграции применяются автоматически при деплое.
 
 ### State Management
 
 | Инструмент | Область | Паттерн |
 |------------|---------|---------|
-| **Zustand + persist** | Корзина | Единственный global store. Key: `sushi-cart-v2`, version 5 с migrations. Persist: `items`, `appliedPromoCode`, `hasPriceMismatch`. UI-состояние (drawer, toasts) — ephemeral. |
+| **Zustand + persist** | Корзина | Единственный global store. Key: `sushi-cart-v2`, version 5 с migrations. Persist: `items`, `appliedPromoCode`, `hasPriceMismatch`. UI-состояние (drawer, toasts) - ephemeral. |
 | **React Hook Form + Zod** | Чекаут, order-status, admin forms | `zodResolver`, сообщения через `useSchemaMessages()` из next-intl |
 | **React Query (TanStack v5)** | Order tracker | Единственный consumer: polling `/api/order-status`. StaleTime 1 min, gcTime 5 min |
 | **NextAuth** | Клиентские сессии | Credentials provider, JWT strategy, lazy email verification |
@@ -107,9 +107,9 @@
 ### UI
 
 - **MUI 7** + Emotion (`@mui/material-nextjs` для SSR cache)
-- **Custom UI-Kit** (`src/shared/ui/`): `AppButton`, `AppInput`, `AppSelect` — storefront-формы
-- **Framer Motion** — анимации hero, carousel
-- **Swiper** — promo carousel
+- **Custom UI-Kit** (`src/shared/ui/`): `AppButton`, `AppInput`, `AppSelect` - storefront-формы
+- **Framer Motion** - анимации hero, carousel
+- **Swiper** - promo carousel
 
 ### Архитектура кода (Feature-Sliced Design)
 
@@ -129,7 +129,7 @@ src/
 
 ## 3. 🌍 Архитектура i18n (Критически важный раздел)
 
-Локализация — **двухуровневая система** с общими locale-кодами `hy | ru | en` и default `hy`.
+Локализация - **двухуровневая система** с общими locale-кодами `hy | ru | en` и default `hy`.
 
 ### Уровень 1: Статический UI (next-intl)
 
@@ -138,9 +138,9 @@ src/
 **Namespaces:** `common`, `nav`, `hero`, `home`, `menu`, `cart`, `checkout`, `metadata`, `profile`, и др.
 
 **Конфигурация:**
-- `src/i18n/routing.ts` — locales, `defaultLocale: "hy"`, `localePrefix: "as-needed"`
-- `src/i18n/request.ts` — динамический import словаря по locale
-- `src/i18n/server.ts` — locale-aware `Link`, `redirect`, `useRouter`, `usePathname`
+- `src/i18n/routing.ts` - locales, `defaultLocale: "hy"`, `localePrefix: "as-needed"`
+- `src/i18n/request.ts` - динамический import словаря по locale
+- `src/i18n/server.ts` - locale-aware `Link`, `redirect`, `useRouter`, `usePathname`
 
 **URL-паттерны:**
 - Армянский (default): `/menu`, `/checkout`
@@ -149,13 +149,13 @@ src/
 
 **Routing:** `src/proxy.ts` → `createIntlMiddleware(routing)` для всех non-admin, non-api путей.
 
-**Storefront layout:** `src/app/[locale]/layout.tsx` — `NextIntlClientProvider`, `setRequestLocale()`, `generateStaticParams()`.
+**Storefront layout:** `src/app/[locale]/layout.tsx` - `NextIntlClientProvider`, `setRequestLocale()`, `generateStaticParams()`.
 
-**Переключатель языка:** `LanguageSwitcher` — `router.replace(href, { locale })` с сохранением path и query.
+**Переключатель языка:** `LanguageSwitcher` - `router.replace(href, { locale })` с сохранением path и query.
 
 ### Уровень 2: Динамический контент БД (JSONB)
 
-Контент меню хранится в PostgreSQL как JSONB `{ hy, ru, en }`. Клиент **никогда** не получает сырой JSONB — локализация происходит на сервере.
+Контент меню хранится в PostgreSQL как JSONB `{ hy, ru, en }`. Клиент **никогда** не получает сырой JSONB - локализация происходит на сервере.
 
 **Ключевые функции** (`src/lib/i18n-utils.ts`):
 
@@ -177,7 +177,7 @@ src/
 
 **Legacy support:** если JSONB содержит plain string (миграция), `getLocalizedField` парсит или возвращает as-is.
 
-**Admin editing:** `LocalizedTextFields` — табbed MUI inputs для hy/ru/en в формах товаров, категорий, зон.
+**Admin editing:** `LocalizedTextFields` - табbed MUI inputs для hy/ru/en в формах товаров, категорий, зон.
 
 ### Бэкенд-локализация ошибок
 
@@ -195,7 +195,7 @@ src/
 
 **Параметризация:** `{name}` и `{group}` подставляются из `getLocalizedField(product.name, locale)` / `getLocalizedField(group.name, locale)`.
 
-**Client handling:** `useCheckoutForm` показывает `error.message` as-is — повторный перевод на клиенте не нужен.
+**Client handling:** `useCheckoutForm` показывает `error.message` as-is - повторный перевод на клиенте не нужен.
 
 ### Схема потока данных
 
@@ -244,18 +244,18 @@ Development + нет UPSTASH_*      → fail-open (пропускает)
 Development + Upstash error    → fail-open (warn в console)
 ```
 
-**Anti-leakage:** ответы `"limited"` и `"unavailable"` **идентичны** — `{ error: "Too many requests" }` + `Retry-After: 60`. Атакующий не может определить, исчерпан ли лимит или Redis недоступен.
+**Anti-leakage:** ответы `"limited"` и `"unavailable"` **идентичны** - `{ error: "Too many requests" }` + `Retry-After: 60`. Атакующий не может определить, исчерпан ли лимит или Redis недоступен.
 
 ### Admin Auth (трёхслойная защита)
 
 **1. Proxy (edge):** `src/proxy.ts`
-- `/admin/login` — публичный
+- `/admin/login` - публичный
 - Валидный JWT в `admin_auth` → pass; `/admin` → redirect `/admin/orders`
 - Невалидный/отсутствующий → redirect `/admin/login?next={pathname}`
 
 **2. JWT Session:** `src/lib/admin-session.ts`
 - Algorithm: HS256 (`jose`)
-- Payload: `{ sub: "admin" }` — credentials **не** в JWT
+- Payload: `{ sub: "admin" }` - credentials **не** в JWT
 - TTL: 12 hours
 - Cookie flags: `httpOnly`, `sameSite: "strict"`, `secure` in production, `path: "/"`
 
@@ -276,9 +276,9 @@ Development + Upstash error    → fail-open (warn в console)
 | Max-Age | 30 days |
 | Flags | `httpOnly`, `sameSite: "lax"`, `secure` in production |
 | Set | `POST /api/order` response |
-| Check | `/order/[id]` page — cookie OR legacy `?key=` OR owner session |
+| Check | `/order/[id]` page - cookie OR legacy `?key=` OR owner session |
 
-**Order status lookup:** `GET /api/order-status` требует **id + phone** — без phone → 403, mismatch → 404 "Order not found".
+**Order status lookup:** `GET /api/order-status` требует **id + phone** - без phone → 403, mismatch → 404 "Order not found".
 
 ### Upload Hardening
 
@@ -302,13 +302,13 @@ GENERIC_REGISTRATION_FAILURE_MESSAGE =
 
 - Email exists → 400 + generic message (не "email already registered")
 - Race condition (unique constraint) → тот же generic message
-- Zod validation → specific field errors (password length и т.д.) — допустимо
+- Zod validation → specific field errors (password length и т.д.) - допустимо
 - Rate limit → opaque 429
 
 ### Дополнительные меры
 
 - **Honeypot** в checkout form (`hp` field)
-- **Server-side price validation** — клиентские цены не доверяются
+- **Server-side price validation** - клиентские цены не доверяются
 - **Password hashing:** bcrypt, 10 rounds
 - **HTML escaping** для Telegram messages (`escape-html.ts`)
 - **Webhook auth:** `TELEGRAM_WEBHOOK_TOKEN` header check
@@ -318,18 +318,18 @@ GENERIC_REGISTRATION_FAILURE_MESSAGE =
 
 ## 5. 🚀 Роутинг и Next.js 16 особенности
 
-### proxy.ts — замена middleware
+### proxy.ts - замена middleware
 
-В Next.js 16 файл `middleware.ts` **переименован** в `proxy.ts`, функция `middleware()` → `proxy()`. Это не просто rename — это уточнение роли: network-boundary proxy с Node.js runtime, мотивированное в том числе CVE-2025-29927 (middleware auth bypass).
+В Next.js 16 файл `middleware.ts` **переименован** в `proxy.ts`, функция `middleware()` → `proxy()`. Это не просто rename - это уточнение роли: network-boundary proxy с Node.js runtime, мотивированное в том числе CVE-2025-29927 (middleware auth bypass).
 
 **Файл:** `src/proxy.ts`
 
 **Matcher:**
 ```text
-/                          — root
-/(hy|en|ru)/:path*         — localized routes
-/admin, /admin/:path*      — admin panel
-/((?!api|admin|_next|_vercel|.*\..*).*)  — catch-all без static files
+/                          - root
+/(hy|en|ru)/:path*         - localized routes
+/admin, /admin/:path*      - admin panel
+/((?!api|admin|_next|_vercel|.*\..*).*)  - catch-all без static files
 ```
 
 **Логика обработки:**
@@ -347,10 +347,10 @@ Request
 **i18n routing (next-intl):**
 - Locale detection из Accept-Language, cookie, URL prefix
 - Redirect на canonical locale path
-- `localePrefix: "as-needed"` — default locale (`hy`) без префикса
+- `localePrefix: "as-needed"` - default locale (`hy`) без префикса
 
 **Admin routing:**
-- `/admin/login` — единственный public admin route
+- `/admin/login` - единственный public admin route
 - Valid session → `/admin` redirects to `/admin/orders`
 - Invalid → `/admin/login?next={originalPath}`
 
@@ -400,13 +400,13 @@ src/app/
 
 ### Legacy routes (технический долг)
 
-Дублирующие non-localized routes существуют в `src/app/(store)/` — legacy от pre-i18n миграции. Канонические маршруты — под `[locale]/(store)/`. Удаление legacy — в roadmap.
+Дублирующие non-localized routes существуют в `src/app/(store)/` - legacy от pre-i18n миграции. Канонические маршруты - под `[locale]/(store)/`. Удаление legacy - в roadmap.
 
 ### Next.js 16 async APIs
 
-- `cookies()`, `headers()` — async, требуют `await`
-- `params`, `searchParams` в page components — async
-- `revalidateTag(tag, "max")` — two-arg API
+- `cookies()`, `headers()` - async, требуют `await`
+- `params`, `searchParams` в page components - async
+- `revalidateTag(tag, "max")` - two-arg API
 
 ---
 
@@ -414,30 +414,30 @@ src/app/
 
 ### Mobile-first
 
-- **LayoutShell** — responsive header, hamburger → `MobileNavDrawer`, bottom nav на mobile
-- **CartDrawer** — slide-over корзина, не отдельная страница на mobile
-- **Touch targets** — увеличенные кнопки в product cards, filter drawer
-- **Category pills** — horizontal scroll на mobile
-- **Product modifiers dialog** — full-screen на mobile, modal на desktop
+- **LayoutShell** - responsive header, hamburger → `MobileNavDrawer`, bottom nav на mobile
+- **CartDrawer** - slide-over корзина, не отдельная страница на mobile
+- **Touch targets** - увеличенные кнопки в product cards, filter drawer
+- **Category pills** - horizontal scroll на mobile
+- **Product modifiers dialog** - full-screen на mobile, modal на desktop
 
 ### Custom UI-Kit vs raw MUI
 
 **Проблема дефолтного MUI Select:**
 - Длинные названия зон доставки обрезаются без ellipsis
 - Dropdown menu отрывается от trigger (portal positioning)
-- Несогласованный `size` — theme default `medium`, storefront нужен `small`
+- Несогласованный `size` - theme default `medium`, storefront нужен `small`
 
-**Решение — AppSelect** (`src/shared/ui/AppSelect.tsx`):
-- `FormControl` + `FormLabel` + `Select` + `FormHelperText` — compound component
+**Решение - AppSelect** (`src/shared/ui/AppSelect.tsx`):
+- `FormControl` + `FormLabel` + `Select` + `FormHelperText` - compound component
 - Ellipsis на closed value (`textOverflow: ellipsis`)
-- `disablePortal: true` — menu привязан к trigger
+- `disablePortal: true` - menu привязан к trigger
 - Menu paper: `maxWidth: 350`, `maxHeight: 250`, word-wrap в items
 - `forwardRef` для React Hook Form `Controller`
 
 **AppInput:** default `size="small"`, `variant="outlined"`, overflow fix  
 **AppButton:** default `variant="contained"`, `color="primary"`
 
-**Admin exception:** product form использует raw MUI — admin не нуждается в mobile-optimized select UX.
+**Admin exception:** product form использует raw MUI - admin не нуждается в mobile-optimized select UX.
 
 ### Deferred Rendering (INP optimization)
 
@@ -450,14 +450,14 @@ src/app/
 | `next/dynamic` + `ssr: false` | `ProductFormDialog`, `CartDrawer`, `LoginDialog`, `FilterDrawer`, `ProductModifiersDialog` | Lazy load тяжёлых dialogs |
 | `next/dynamic` + `ssr: true` + fallback | `HeroSection`, home widgets | SSR для SEO, skeleton для UX |
 | `startTransition` | `menu-section.tsx`, `FilterDrawer`, `connected-product-card`, admin products page | Non-urgent state updates не блокируют input |
-| `requestAnimationFrame` + deferred mount | Admin product form — shell opens instantly, form mounts next frame | Perceived performance |
+| `requestAnimationFrame` + deferred mount | Admin product form - shell opens instantly, form mounts next frame | Perceived performance |
 
 **Admin products page pattern:**
 1. Click "Add product" → shell dialog opens immediately
 2. `startTransition(() => setShouldRenderForm(true))` after rAF
 3. Heavy form (Cloudinary, modifiers) mounts deferred
 
-**Checkout note:** `CheckoutWizard` eager-loaded (critical path). Deferred loading вокруг — cart drawer, login dialog.
+**Checkout note:** `CheckoutWizard` eager-loaded (critical path). Deferred loading вокруг - cart drawer, login dialog.
 
 ---
 
@@ -468,11 +468,11 @@ src/app/
 **Central helper:** `src/lib/seo/metadata.ts` → `buildLocalizedMetadata()`
 
 Генерирует для каждой indexable page:
-- **Self-referencing canonical** — URL текущей locale версии
-- **hreflang alternates** — `hy`, `en`, `ru`, `x-default` (→ default locale)
-- **Open Graph** — title, description, url, locale (`hy_AM`, `ru_RU`, `en_US`), alternateLocale, image
+- **Self-referencing canonical** - URL текущей locale версии
+- **hreflang alternates** - `hy`, `en`, `ru`, `x-default` (→ default locale)
+- **Open Graph** - title, description, url, locale (`hy_AM`, `ru_RU`, `en_US`), alternateLocale, image
 
-**Site config:** `src/lib/site-config.ts` — `SITE_URL`, `SITE_NAME`, contacts, address, hours — единый источник для metadata, JSON-LD, UI.
+**Site config:** `src/lib/site-config.ts` - `SITE_URL`, `SITE_NAME`, contacts, address, hours - единый источник для metadata, JSON-LD, UI.
 
 ### JSON-LD Schemas
 
@@ -480,15 +480,15 @@ src/app/
 
 | Schema | Где inject | Тип |
 |--------|------------|-----|
-| `restaurantJsonLd()` | Root layout (global) | Restaurant — address, hours, menu, OrderAction |
-| `foodDeliveryServiceJsonLd()` | Root layout (global) | Service — delivery areas (Yerevan, Nor Hachn, Kotayk) |
-| `orderJsonLd()` | `/order/[id]` page | Order + OrderItem/Product — только для trackable statuses |
+| `restaurantJsonLd()` | Root layout (global) | Restaurant - address, hours, menu, OrderAction |
+| `foodDeliveryServiceJsonLd()` | Root layout (global) | Service - delivery areas (Yerevan, Nor Hachn, Kotayk) |
+| `orderJsonLd()` | `/order/[id]` page | Order + OrderItem/Product - только для trackable statuses |
 
 **ItemList schema:** не реализован на текущий момент. Планируется с введением `/menu/[slug]` product pages (см. Roadmap).
 
 ### On-page SEO content
 
-**SeoText widget** (`src/widgets/seo-text/ui/SeoText.tsx`) — server-rendered H2 + paragraph на главной. i18n keys: `home.seo_text_*`.
+**SeoText widget** (`src/widgets/seo-text/ui/SeoText.tsx`) - server-rendered H2 + paragraph на главной. i18n keys: `home.seo_text_*`.
 
 ### Indexation control
 
@@ -510,13 +510,13 @@ Sitemap: {SITE_URL}/sitemap.xml
 
 ### Cache headers
 
-`next.config.ts` — immutable cache (1 year) для fonts и static images.
+`next.config.ts` - immutable cache (1 year) для fonts и static images.
 
 ---
 
 ## 8. 🚨 Критичные переменные окружения (ENV)
 
-Полный список — `.env.example`. Ниже — что **сломается** без каждой переменной в production.
+Полный список - `.env.example`. Ниже - что **сломается** без каждой переменной в production.
 
 ### Database
 
@@ -564,7 +564,7 @@ Sitemap: {SITE_URL}/sitemap.xml
 | Variable | Required | Если отсутствует |
 |----------|----------|------------------|
 | `TELEGRAM_BOT_TOKEN` | ⚠️ | Orders создаются, но кухня не получает уведомления. |
-| `TELEGRAM_CHAT_ID` | ⚠️ | Same — messages sent nowhere. |
+| `TELEGRAM_CHAT_ID` | ⚠️ | Same - messages sent nowhere. |
 | `TELEGRAM_WEBHOOK_TOKEN` | ⚠️ | Webhook rejects callbacks. Kitchen buttons (status/ETA) broken. |
 
 ### Cloudinary (Admin uploads)
@@ -601,15 +601,15 @@ Sitemap: {SITE_URL}/sitemap.xml
 
 ### Онлайн-оплата
 
-- **Idram** — популярный в Армении e-wallet
-- **Arca** — банковские карты (Armenian Card)
+- **Idram** - популярный в Армении e-wallet
+- **Arca** - банковские карты (Armenian Card)
 - Payment flow: create intent → redirect/iframe → webhook confirmation → update Order.payment
 - Schema change: `PaymentMethod.ONLINE`, `paymentStatus`, `paymentIntentId`
 
 ### Централизация валидации корзины
 
 - React Query mutation для `/api/validate-cart` с debounce
-- Shared hook `useCartValidation()` — единый source of truth для price mismatch
+- Shared hook `useCartValidation()` - единый source of truth для price mismatch
 - Optimistic UI с rollback при расхождении цен
 - Background revalidation при focus/interval
 
@@ -634,7 +634,7 @@ Sitemap: {SITE_URL}/sitemap.xml
 | Remove legacy `app/(store)/` routes | Medium | Duplicate non-localized pages |
 | Full backend-i18n coverage | Medium | validate-promo, order-status still have hardcoded strings |
 | Remove legacy `?key=` order access | Low | Cookie-only after SMS auth flow |
-| Email verification enforcement | Low | Currently lazy — doesn't block orders |
+| Email verification enforcement | Low | Currently lazy - doesn't block orders |
 | Admin i18n | Low | Admin UI hardcoded Russian |
 | Sitemap/robots consistency | Low | `/profile` in sitemap but disallowed in robots |
 | Order SMS notifications | Medium | Magic link via SMS instead of cookie-only |
@@ -649,21 +649,21 @@ Sitemap: {SITE_URL}/sitemap.xml
 | Endpoint | Method | Auth | Rate Limit |
 |----------|--------|------|------------|
 | `/api/order` | POST | Public | order |
-| `/api/order-status` | GET | Public (id+phone) | — |
+| `/api/order-status` | GET | Public (id+phone) | - |
 | `/api/validate-cart` | POST | Public | validateCart |
 | `/api/validate-promo` | POST | Public | validatePromo |
-| `/api/delivery-zones` | GET | Public | — |
+| `/api/delivery-zones` | GET | Public | - |
 | `/api/auth/register` | POST | Public | register |
-| `/api/auth/[...nextauth]` | * | NextAuth | — |
+| `/api/auth/[...nextauth]` | * | NextAuth | - |
 | `/api/admin/login` | POST | Public | adminLogin |
-| `/api/admin/logout` | POST | Admin | — |
-| `/api/admin/products` | CRUD | Admin | — |
-| `/api/admin/categories` | CRUD | Admin | — |
-| `/api/admin/orders/[id]` | PATCH | Admin | — |
-| `/api/admin/promocodes` | CRUD | Admin | — |
-| `/api/admin/delivery-zones` | CRUD | Admin | — |
-| `/api/upload` | POST | Admin | — |
-| `/api/telegram/webhook` | POST | Webhook token | — |
+| `/api/admin/logout` | POST | Admin | - |
+| `/api/admin/products` | CRUD | Admin | - |
+| `/api/admin/categories` | CRUD | Admin | - |
+| `/api/admin/orders/[id]` | PATCH | Admin | - |
+| `/api/admin/promocodes` | CRUD | Admin | - |
+| `/api/admin/delivery-zones` | CRUD | Admin | - |
+| `/api/upload` | POST | Admin | - |
+| `/api/telegram/webhook` | POST | Webhook token | - |
 
 ## Приложение B: Order Status Flow
 
@@ -677,7 +677,7 @@ NEW → COOKING → DELIVERING → DONE
 - Admin panel manual update
 - (Future) KDS drag-and-drop
 
-**Estimated delivery:** `Order.estimatedDeliveryAt` — set by kitchen via Telegram or admin.
+**Estimated delivery:** `Order.estimatedDeliveryAt` - set by kitchen via Telegram or admin.
 
 ---
 

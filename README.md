@@ -5,10 +5,10 @@ Production: [eastwestnh.com](https://eastwestnh.com)
 
 ## Что внутри
 
-- **Storefront** — каталог с модификаторами, корзина, чекаут, трекинг заказа
-- **Admin panel** — заказы, товары, промокоды, зоны доставки
-- **3 языка** — hy (default), ru, en
-- **Интеграции** — Telegram (кухня), Resend (email), Cloudinary (media), Upstash (rate limiting)
+- **Storefront** - каталог с модификаторами, корзина, чекаут, трекинг заказа
+- **Admin panel** - заказы, товары, промокоды, зоны доставки
+- **3 языка** - hy (default), ru, en
+- **Интеграции** - Telegram (кухня), Resend (email), Cloudinary (media), Upstash (rate limiting)
 
 ## Стек
 
@@ -48,12 +48,12 @@ npm run dev
 
 ## Production (Vercel)
 
-Обязательные переменные — см. [`.env.example`](.env.example) и раздел 8 в [`ARCHITECTURE.md`](ARCHITECTURE.md).
+Обязательные переменные - см. [`.env.example`](.env.example) и раздел 8 в [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ```bash
 NEXTAUTH_URL=https://eastwestnh.com
 NEXT_PUBLIC_SITE_URL=https://eastwestnh.com
-UPSTASH_REDIS_REST_URL=...      # required — без Redis prod fail-closed (429)
+UPSTASH_REDIS_REST_URL=...      # required - без Redis prod fail-closed (429)
 UPSTASH_REDIS_REST_TOKEN=...
 ```
 
@@ -61,7 +61,7 @@ UPSTASH_REDIS_REST_TOKEN=...
 
 ## Документация
 
-**[ARCHITECTURE.md](ARCHITECTURE.md)** — полный архитектурный манифест:
+**[ARCHITECTURE.md](ARCHITECTURE.md)** - полный архитектурный манифест:
 
 1. Бизнес-логика и user/admin flows
 2. Технологический стек

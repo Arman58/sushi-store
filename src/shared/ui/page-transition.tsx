@@ -15,7 +15,7 @@ const shellStyle = {
 
 /**
  * Stable layout wrapper for store pages.
- * Do not re-animate or remount on pathname changes — that breaks RSC Suspense
+ * Do not re-animate or remount on pathname changes - that breaks RSC Suspense
  * tracking and triggers React's "async info not on parent Suspense boundary"
  * warning (often surfaced via React DevTools).
  */

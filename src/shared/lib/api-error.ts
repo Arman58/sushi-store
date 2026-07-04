@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-/** Machine-readable коды ошибок API — клиент не парсит текст message. */
+/** Machine-readable коды ошибок API - клиент не парсит текст message. */
 export const API_ERROR_CODES = {
     PRICE_MISMATCH: "PRICE_MISMATCH",
     ITEM_UNAVAILABLE: "ITEM_UNAVAILABLE",

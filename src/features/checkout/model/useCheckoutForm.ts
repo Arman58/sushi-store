@@ -224,7 +224,7 @@ export function useCheckoutForm({ sessionUser, hasItems }: UseCheckoutFormParams
             return;
         }
 
-        // Сдача: сумма клиента должна покрывать итог — не пускаем на сервер.
+        // Сдача: сумма клиента должна покрывать итог - не пускаем на сервер.
         if (
             data.payment === "cash" &&
             data.needsChange &&

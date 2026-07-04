@@ -12,7 +12,7 @@ import { SITE_URL } from "@/lib/site-config";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 
-/** Локальная разработка — Resend sandbox принимает только этот отправитель. */
+/** Локальная разработка - Resend sandbox принимает только этот отправитель. */
 const DEV_FROM = "East West Delivery <onboarding@resend.dev>";
 
 const WELCOME_SUBJECT: Record<AppLocale, string> = {
@@ -28,16 +28,16 @@ function normalizeLocale(locale?: string): AppLocale {
     return "hy";
 }
 
-/** Ленивая инициализация — не падаем при сборке без ключа. */
+/** Ленивая инициализация - не падаем при сборке без ключа. */
 function getResendClient(): Resend | null {
     if (!resendApiKey?.trim()) return null;
     return new Resend(resendApiKey);
 }
 
 /**
- * RESEND_FROM — верифицированный отправитель на проде
+ * RESEND_FROM - верифицированный отправитель на проде
  * (например East West Delivery <noreply@eastwestnh.com>).
- * Без переменной — onboarding@resend.dev для локальной разработки.
+ * Без переменной - onboarding@resend.dev для локальной разработки.
  */
 function getFromAddress(): string {
     const configured = process.env.RESEND_FROM?.trim();
@@ -46,7 +46,7 @@ function getFromAddress(): string {
 }
 
 /**
- * RESEND_DEV_REDIRECT_TO — на Preview и в .env.local все письма уходят на этот inbox,
+ * RESEND_DEV_REDIRECT_TO - на Preview и в .env.local все письма уходят на этот inbox,
  * чтобы не отправить письмо реальному клиенту при тестах.
  */
 function resolveRecipient(to: string): {
@@ -95,7 +95,7 @@ export type SendWelcomeEmailResult = SendEmailResult;
 
 /**
  * Приветственное письмо после регистрации / повторная отправка из профиля.
- * Никогда не бросает исключение — ошибки логируются, UX не блокируется.
+ * Никогда не бросает исключение - ошибки логируются, UX не блокируется.
  */
 export async function sendWelcomeEmail(
     to: string,
@@ -156,7 +156,7 @@ export async function sendWelcomeEmail(
 
 /**
  * OTP-код для подтверждения email при регистрации.
- * Никогда не бросает исключение — ошибки логируются.
+ * Никогда не бросает исключение - ошибки логируются.
  */
 export async function sendOtpEmail(
     to: string,

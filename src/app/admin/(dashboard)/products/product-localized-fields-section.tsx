@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { memo } from "react";
 import { type Control, Controller } from "react-hook-form";
 
@@ -17,6 +18,8 @@ export const ProductLocalizedFieldsSection = memo(
         control,
         disabled,
     }: ProductLocalizedFieldsSectionProps) {
+        const tCommon = useTranslations("admin.common");
+
         return (
             <>
                 <Controller
@@ -24,7 +27,7 @@ export const ProductLocalizedFieldsSection = memo(
                     control={control}
                     render={({ field }) => (
                         <LocalizedTextFields
-                            label="Название"
+                            label={tCommon("name")}
                             value={field.value}
                             onChange={field.onChange}
                             disabled={disabled}
@@ -37,7 +40,7 @@ export const ProductLocalizedFieldsSection = memo(
                     control={control}
                     render={({ field }) => (
                         <LocalizedTextFields
-                            label="Состав"
+                            label={tCommon("composition")}
                             value={field.value}
                             onChange={field.onChange}
                             disabled={disabled}
@@ -50,7 +53,7 @@ export const ProductLocalizedFieldsSection = memo(
                     control={control}
                     render={({ field }) => (
                         <LocalizedTextFields
-                            label="Описание"
+                            label={tCommon("description")}
                             value={field.value}
                             onChange={field.onChange}
                             disabled={disabled}

@@ -33,13 +33,13 @@ type UpsellProduct = Pick<
 };
 
 type Props = {
-    /** Товары корзины — их id уходят в exclude (и как якорь «с этим берут»). */
+    /** Товары корзины - их id уходят в exclude (и как якорь «с этим берут»). */
     cartItems?: CartItem[];
     /** Явный список id для exclude (напр. [productId] на странице товара). */
     excludeIds?: number[];
     /** Заголовок над каруселью; рендерится только когда есть что показать. */
     title?: string;
-    /** Слаги категорий, которые не предлагать (напр. sauces — их показывает SauceStrip). */
+    /** Слаги категорий, которые не предлагать (напр. sauces - их показывает SauceStrip). */
     excludeCategorySlugs?: string[];
 };
 
@@ -49,7 +49,7 @@ function hasRequiredModifiers(groups: MenuModifierGroup[] | undefined): boolean 
 
 /**
  * Компактные предложения «с этим часто заказывают»: маленькие чипы
- * с фото, ценой и быстрым добавлением — единый стиль с SauceStrip,
+ * с фото, ценой и быстрым добавлением - единый стиль с SauceStrip,
  * ненавязчиво и mobile-first (горизонтальный скролл).
  */
 export function UpsellCarousel({

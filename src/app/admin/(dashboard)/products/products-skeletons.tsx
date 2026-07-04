@@ -10,24 +10,29 @@ import {
     TableHead,
     TableRow,
 } from "@mui/material";
+import { useTranslations } from "next-intl";
 
 export function TableSkeleton() {
+    const tCommon = useTranslations("admin.common");
+
+    const headers = [
+        tCommon("id"),
+        tCommon("image"),
+        tCommon("name"),
+        tCommon("composition"),
+        tCommon("category"),
+        tCommon("price"),
+        tCommon("created"),
+        tCommon("onShelf"),
+        "",
+    ];
+
     return (
         <Table size="small">
             <TableHead>
                 <TableRow>
-                    {[
-                        "ID",
-                        "Картинка",
-                        "Название",
-                        "Состав",
-                        "Категория",
-                        "Цена",
-                        "Создан",
-                        "На витрине",
-                        "",
-                    ].map((h) => (
-                        <TableCell key={h}>{h || <span />}</TableCell>
+                    {headers.map((h) => (
+                        <TableCell key={h || "actions"}>{h || <span />}</TableCell>
                     ))}
                 </TableRow>
             </TableHead>

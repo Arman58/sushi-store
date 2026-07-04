@@ -16,6 +16,7 @@ import {
     Typography,
 } from "@mui/material";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 
 import { getLocalizedField } from "@/lib/i18n-utils";
 import { getProductCoverUrl, getProductImageUrls } from "@/shared/lib/product-cover";
@@ -40,6 +41,8 @@ export function ProductsDesktopTable(props: {
     actions: ProductRowActions;
 }) {
     const { products, view, onSort, actions } = props;
+    const t = useTranslations("admin.products");
+    const tCommon = useTranslations("admin.common");
 
     const sortCell = (column: ProductSortBy, label: string, align?: "right") => (
         <TableCell
@@ -62,14 +65,14 @@ export function ProductsDesktopTable(props: {
             <Table size="small" stickyHeader>
                 <TableHead>
                     <TableRow>
-                        {sortCell("id", "ID")}
-                        <TableCell>Картинка</TableCell>
-                        {sortCell("name", "Название")}
-                        <TableCell>Состав</TableCell>
-                        {sortCell("category", "Категория")}
-                        {sortCell("price", "Цена", "right")}
-                        {sortCell("createdAt", "Создан", "right")}
-                        {sortCell("isActive", "На витрине", "right")}
+                        {sortCell("id", tCommon("id"))}
+                        <TableCell>{tCommon("image")}</TableCell>
+                        {sortCell("name", tCommon("name"))}
+                        <TableCell>{tCommon("composition")}</TableCell>
+                        {sortCell("category", tCommon("category"))}
+                        {sortCell("price", tCommon("price"), "right")}
+                        {sortCell("createdAt", tCommon("created"), "right")}
+                        {sortCell("isActive", tCommon("onShelf"), "right")}
                         <TableCell align="right" width={100} />
                     </TableRow>
                 </TableHead>
@@ -160,7 +163,7 @@ export function ProductsDesktopTable(props: {
                                             ? new Date(
                                                   product.createdAt,
                                               ).toLocaleDateString("ru-RU")
-                                            : "—"}
+                                            : "-"}
                                     </Typography>
                                 </TableCell>
                                 <TableCell align="right">
@@ -189,8 +192,8 @@ export function ProductsDesktopTable(props: {
                                             sx={{ fontSize: "0.65rem" }}
                                         >
                                             {product.isAvailable === false
-                                                ? "Стоп-лист"
-                                                : "В наличии"}
+                                                ? tCommon("stopList")
+                                                : tCommon("inStock")}
                                         </Typography>
                                         <Switch
                                             size="small"
@@ -202,7 +205,7 @@ export function ProductsDesktopTable(props: {
                                                     e.target.checked,
                                                 )
                                             }
-                                            inputProps={{ "aria-label": "В наличии" }}
+                                            inputProps={{ "aria-label": tCommon("inStock") }}
                                         />
                                     </Box>
                                 </TableCell>
@@ -227,7 +230,7 @@ export function ProductsDesktopTable(props: {
                                                 color="primary"
                                                 onClick={() => actions.onEdit(product)}
                                                 disabled={busy || actions.saveLoading}
-                                                aria-label="Редактировать"
+                                                aria-label={tCommon("edit")}
                                             >
                                                 <EditIcon fontSize="small" />
                                             </IconButton>
@@ -238,7 +241,7 @@ export function ProductsDesktopTable(props: {
                                                 onClick={() =>
                                                     actions.onRequestDelete(product.id)
                                                 }
-                                                aria-label="Удалить"
+                                                aria-label={tCommon("delete")}
                                             >
                                                 <DeleteIcon fontSize="small" />
                                             </IconButton>
@@ -263,7 +266,7 @@ export function ProductsDesktopTable(props: {
                                                     whiteSpace: "nowrap",
                                                 }}
                                             >
-                                                Сделать главной
+                                                {t("makeCoverMain")}
                                             </Button>
                                         ) : null}
                                     </Box>

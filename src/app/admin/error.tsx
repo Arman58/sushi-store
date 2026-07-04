@@ -3,11 +3,10 @@
 import DashboardOutlined from "@mui/icons-material/DashboardOutlined";
 import Button from "@mui/material/Button";
 import * as Sentry from "@sentry/nextjs";
+import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 
-import {
-    FatalErrorScreen,
-} from "@/shared/ui/fatal-error-screen";
+import { FatalErrorScreen } from "@/shared/ui/fatal-error-screen";
 
 const ADMIN_DASHBOARD_PATH = "/admin/orders";
 
@@ -18,6 +17,8 @@ export default function AdminError({
     error: Error & { digest?: string };
     reset: () => void;
 }) {
+    const t = useTranslations("admin.error");
+
     useEffect(() => {
         console.error(error);
         Sentry.captureException(error);
@@ -25,10 +26,10 @@ export default function AdminError({
 
     return (
         <FatalErrorScreen
-            badge="500"
-            heading="Что-то пошло не так"
-            body="Панель управления временно недоступна. Мы уже получили уведомление и разбираемся с проблемой."
-            retryLabel="Попробовать снова"
+            badge={t("badge")}
+            heading={t("heading")}
+            body={t("body")}
+            retryLabel={t("retry")}
             onRetry={reset}
             secondaryAction={
                 <Button
@@ -51,7 +52,7 @@ export default function AdminError({
                         },
                     }}
                 >
-                    Вернуться в панель управления
+                    {t("backToDashboard")}
                 </Button>
             }
         />

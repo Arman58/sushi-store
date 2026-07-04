@@ -1,6 +1,7 @@
 "use client";
 
 import { Box, Chip, Switch } from "@mui/material";
+import { useTranslations } from "next-intl";
 
 import type { ProductRow } from "./product-row-types";
 
@@ -10,6 +11,8 @@ export function ShelfToggle(props: {
     onChange: (nextActive: boolean) => void;
 }) {
     const { product, disabled, onChange } = props;
+    const tCommon = useTranslations("admin.common");
+
     return (
         <Box
             sx={{
@@ -21,7 +24,7 @@ export function ShelfToggle(props: {
         >
             {!product.isActive ? (
                 <Chip
-                    label="Снято"
+                    label={tCommon("removed")}
                     size="small"
                     color="default"
                     variant="outlined"
@@ -34,7 +37,9 @@ export function ShelfToggle(props: {
                 disabled={disabled}
                 size="small"
                 inputProps={{
-                    "aria-label": product.isActive ? "На витрине, выключить" : "Показать на витрине",
+                    "aria-label": product.isActive
+                        ? tCommon("hideFromShelf")
+                        : tCommon("showOnShelf"),
                 }}
             />
         </Box>

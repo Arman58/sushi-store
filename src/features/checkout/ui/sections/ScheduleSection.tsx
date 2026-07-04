@@ -18,7 +18,7 @@ import { buildScheduleSlots } from "../../model/schedule-slots";
 import { PaymentCard } from "../PaymentCard";
 import { checkoutSectionPaperSx } from "../styles";
 
-/** «Когда доставить?» — как можно скорее или предзаказ ко времени. */
+/** «Когда доставить?» - как можно скорее или предзаказ ко времени. */
 export function ScheduleSection() {
     const t = useTranslations("checkout.schedule");
     const {
@@ -42,7 +42,7 @@ export function ScheduleSection() {
         [isClient],
     );
 
-    // Выбранный слот устарел (прошло время) — сбрасываем.
+    // Выбранный слот устарел (прошло время) - сбрасываем.
     useEffect(() => {
         if (
             scheduledFor &&

@@ -92,14 +92,14 @@ export function isStoreOpen(now = new Date()): boolean {
 }
 
 /**
- * Обещание времени доставки — единый источник для всех текстов UI.
+ * Обещание времени доставки - единый источник для всех текстов UI.
  * Реальный ETA конкретного заказа задаёт кухня после оформления.
  */
 export const DELIVERY_ETA = { minMinutes: 45, maxMinutes: 60 } as const;
 
 /**
  * «Привезём к HH:MM»: сейчас + максимум обещания, округление вверх до 5 минут.
- * Under-promise: показываем верхнюю границу — приехать раньше приятно.
+ * Under-promise: показываем верхнюю границу - приехать раньше приятно.
  */
 export function getExpectedArrivalTime(now = new Date()): Date {
     const step = 5 * 60_000;
@@ -152,5 +152,5 @@ export const SERVES_CUISINE = [
 
 export const DEFAULT_OG_IMAGE = "/og-image.png";
 
-/** Локальный логотип в public/ — регистр пути должен совпадать с файлом (Linux/Vercel). */
+/** Локальный логотип в public/ - регистр пути должен совпадать с файлом (Linux/Vercel). */
 export const SITE_LOGO_PATH = "/east-west-logo.png";

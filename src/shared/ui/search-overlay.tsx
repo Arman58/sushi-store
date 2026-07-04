@@ -204,7 +204,7 @@ export function SearchOverlay({
                     pb: "calc(env(safe-area-inset-bottom) + 8px)",
                 }}
             >
-                {/* Пустой ввод — популярные запросы */}
+                {/* Пустой ввод - популярные запросы */}
                 {!hasQuery && (
                     <Box sx={{ px: 1, py: 1 }}>
                         <SectionLabel

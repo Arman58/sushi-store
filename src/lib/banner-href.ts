@@ -24,7 +24,7 @@ export function validateBannerHref(
 ): BannerHrefResult {
     const v = (raw ?? "").trim();
 
-    // Пусто — валидно, баннер просто не кликабелен.
+    // Пусто - валидно, баннер просто не кликабелен.
     if (!v) return { ok: true, value: null };
 
     // Внешний абсолютный адрес.
@@ -37,7 +37,7 @@ export function validateBannerHref(
         }
     }
 
-    // Протокол-относительный адрес ("//host") — небезопасно, запрещаем.
+    // Протокол-относительный адрес ("//host") - небезопасно, запрещаем.
     if (v.startsWith("//")) return { ok: false, code: "format" };
 
     // Внутренний путь.

@@ -41,7 +41,7 @@ export function PushPermissionPrompt() {
                 setStatus("success");
             })
             .catch(() => {
-                /* ignore — не блокируем UI */
+                /* ignore - не блокируем UI */
             });
 
         return () => {

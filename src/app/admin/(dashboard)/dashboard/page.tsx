@@ -25,6 +25,7 @@ import { chartsGridClasses } from "@mui/x-charts/ChartsGrid";
 import { LineChart } from "@mui/x-charts/LineChart";
 import { PieChart } from "@mui/x-charts/PieChart";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { type ReactNode,useMemo, useState } from "react";
 
 import {
@@ -66,7 +67,10 @@ const PAYMENT_CHART_COLORS: Record<string, string> = {
     CARD: "#00B341",
 };
 
-async function fetchAnalytics(days: PeriodDays): Promise<AdminAnalyticsResponse> {
+async function fetchAnalytics(
+    days: PeriodDays,
+    fallbackMessage: string,
+): Promise<AdminAnalyticsResponse> {
     const res = await fetch(`/api/admin/analytics?days=${days}`, {
         credentials: "same-origin",
     });
@@ -78,7 +82,7 @@ async function fetchAnalytics(days: PeriodDays): Promise<AdminAnalyticsResponse>
             "error" in body &&
             typeof (body as { error: unknown }).error === "string"
                 ? (body as { error: string }).error
-                : "Не удалось загрузить аналитику";
+                : fallbackMessage;
         throw new Error(message);
     }
     return body as AdminAnalyticsResponse;
@@ -104,12 +108,12 @@ function dayOverDayDelta(
 function MetricCard({
     title,
     value,
-    delta,
+    deltaText,
     valueColor,
 }: {
     title: string;
     value: string;
-    delta?: number | null;
+    deltaText?: string | null;
     valueColor?: string;
 }) {
     return (
@@ -131,17 +135,18 @@ function MetricCard({
             >
                 {value}
             </Typography>
-            {delta != null ? (
+            {deltaText != null ? (
                 <Typography
                     variant="body2"
                     sx={{
                         mt: 0.75,
-                        color: delta >= 0 ? "success.main" : "error.main",
+                        color: deltaText.startsWith("-")
+                            ? "error.main"
+                            : "success.main",
                         fontWeight: 500,
                     }}
                 >
-                    {delta >= 0 ? "+" : ""}
-                    {delta.toFixed(0)}% к прошлому дню
+                    {deltaText}
                 </Typography>
             ) : null}
         </Card>
@@ -181,19 +186,47 @@ function EmptyChartState({ message }: { message: string }) {
 }
 
 export default function AdminDashboardPage() {
+    const t = useTranslations("admin.dashboard");
+    const tCommon = useTranslations("admin.common");
+    const tOrder = useTranslations("order.status");
     const theme = useTheme();
     const brandGreen = theme.palette.primary.main;
     const [periodDays, setPeriodDays] = useState<PeriodDays>(14);
 
     const { data, isLoading, isError, error } = useQuery({
         queryKey: ["admin-analytics", periodDays],
-        queryFn: () => fetchAnalytics(periodDays),
+        queryFn: () => fetchAnalytics(periodDays, t("loadFailed")),
     });
 
-    const analytics = useMemo(
-        () => data ?? buildEmptyAdminAnalyticsResponse(periodDays),
-        [data, periodDays],
-    );
+    const analytics = useMemo(() => {
+        const base = data ?? buildEmptyAdminAnalyticsResponse(periodDays);
+        const statusLabels = {
+            NEW: tOrder("new"),
+            COOKING: tOrder("cooking"),
+            DELIVERING: tOrder("delivering"),
+            DONE: tOrder("done"),
+            CANCELLED: tOrder("cancelled"),
+        } as const;
+
+        return {
+            ...base,
+            statusDistribution: base.statusDistribution.map((slice) => ({
+                ...slice,
+                label: statusLabels[slice.status] ?? slice.label,
+            })),
+            paymentMethods: base.paymentMethods.map((slice) => ({
+                ...slice,
+                label:
+                    slice.method === "CASH"
+                        ? tCommon("cash")
+                        : tCommon("cardFull"),
+            })),
+            exportOrders: base.exportOrders.map((order) => ({
+                ...order,
+                statusLabel: statusLabels[order.status] ?? order.statusLabel,
+            })),
+        };
+    }, [data, periodDays, tCommon, tOrder]);
 
     const chartLabels = useMemo(
         () => analytics.daily.map((point) => point.label),
@@ -308,6 +341,13 @@ export default function AdminDashboardPage() {
         borderColor: "divider",
     } as const;
 
+    const formatDelta = (delta: number | null) =>
+        delta != null
+            ? t("deltaToPrevDay", {
+                  delta: `${delta > 0 ? "+" : ""}${delta.toFixed(0)}`,
+              })
+            : null;
+
     return (
         <PageContainer>
             <Stack
@@ -317,7 +357,7 @@ export default function AdminDashboardPage() {
                 spacing={2}
                 sx={{ mb: 2 }}
             >
-                <SectionTitle pageTitle>Аналитика</SectionTitle>
+                <SectionTitle pageTitle>{t("title")}</SectionTitle>
                 <Stack
                     direction={{ xs: "column", sm: "row" }}
                     spacing={1.5}
@@ -332,6 +372,13 @@ export default function AdminDashboardPage() {
                             downloadOrdersCsv(
                                 analytics.exportOrders,
                                 analytics.periodDays,
+                                [
+                                    t("exportCsvHeaders.id"),
+                                    t("exportCsvHeaders.date"),
+                                    t("exportCsvHeaders.amount"),
+                                    t("exportCsvHeaders.zone"),
+                                    t("exportCsvHeaders.status"),
+                                ],
                             );
                         }}
                         sx={{
@@ -341,7 +388,7 @@ export default function AdminDashboardPage() {
                             whiteSpace: "nowrap",
                         }}
                     >
-                        Скачать отчет (CSV)
+                        {t("downloadReport")}
                     </Button>
                     <ToggleButtonGroup
                         exclusive
@@ -360,9 +407,9 @@ export default function AdminDashboardPage() {
                             },
                         }}
                     >
-                        <ToggleButton value={7}>7 дней</ToggleButton>
-                        <ToggleButton value={14}>14 дней</ToggleButton>
-                        <ToggleButton value={30}>30 дней</ToggleButton>
+                        <ToggleButton value={7}>{t("periodDays", { days: 7 })}</ToggleButton>
+                        <ToggleButton value={14}>{t("periodDays", { days: 14 })}</ToggleButton>
+                        <ToggleButton value={30}>{t("periodDays", { days: 30 })}</ToggleButton>
                     </ToggleButtonGroup>
                 </Stack>
             </Stack>
@@ -371,7 +418,7 @@ export default function AdminDashboardPage() {
                 <Alert severity="error" sx={{ mb: 3, boxShadow: "none" }}>
                     {error instanceof Error
                         ? error.message
-                        : "Ошибка загрузки данных"}
+                        : t("loadError")}
                 </Alert>
             ) : null}
 
@@ -393,25 +440,25 @@ export default function AdminDashboardPage() {
                         }}
                     >
                         <MetricCard
-                            title="Выручка за сегодня"
+                            title={t("revenueToday")}
                             value={formatAmd(analytics.summary.revenueToday)}
-                            delta={revenueDelta}
+                            deltaText={formatDelta(revenueDelta)}
                         />
                         <MetricCard
-                            title="Заказов сегодня"
+                            title={t("ordersToday")}
                             value={String(analytics.summary.ordersToday)}
-                            delta={ordersDelta}
+                            deltaText={formatDelta(ordersDelta)}
                         />
                         <MetricCard
-                            title="Средний чек"
+                            title={t("avgCheck")}
                             value={formatAmd(analytics.summary.averageCheck)}
                         />
                         <MetricCard
-                            title="Активных заказов"
+                            title={t("activeOrders")}
                             value={String(analytics.summary.activeOrders)}
                         />
                         <MetricCard
-                            title="Скидки выдано"
+                            title={t("discountsGiven")}
                             value={formatAmd(analytics.promoImpact)}
                             valueColor="error.main"
                         />
@@ -421,7 +468,9 @@ export default function AdminDashboardPage() {
                         <Grid size={{ xs: 12, lg: 8 }}>
                             <Card elevation={0} sx={PANEL_SX}>
                                 <PanelTitle>
-                                    Выручка и заказы за {analytics.periodDays} дней
+                                    {t("revenueOrdersChart", {
+                                        days: analytics.periodDays,
+                                    })}
                                 </PanelTitle>
                                 <Box sx={{ width: "100%", minWidth: 0, minHeight: 320 }}>
                                     <LineChart
@@ -454,7 +503,7 @@ export default function AdminDashboardPage() {
                                         series={[
                                             {
                                                 id: "revenue",
-                                                label: "Выручка",
+                                                label: t("revenue"),
                                                 data: revenueSeries,
                                                 yAxisId: "revenue",
                                                 color: brandGreen,
@@ -464,7 +513,7 @@ export default function AdminDashboardPage() {
                                             },
                                             {
                                                 id: "orders",
-                                                label: "Заказы",
+                                                label: t("orders"),
                                                 data: ordersSeries,
                                                 yAxisId: "orders",
                                                 color: alpha(
@@ -488,7 +537,7 @@ export default function AdminDashboardPage() {
                                 elevation={0}
                                 sx={{ ...PANEL_SX, height: "100%" }}
                             >
-                                <PanelTitle>Статусы заказов</PanelTitle>
+                                <PanelTitle>{t("orderStatuses")}</PanelTitle>
                                 {pieData.length > 0 ? (
                                     <Box sx={{ width: "100%", minWidth: 0, minHeight: 280 }}>
                                         <PieChart
@@ -510,7 +559,7 @@ export default function AdminDashboardPage() {
                                         />
                                     </Box>
                                 ) : (
-                                    <EmptyChartState message="Нет заказов за период" />
+                                    <EmptyChartState message={t("noOrdersInPeriod")} />
                                 )}
                             </Card>
                         </Grid>
@@ -519,7 +568,7 @@ export default function AdminDashboardPage() {
                     <Grid container spacing={3}>
                         <Grid size={{ xs: 12, lg: 6 }}>
                             <Card elevation={0} sx={PANEL_SX}>
-                                <PanelTitle>Заказы по зонам доставки</PanelTitle>
+                                <PanelTitle>{t("ordersByZone")}</PanelTitle>
                                 {zoneRevenue.length > 0 ? (
                                     <Box sx={{ width: "100%", minWidth: 0, minHeight: 320 }}>
                                         <BarChart
@@ -544,7 +593,7 @@ export default function AdminDashboardPage() {
                                             series={[
                                                 {
                                                     data: zoneRevenue,
-                                                    label: "Выручка",
+                                                    label: t("revenue"),
                                                     color: brandGreen,
                                                 },
                                             ]}
@@ -554,14 +603,14 @@ export default function AdminDashboardPage() {
                                         />
                                     </Box>
                                 ) : (
-                                    <EmptyChartState message="Нет данных по зонам" />
+                                    <EmptyChartState message={t("noZoneData")} />
                                 )}
                             </Card>
                         </Grid>
 
                         <Grid size={{ xs: 12, lg: 6 }}>
                             <Card elevation={0} sx={PANEL_SX}>
-                                <PanelTitle>Загрузка по часам</PanelTitle>
+                                <PanelTitle>{t("hourlyLoad")}</PanelTitle>
                                 <Box sx={{ width: "100%", minWidth: 0, minHeight: 320 }}>
                                     <LineChart
                                         height={320}
@@ -585,7 +634,7 @@ export default function AdminDashboardPage() {
                                         series={[
                                             {
                                                 id: "hourlyOrders",
-                                                label: "Заказы",
+                                                label: t("orders"),
                                                 data: hourOrders,
                                                 color: brandGreen,
                                                 curve: "monotoneX",
@@ -605,7 +654,7 @@ export default function AdminDashboardPage() {
                     <Grid container spacing={3}>
                         <Grid size={{ xs: 12, lg: 4 }}>
                             <Card elevation={0} sx={{ ...PANEL_SX, height: "100%" }}>
-                                <PanelTitle>Способы оплаты</PanelTitle>
+                                <PanelTitle>{t("paymentMethods")}</PanelTitle>
                                 {paymentPieData.length > 0 ? (
                                     <Box sx={{ width: "100%", minWidth: 0, minHeight: 280 }}>
                                         <PieChart
@@ -627,7 +676,7 @@ export default function AdminDashboardPage() {
                                         />
                                     </Box>
                                 ) : (
-                                    <EmptyChartState message="Нет данных об оплате" />
+                                    <EmptyChartState message={t("noPaymentData")} />
                                 )}
                             </Card>
                         </Grid>
@@ -635,7 +684,7 @@ export default function AdminDashboardPage() {
                         <Grid size={{ xs: 12, lg: 8 }}>
                             <Card elevation={0} sx={{ ...PANEL_SX, p: 0, overflow: "hidden" }}>
                                 <Box sx={{ p: 3, pb: 2 }}>
-                                    <PanelTitle>Топ-5 товаров</PanelTitle>
+                                    <PanelTitle>{t("topProducts")}</PanelTitle>
                                 </Box>
                                 <TableContainer sx={{ minWidth: 0 }}>
                                     <Table size="small">
@@ -648,7 +697,7 @@ export default function AdminDashboardPage() {
                                                         borderColor: "divider",
                                                     }}
                                                 >
-                                                    Название
+                                                    {tCommon("name")}
                                                 </TableCell>
                                                 <TableCell
                                                     align="right"
@@ -658,7 +707,7 @@ export default function AdminDashboardPage() {
                                                         borderColor: "divider",
                                                     }}
                                                 >
-                                                    Кол-во продаж
+                                                    {t("salesCount")}
                                                 </TableCell>
                                                 <TableCell
                                                     align="right"
@@ -668,7 +717,7 @@ export default function AdminDashboardPage() {
                                                         borderColor: "divider",
                                                     }}
                                                 >
-                                                    Выручка
+                                                    {t("revenue")}
                                                 </TableCell>
                                             </TableRow>
                                         </TableHead>
@@ -704,7 +753,7 @@ export default function AdminDashboardPage() {
                                                             variant="body2"
                                                             color="text.secondary"
                                                         >
-                                                            Пока нет продаж
+                                                            {t("noSalesYet")}
                                                         </Typography>
                                                     </TableCell>
                                                 </TableRow>

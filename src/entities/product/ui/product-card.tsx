@@ -77,7 +77,7 @@ export const ProductCard = memo(function ProductCard({
         price: formattedPrice,
     });
 
-    // Favorites (общий store — синхронизирован с хедером и страницей избранного)
+    // Favorites (общий store - синхронизирован с хедером и страницей избранного)
     const { isFavorite, toggle: toggleFavorite } = useIsFavorite(productId);
 
     // Реальный рейтинг из отзывов; блок показывается только при наличии отзывов

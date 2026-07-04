@@ -84,7 +84,7 @@ export function buildLocalizedMetadata(input: LocalizedMetadataInput): Metadata 
     };
 }
 
-/** Checkout, cart, orders — never index. */
+/** Checkout, cart, orders - never index. */
 export const NOINDEX_METADATA: Metadata = {
     robots: { index: false, follow: false },
 };

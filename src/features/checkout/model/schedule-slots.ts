@@ -6,7 +6,7 @@ import {
 export type ScheduleSlot = {
     /** ISO-строка для payload. */
     value: string;
-    /** «19:30» — локальное время устройства (аудитория — Армения). */
+    /** «19:30» - локальное время устройства (аудитория - Армения). */
     time: string;
     day: "today" | "tomorrow";
 };
@@ -48,7 +48,7 @@ export function buildScheduleSlots(now = new Date()): ScheduleSlot[] {
         let t = Math.max(open.getTime(), earliestAllowed);
         t = Math.ceil(t / STEP_MS) * STEP_MS;
 
-        // Последний слот — за 30 минут до закрытия.
+        // Последний слот - за 30 минут до закрытия.
         for (; t <= close.getTime() - STEP_MS; t += STEP_MS) {
             const dt = new Date(t);
             const hh = String(dt.getHours()).padStart(2, "0");

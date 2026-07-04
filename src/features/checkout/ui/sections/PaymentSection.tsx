@@ -55,7 +55,7 @@ export function PaymentSection({
         const AMD_BANKNOTES = [1000, 2000, 5000, 10000, 20000, 50000, 100000];
         const fromBanknotes = AMD_BANKNOTES.filter((b) => b > total);
         if (fromBanknotes.length > 0) return fromBanknotes.slice(0, 3);
-        // Заказ дороже самой крупной купюры — округляем вверх до 10 000.
+        // Заказ дороже самой крупной купюры - округляем вверх до 10 000.
         const next10k = Math.ceil((total + 1) / 10000) * 10000;
         return [next10k, next10k + 10000];
     }, [total]);

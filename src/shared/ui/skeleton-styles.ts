@@ -1,4 +1,4 @@
-/** Consistent skeleton surface — theme-aware (light/dark), zero layout shift. */
+/** Consistent skeleton surface - theme-aware (light/dark), zero layout shift. */
 export const skeletonSurfaceSx = { bgcolor: "var(--ew-surface-hi)" } as const;
 
 /** Fade-in for streamed content replacing skeletons. */

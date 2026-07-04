@@ -1,5 +1,6 @@
 import { DeliveryType, OrderStatus, PaymentMethod } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { getTranslations } from "next-intl/server";
 
 import {
     type AdminAnalyticsExportOrder,
@@ -13,11 +14,10 @@ import {
     formatDayLabel,
     formatExportOrderDate,
     getHourInStoreTimezone,
-    PAYMENT_METHOD_LABELS,
     toDayKey,
 } from "@/lib/admin-analytics";
+import { resolveAdminLocale } from "@/lib/admin-locale";
 import { debugLog } from "@/lib/debug-log";
-import { ORDER_STATUS_UI } from "@/lib/order-status";
 import { prisma } from "@/lib/prisma";
 import { verifyAdmin } from "@/lib/verify-admin";
 
@@ -34,14 +34,28 @@ function parsePeriodDays(searchParams: URLSearchParams): number {
     return 14;
 }
 
-function getZoneLabel(order: {
-    delivery: DeliveryType;
-    deliveryZoneName: string | null;
-}): string {
+function getZoneLabel(
+    order: {
+        delivery: DeliveryType;
+        deliveryZoneName: string | null;
+    },
+    pickupLabel: string,
+): string {
     if (order.delivery === DeliveryType.PICKUP || !order.deliveryZoneName?.trim()) {
-        return "Самовывоз";
+        return pickupLabel;
     }
     return order.deliveryZoneName.trim();
+}
+
+function emptyPaymentSlices(
+    paymentLabels: Record<PaymentMethod, string>,
+): AdminAnalyticsPaymentSlice[] {
+    return (Object.keys(paymentLabels) as PaymentMethod[]).map((method) => ({
+        method,
+        label: paymentLabels[method],
+        orders: 0,
+        revenue: 0,
+    }));
 }
 
 function emptyHourSlices(): AdminAnalyticsHourSlice[] {
@@ -50,17 +64,6 @@ function emptyHourSlices(): AdminAnalyticsHourSlice[] {
         orders: 0,
         revenue: 0,
     }));
-}
-
-function emptyPaymentSlices(): AdminAnalyticsPaymentSlice[] {
-    return (Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).map(
-        (method) => ({
-            method,
-            label: PAYMENT_METHOD_LABELS[method],
-            orders: 0,
-            revenue: 0,
-        }),
-    );
 }
 
 function safeNumber(value: unknown): number {
@@ -74,6 +77,27 @@ export async function GET(request: Request) {
         if (!auth.ok) {
             return auth.response;
         }
+
+        const locale = await resolveAdminLocale();
+        const tCommon = await getTranslations({ locale, namespace: "admin.common" });
+        const tDash = await getTranslations({ locale, namespace: "admin.dashboard" });
+        const tOrder = await getTranslations({ locale, namespace: "order.status" });
+
+        const pickupLabel = tDash("pickupZone");
+        const untitledProduct = tDash("untitledProduct");
+
+        const statusLabels: Record<OrderStatus, string> = {
+            NEW: tOrder("new"),
+            COOKING: tOrder("cooking"),
+            DELIVERING: tOrder("delivering"),
+            DONE: tOrder("done"),
+            CANCELLED: tOrder("cancelled"),
+        };
+
+        const paymentLabels: Record<PaymentMethod, string> = {
+            CASH: tCommon("cash"),
+            CARD: tCommon("cardFull"),
+        };
 
         const periodDays = parsePeriodDays(new URL(request.url).searchParams);
         debugLog("[ANALYTICS] Fetching data for days:", periodDays);
@@ -131,7 +155,7 @@ export async function GET(request: Request) {
             emptyHourSlices().map((slice) => [slice.hour, { ...slice }]),
         );
         const paymentMap = new Map<PaymentMethod, AdminAnalyticsPaymentSlice>(
-            emptyPaymentSlices().map((slice) => [slice.method, { ...slice }]),
+            emptyPaymentSlices(paymentLabels).map((slice) => [slice.method, { ...slice }]),
         );
 
         let revenueToday = 0;
@@ -160,7 +184,7 @@ export async function GET(request: Request) {
             promoImpact += discountAmount;
 
             if (order.status !== OrderStatus.CANCELLED) {
-                const zoneName = getZoneLabel(order);
+                const zoneName = getZoneLabel(order, pickupLabel);
                 const zoneSlice = zoneMap.get(zoneName) ?? {
                     name: zoneName,
                     orders: 0,
@@ -205,7 +229,7 @@ export async function GET(request: Request) {
         >();
 
         for (const item of orderItems) {
-            const key = item.name.trim() || "Без названия";
+            const key = item.name.trim() || untitledProduct;
             const lineRevenue =
                 safeNumber(item.price) * safeNumber(item.quantity);
             const existing = productMap.get(key);
@@ -233,9 +257,9 @@ export async function GET(request: Request) {
             id: order.id,
             date: formatExportOrderDate(order.createdAt),
             totalPrice: safeNumber(order.totalPrice),
-            zone: getZoneLabel(order),
+            zone: getZoneLabel(order, pickupLabel),
             status: order.status,
-            statusLabel: ORDER_STATUS_UI[order.status].label,
+            statusLabel: statusLabels[order.status],
         }));
 
         const payload: AdminAnalyticsResponse = {
@@ -251,10 +275,10 @@ export async function GET(request: Request) {
             },
             daily: dayKeys.map((date) => dailyMap.get(date)!),
             topProducts,
-            statusDistribution: (Object.keys(ORDER_STATUS_UI) as OrderStatus[]).map(
+            statusDistribution: (Object.keys(statusLabels) as OrderStatus[]).map(
                 (status) => ({
                     status,
-                    label: ORDER_STATUS_UI[status].label,
+                    label: statusLabels[status],
                     count: statusMap.get(status) ?? 0,
                 }),
             ),

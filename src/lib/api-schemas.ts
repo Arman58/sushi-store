@@ -34,12 +34,12 @@ const expiresAtFieldSchema = z
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export const validatePromoBodySchema = z.object({
-    code: z.string().min(1, "Укажите промокод"),
+    code: z.string().min(1, "form.promo.codeRequired"),
     cartAmount: z
         .number()
         .finite()
         .transform((v) => Math.round(v))
-        .pipe(z.number().int().positive("Корзина пустая или сумма указана некорректно")),
+        .pipe(z.number().int().positive("form.cart.invalidAmount")),
     deliveryAmount: z
         .number()
         .finite()

@@ -35,7 +35,7 @@ const linkSx = {
 } as const;
 
 type ProductCardMediaProps = {
-    /** Ссылка на страницу товара; без неё — просто картинка. */
+    /** Ссылка на страницу товара; без неё - просто картинка. */
     href?: string | null;
     ariaLabel?: string;
     imageUrl: string | null;

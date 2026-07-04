@@ -20,6 +20,7 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
+import { useTranslations } from "next-intl";
 import { memo } from "react";
 import {
     type Control,
@@ -47,6 +48,9 @@ const ModifierGroupAccordion = memo(function ModifierGroupAccordion(props: {
     disabled: boolean;
 }) {
     const { control, groupIndex, removeGroup, disabled } = props;
+    const t = useTranslations("admin.products");
+    const tCommon = useTranslations("admin.common");
+
     const groupName = useWatch({
         control,
         name: `modifierGroups.${groupIndex}.name`,
@@ -73,7 +77,7 @@ const ModifierGroupAccordion = memo(function ModifierGroupAccordion(props: {
     const summaryTitle =
         groupName != null && hasLocalizedText(groupName)
             ? getLocalizedField(groupName, "hy") || getLocalizedField(groupName, "ru")
-            : `Группа ${String(groupIndex + 1)}`;
+            : t("modifierGroupDefault", { n: groupIndex + 1 });
 
     const maxN =
         typeof groupMaxChoices === "number" && Number.isFinite(groupMaxChoices)
@@ -109,16 +113,16 @@ const ModifierGroupAccordion = memo(function ModifierGroupAccordion(props: {
                 </Typography>
                 <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
                     {groupRequired ? (
-                        <Chip size="small" label="Обязательно" color="primary" variant="outlined" />
+                        <Chip size="small" label={tCommon("required")} color="primary" variant="outlined" />
                     ) : (
-                        <Chip size="small" label="Необязательно" variant="outlined" />
+                        <Chip size="small" label={tCommon("optional")} variant="outlined" />
                     )}
                     {maxN === 0 ? (
-                        <Chip size="small" label="Без лимита" variant="outlined" />
+                        <Chip size="small" label={tCommon("noLimit")} variant="outlined" />
                     ) : (
                         <Chip
                             size="small"
-                            label={`До ${String(maxN)} ${maxN === 1 ? "выбора" : "выборов"}`}
+                            label={tCommon("maxChoices", { n: maxN })}
                             variant="outlined"
                         />
                     )}
@@ -126,7 +130,7 @@ const ModifierGroupAccordion = memo(function ModifierGroupAccordion(props: {
                 <IconButton
                     type="button"
                     size="small"
-                    aria-label="Удалить группу"
+                    aria-label={t("deleteModifierGroup")}
                     disabled={disabled}
                     onClick={(e) => {
                         e.stopPropagation();
@@ -152,7 +156,7 @@ const ModifierGroupAccordion = memo(function ModifierGroupAccordion(props: {
                         control={control}
                         render={({ field }) => (
                             <LocalizedTextFields
-                                label="Название группы"
+                                label={t("modifierGroupName")}
                                 value={field.value}
                                 onChange={field.onChange}
                                 disabled={disabled}
@@ -174,7 +178,7 @@ const ModifierGroupAccordion = memo(function ModifierGroupAccordion(props: {
                                             size="small"
                                         />
                                     }
-                                    label={field.value ? "Обязательно" : "Необязательно"}
+                                    label={field.value ? tCommon("required") : tCommon("optional")}
                                 />
                             )}
                         />
@@ -184,11 +188,11 @@ const ModifierGroupAccordion = memo(function ModifierGroupAccordion(props: {
                             })}
                             type="number"
                             size="small"
-                            label="Макс. выбор"
+                            label={t("modifierMaxChoices")}
                             disabled={disabled}
                             sx={{ width: 128, ...TEXT_FIELD_FOCUS_SX }}
                             inputProps={{ min: 0, step: 1 }}
-                            helperText="0 - без лимита"
+                            helperText={t("maxChoicesHint")}
                         />
                     </Stack>
                     <Stack spacing={1}>
@@ -217,7 +221,7 @@ const ModifierGroupAccordion = memo(function ModifierGroupAccordion(props: {
                                         control={control}
                                         render={({ field }) => (
                                             <LocalizedTextFields
-                                                label="Название"
+                                                label={tCommon("name")}
                                                 value={field.value}
                                                 onChange={field.onChange}
                                                 disabled={disabled}
@@ -233,7 +237,7 @@ const ModifierGroupAccordion = memo(function ModifierGroupAccordion(props: {
                                     )}
                                     size="small"
                                     type="number"
-                                    label="Доплата"
+                                    label={t("modifierSurcharge")}
                                     disabled={disabled}
                                     sx={{ width: 120, flexShrink: 0, ...TEXT_FIELD_FOCUS_SX }}
                                     inputProps={{ step: 1 }}
@@ -248,7 +252,7 @@ const ModifierGroupAccordion = memo(function ModifierGroupAccordion(props: {
                                 <IconButton
                                     type="button"
                                     size="small"
-                                    aria-label="Выше"
+                                    aria-label={tCommon("moveUp")}
                                     disabled={disabled || optIndex === 0}
                                     onClick={() => moveOption(optIndex, optIndex - 1)}
                                 >
@@ -257,7 +261,7 @@ const ModifierGroupAccordion = memo(function ModifierGroupAccordion(props: {
                                 <IconButton
                                     type="button"
                                     size="small"
-                                    aria-label="Ниже"
+                                    aria-label={tCommon("moveDown")}
                                     disabled={
                                         disabled || optIndex >= optionFields.length - 1
                                     }
@@ -268,7 +272,7 @@ const ModifierGroupAccordion = memo(function ModifierGroupAccordion(props: {
                                 <IconButton
                                     type="button"
                                     size="small"
-                                    aria-label="Удалить опцию"
+                                    aria-label={t("deleteModifierOption")}
                                     disabled={disabled}
                                     color="error"
                                     onClick={() => removeOption(optIndex)}
@@ -291,7 +295,7 @@ const ModifierGroupAccordion = memo(function ModifierGroupAccordion(props: {
                         }
                         sx={{ alignSelf: "flex-start", textTransform: "none" }}
                     >
-                        Добавить опцию
+                        {t("addOption")}
                     </Button>
                 </Stack>
             </AccordionDetails>
@@ -308,6 +312,8 @@ export const ProductModifiersSection = memo(function ProductModifiersSection({
     control,
     disabled,
 }: ProductModifiersSectionProps) {
+    const t = useTranslations("admin.products");
+
     const {
         fields: groupFields,
         append: appendGroup,
@@ -320,7 +326,7 @@ export const ProductModifiersSection = memo(function ProductModifiersSection({
     return (
         <Box>
             <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Модификаторы
+                {t("modifiersTitle")}
             </Typography>
             <Stack spacing={2}>
                 {groupFields.map((gf, groupIndex) => (
@@ -350,7 +356,7 @@ export const ProductModifiersSection = memo(function ProductModifiersSection({
                     })
                 }
             >
-                Добавить группу модификаторов
+                {t("addModifierGroup")}
             </Button>
         </Box>
     );

@@ -2,6 +2,10 @@ import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import {
+    getFormValidationMessage,
+    resolveOrderRequestLocale,
+} from "@/lib/backend-i18n";
 import { normalizeEmail } from "@/lib/normalize-email";
 import { issueOtpForEmail } from "@/lib/otp-auth";
 import { prisma } from "@/lib/prisma";
@@ -17,16 +21,16 @@ const registerSchema = z.object({
     email: z
         .string()
         .trim()
-        .min(1, "Укажите email")
-        .email("Некорректный email")
+        .min(1, "form.email.required")
+        .email("form.email.invalid")
         .transform((v) => v.toLowerCase()),
     password: z
         .string()
-        .min(8, "Пароль должен быть не короче 8 символов"),
+        .min(8, "form.password.tooShort"),
     name: z
         .string()
         .trim()
-        .min(2, "Имя должно быть не короче 2 символов"),
+        .min(2, "form.name.tooShort"),
     locale: z.enum(["hy", "ru", "en"]).optional(),
 });
 
@@ -45,8 +49,19 @@ export async function POST(request: Request) {
 
     const parsed = registerSchema.safeParse(json);
     if (!parsed.success) {
-        const message = parsed.error.errors[0]?.message ?? "Некорректные данные";
-        return NextResponse.json({ error: message }, { status: 400 });
+        const rawLocale =
+            json && typeof json === "object" && "locale" in json
+                ? (json as { locale?: unknown }).locale
+                : undefined;
+        const locale = resolveOrderRequestLocale(
+            request,
+            typeof rawLocale === "string" ? rawLocale : null,
+        );
+        const key = parsed.error.errors[0]?.message ?? "form.generic";
+        return NextResponse.json(
+            { error: getFormValidationMessage(key, locale) },
+            { status: 400 },
+        );
     }
 
     const { email, password, name, locale } = parsed.data;

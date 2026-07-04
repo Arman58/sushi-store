@@ -188,7 +188,7 @@ export function FavoritesSection() {
         setModifierProduct(product);
     }, []);
 
-    // Live-удаление: сняли сердечко — карточка исчезает сразу
+    // Live-удаление: сняли сердечко - карточка исчезает сразу
     const visibleProducts = products.filter((p) => ids.includes(p.id));
 
     // ── Loading ──

@@ -95,7 +95,7 @@ const sharedPalette = {
 } as const;
 
 /**
- * MUI вызывает alpha() на palette.text/background — только hex/rgb, не var().
+ * MUI вызывает alpha() на palette.text/background - только hex/rgb, не var().
  * Схемы синхронизированы с --ew-* в MuiCssBaseline и data-theme на <html>.
  */
 const lightPalette = {

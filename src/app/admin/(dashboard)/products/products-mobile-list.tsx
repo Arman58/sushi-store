@@ -11,6 +11,7 @@ import {
     Paper,
     Typography,
 } from "@mui/material";
+import { useTranslations } from "next-intl";
 
 import { getLocalizedField } from "@/lib/i18n-utils";
 import { getProductCoverUrl, getProductImageUrls } from "@/shared/lib/product-cover";
@@ -23,6 +24,8 @@ export function ProductsMobileList(props: {
     actions: ProductRowActions;
 }) {
     const { products, actions } = props;
+    const t = useTranslations("admin.products");
+    const tCommon = useTranslations("admin.common");
 
     return (
         <Box sx={{ display: { xs: "block", md: "none" }, mt: 2 }}>
@@ -101,7 +104,7 @@ export function ProductsMobileList(props: {
                                         textAlign: "right",
                                     }}
                                 >
-                                    На витрине
+                                    {tCommon("onShelf")}
                                 </Typography>
                                 <ShelfToggle
                                     product={product}
@@ -132,7 +135,7 @@ export function ProductsMobileList(props: {
                                         color="primary"
                                         onClick={() => actions.onEdit(product)}
                                         disabled={busy || actions.saveLoading}
-                                        aria-label="Редактировать"
+                                        aria-label={tCommon("edit")}
                                     >
                                         <EditIcon sx={{ fontSize: 20 }} />
                                     </IconButton>
@@ -141,7 +144,7 @@ export function ProductsMobileList(props: {
                                         color="error"
                                         disabled={busy}
                                         onClick={() => actions.onDeleteNow(product.id)}
-                                        aria-label="Удалить"
+                                        aria-label={tCommon("delete")}
                                     >
                                         <DeleteIcon sx={{ fontSize: 20 }} />
                                     </IconButton>
@@ -165,7 +168,7 @@ export function ProductsMobileList(props: {
                                             minWidth: 0,
                                         }}
                                     >
-                                        Сделать главной
+                                        {t("makeCoverMain")}
                                     </Button>
                                 ) : null}
                             </Box>

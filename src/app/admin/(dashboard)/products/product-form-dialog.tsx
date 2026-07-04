@@ -22,6 +22,7 @@ import {
     useMediaQuery,
     useTheme,
 } from "@mui/material";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
@@ -33,7 +34,6 @@ import {
     IMAGE_UPLOAD_ACCEPT,
     validateImageUpload,
 } from "@/lib/validate-image-upload";
-import ruMessages from "@/messages/ru.json";
 import { LocalizedTextFields } from "@/shared/ui/localized-text-fields";
 
 import {
@@ -62,6 +62,10 @@ export function ProductFormDialog(props: {
 }) {
     const { formKey, editingProduct, isEdit, onClose, onSave, open, submitLoading } = props;
 
+    const t = useTranslations("admin.products");
+    const tCommon = useTranslations("admin.common");
+    const tImage = useTranslations("admin.imageUpload");
+
     const { control, handleSubmit, reset, register, setValue, getValues } =
         useForm<ProductDialogFormValues>({
             defaultValues: productDialogDefaults(editingProduct),
@@ -78,8 +82,6 @@ export function ProductFormDialog(props: {
     const [uploadLoading, setUploadLoading] = useState(false);
     const [uploadErrorOpen, setUploadErrorOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const unsupportedImageFormatMessage =
-        ruMessages.admin.imageUpload.unsupportedFormat;
 
     const categoryIdWatch = useWatch({ control, name: "categoryId" });
     const images = useWatch({ control, name: "images" }) ?? [];
@@ -189,16 +191,13 @@ export function ProductFormDialog(props: {
             if (err instanceof Error && err.message === "unsupported_image_format") {
                 showUploadFormatError();
             } else {
-                alert(err instanceof Error ? err.message : "Ошибка сети при загрузке файла");
+                alert(err instanceof Error ? err.message : t("uploadNetworkError"));
             }
         } finally {
             setUploadLoading(false);
             e.target.value = "";
         }
     };
-
-    const CATEGORY_DELETE_BLOCKED =
-        "Нельзя удалить эту категорию, так как к ней привязаны товары!";
 
     const handleDeleteCategory = async (categoryId: number) => {
         try {
@@ -219,14 +218,14 @@ export function ProductFormDialog(props: {
                     if (body.error) {
                         alert(body.error);
                     } else {
-                        alert(CATEGORY_DELETE_BLOCKED);
+                        alert(t("categoryDeleteBlocked"));
                     }
                 } catch {
-                    alert(CATEGORY_DELETE_BLOCKED);
+                    alert(t("categoryDeleteBlocked"));
                 }
                 return;
             }
-            let msg = `Ошибка ${res.status}`;
+            let msg = `${tCommon("errorPrefix")} ${res.status}`;
             try {
                 const err = (await res.json()) as { error?: string };
                 if (err.error) msg = err.error;
@@ -235,7 +234,7 @@ export function ProductFormDialog(props: {
             }
             alert(msg);
         } catch {
-            alert("Ошибка сети при удалении категории.");
+            alert(t("categoryDeleteNetworkError"));
         }
     };
 
@@ -253,7 +252,7 @@ export function ProductFormDialog(props: {
                 body: JSON.stringify({ name }),
             });
             if (!res.ok) {
-                let msg = `Ошибка ${res.status}`;
+                let msg = `${tCommon("errorPrefix")} ${res.status}`;
                 try {
                     const err = (await res.json()) as { error?: string };
                     if (err.error) msg = err.error;
@@ -277,7 +276,7 @@ export function ProductFormDialog(props: {
             setValue("categoryId", String(created.id), { shouldDirty: true });
             setNewCategoryName(emptyLocalizedJson());
         } catch {
-            alert("Ошибка сети при создании категории");
+            alert(t("categoryCreateNetworkError"));
         } finally {
             setAddCategoryLoading(false);
         }
@@ -292,46 +291,46 @@ export function ProductFormDialog(props: {
         if (weightStr !== "") {
             const w = Number.parseFloat(weightStr);
             if (Number.isNaN(w) || !Number.isFinite(w) || w < 0) {
-                alert("Укажите корректный вес");
+                alert(t("invalidWeight"));
                 return;
             }
             weight = Math.round(w);
         }
 
         if (!name.hy.trim() && !name.ru.trim() && !name.en.trim()) {
-            alert("Укажите название хотя бы на одном языке");
+            alert(t("nameRequired"));
             return;
         }
         if (Number.isNaN(price) || !Number.isFinite(price) || price < 0) {
-            alert("Укажите корректную цену");
+            alert(t("invalidPrice"));
             return;
         }
         if (Number.isNaN(categoryId) || !Number.isInteger(categoryId) || categoryId < 1) {
-            alert("Выберите категорию");
+            alert(t("categoryRequired"));
             return;
         }
 
         const minQty = Number.parseInt(values.minQty || "1", 10);
         if (Number.isNaN(minQty) || minQty < 1 || minQty > 999) {
-            alert("Мин. количество: целое число от 1 до 999");
+            alert(t("invalidMinQty"));
             return;
         }
         let maxQty: number | null = null;
         if (values.maxQty.trim() !== "") {
             maxQty = Number.parseInt(values.maxQty, 10);
             if (Number.isNaN(maxQty) || maxQty < 1 || maxQty > 999) {
-                alert("Макс. количество: целое число от 1 до 999 (или пусто)");
+                alert(t("invalidMaxQty"));
                 return;
             }
             if (maxQty < minQty) {
-                alert("Макс. количество не может быть меньше минимального");
+                alert(t("maxQtyLessThanMin"));
                 return;
             }
         }
 
         const modParsed = buildModifierPayload(values.modifierGroups);
         if (!modParsed.ok) {
-            alert(modParsed.message);
+            alert(t("modifierGroupNameRequired", { n: modParsed.groupIndex }));
             return;
         }
 
@@ -408,7 +407,7 @@ export function ProductFormDialog(props: {
                     }}
                 >
                     <DialogTitle sx={{ flexShrink: 0 }}>
-                        {isEdit ? "Редактирование товара" : "Новый товар"}
+                        {isEdit ? t("editProduct") : t("newProduct")}
                     </DialogTitle>
                     <DialogContent sx={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
                         <Stack spacing={2} sx={{ pt: 1 }}>
@@ -421,7 +420,7 @@ export function ProductFormDialog(props: {
                                 required
                                 fullWidth
                                 type="number"
-                                label="Цена"
+                                label={tCommon("price")}
                                 disabled={submitLoading}
                                 inputProps={{ min: 0, step: 1 }}
                                 slotProps={{
@@ -437,7 +436,7 @@ export function ProductFormDialog(props: {
                                 {...register("weight")}
                                 fullWidth
                                 type="number"
-                                label="Вес (г)"
+                                label={t("weightGrams")}
                                 disabled={submitLoading}
                                 inputProps={{ min: 0, step: 1 }}
                                 sx={TEXT_FIELD_FOCUS_SX}
@@ -446,20 +445,20 @@ export function ProductFormDialog(props: {
                                 {...register("minQty")}
                                 fullWidth
                                 type="number"
-                                label="Мин. кол-во в заказе"
+                                label={t("minQty")}
                                 disabled={submitLoading}
                                 inputProps={{ min: 1, max: 999, step: 1 }}
-                                helperText="Первое добавление кладёт столько штук"
+                                helperText={t("minQtyHint")}
                                 sx={TEXT_FIELD_FOCUS_SX}
                             />
                             <TextField
                                 {...register("maxQty")}
                                 fullWidth
                                 type="number"
-                                label="Макс. кол-во на заказ"
+                                label={t("maxQty")}
                                 disabled={submitLoading}
                                 inputProps={{ min: 1, max: 999, step: 1 }}
-                                helperText="Пусто - без лимита"
+                                helperText={t("maxQtyHint")}
                                 sx={TEXT_FIELD_FOCUS_SX}
                             />
                             <Autocomplete
@@ -500,8 +499,8 @@ export function ProductFormDialog(props: {
                                 renderInput={(params) => (
                                     <TextField
                                         {...params}
-                                        label="С этим берут (до 12)"
-                                        helperText="Предложения «Добавить к заказу» в корзине для этого блюда"
+                                        label={t("upsellLabel")}
+                                        helperText={t("upsellHint")}
                                         sx={TEXT_FIELD_FOCUS_SX}
                                     />
                                 )}
@@ -533,7 +532,7 @@ export function ProductFormDialog(props: {
                                     <TextField
                                         {...params}
                                         required
-                                        label="Категория"
+                                        label={tCommon("category")}
                                         sx={TEXT_FIELD_FOCUS_SX}
                                     />
                                 )}
@@ -559,7 +558,9 @@ export function ProductFormDialog(props: {
                                                 size="small"
                                                 tabIndex={-1}
                                                 disabled={submitLoading}
-                                                aria-label={`Удалить категорию ${getLocalizedField(option.name, "hy")}`}
+                                                aria-label={t("deleteCategoryAria", {
+                                                    name: getLocalizedField(option.name, "hy"),
+                                                })}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     e.preventDefault();
@@ -579,7 +580,7 @@ export function ProductFormDialog(props: {
                             >
                                 <Box sx={{ flex: 1 }}>
                                     <LocalizedTextFields
-                                        label="Новая категория"
+                                        label={t("newCategory")}
                                         value={newCategoryName}
                                         onChange={setNewCategoryName}
                                         disabled={submitLoading || addCategoryLoading}
@@ -591,7 +592,7 @@ export function ProductFormDialog(props: {
                                     variant="outlined"
                                     onClick={() => void handleAddCategory()}
                                     disabled={submitLoading || addCategoryLoading}
-                                    aria-label="Добавить категорию"
+                                    aria-label={t("addCategory")}
                                     sx={{ mb: 0.5 }}
                                 >
                                     +
@@ -605,7 +606,7 @@ export function ProductFormDialog(props: {
 
                             <Box>
                                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                    Фото
+                                    {t("photos")}
                                 </Typography>
                                 <input
                                     ref={fileInputRef}
@@ -623,7 +624,7 @@ export function ProductFormDialog(props: {
                                     disabled={submitLoading || uploadLoading}
                                     fullWidth
                                 >
-                                    {uploadLoading ? "Загружаем…" : "Выбрать изображения"}
+                                    {uploadLoading ? tCommon("uploading") : tCommon("chooseImages")}
                                 </Button>
                                 {uploadLoading ? (
                                     <LinearProgress sx={{ mt: 1, borderRadius: 1 }} />
@@ -662,7 +663,7 @@ export function ProductFormDialog(props: {
                                                         );
                                                     }}
                                                     disabled={submitLoading}
-                                                    aria-label="Удалить фото"
+                                                    aria-label={tCommon("removePhoto")}
                                                 >
                                                     <CloseIcon fontSize="small" />
                                                 </IconButton>
@@ -691,7 +692,7 @@ export function ProductFormDialog(props: {
                             disabled={submitLoading}
                             size={isMobile ? "large" : "medium"}
                         >
-                            Отмена
+                            {tCommon("cancel")}
                         </Button>
                         <Button
                             type="submit"
@@ -702,11 +703,11 @@ export function ProductFormDialog(props: {
                         >
                             {submitLoading
                                 ? isEdit
-                                    ? "Сохраняем…"
-                                    : "Создаём…"
+                                    ? tCommon("saving")
+                                    : tCommon("creating")
                                 : isEdit
-                                  ? "Сохранить"
-                                  : "Создать"}
+                                  ? tCommon("save")
+                                  : tCommon("create")}
                         </Button>
                     </DialogActions>
                 </Box>
@@ -723,7 +724,7 @@ export function ProductFormDialog(props: {
                     variant="filled"
                     sx={{ width: "100%" }}
                 >
-                    {unsupportedImageFormatMessage}
+                    {tImage("unsupportedFormat")}
                 </Alert>
             </Snackbar>
         </>

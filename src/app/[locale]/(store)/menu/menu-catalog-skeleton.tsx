@@ -4,7 +4,7 @@ import { ProductCardSkeleton } from "@/entities/product/ui/product-card";
 
 const CARD_COUNT = 8;
 
-/** Catalog-only skeleton — hero renders immediately above this boundary. */
+/** Catalog-only skeleton - hero renders immediately above this boundary. */
 export function MenuCatalogSkeleton() {
     return (
         <Box

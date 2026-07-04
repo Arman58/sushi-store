@@ -1,11 +1,11 @@
 import { SITE_URL } from "@/lib/site-config";
 
-/** Apex-домен продакшена (канонический — www). */
+/** Apex-домен продакшена (канонический - www). */
 export const APEX_HOSTNAMES = ["eastwestnh.com"] as const;
 
 export const CANONICAL_HOSTNAME = "www.eastwestnh.com";
 
-/** Пути PWA/SW — не редиректим на www, иначе ломается регистрация Service Worker. */
+/** Пути PWA/SW - не редиректим на www, иначе ломается регистрация Service Worker. */
 const PWA_ASSET_PATHS = ["/sw.js", "/manifest.webmanifest"] as const;
 
 export function isPwaAssetPath(pathname: string): boolean {
@@ -18,7 +18,7 @@ const APEX_TO_CANONICAL: Record<string, string> = {
     "eastwestnh.com": CANONICAL_HOSTNAME,
 };
 
-/** Vercel Preview / локальная разработка — не редиректим на боевой домен. */
+/** Vercel Preview / локальная разработка - не редиректим на боевой домен. */
 export function isPreviewDeploymentHost(hostname: string): boolean {
     const host = hostname.toLowerCase();
     return (
@@ -100,7 +100,7 @@ export function buildWwwUrl(
 
 /**
  * @deprecated Редирект apex → www выполняется только на Edge (proxy.ts).
- * Клиентский редирект отменён — он прерывал регистрацию Service Worker.
+ * Клиентский редирект отменён - он прерывал регистрацию Service Worker.
  */
 export function buildCanonicalRedirectScript(): string {
     return "";

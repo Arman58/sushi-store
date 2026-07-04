@@ -21,6 +21,7 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 
 import { getLocalizedField } from "@/lib/i18n-utils";
@@ -46,6 +47,9 @@ type AdminReviewsResponse = {
 };
 
 export default function AdminReviewsPage() {
+    const t = useTranslations("admin.reviews");
+    const tCommon = useTranslations("admin.common");
+    const tNav = useTranslations("nav");
     const [data, setData] = useState<AdminReviewsResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -67,11 +71,11 @@ export default function AdminReviewsPage() {
             if (!res.ok) throw new Error();
             setData((await res.json()) as AdminReviewsResponse);
         } catch {
-            setError("Не удалось загрузить отзывы.");
+            setError(t("loadFailed"));
         } finally {
             setLoading(false);
         }
-    }, [page, rating]);
+    }, [page, rating, t]);
 
     useEffect(() => {
         void load();
@@ -89,7 +93,7 @@ export default function AdminReviewsPage() {
             setDeleting(null);
             await load();
         } catch {
-            setError("Не удалось удалить отзыв.");
+            setError(t("deleteFailed"));
             setDeleting(null);
         } finally {
             setDeleteBusy(false);
@@ -102,14 +106,14 @@ export default function AdminReviewsPage() {
         <PageContainer>
             <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mb: 2 }}>
                 <RateReviewOutlinedIcon sx={{ color: tokens.brand }} />
-                <SectionTitle pageTitle>Отзывы</SectionTitle>
+                <SectionTitle pageTitle>{t("title")}</SectionTitle>
             </Stack>
 
             <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2, flexWrap: "wrap" }}>
                 <TextField
                     select
                     size="small"
-                    label="Оценка"
+                    label={t("rating")}
                     value={rating}
                     onChange={(e) => {
                         setRating(e.target.value);
@@ -117,7 +121,7 @@ export default function AdminReviewsPage() {
                     }}
                     sx={{ minWidth: 130 }}
                 >
-                    <MenuItem value="all">Все</MenuItem>
+                    <MenuItem value="all">{tCommon("all")}</MenuItem>
                     {[5, 4, 3, 2, 1].map((r) => (
                         <MenuItem key={r} value={String(r)}>
                             {r} ★
@@ -126,7 +130,7 @@ export default function AdminReviewsPage() {
                 </TextField>
                 {data && (
                     <Typography variant="caption" color="text.secondary">
-                        Всего: {data.total}
+                        {t("totalCount", { count: data.total })}
                     </Typography>
                 )}
             </Stack>
@@ -145,7 +149,7 @@ export default function AdminReviewsPage() {
                 </Stack>
             ) : !data || data.items.length === 0 ? (
                 <Box sx={{ textAlign: "center", py: 6, border: `1px dashed ${tokens.borderHi}`, borderRadius: 2 }}>
-                    <Typography fontWeight={700}>Отзывов нет</Typography>
+                    <Typography fontWeight={700}>{t("emptyTitle")}</Typography>
                 </Box>
             ) : (
                 <Stack spacing={1}>
@@ -175,7 +179,7 @@ export default function AdminReviewsPage() {
                                         </Typography>
                                         {review.verifiedPurchase && (
                                             <Chip
-                                                label="Покупка"
+                                                label={t("purchase")}
                                                 size="small"
                                                 sx={{
                                                     height: 20,
@@ -212,7 +216,7 @@ export default function AdminReviewsPage() {
                                     size="small"
                                     color="error"
                                     onClick={() => setDeleting(review)}
-                                    aria-label="Удалить отзыв"
+                                    aria-label={t("deleteReview")}
                                 >
                                     <DeleteIcon sx={{ fontSize: 18 }} />
                                 </IconButton>
@@ -227,7 +231,7 @@ export default function AdminReviewsPage() {
                                 disabled={page <= 1}
                                 onClick={() => setPage((p) => p - 1)}
                             >
-                                Назад
+                                {tNav("back")}
                             </Button>
                             <Typography variant="body2" sx={{ alignSelf: "center" }}>
                                 {page} / {totalPages}
@@ -237,7 +241,7 @@ export default function AdminReviewsPage() {
                                 disabled={page >= totalPages}
                                 onClick={() => setPage((p) => p + 1)}
                             >
-                                Вперёд
+                                {tNav("forward")}
                             </Button>
                         </Stack>
                     )}
@@ -250,15 +254,15 @@ export default function AdminReviewsPage() {
                 maxWidth="xs"
                 fullWidth
             >
-                <DialogTitle>Удалить отзыв?</DialogTitle>
+                <DialogTitle>{t("deleteTitle")}</DialogTitle>
                 <DialogContent>
                     <Typography variant="body2" color="text.secondary">
-                        Отзыв будет удалён, рейтинг товара пересчитается.
+                        {t("deleteBody")}
                     </Typography>
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2 }}>
                     <Button onClick={() => setDeleting(null)} disabled={deleteBusy} color="inherit">
-                        Отмена
+                        {tCommon("cancel")}
                     </Button>
                     <Button
                         onClick={() => void handleDelete()}
@@ -267,7 +271,7 @@ export default function AdminReviewsPage() {
                         disabled={deleteBusy}
                         sx={{ fontWeight: 700 }}
                     >
-                        Удалить
+                        {tCommon("delete")}
                     </Button>
                 </DialogActions>
             </Dialog>

@@ -9,7 +9,7 @@ import {
 
 /**
  * SSR-safe избранное: до гидратации всегда пустой список,
- * после маунта — данные из localStorage + live-обновления.
+ * после маунта - данные из localStorage + live-обновления.
  */
 export function useFavorites() {
     const ids = useFavoritesStore((s) => s.ids);

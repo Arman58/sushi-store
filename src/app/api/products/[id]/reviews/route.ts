@@ -77,6 +77,17 @@ export async function GET(
                 : [{ createdAt: "desc" as const }];
 
     try {
+        const product = await prisma.product.findUnique({
+            where: { id: productId },
+            select: { id: true, isActive: true },
+        });
+        if (!product || !product.isActive) {
+            return NextResponse.json(
+                { error: "Product not found" },
+                { status: 404 },
+            );
+        }
+
         const userId = await currentUserId();
 
         const [items, total, summary, myReviewRaw] = await Promise.all([

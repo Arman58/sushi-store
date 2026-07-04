@@ -108,7 +108,7 @@ export function DeliverySection({
                     setSavedAddresses(list);
 
                     // Автозаполнение: для вернувшихся клиентов сразу подставляем
-                    // самый свежий адрес, если поле пустое — меньше трения.
+                    // самый свежий адрес, если поле пустое - меньше трения.
                     const currentAddress = (watch("address") ?? "").trim();
                     if (list.length > 0 && !currentAddress) {
                         const newest = [...list].sort((a, b) =>
