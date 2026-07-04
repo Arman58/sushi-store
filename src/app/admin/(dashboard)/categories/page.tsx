@@ -27,6 +27,7 @@ import {
     Tooltip,
     Typography,
 } from "@mui/material";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
@@ -62,6 +63,8 @@ function CategoryImageCell({
     onImageChange: (id: number, image: string | null) => Promise<void>;
     disabled: boolean;
 }) {
+    const t = useTranslations("admin.categories");
+    const tCommon = useTranslations("admin.common");
     const inputRef = useRef<HTMLInputElement>(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -73,11 +76,11 @@ function CategoryImageCell({
         setError(null);
 
         if (file.size > MAX_IMAGE_BYTES) {
-            setError("Файл больше 5 МБ");
+            setError(t("fileTooBig"));
             return;
         }
         if (!file.type.startsWith("image/") && file.type !== "") {
-            setError("Выберите изображение");
+            setError(t("pickImage"));
             return;
         }
 
@@ -92,12 +95,12 @@ function CategoryImageCell({
             });
             const json = (await res.json()) as { url?: string; error?: string };
             if (!res.ok || !json.url) {
-                setError(json.error || "Не удалось загрузить");
+                setError(json.error || t("uploadFailed"));
                 return;
             }
             await onImageChange(category.id, json.url);
         } catch {
-            setError("Не удалось загрузить");
+            setError(t("uploadFailed"));
         } finally {
             setBusy(false);
             if (inputRef.current) inputRef.current.value = "";
@@ -128,7 +131,7 @@ function CategoryImageCell({
             <Box
                 onClick={disabled || busy ? undefined : pickFile}
                 role="button"
-                aria-label="Загрузить фото категории"
+                aria-label={t("uploadCategoryPhoto")}
                 sx={{
                     width: 64,
                     height: 44,
@@ -169,7 +172,7 @@ function CategoryImageCell({
 
             <Stack direction="row" spacing={0.25}>
                 <Tooltip
-                    title={category.image ? "Заменить фото" : "Загрузить фото"}
+                    title={category.image ? tCommon("replacePhoto") : tCommon("uploadPhoto")}
                 >
                     <span>
                         <IconButton
@@ -178,8 +181,8 @@ function CategoryImageCell({
                             disabled={disabled || busy}
                             aria-label={
                                 category.image
-                                    ? "Заменить фото"
-                                    : "Загрузить фото"
+                                    ? tCommon("replacePhoto")
+                                    : tCommon("uploadPhoto")
                             }
                         >
                             <AddPhotoAlternateOutlinedIcon
@@ -189,13 +192,13 @@ function CategoryImageCell({
                     </span>
                 </Tooltip>
                 {category.image && (
-                    <Tooltip title="Убрать фото">
+                    <Tooltip title={tCommon("removePhoto")}>
                         <span>
                             <IconButton
                                 size="small"
                                 onClick={() => void handleRemove()}
                                 disabled={disabled || busy}
-                                aria-label="Убрать фото"
+                                aria-label={tCommon("removePhoto")}
                                 sx={{ color: "#E74C3C" }}
                             >
                                 <DeleteOutlineIcon sx={{ fontSize: 18 }} />
@@ -217,6 +220,8 @@ function CategoryImageCell({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AdminCategoriesPage() {
+    const t = useTranslations("admin.categories");
+    const tCommon = useTranslations("admin.common");
     const [categories, setCategories] = useState<CategoryRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [pageError, setPageError] = useState<string | null>(null);
@@ -242,11 +247,11 @@ export default function AdminCategoriesPage() {
             const data = (await res.json()) as CategoryRow[];
             setCategories(data);
         } catch {
-            setPageError("Не удалось загрузить категории. Обновите страницу.");
+            setPageError(t("loadFailed"));
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [t]);
 
     useEffect(() => {
         void load();
@@ -267,7 +272,7 @@ export default function AdminCategoriesPage() {
                     const json = (await res.json().catch(() => null)) as {
                         error?: string;
                     } | null;
-                    throw new Error(json?.error || "Не удалось сохранить");
+                    throw new Error(json?.error || tCommon("saveFailed"));
                 }
                 const updated = (await res.json()) as CategoryRow;
                 setCategories((prev) =>
@@ -275,13 +280,13 @@ export default function AdminCategoriesPage() {
                 );
             } catch (e) {
                 setPageError(
-                    e instanceof Error ? e.message : "Не удалось сохранить",
+                    e instanceof Error ? e.message : tCommon("saveFailed"),
                 );
             } finally {
                 setSavingId(null);
             }
         },
-        [],
+        [tCommon],
     );
 
     const handleImageChange = useCallback(
@@ -318,13 +323,13 @@ export default function AdminCategoriesPage() {
                 const json = (await res.json().catch(() => null)) as {
                     error?: string;
                 } | null;
-                throw new Error(json?.error || "Не удалось удалить");
+                throw new Error(json?.error || tCommon("deleteFailed"));
             }
             setCategories((prev) => prev.filter((c) => c.id !== deleting.id));
             setDeleting(null);
         } catch (e) {
             setPageError(
-                e instanceof Error ? e.message : "Не удалось удалить",
+                e instanceof Error ? e.message : tCommon("deleteFailed"),
             );
             setDeleting(null);
         } finally {
@@ -341,14 +346,13 @@ export default function AdminCategoriesPage() {
                 sx={{ mb: 0.5 }}
             >
                 <CategoryOutlinedIcon sx={{ color: tokens.brand }} />
-                <SectionTitle pageTitle>Категории</SectionTitle>
+                <SectionTitle pageTitle>{t("title")}</SectionTitle>
             </Stack>
             <Typography
                 variant="body2"
                 sx={{ color: tokens.textMuted, mb: 3, mt: -2 }}
             >
-                Фото, названия и видимость категорий на витрине. Без фото
-                карточка использует обложку первого товара.
+                {t("subtitle")}
             </Typography>
 
             {pageError && (
@@ -378,10 +382,10 @@ export default function AdminCategoriesPage() {
                     }}
                 >
                     <Typography fontWeight={700} sx={{ mb: 0.5 }}>
-                        Категорий пока нет
+                        {t("emptyTitle")}
                     </Typography>
                     <Typography variant="body2" sx={{ color: tokens.textMuted }}>
-                        Категории создаются в форме товара.
+                        {t("emptyHint")}
                     </Typography>
                 </Box>
             ) : (
@@ -389,16 +393,16 @@ export default function AdminCategoriesPage() {
                     <Table size="small" sx={{ minWidth: 640 }}>
                         <TableHead>
                             <TableRow>
-                                <TableCell sx={{ fontWeight: 700 }}>Фото</TableCell>
+                                <TableCell sx={{ fontWeight: 700 }}>{tCommon("photo")}</TableCell>
                                 <TableCell sx={{ fontWeight: 700 }}>
-                                    Название
+                                    {tCommon("name")}
                                 </TableCell>
-                                <TableCell sx={{ fontWeight: 700 }}>Slug</TableCell>
+                                <TableCell sx={{ fontWeight: 700 }}>{tCommon("slug")}</TableCell>
                                 <TableCell sx={{ fontWeight: 700 }} align="center">
-                                    Активна
+                                    {tCommon("active")}
                                 </TableCell>
                                 <TableCell align="right" sx={{ fontWeight: 700 }}>
-                                    Действия
+                                    {tCommon("actions")}
                                 </TableCell>
                             </TableRow>
                         </TableHead>
@@ -442,31 +446,33 @@ export default function AdminCategoriesPage() {
                                                 })
                                             }
                                             inputProps={{
-                                                "aria-label": `Категория ${getLocalizedField(category.name, "ru")} активна`,
+                                                "aria-label": t("categoryActiveAria", {
+                                                    name: getLocalizedField(category.name, "ru"),
+                                                }),
                                             }}
                                         />
                                     </TableCell>
                                     <TableCell align="right">
-                                        <Tooltip title="Переименовать">
+                                        <Tooltip title={tCommon("rename")}>
                                             <IconButton
                                                 size="small"
                                                 onClick={() =>
                                                     openRename(category)
                                                 }
-                                                aria-label="Переименовать категорию"
+                                                aria-label={t("renameCategory")}
                                             >
                                                 <EditIcon
                                                     sx={{ fontSize: 18 }}
                                                 />
                                             </IconButton>
                                         </Tooltip>
-                                        <Tooltip title="Удалить">
+                                        <Tooltip title={tCommon("delete")}>
                                             <IconButton
                                                 size="small"
                                                 onClick={() =>
                                                     setDeleting(category)
                                                 }
-                                                aria-label="Удалить категорию"
+                                                aria-label={t("deleteCategory")}
                                                 sx={{ color: "#E74C3C" }}
                                             >
                                                 <DeleteIcon
@@ -489,11 +495,11 @@ export default function AdminCategoriesPage() {
                 fullWidth
                 maxWidth="sm"
             >
-                <DialogTitle>Переименовать категорию</DialogTitle>
+                <DialogTitle>{t("renameCategory")}</DialogTitle>
                 <DialogContent>
                     <Box sx={{ pt: 1 }}>
                         <LocalizedTextFields
-                            label="Название"
+                            label={tCommon("name")}
                             value={editName}
                             onChange={setEditName}
                             required
@@ -506,7 +512,7 @@ export default function AdminCategoriesPage() {
                         disabled={saveBusy}
                         color="inherit"
                     >
-                        Отмена
+                        {tCommon("cancel")}
                     </Button>
                     <Button
                         onClick={() => void handleRenameSave()}
@@ -514,7 +520,7 @@ export default function AdminCategoriesPage() {
                         disabled={saveBusy}
                         sx={{ fontWeight: 700 }}
                     >
-                        Сохранить
+                        {tCommon("save")}
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -526,15 +532,14 @@ export default function AdminCategoriesPage() {
                 maxWidth="xs"
                 fullWidth
             >
-                <DialogTitle>Удалить категорию?</DialogTitle>
+                <DialogTitle>{t("deleteTitle")}</DialogTitle>
                 <DialogContent>
                     <Typography variant="body2" sx={{ color: tokens.textSecondary }}>
-                        Категория «
-                        {deleting
-                            ? getLocalizedField(deleting.name, "ru")
-                            : ""}
-                        » будет удалена. Если к ней привязаны товары, удаление
-                        будет отклонено.
+                        {t("deleteBody", {
+                            name: deleting
+                                ? getLocalizedField(deleting.name, "ru")
+                                : "",
+                        })}
                     </Typography>
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -543,7 +548,7 @@ export default function AdminCategoriesPage() {
                         disabled={deleteBusy}
                         color="inherit"
                     >
-                        Отмена
+                        {tCommon("cancel")}
                     </Button>
                     <Button
                         onClick={() => void handleDelete()}
@@ -552,7 +557,7 @@ export default function AdminCategoriesPage() {
                         disabled={deleteBusy}
                         sx={{ fontWeight: 700 }}
                     >
-                        Удалить
+                        {tCommon("delete")}
                     </Button>
                 </DialogActions>
             </Dialog>

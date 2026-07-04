@@ -56,6 +56,16 @@ export type OrdersTableOrder = {
 type SortField = "date" | "total" | "name" | "id";
 type SortDirection = "asc" | "desc";
 
+type OrdersTableColumnLabels = {
+    id: string;
+    date: string;
+    customerName: string;
+    amount: string;
+    status: string;
+    payment: string;
+    emptyFiltered: string;
+};
+
 type OrdersTableProps = {
     orders: OrdersTableOrder[];
     searchQuery: string;
@@ -63,6 +73,7 @@ type OrdersTableProps = {
     sortDir: SortDirection;
     buildSortHref: (column: SortField) => string;
     empty: boolean;
+    columnLabels: OrdersTableColumnLabels;
 };
 
 function renderSortLabel(
@@ -108,11 +119,12 @@ export function OrdersTable({
     sortDir,
     buildSortHref,
     empty,
+    columnLabels,
 }: OrdersTableProps) {
     if (empty) {
         return (
             <Typography color="text.secondary" sx={{ py: 4, textAlign: "center" }}>
-                Нет заказов по текущим фильтрам.
+                {columnLabels.emptyFiltered}
             </Typography>
         );
     }
@@ -147,7 +159,7 @@ export function OrdersTable({
                         <TableRow sx={{ bgcolor: "action.hover" }}>
                             <TableCell sx={{ ...TABLE_HEAD_CELL_SX, width: 88 }}>
                                 {renderSortLabel(
-                                    "ID",
+                                    columnLabels.id,
                                     "id",
                                     sortField,
                                     sortDir,
@@ -157,7 +169,7 @@ export function OrdersTable({
 
                             <TableCell sx={{ ...TABLE_HEAD_CELL_SX, width: 132 }}>
                                 {renderSortLabel(
-                                    "Дата",
+                                    columnLabels.date,
                                     "date",
                                     sortField,
                                     sortDir,
@@ -167,7 +179,7 @@ export function OrdersTable({
 
                             <TableCell sx={{ ...TABLE_HEAD_CELL_SX, width: "28%" }}>
                                 {renderSortLabel(
-                                    "Имя клиента",
+                                    columnLabels.customerName,
                                     "name",
                                     sortField,
                                     sortDir,
@@ -180,7 +192,7 @@ export function OrdersTable({
                                 sx={{ ...TABLE_HEAD_CELL_SX, width: 124 }}
                             >
                                 {renderSortLabel(
-                                    "Сумма",
+                                    columnLabels.amount,
                                     "total",
                                     sortField,
                                     sortDir,
@@ -189,11 +201,11 @@ export function OrdersTable({
                             </TableCell>
 
                             <TableCell sx={{ ...TABLE_HEAD_CELL_SX, width: 132 }}>
-                                Статус
+                                {columnLabels.status}
                             </TableCell>
 
                             <TableCell sx={{ ...TABLE_HEAD_CELL_SX, width: 116 }}>
-                                Оплата
+                                {columnLabels.payment}
                             </TableCell>
                         </TableRow>
                     </TableHead>

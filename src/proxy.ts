@@ -74,7 +74,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-    // sw.js и manifest.webmanifest явно в matcher — proxy пропускает их без редиректа.
+    // sw.js и manifest.webmanifest явно в matcher - proxy пропускает их без редиректа.
     // Остальная статика с расширением (.png и т.д.) matcher не затрагивает.
     matcher: ["/sw.js", "/manifest.webmanifest", "/((?!_next|_vercel|.*\\..*).*)"],
 };

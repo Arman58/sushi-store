@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { getTranslations } from "next-intl/server";
 
-import { isOrderStatus, orderStatusLabel } from "@/lib/order-status";
+import { resolveAdminLocale } from "@/lib/admin-locale";
+import { isOrderStatus } from "@/lib/order-status";
 import { prisma } from "@/lib/prisma";
 import { verifyAdmin } from "@/lib/verify-admin";
 
@@ -72,37 +74,8 @@ function parseSearchParams(url: string) {
     };
 }
 
-function mapPaymentLabel(payment: string): string {
-    switch (payment) {
-        case "CASH":
-            return "Наличными";
-        case "CARD":
-            return "Картой";
-        default:
-            return payment;
-    }
-}
-
-function mapDeliveryLabel(delivery: string): string {
-    switch (delivery) {
-        case "DELIVERY":
-            return "Доставка";
-        case "PICKUP":
-            return "Самовывоз";
-        default:
-            return delivery;
-    }
-}
-
-function mapStatusLabel(status: string): string {
-    if (isOrderStatus(status)) {
-        return orderStatusLabel(status);
-    }
-    return status;
-}
-
-function formatDate(date: Date) {
-    return new Intl.DateTimeFormat("ru-RU", {
+function formatDate(date: Date, locale: string) {
+    return new Intl.DateTimeFormat(locale, {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
@@ -125,6 +98,29 @@ export async function GET(request: Request) {
     if (!auth.ok) {
         return auth.response;
     }
+
+    const locale = await resolveAdminLocale();
+    const tCommon = await getTranslations({ locale, namespace: "admin.common" });
+    const tOrders = await getTranslations({ locale, namespace: "admin.orders" });
+    const tOrder = await getTranslations({ locale, namespace: "order" });
+
+    const paymentLabels = {
+        CASH: tOrder("payment.cash"),
+        CARD: tOrder("payment.card"),
+    } as const;
+
+    const deliveryLabels = {
+        DELIVERY: tCommon("delivery"),
+        PICKUP: tCommon("pickup"),
+    } as const;
+
+    const statusLabels = {
+        NEW: tOrder("status.new"),
+        COOKING: tOrder("status.cooking"),
+        DELIVERING: tOrder("status.delivering"),
+        DONE: tOrder("status.done"),
+        CANCELLED: tOrder("status.cancelled"),
+    } as const;
 
     const {
         sortField,
@@ -223,16 +219,16 @@ export async function GET(request: Request) {
     });
 
     const header = [
-        "ID",
-        "Дата",
-        "Клиент",
-        "Телефон",
-        "Доставка",
-        "Статус",
-        "Адрес",
-        "Оплата",
-        "Сумма",
-        "Позиции",
+        tOrders("exportHeaders.id"),
+        tOrders("exportHeaders.date"),
+        tOrders("exportHeaders.client"),
+        tOrders("exportHeaders.phone"),
+        tOrders("exportHeaders.delivery"),
+        tOrders("exportHeaders.status"),
+        tOrders("exportHeaders.address"),
+        tOrders("exportHeaders.payment"),
+        tOrders("exportHeaders.amount"),
+        tOrders("exportHeaders.items"),
     ].join(",");
 
     const rows = filteredOrders.map((order) => {
@@ -240,15 +236,27 @@ export async function GET(request: Request) {
             .map((item) => `${item.name} x${item.quantity} (${item.price})`)
             .join(" | ");
 
+        const paymentLabel =
+            order.payment in paymentLabels
+                ? paymentLabels[order.payment as keyof typeof paymentLabels]
+                : order.payment;
+        const deliveryLabel =
+            order.delivery in deliveryLabels
+                ? deliveryLabels[order.delivery as keyof typeof deliveryLabels]
+                : order.delivery;
+        const statusLabel = isOrderStatus(order.status)
+            ? statusLabels[order.status]
+            : order.status;
+
         return [
             order.id,
-            formatDate(order.createdAt),
+            formatDate(order.createdAt, locale),
             escapeCsv(order.name),
             escapeCsv(order.phone),
-            mapDeliveryLabel(order.delivery),
-            mapStatusLabel(order.status),
+            deliveryLabel,
+            statusLabel,
             escapeCsv(order.address ?? ""),
-            mapPaymentLabel(order.payment),
+            paymentLabel,
             order.totalPrice,
             escapeCsv(itemsSummary),
         ].join(",");

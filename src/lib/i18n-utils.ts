@@ -61,7 +61,7 @@ export function getLocalizedField(jsonField: unknown, locale: string): string {
         const parsed = tryParseLocalizedJsonString(trimmed);
         if (parsed) return pickLocaleString(parsed, locale);
 
-        // Пустой JSON в БД иногда приходит как строка "{}" — не показываем как текст
+        // Пустой JSON в БД иногда приходит как строка "{}" - не показываем как текст
         if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
             try {
                 const json = JSON.parse(trimmed) as unknown;

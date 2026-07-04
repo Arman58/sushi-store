@@ -55,7 +55,7 @@ export function createCheckoutSchema(messages: SchemaMessages) {
             saveAddressLabel: z.string().default(""),
             payment: z.enum(["cash", "card"]).default("cash"),
             // Сдача (наличные): zod вырезает неописанные ключи, поэтому поля
-            // ОБЯЗАНЫ быть здесь — иначе needsChange/changeAmount теряются
+            // ОБЯЗАНЫ быть здесь - иначе needsChange/changeAmount теряются
             // при сабмите и заказ уходит как «без сдачи».
             needsChange: z.boolean().default(false),
             changeAmount: z.number().int().positive().nullable().default(null),

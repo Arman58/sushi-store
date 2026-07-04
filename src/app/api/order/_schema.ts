@@ -30,7 +30,7 @@ const NonNegativeInt = z.number().int().nonnegative();
 const orderItemSchema = z
     .object({
         productId: PositiveInt,
-        name: z.string().min(1, "Некорректное название товара"),
+        name: z.string().min(1, "form.item.invalidName"),
         price: PositiveInt,
         quantity: PositiveInt,
         selectedModifierIds: z.array(PositiveInt).optional(),
@@ -75,7 +75,7 @@ export const orderPayloadSchema = z
         name: z
             .string()
             .transform((v) => v.trim())
-            .pipe(z.string().min(2, "Укажите имя")),
+            .pipe(z.string().min(2, "form.name.tooShort")),
         phone: z
             .string()
             .optional()
@@ -90,18 +90,18 @@ export const orderPayloadSchema = z
             .optional()
             .transform((v) => (typeof v === "string" ? v.trim() : "")),
         payment: z.enum(["cash", "card"], {
-            errorMap: () => ({ message: "Некорректный способ оплаты" }),
+            errorMap: () => ({ message: "form.payment.invalid" }),
         }),
         /** Наличные: сумма, с которой готовить сдачу (֏). null - не нужна. */
         changeFrom: PositiveInt.nullable().optional(),
         /** Предзаказ: ISO-время доставки. null/отсутствует - как можно скорее. */
         scheduledFor: z.string().datetime({ offset: true }).nullable().optional(),
         delivery: z.enum(["delivery", "pickup"], {
-            errorMap: () => ({ message: "Некорректный тип доставки" }),
+            errorMap: () => ({ message: "form.delivery.invalidType" }),
         }),
         items: z
             .array(orderItemSchema)
-            .min(1, "Корзина пуста"),
+            .min(1, "form.cart.empty"),
         /**
          * Сумма к оплате: subtotalBeforeDiscount − discountAmount + deliveryPrice
          * (доставка и скидка пересчитываются на сервере).
@@ -130,28 +130,28 @@ export const orderPayloadSchema = z
                 ctx.addIssue({
                     code: z.ZodIssueCode.custom,
                     path: ["phone"],
-                    message: "Укажите телефон для доставки",
+                    message: "form.phone.requiredForDelivery",
                 });
             }
             if (!data.address || data.address.length < 5) {
                 ctx.addIssue({
                     code: z.ZodIssueCode.custom,
                     path: ["address"],
-                    message: "Укажите адрес доставки",
+                    message: "form.address.required",
                 });
             }
             if (!data.deliveryZoneId) {
                 ctx.addIssue({
                     code: z.ZodIssueCode.custom,
                     path: ["deliveryZoneId"],
-                    message: "Выберите зону доставки",
+                    message: "form.zone.required",
                 });
             }
         } else if (data.phone.length > 0 && phoneDigits < 8) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
                 path: ["phone"],
-                message: "Введите корректный номер (например, XX XX XX XX)",
+                message: "form.phone.invalid",
             });
         }
         const hasPromo =
@@ -161,7 +161,7 @@ export const orderPayloadSchema = z
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
                 path: ["discountAmount"],
-                message: "Скидка указана без промокода",
+                message: "form.discount.withoutPromo",
             });
         }
     });
@@ -179,7 +179,7 @@ export type OrderPayload = z.infer<typeof orderPayloadSchema>;
  */
 export function firstZodMessage(
     error: z.ZodError,
-    fallback = "Неверный формат данных заказа",
+    fallback = "form.invalidPayload",
 ): string {
     const first = error.issues[0];
     return first?.message ?? fallback;

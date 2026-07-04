@@ -1,51 +1,65 @@
 import { Chip } from "@mui/material";
-import type { DeliveryType, PaymentMethod } from "@prisma/client";
+import type { DeliveryType, OrderStatus, PaymentMethod } from "@prisma/client";
 
-import { isOrderStatus, orderStatusLabel } from "@/lib/order-status";
+import { isOrderStatus } from "@/lib/order-status";
 
 import type { SortDirection, SortField } from "./orders-query";
 
 const BASE_PATH = "/admin/orders";
 
-// фиксируем локаль и таймзону
-const dateFormatter = new Intl.DateTimeFormat("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Asia/Yerevan",
-});
+export type OrderDisplayLabels = {
+    paymentCash: string;
+    paymentCard: string;
+    deliveryDelivery: string;
+    deliveryPickup: string;
+    status: Record<OrderStatus, string>;
+};
 
-export function formatDate(date: Date): string {
-    return dateFormatter.format(date);
+export function formatDate(date: Date, locale: string): string {
+    return new Intl.DateTimeFormat(locale, {
+        day: "2-digit",
+        month: "2-digit",
+        year: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Asia/Yerevan",
+    }).format(date);
 }
 
-export function mapPaymentLabel(payment: PaymentMethod): string {
+export function mapPaymentLabel(
+    payment: PaymentMethod,
+    labels: OrderDisplayLabels,
+): string {
     switch (payment) {
         case "CASH":
-            return "Наличными";
+            return labels.paymentCash;
         case "CARD":
-            return "Картой";
+            return labels.paymentCard;
         default:
             return payment;
     }
 }
 
-export function mapDeliveryLabel(delivery: DeliveryType): string {
+export function mapDeliveryLabel(
+    delivery: DeliveryType,
+    labels: OrderDisplayLabels,
+): string {
     switch (delivery) {
         case "DELIVERY":
-            return "Доставка";
+            return labels.deliveryDelivery;
         case "PICKUP":
-            return "Самовывоз";
+            return labels.deliveryPickup;
         default:
             return delivery;
     }
 }
 
-export function mapStatusLabel(status: string): string {
+export function mapStatusLabel(
+    status: string,
+    labels: OrderDisplayLabels,
+): string {
     if (isOrderStatus(status)) {
-        return orderStatusLabel(status);
+        return labels.status[status];
     }
     return status;
 }

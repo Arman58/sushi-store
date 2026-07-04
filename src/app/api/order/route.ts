@@ -3,7 +3,9 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 import {
+    getFormValidationMessage,
     getInvalidCartPayloadMessage,
+    getPromoRejectionMessage,
     localizedApiErrorJsonResponse,
     resolveOrderRequestLocale,
 } from "@/lib/backend-i18n";
@@ -21,7 +23,7 @@ import { prepareOrderItems, type VerifiedOrderItem } from "@/lib/prepare-order-i
 import { prisma } from "@/lib/prisma";
 import {
     computePromoDiscountAmount,
-    getPromoRejectionReason,
+    getPromoRejectionCode,
 } from "@/lib/promo";
 import {
     checkRateLimit,
@@ -45,8 +47,6 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 const telegramNotifyEnabled = isKitchenTelegramConfigured();
-
-const DEFAULT_ERROR_MESSAGE = "Не удалось оформить заказ. Попробуйте ещё раз.";
 
 type KitchenTelegramPayload = {
     orderId: number;
@@ -124,11 +124,11 @@ async function notifyKitchenTelegram(payload: KitchenTelegramPayload): Promise<v
             lines.push(
                 `<b>💵 Клиент даст:</b> <i>${changeFrom.toLocaleString("ru-RU")} ֏</i>` +
                     (changeDue > 0
-                        ? ` — подготовить сдачу <b>${changeDue.toLocaleString("ru-RU")} ֏</b>`
+                        ? ` - подготовить сдачу <b>${changeDue.toLocaleString("ru-RU")} ֏</b>`
                         : " <i>(без сдачи)</i>"),
             );
         } else {
-            lines.push("<b>💵 Сдача:</b> <i>не нужна — клиент даст точную сумму</i>");
+            lines.push("<b>💵 Сдача:</b> <i>не нужна - клиент даст точную сумму</i>");
         }
     }
 
@@ -244,8 +244,21 @@ export async function POST(request: Request) {
     const parsed = orderPayloadSchema.safeParse(json);
 
     if (!parsed.success) {
+        const rawLocale =
+            json && typeof json === "object" && "locale" in json
+                ? (json as { locale?: unknown }).locale
+                : undefined;
+        const locale = resolveOrderRequestLocale(
+            request,
+            typeof rawLocale === "string" ? rawLocale : null,
+        );
         return NextResponse.json(
-            { error: firstZodMessage(parsed.error) },
+            {
+                error: getFormValidationMessage(
+                    firstZodMessage(parsed.error),
+                    locale,
+                ),
+            },
             { status: 400 },
         );
     }
@@ -348,7 +361,7 @@ export async function POST(request: Request) {
         const zoneId = deliveryZoneId;
         if (!zoneId) {
             return NextResponse.json(
-                { error: "Выберите зону доставки" },
+                { error: getFormValidationMessage("form.zone.selectRequired", locale) },
                 { status: 400 },
             );
         }
@@ -359,7 +372,7 @@ export async function POST(request: Request) {
 
         if (!zone) {
             return NextResponse.json(
-                { error: "Выбранная зона доставки недоступна" },
+                { error: getFormValidationMessage("form.zone.unavailable", locale) },
                 { status: 400 },
             );
         }
@@ -367,7 +380,9 @@ export async function POST(request: Request) {
         if (verifiedTotal < zone.minOrderAmount) {
             return NextResponse.json(
                 {
-                    error: `Минимальная сумма заказа для выбранной зоны - ${zone.minOrderAmount.toLocaleString("ru-RU")} ֏`,
+                    error: getFormValidationMessage("form.zone.belowMin", locale, {
+                        amount: zone.minOrderAmount.toLocaleString("ru-RU"),
+                    }),
                 },
                 { status: 400 },
             );
@@ -387,11 +402,18 @@ export async function POST(request: Request) {
         const promoRow = await prisma.promoCode.findUnique({
             where: { code: promoCodeRaw },
         });
-        const reason = getPromoRejectionReason(promoRow, {
+        const rejection = getPromoRejectionCode(promoRow, {
             cartSubtotal: verifiedTotal,
             grandTotalBeforeDiscount: grandBeforePay,
         });
-        if (reason) {
+        if (rejection) {
+            const reason = getPromoRejectionMessage(
+                rejection.code,
+                locale,
+                rejection.code === "belowMin"
+                    ? { amount: rejection.minOrderAmount.toLocaleString("ru-RU") }
+                    : undefined,
+            );
             return NextResponse.json({ error: reason }, { status: 422 });
         }
         discountAmt = computePromoDiscountAmount(
@@ -510,8 +532,9 @@ export async function POST(request: Request) {
             payableForNotify = payableTotal;
         });
     } catch (error: unknown) {
+        const fallbackError = getFormValidationMessage("form.invalidPayload", locale);
         const msg =
-            error instanceof Error ? error.message : DEFAULT_ERROR_MESSAGE;
+            error instanceof Error ? error.message : fallbackError;
         const httpStatus =
             typeof error === "object" &&
             error !== null &&
@@ -540,9 +563,10 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: msg }, { status: httpStatus });
         }
         // Error logged in production monitoring
-        return NextResponse.json(
-            { error: DEFAULT_ERROR_MESSAGE },
-            { status: 500 },
+        return localizedApiErrorJsonResponse(
+            API_ERROR_CODES.INTERNAL_SERVER_ERROR,
+            locale,
+            500,
         );
     }
 

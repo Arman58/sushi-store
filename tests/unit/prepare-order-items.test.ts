@@ -8,7 +8,7 @@ import {
 } from "@/lib/prepare-order-items";
 
 /**
- * prisma в src/lib/prisma.ts — ленивый Proxy, который в non-production
+ * prisma в src/lib/prisma.ts - ленивый Proxy, который в non-production
  * берёт клиент из globalThis.prisma. Подсовываем мок до первого обращения.
  */
 type MockProduct = {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getFormValidationMessage } from "@/lib/backend-i18n";
 import {
     homeProductInclude,
     type HomeProductPayload,
@@ -89,7 +90,7 @@ export async function GET(request: Request) {
     const excludeIds = parseExcludeIds(request);
     const url = new URL(request.url);
     const type = url.searchParams.get("type");
-    /** Слаги категорий, которые не предлагать (напр. sauces — их показывает SauceStrip). */
+    /** Слаги категорий, которые не предлагать (напр. sauces - их показывает SauceStrip). */
     const excludeCategorySlugs = (url.searchParams.get("excludeCategories") ?? "")
         .split(",")
         .map((slug) => slug.trim())
@@ -211,7 +212,7 @@ export async function GET(request: Request) {
                 error:
                     process.env.NODE_ENV === "development" && error instanceof Error
                         ? error.message
-                        : "Не удалось загрузить рекомендации",
+                        : getFormValidationMessage("form.upsell.loadFailed", locale),
             },
             { status: 500 },
         );

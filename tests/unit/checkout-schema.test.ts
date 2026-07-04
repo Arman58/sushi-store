@@ -38,7 +38,7 @@ const validBase = {
     hp: "",
 };
 
-describe("createCheckoutSchema — сдача (регрессия)", () => {
+describe("createCheckoutSchema - сдача (регрессия)", () => {
     it("needsChange/changeAmount НЕ вырезаются при parse", () => {
         // Регрессия: поля отсутствовали в схеме, zod их стрипал,
         // и заказ уходил на сервер как «без сдачи».

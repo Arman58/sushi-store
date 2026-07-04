@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
+import {
+    getFormValidationMessage,
+    resolveOrderRequestLocale,
+} from "@/lib/backend-i18n";
 import { issueOtpForEmail } from "@/lib/otp-auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -13,8 +17,8 @@ const bodySchema = z.object({
     email: z
         .string()
         .trim()
-        .min(1, "Укажите email")
-        .email("Некорректный email")
+        .min(1, "form.email.required")
+        .email("form.email.invalid")
         .transform((v) => v.toLowerCase()),
     locale: z.enum(["hy", "ru", "en"]).optional(),
 });
@@ -28,24 +32,42 @@ export async function POST(request: Request) {
     const session = await auth();
     const userId = session?.user?.id ?? null;
 
-    if (!userId) {
-        return NextResponse.json({ error: "Необходимо войти в аккаунт" }, { status: 401 });
-    }
-
-    let json: unknown;
+    let json: unknown = null;
     try {
         json = await request.json();
     } catch {
+        // локаль всё равно вытащим из заголовков ниже
+    }
+    const rawLocale =
+        json && typeof json === "object" && "locale" in json
+            ? (json as { locale?: unknown }).locale
+            : undefined;
+    const locale = resolveOrderRequestLocale(
+        request,
+        typeof rawLocale === "string" ? rawLocale : null,
+    );
+
+    if (!userId) {
+        return NextResponse.json(
+            { error: getFormValidationMessage("form.auth.loginRequired", locale) },
+            { status: 401 },
+        );
+    }
+
+    if (json == null) {
         return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
     const parsed = bodySchema.safeParse(json);
     if (!parsed.success) {
-        const message = parsed.error.errors[0]?.message ?? "Некорректные данные";
-        return NextResponse.json({ error: message }, { status: 400 });
+        const key = parsed.error.errors[0]?.message ?? "form.generic";
+        return NextResponse.json(
+            { error: getFormValidationMessage(key, locale) },
+            { status: 400 },
+        );
     }
 
-    const { email, locale } = parsed.data;
+    const { email } = parsed.data;
 
     const user = await prisma.user.findUnique({
         where: { id: userId },
@@ -53,21 +75,30 @@ export async function POST(request: Request) {
     });
 
     if (!user?.email) {
-        return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 });
+        return NextResponse.json(
+            { error: getFormValidationMessage("form.auth.userNotFound", locale) },
+            { status: 404 },
+        );
     }
 
     if (user.email.toLowerCase() !== email) {
-        return NextResponse.json({ error: "Email не совпадает с аккаунтом" }, { status: 403 });
+        return NextResponse.json(
+            { error: getFormValidationMessage("form.email.mismatch", locale) },
+            { status: 403 },
+        );
     }
 
     if (user.emailVerified != null) {
-        return NextResponse.json({ error: "Почта уже подтверждена" }, { status: 400 });
+        return NextResponse.json(
+            { error: getFormValidationMessage("form.auth.emailAlreadyVerified", locale) },
+            { status: 400 },
+        );
     }
 
-    const { sent } = await issueOtpForEmail(email, locale);
+    const { sent } = await issueOtpForEmail(email, parsed.data.locale);
     if (!sent) {
         return NextResponse.json(
-            { error: "Не удалось отправить письмо. Попробуйте позже." },
+            { error: getFormValidationMessage("form.auth.emailSendFailed", locale) },
             { status: 502 },
         );
     }

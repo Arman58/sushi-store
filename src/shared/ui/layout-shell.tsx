@@ -89,7 +89,7 @@ function SearchBar({
         >
             <ButtonBase
                 onClick={onOpen}
-                aria-label={t("search") || "Поиск"}
+                aria-label={t("search")}
                 sx={{
                     display: "flex",
                     justifyContent: "flex-start",
@@ -113,7 +113,7 @@ function SearchBar({
                     noWrap
                     sx={{ fontSize: "0.875rem", color: "inherit" }}
                 >
-                    {t("searchPlaceholder") || "Поиск…"}
+                    {t("searchPlaceholder")}
                 </Typography>
             </ButtonBase>
         </Box>
@@ -457,7 +457,7 @@ export function LayoutShell({ children }: LayoutShellProps) {
                             </Box>
                         </Box>
 
-                        {/* Location: на xs скрыт — в шапке лого; город/ETA видны с sm */}
+                        {/* Location: на xs скрыт - в шапке лого; город/ETA видны с sm */}
                         <Box
                             sx={{
                                 display: { xs: "none", sm: "flex" },

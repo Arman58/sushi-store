@@ -2,16 +2,15 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-const schema = z.object({
-    user: z.string().min(1, "Введите логин"),
-    pass: z.string().min(1, "Введите пароль"),
-});
-
-type LoginFormValues = z.infer<typeof schema>;
+type LoginFormValues = {
+    user: string;
+    pass: string;
+};
 
 type LoginFormProps = {
     disabled?: boolean;
@@ -25,9 +24,19 @@ function safeAdminNextPath(next: string | null): string {
 }
 
 export function LoginForm({ disabled }: LoginFormProps) {
+    const t = useTranslations("admin.login");
     const router = useRouter();
     const searchParams = useSearchParams();
     const [serverError, setServerError] = useState<string | null>(null);
+
+    const schema = useMemo(
+        () =>
+            z.object({
+                user: z.string().min(1, t("usernameRequired")),
+                pass: z.string().min(1, t("passwordRequired")),
+            }),
+        [t],
+    );
 
     const {
         register,
@@ -50,13 +59,13 @@ export function LoginForm({ disabled }: LoginFormProps) {
 
             if (!res.ok) {
                 const text = await res.text();
-                throw new Error(text || "Неверный логин или пароль");
+                throw new Error(text || t("invalidCredentials"));
             }
 
             router.replace(safeAdminNextPath(searchParams.get("next")));
         } catch (error) {
             const message =
-                error instanceof Error ? error.message : "Не удалось войти";
+                error instanceof Error ? error.message : t("loginFailed");
             setServerError(message);
         }
     };
@@ -64,7 +73,7 @@ export function LoginForm({ disabled }: LoginFormProps) {
     return (
         <form onSubmit={handleSubmit(onSubmit)} style={{ display: "grid", gap: 14 }}>
             <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontSize: 13, color: "#cbd5e1" }}>Логин</span>
+                <span style={{ fontSize: 13, color: "#cbd5e1" }}>{t("username")}</span>
                 <input
                     {...register("user")}
                     type="text"
@@ -87,7 +96,7 @@ export function LoginForm({ disabled }: LoginFormProps) {
             </label>
 
             <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontSize: 13, color: "#cbd5e1" }}>Пароль</span>
+                <span style={{ fontSize: 13, color: "#cbd5e1" }}>{t("password")}</span>
                 <input
                     {...register("pass")}
                     type="password"
@@ -142,7 +151,7 @@ export function LoginForm({ disabled }: LoginFormProps) {
                     boxShadow: "0 12px 28px rgba(249,115,22,0.35)",
                 }}
             >
-                {isSubmitting ? "Входим..." : "Войти"}
+                {isSubmitting ? t("submitting") : t("submit")}
             </button>
         </form>
     );

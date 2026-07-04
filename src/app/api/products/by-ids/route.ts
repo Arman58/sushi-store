@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getFormValidationMessage } from "@/lib/backend-i18n";
 import { homeProductInclude } from "@/lib/home-product-include";
 import { resolveRequestLocale, toStorefrontProducts } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
@@ -49,7 +50,7 @@ export async function GET(request: Request) {
                 error:
                     process.env.NODE_ENV === "development" && error instanceof Error
                         ? error.message
-                        : "Не удалось загрузить товары",
+                        : getFormValidationMessage("form.products.loadFailed", locale),
             },
             { status: 500 },
         );

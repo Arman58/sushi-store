@@ -98,7 +98,7 @@ const productsData: ProductSeed[] = [
         image: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=800&q=80",
         categorySlug: "pizza",
         name: "Гавайская",
-        description: "Ананас и ветчина в мягком тесте — семейный любимец.",
+        description: "Ананас и ветчина в мягком тесте - семейный любимец.",
         composition: "Ветчина, ананас, моцарелла",
     },
     {
@@ -160,7 +160,7 @@ const productsData: ProductSeed[] = [
         image: "https://images.unsplash.com/photo-1617196034796-73dfa7b1fd56?w=800&q=80",
         categorySlug: "sushi",
         name: "Дракон",
-        description: "Угорь, авокадо и соус унаги — сладкий насыщенный вкус.",
+        description: "Угорь, авокадо и соус унаги - сладкий насыщенный вкус.",
         composition: "Угорь, авокадо, рис, нори",
     },
     {
@@ -304,7 +304,7 @@ const productsData: ProductSeed[] = [
         image: IMG.lahmajo,
         categorySlug: "lahmajo",
         name: "С яйцом",
-        description: "Лахмаджо с яйцом на верху — сытный вариант.",
+        description: "Лахмаджо с яйцом на верху - сытный вариант.",
         composition: "Фарш, яйцо, специи, тесто",
     },
     {
@@ -314,7 +314,7 @@ const productsData: ProductSeed[] = [
         image: IMG.lahmajo,
         categorySlug: "lahmajo",
         name: "Мини (2 шт)",
-        description: "Две мини-лахмаджо — удобно на перекус.",
+        description: "Две мини-лахмаджо - удобно на перекус.",
         composition: "Тонкое тесто, фарш, специи",
     },
     {
@@ -448,7 +448,7 @@ const productsData: ProductSeed[] = [
         image: IMG.strips,
         categorySlug: "strips",
         name: "Стрипсы 9 шт",
-        description: "Девять полосок — порция на компанию.",
+        description: "Девять полосок - порция на компанию.",
         composition: "Куриное филе, панировка",
     },
     {
@@ -500,7 +500,7 @@ const productsData: ProductSeed[] = [
         image: IMG.drinks,
         categorySlug: "drinks",
         name: "Кола 0.5 л",
-        description: "Coca-Cola 0,5 л — освежающая классика.",
+        description: "Coca-Cola 0,5 л - освежающая классика.",
         composition: "Coca-Cola",
     },
     {
@@ -510,7 +510,7 @@ const productsData: ProductSeed[] = [
         image: IMG.drinks,
         categorySlug: "drinks",
         name: "Кола 1 л",
-        description: "Coca-Cola 1 л — на компанию.",
+        description: "Coca-Cola 1 л - на компанию.",
         composition: "Coca-Cola",
     },
     {
@@ -520,7 +520,7 @@ const productsData: ProductSeed[] = [
         image: "https://images.unsplash.com/photo-1544145945-f90425340c06?w=800&q=80",
         categorySlug: "drinks",
         name: "Тан 0.5 л",
-        description: "Армянский тан 0,5 л — идеален к шaурme.",
+        description: "Армянский тан 0,5 л - идеален к шaурme.",
         composition: "Тан",
     },
     {

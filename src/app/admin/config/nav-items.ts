@@ -9,7 +9,7 @@ import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
 import RestaurantIcon from "@mui/icons-material/Restaurant";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 
-/** labelKey — ключ в неймспейсе `admin.nav` (перевод в SidebarNav/тайтле). */
+/** labelKey - ключ в неймспейсе `admin.nav` (перевод в SidebarNav/тайтле). */
 export type AdminNavItem = {
     href: string;
     labelKey: string;

@@ -6,7 +6,7 @@ export type ProductI18n = {
     composition: LocalizedText;
 };
 
-/** Переводы демо-товаров: ru — источник, hy/en — проверенные варианты. */
+/** Переводы демо-товаров: ru - источник, hy/en - проверенные варианты. */
 export const PRODUCT_I18N: Record<string, ProductI18n> = {
     pepperoni: {
         name: L("Пепперони", "Պեպերոնի", "Pepperoni"),
@@ -403,9 +403,9 @@ export const PRODUCT_I18N: Record<string, ProductI18n> = {
     "dragon-roll": {
         name: L("Дракон", "Վիշապ", "Dragon Roll"),
         description: L(
-            "Угорь, авокадо и соус унаги — сладкий насыщенный вкус.",
+            "Угорь, авокадо и соус унаги - сладкий насыщенный вкус.",
             "Կամբարա, ավոկադո և ունագի սոուս՝ քաղցր և հարուստ համով։",
-            "Eel, avocado and unagi sauce — sweet and rich flavor.",
+            "Eel, avocado and unagi sauce - sweet and rich flavor.",
         ),
         composition: L(
             "Угорь, авокадо, рис, нори",
@@ -481,9 +481,9 @@ export const PRODUCT_I18N: Record<string, ProductI18n> = {
     "lahmajo-egg": {
         name: L("С яйцом", "Ձվով", "With Egg"),
         description: L(
-            "Лахмаджо с яйцом на верху — сытный вариант.",
+            "Лахмаджо с яйцом на верху - сытный вариант.",
             "Լահմաջո ձվով վերևում՝ հագեցնող տարբերակ։",
-            "Lahmajo topped with egg — a hearty option.",
+            "Lahmajo topped with egg - a hearty option.",
         ),
         composition: L(
             "Фарш, яйцо, специи, тесто",
@@ -494,9 +494,9 @@ export const PRODUCT_I18N: Record<string, ProductI18n> = {
     "lahmajo-mini": {
         name: L("Мини (2 шт)", "Մինի (2 հատ)", "Mini (2 pcs)"),
         description: L(
-            "Две мини-лахмаджо — удобно на перекус.",
+            "Две мини-лахмаджо - удобно на перекус.",
             "Երկու մինի լահմաջո՝ հարմար նախուտեստի համար։",
-            "Two mini lahmajo — perfect for a snack.",
+            "Two mini lahmajo - perfect for a snack.",
         ),
         composition: L(
             "Тонкое тесто, фарш, специи",

@@ -9,7 +9,7 @@ import {
 
 const HOUR = 3_600_000;
 
-/** Полдень по Еревану (UTC+4) — кухня открыта. */
+/** Полдень по Еревану (UTC+4) - кухня открыта. */
 const yerevanNoon = new Date("2026-07-04T12:00:00+04:00");
 
 describe("isValidScheduleSlot", () => {
@@ -35,7 +35,7 @@ describe("isValidScheduleSlot", () => {
         assert.equal(isValidScheduleSlot(at, yerevanNoon), false);
     });
 
-    it("завтра днём — валидно", () => {
+    it("завтра днём - валидно", () => {
         const at = new Date("2026-07-05T13:00:00+04:00");
         assert.equal(isValidScheduleSlot(at, yerevanNoon), true);
     });

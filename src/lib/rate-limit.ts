@@ -2,7 +2,7 @@ import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { NextResponse } from "next/server";
 
-/** Расширяемый набор лимитов — добавляйте bucket + config при новых endpoint-ах. */
+/** Расширяемый набор лимитов - добавляйте bucket + config при новых endpoint-ах. */
 export type RateLimitBucket =
     | "order"
     | "adminLogin"
@@ -136,7 +136,7 @@ export async function checkRateLimit(
     }
 }
 
-/** Непрозрачный 429 — не раскрываем limited vs unavailable. */
+/** Непрозрачный 429 - не раскрываем limited vs unavailable. */
 export function rateLimitExceededJsonResponse(): NextResponse {
     return NextResponse.json(
         { error: "Too many requests" },

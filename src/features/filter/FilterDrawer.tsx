@@ -148,7 +148,7 @@ export function FilterDrawer({
                     color="text.secondary"
                     sx={{ mb: 2, fontWeight: 500 }}
                 >
-                    {t("price_from")} {formatPriceLabel(priceRange[0])} —{" "}
+                    {t("price_from")} {formatPriceLabel(priceRange[0])} -{" "}
                     {t("price_to")} {formatPriceLabel(priceRange[1])}
                 </Typography>
 

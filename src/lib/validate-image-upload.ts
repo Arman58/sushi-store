@@ -20,7 +20,7 @@ const ALLOWED_MIME_TYPES = [
     "image/avif",
 ] as const;
 
-/** Браузеры и iOS часто не выставляют MIME для HEIC/HEIF — доверяем whitelist расширения. */
+/** Браузеры и iOS часто не выставляют MIME для HEIC/HEIF - доверяем whitelist расширения. */
 const TRUSTED_EXTENSION_FALLBACK_MIMES = ["", "application/octet-stream"] as const;
 
 export const IMAGE_UPLOAD_ACCEPT = ALLOWED_MIME_TYPES.join(",");

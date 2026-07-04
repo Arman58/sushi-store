@@ -25,7 +25,8 @@ import {
 } from "@mui/material";
 import type { SelectChangeEvent } from "@mui/material/Select";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { CartItem } from "@/features/cart";
 import {
@@ -37,8 +38,6 @@ import {
 import {
     computeEstimatedDeliveryAt,
     ETA_PRESET_MINUTES,
-    formatEstimatedDeliveryTime,
-    orderStatusLabel,
 } from "@/lib/order-status";
 
 const CELL_SX = { px: 2, py: 1.5 };
@@ -57,6 +56,10 @@ export { OrderPaymentChip, OrderStatusChip } from "./order-row-helpers";
 
 export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProps) {
     const theme = useTheme();
+    const locale = useLocale();
+    const t = useTranslations("admin.orders");
+    const tCommon = useTranslations("admin.common");
+    const tOrder = useTranslations("order");
     const isMobile = useMediaQuery(theme.breakpoints.down("md"));
     const [open, setOpen] = useState(false);
     const [localStatus, setLocalStatus] = useState(order.status);
@@ -78,6 +81,48 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
         setLocalEta(nextEta);
         setActiveEtaMinutes(inferEtaPresetMinutes(nextEta));
     }, [order.estimatedDeliveryAt, order.id]);
+
+    const translateStatus = useCallback(
+        (status: string) => {
+            switch (status) {
+                case "NEW":
+                    return tOrder("status.new");
+                case "COOKING":
+                    return tOrder("status.cooking");
+                case "DELIVERING":
+                    return tOrder("status.delivering");
+                case "DONE":
+                    return tOrder("status.done");
+                case "CANCELLED":
+                    return tOrder("status.cancelled");
+                default:
+                    return order.statusLabel;
+            }
+        },
+        [order.statusLabel, tOrder],
+    );
+
+    const formatMoney = (value: number) =>
+        `${value.toLocaleString(locale)} ֏`;
+
+    const formatDateTime = (iso: string) =>
+        new Intl.DateTimeFormat(locale, {
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: "Asia/Yerevan",
+        }).format(new Date(iso));
+
+    const formatTime = useCallback(
+        (date: Date) =>
+            new Intl.DateTimeFormat(locale, {
+                hour: "2-digit",
+                minute: "2-digit",
+                timeZone: "Asia/Yerevan",
+            }).format(date),
+        [locale],
+    );
 
     const router = useRouter();
     const setItems = useCartStore((state) => state.setItems);
@@ -121,8 +166,8 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
             });
 
             if (!res.ok) {
-                const detail = await readApiErrorMessage(res, "Не удалось обновить статус");
-                throw new Error(`Ошибка: ${detail}`);
+                const detail = await readApiErrorMessage(res, t("updateStatusFailed"));
+                throw new Error(`${tCommon("errorPrefix")} ${detail}`);
             }
             router.refresh();
         } catch (error) {
@@ -130,7 +175,7 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
             const message =
                 error instanceof Error
                     ? error.message
-                    : "Не удалось обновить статус";
+                    : t("updateStatusFailed");
             setStatusError(message);
         } finally {
             setUpdatingStatus(false);
@@ -163,8 +208,8 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
             });
 
             if (!res.ok) {
-                const detail = await readApiErrorMessage(res, "Не удалось установить время");
-                throw new Error(`Ошибка: ${detail}`);
+                const detail = await readApiErrorMessage(res, t("setEtaFailed"));
+                throw new Error(`${tCommon("errorPrefix")} ${detail}`);
             }
 
             const data = (await res.json()) as { estimatedDeliveryAt?: string };
@@ -177,32 +222,24 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
             const message =
                 error instanceof Error
                     ? error.message
-                    : "Ошибка: Не удалось установить время";
-            setEtaError(message.startsWith("Ошибка:") ? message : `Ошибка: ${message}`);
+                    : t("setEtaError");
+            setEtaError(message.startsWith(tCommon("errorPrefix")) ? message : `${tCommon("errorPrefix")} ${message}`);
         } finally {
             setUpdatingEta(false);
         }
     };
 
-    const statusLabel = useMemo(() => {
-        switch (localStatus) {
-            case "NEW":
-            case "COOKING":
-            case "DELIVERING":
-            case "DONE":
-            case "CANCELLED":
-                return orderStatusLabel(localStatus);
-            default:
-                return order.statusLabel;
-        }
-    }, [localStatus, order.statusLabel]);
+    const statusLabel = useMemo(
+        () => translateStatus(localStatus),
+        [localStatus, translateStatus],
+    );
 
     const etaLabel = useMemo(() => {
         if (!localEta) return null;
         const date = new Date(localEta);
         if (Number.isNaN(date.getTime())) return null;
-        return formatEstimatedDeliveryTime(date);
-    }, [localEta]);
+        return formatTime(date);
+    }, [localEta, formatTime]);
 
     const telHref = order.phone.replace(/[^\d+]/g, "") ? `tel:${order.phone.replace(/[^\d+]/g, "")}` : undefined;
 
@@ -215,11 +252,11 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
             onChange={onSelectStatus}
             onClick={(e) => e.stopPropagation()}
         >
-            <MenuItem value="NEW">{orderStatusLabel("NEW")}</MenuItem>
-            <MenuItem value="COOKING">{orderStatusLabel("COOKING")}</MenuItem>
-            <MenuItem value="DELIVERING">{orderStatusLabel("DELIVERING")}</MenuItem>
-            <MenuItem value="DONE">{orderStatusLabel("DONE")}</MenuItem>
-            <MenuItem value="CANCELLED">{orderStatusLabel("CANCELLED")}</MenuItem>
+            <MenuItem value="NEW">{translateStatus("NEW")}</MenuItem>
+            <MenuItem value="COOKING">{translateStatus("COOKING")}</MenuItem>
+            <MenuItem value="DELIVERING">{translateStatus("DELIVERING")}</MenuItem>
+            <MenuItem value="DONE">{translateStatus("DONE")}</MenuItem>
+            <MenuItem value="CANCELLED">{translateStatus("CANCELLED")}</MenuItem>
         </Select>
     );
 
@@ -272,7 +309,7 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                         fontWeight={700}
                         sx={{ fontVariantNumeric: "tabular-nums" }}
                     >
-                        {order.totalPrice.toLocaleString("ru-RU")} ֏
+                        {formatMoney(order.totalPrice)}
                     </Typography>
                 </TableCell>
 
@@ -347,7 +384,7 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                                 gap={1}
                             >
                                 <Typography variant="body1" fontWeight={800}>
-                                    {order.totalPrice.toLocaleString("ru-RU")} ֏
+                                    {formatMoney(order.totalPrice)}
                                 </Typography>
                                 <OrderPaymentChip
                                     label={order.paymentLabel}
@@ -370,7 +407,7 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                                         startIcon={<PhoneOutlinedIcon />}
                                         sx={{ flexShrink: 0, textTransform: "none" }}
                                     >
-                                        Позвонить
+                                        {t("call")}
                                     </Button>
                                 ) : null}
                             </Stack>
@@ -401,14 +438,14 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                 >
                     <Stack direction="row" spacing={1} alignItems="center">
                         <Typography variant="h6" fontWeight={700}>
-                            Заказ #{order.id}
+                            {t("orderTitle", { id: order.id })}
                         </Typography>
                         <OrderStatusChip
                             label={statusLabel}
                             status={localStatus}
                         />
                     </Stack>
-                    <IconButton onClick={() => setOpen(false)} aria-label="Закрыть">
+                    <IconButton onClick={() => setOpen(false)} aria-label={tCommon("close")}>
                         <CloseIcon />
                     </IconButton>
                 </DialogTitle>
@@ -424,32 +461,25 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
 
                         <Stack spacing={0.75}>
                             <Typography variant="body2" color="text.secondary">
-                                Дата: {order.createdAtFormatted}
+                                {t("dateLabel", { date: order.createdAtFormatted })}
                             </Typography>
                             <Typography variant="body2">
-                                Клиент: {order.name}
+                                {t("clientLabel", { name: order.name })}
                             </Typography>
                             <Typography variant="body2">
-                                Телефон: {order.phone}
+                                {t("phoneLabel", { phone: order.phone })}
                             </Typography>
                             <Typography variant="body2">
-                                Адрес: {order.address || "-"}
+                                {t("addressLabel", { address: order.address || "-" })}
                             </Typography>
                             {order.scheduledFor && (
                                 <Typography
                                     variant="body2"
                                     sx={{ fontWeight: 700, color: "info.main" }}
                                 >
-                                    ⏰ Предзаказ ко времени:{" "}
-                                    {new Date(order.scheduledFor).toLocaleString(
-                                        "ru-RU",
-                                        {
-                                            day: "2-digit",
-                                            month: "2-digit",
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                        },
-                                    )}
+                                    {t("scheduledOrder", {
+                                        time: formatDateTime(order.scheduledFor),
+                                    })}
                                 </Typography>
                             )}
                             {order.changeFrom != null && (
@@ -457,18 +487,21 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                                     variant="body2"
                                     sx={{ fontWeight: 700, color: "warning.main" }}
                                 >
-                                    💵 Клиент даст{" "}
-                                    {order.changeFrom.toLocaleString("ru-RU")} ֏
+                                    {t("changeFromLabel", {
+                                        amount: formatMoney(order.changeFrom),
+                                    })}
                                     {order.changeFrom - order.totalPrice > 0
-                                        ? ` — подготовить сдачу ${(
-                                              order.changeFrom - order.totalPrice
-                                          ).toLocaleString("ru-RU")} ֏`
-                                        : " (без сдачи)"}
+                                        ? t("prepareChange", {
+                                              amount: formatMoney(
+                                                  order.changeFrom - order.totalPrice,
+                                              ),
+                                          })
+                                        : t("noChange")}
                                 </Typography>
                             )}
                             {order.comment && (
                                 <Typography variant="body2">
-                                    Комментарий: {order.comment}
+                                    {t("commentLabel", { comment: order.comment })}
                                 </Typography>
                             )}
                         </Stack>
@@ -479,7 +512,7 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                                 color="text.secondary"
                                 sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}
                             >
-                                Статус заказа
+                                {t("orderStatusHeading")}
                             </Typography>
                             <Select
                                 value={localStatus}
@@ -489,11 +522,11 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                                 sx={{ mt: 0.75 }}
                                 onChange={onSelectStatus}
                             >
-                                <MenuItem value="NEW">{orderStatusLabel("NEW")}</MenuItem>
-                                <MenuItem value="COOKING">{orderStatusLabel("COOKING")}</MenuItem>
-                                <MenuItem value="DELIVERING">{orderStatusLabel("DELIVERING")}</MenuItem>
-                                <MenuItem value="DONE">{orderStatusLabel("DONE")}</MenuItem>
-                                <MenuItem value="CANCELLED">{orderStatusLabel("CANCELLED")}</MenuItem>
+                                <MenuItem value="NEW">{translateStatus("NEW")}</MenuItem>
+                                <MenuItem value="COOKING">{translateStatus("COOKING")}</MenuItem>
+                                <MenuItem value="DELIVERING">{translateStatus("DELIVERING")}</MenuItem>
+                                <MenuItem value="DONE">{translateStatus("DONE")}</MenuItem>
+                                <MenuItem value="CANCELLED">{translateStatus("CANCELLED")}</MenuItem>
                             </Select>
                             {statusError && (
                                 <Typography
@@ -513,7 +546,7 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                                 color="text.secondary"
                                 sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}
                             >
-                                Установить время готовности
+                                {t("setEtaHeading")}
                             </Typography>
 
                             <Box
@@ -541,7 +574,7 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                                             lineHeight: 1.35,
                                         }}
                                     >
-                                        ⏱ Клиент ждёт до ~{etaLabel}
+                                        {t("etaWaiting", { time: etaLabel })}
                                     </Typography>
                                 ) : (
                                     <Typography
@@ -552,7 +585,7 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                                             lineHeight: 1.4,
                                         }}
                                     >
-                                        ⏱ Время не задано (клиент видит «Уточняется...»)
+                                        {t("etaNotSet")}
                                     </Typography>
                                 )}
                             </Box>
@@ -581,7 +614,7 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                                                 boxShadow: isActive ? "none" : undefined,
                                             }}
                                         >
-                                            {updatingEta && isActive ? "…" : `${minutes} мин`}
+                                            {updatingEta && isActive ? "…" : t("minutesShort", { minutes })}
                                         </Button>
                                     );
                                 })}
@@ -623,10 +656,7 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                                                         "tabular-nums",
                                                 }}
                                             >
-                                                {(
-                                                    item.price * item.quantity
-                                                ).toLocaleString("ru-RU")}{" "}
-                                                ֏
+                                                {formatMoney(item.price * item.quantity)}
                                             </Typography>
                                         </Stack>
                                         <ModifiersList
@@ -646,17 +676,14 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                                 justifyContent="space-between"
                             >
                                 <Typography variant="body2" color="text.secondary">
-                                    Сумма товаров
+                                    {t("subtotal")}
                                 </Typography>
                                 <Typography
                                     variant="body2"
                                     fontWeight={600}
                                     sx={{ fontVariantNumeric: "tabular-nums" }}
                                 >
-                                    {order.subtotalBeforeDiscount.toLocaleString(
-                                        "ru-RU",
-                                    )}{" "}
-                                    ֏
+                                    {formatMoney(order.subtotalBeforeDiscount)}
                                 </Typography>
                             </Stack>
                             {order.discountAmount > 0 && (
@@ -665,7 +692,7 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                                     justifyContent="space-between"
                                 >
                                     <Typography variant="body2" color="error.main">
-                                        Скидка
+                                        {t("discount")}
                                     </Typography>
                                     <Typography
                                         variant="body2"
@@ -675,11 +702,7 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                                             fontVariantNumeric: "tabular-nums",
                                         }}
                                     >
-                                        −
-                                        {order.discountAmount.toLocaleString(
-                                            "ru-RU",
-                                        )}{" "}
-                                        ֏
+                                        −{formatMoney(order.discountAmount)}
                                     </Typography>
                                 </Stack>
                             )}
@@ -688,14 +711,14 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                                 justifyContent="space-between"
                             >
                                 <Typography variant="body2" color="text.secondary">
-                                    Доставка
+                                    {t("deliveryFee")}
                                 </Typography>
                                 <Typography
                                     variant="body2"
                                     fontWeight={600}
                                     sx={{ fontVariantNumeric: "tabular-nums" }}
                                 >
-                                    {order.deliveryPrice.toLocaleString("ru-RU")} ֏
+                                    {formatMoney(order.deliveryPrice)}
                                 </Typography>
                             </Stack>
                             <Divider flexItem sx={{ my: 0.5 }} />
@@ -704,14 +727,14 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                                 justifyContent="space-between"
                             >
                                 <Typography variant="body2" fontWeight={700}>
-                                    Итого
+                                    {t("totalLabel")}
                                 </Typography>
                                 <Typography
                                     variant="body2"
                                     fontWeight={800}
                                     sx={{ fontVariantNumeric: "tabular-nums" }}
                                 >
-                                    {order.totalPrice.toLocaleString("ru-RU")} ֏
+                                    {formatMoney(order.totalPrice)}
                                 </Typography>
                             </Stack>
                         </Stack>
@@ -727,14 +750,14 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                     }}
                 >
                     <Button onClick={() => setOpen(false)} size={isMobile ? "large" : "medium"}>
-                        Закрыть
+                        {tCommon("close")}
                     </Button>
                     <Button
                         variant="outlined"
                         onClick={handleRepeat}
                         size={isMobile ? "large" : "medium"}
                     >
-                        Повторить заказ
+                        {tOrder("repeat")}
                     </Button>
                     {telHref ? (
                         <Button
@@ -744,7 +767,7 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                             size={isMobile ? "large" : "medium"}
                             startIcon={<PhoneOutlinedIcon />}
                         >
-                            Позвонить
+                            {t("call")}
                         </Button>
                     ) : null}
                 </DialogActions>

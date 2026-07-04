@@ -15,6 +15,7 @@ import {
     Typography,
 } from "@mui/material";
 import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import {
     startTransition,
     useCallback,
@@ -38,6 +39,7 @@ import { ProductsDesktopTable } from "./products-desktop-table";
 import { ProductsMobileList } from "./products-mobile-list";
 import { MobileListSkeleton, TableSkeleton } from "./products-skeletons";
 import {
+    countActiveFilters,
     DEFAULT_PRODUCT_VIEW,
     filterAndSortProducts,
     type ProductSortBy,
@@ -53,6 +55,8 @@ const ProductFormDialog = dynamic(
 );
 
 export default function AdminProductsPage() {
+    const t = useTranslations("admin.products");
+    const tCommon = useTranslations("admin.common");
     const [products, setProducts] = useState<ProductRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -127,9 +131,9 @@ export default function AdminProductsPage() {
             const res = await fetch("/api/admin/products", { credentials: "same-origin" });
             if (!res.ok) {
                 if (res.status === 401) {
-                    setError("Нет доступа. Войдите в админку.");
+                    setError(tCommon("accessDenied"));
                 } else {
-                    setError("Не удалось загрузить товары.");
+                    setError(t("loadFailed"));
                 }
                 setProducts([]);
                 return;
@@ -138,13 +142,13 @@ export default function AdminProductsPage() {
             setProducts(Array.isArray(data) ? data : []);
         } catch {
             if (!silent) {
-                setError("Ошибка сети.");
+                setError(tCommon("networkError"));
             }
             setProducts([]);
         } finally {
             if (!silent) setLoading(false);
         }
-    }, []);
+    }, [t, tCommon]);
 
     useEffect(() => {
         void load();
@@ -235,7 +239,7 @@ export default function AdminProductsPage() {
                 setEditingProduct(null);
                 await load({ silent: true });
             } else {
-                let msg = `Ошибка ${res.status}`;
+                let msg = `${tCommon("errorPrefix")} ${res.status}`;
                 try {
                     const err = (await res.json()) as { error?: string };
                     if (err.error) msg = err.error;
@@ -245,7 +249,7 @@ export default function AdminProductsPage() {
                 alert(msg);
             }
         } catch {
-            alert(isEdit ? "Ошибка сети при сохранении товара" : "Ошибка сети при создании товара");
+            alert(isEdit ? t("saveNetworkError") : t("createNetworkError"));
         } finally {
             setSaveLoading(false);
         }
@@ -262,14 +266,14 @@ export default function AdminProductsPage() {
             if (res.ok) {
                 setProducts((prev) => prev.filter((p) => p.id !== id));
             } else {
-                alert("Не удалось удалить товар");
+                alert(t("deleteFailed"));
             }
         } catch {
-            alert("Ошибка сети");
+            alert(tCommon("networkError"));
         } finally {
             setDeletingId(null);
         }
-    }, []);
+    }, [t, tCommon]);
 
     const handleCycleMainCover = useCallback(async (product: ProductRow) => {
         const urls = getProductImageUrls(product.images);
@@ -289,7 +293,7 @@ export default function AdminProductsPage() {
                 body: JSON.stringify(body),
             });
             if (!res.ok) {
-                let msg = "Не удалось сменить обложку";
+                let msg = t("coverChangeFailed");
                 try {
                     const err = (await res.json()) as { error?: string };
                     if (err.error) msg = err.error;
@@ -304,11 +308,11 @@ export default function AdminProductsPage() {
                 prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)),
             );
         } catch {
-            alert("Ошибка сети");
+            alert(tCommon("networkError"));
         } finally {
             setRotatingMainId(null);
         }
-    }, []);
+    }, [t, tCommon]);
 
     const handleAvailableChange = useCallback(
         (id: number, isAvailable: boolean) => {
@@ -330,11 +334,11 @@ export default function AdminProductsPage() {
                             p.id === id ? { ...p, isAvailable: !isAvailable } : p,
                         ),
                     );
-                    alert("Не удалось сохранить «В наличии»");
+                    alert(t("inStockSaveFailed"));
                 }
             })();
         },
-        [],
+        [t],
     );
 
     const persistProductActive = useCallback(async (id: number, isActive: boolean) => {
@@ -371,7 +375,7 @@ export default function AdminProductsPage() {
                             setHideUndoOpen(false);
                             setHideUndoProductId(null);
                         }
-                        alert("Не удалось сохранить «На витрине»");
+                        alert(t("onShelfSaveFailed"));
                     }
                 } catch {
                     setProducts((prev) =>
@@ -383,11 +387,11 @@ export default function AdminProductsPage() {
                         setHideUndoOpen(false);
                         setHideUndoProductId(null);
                     }
-                    alert("Ошибка сети");
+                    alert(tCommon("networkError"));
                 }
             })();
         },
-        [persistProductActive],
+        [persistProductActive, t, tCommon],
     );
 
     const handleUndoHide = useCallback(() => {
@@ -405,16 +409,16 @@ export default function AdminProductsPage() {
                     setProducts((prev) =>
                         prev.map((p) => (p.id === id ? { ...p, isActive: false } : p)),
                     );
-                    alert("Не удалось вернуть товар на витрину");
+                    alert(t("restoreShelfFailed"));
                 }
             } catch {
                 setProducts((prev) =>
                     prev.map((p) => (p.id === id ? { ...p, isActive: false } : p)),
                 );
-                alert("Ошибка сети");
+                alert(tCommon("networkError"));
             }
         })();
-    }, [hideUndoProductId, persistProductActive]);
+    }, [hideUndoProductId, persistProductActive, t, tCommon]);
 
     const rowActions: ProductRowActions = useMemo(
         () => ({
@@ -471,7 +475,7 @@ export default function AdminProductsPage() {
                     severity="success"
                     variant="filled"
                 >
-                    {saveSuccessIsEdit ? "Товар сохранён" : "Товар создан"}
+                    {saveSuccessIsEdit ? t("saved") : t("created")}
                 </Alert>
             </Snackbar>
             <Snackbar
@@ -482,10 +486,10 @@ export default function AdminProductsPage() {
                     setHideUndoProductId(null);
                 }}
                 anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-                message="Товар скрыт с витрины"
+                message={t("hiddenFromShelf")}
                 action={
                     <Button color="inherit" size="small" onClick={handleUndoHide}>
-                        Отмена
+                        {tCommon("cancel")}
                     </Button>
                 }
             />
@@ -495,17 +499,15 @@ export default function AdminProductsPage() {
                 maxWidth="xs"
                 fullWidth
             >
-                <DialogTitle>Удалить товар?</DialogTitle>
+                <DialogTitle>{t("deleteTitle")}</DialogTitle>
                 <DialogContent>
                     <Typography variant="body2" color="text.secondary">
-                        Товар будет удалён безвозвратно вместе с отзывами.
-                        Если нужно временно убрать с витрины — используйте
-                        переключатель «На витрине».
+                        {t("deleteBody")}
                     </Typography>
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2 }}>
                     <Button onClick={() => setConfirmDeleteId(null)} color="inherit">
-                        Отмена
+                        {tCommon("cancel")}
                     </Button>
                     <Button
                         color="error"
@@ -516,18 +518,18 @@ export default function AdminProductsPage() {
                                 void handleDelete(confirmDeleteId);
                         }}
                     >
-                        Удалить
+                        {tCommon("delete")}
                     </Button>
                 </DialogActions>
             </Dialog>
 
             <Container maxWidth="lg" disableGutters>
-                <SectionTitle>Товары</SectionTitle>
+                <SectionTitle>{t("title")}</SectionTitle>
 
                 {error && !loading ? (
                     <Box sx={{ mb: 2 }}>
                         <Button variant="outlined" onClick={() => void load()}>
-                            Повторить
+                            {tCommon("retry")}
                         </Button>
                     </Box>
                 ) : null}
@@ -549,7 +551,7 @@ export default function AdminProductsPage() {
                     }}
                 >
                     <AddIcon fontSize="small" sx={{ mr: 1 }} />
-                    Добавить товар
+                    {t("addProduct")}
                 </Button>
 
                 {!loading && !error && products.length > 0 ? (
@@ -576,12 +578,12 @@ export default function AdminProductsPage() {
                         </Box>
                     ) : products.length === 0 ? (
                         <Box sx={{ p: 2 }}>
-                            <Typography color="text.secondary">Список пуст.</Typography>
+                            <Typography color="text.secondary">{t("emptyList")}</Typography>
                         </Box>
                     ) : filteredProducts.length === 0 ? (
                         <Box sx={{ p: 3, textAlign: "center" }}>
                             <Typography color="text.secondary" sx={{ mb: 1 }}>
-                                Ничего не найдено по заданным фильтрам.
+                                {t("emptyFiltered")}
                             </Typography>
                             <Button
                                 size="small"
@@ -592,7 +594,9 @@ export default function AdminProductsPage() {
                                     })
                                 }
                             >
-                                Сбросить фильтры
+                                {t("resetFiltersChip", {
+                                    count: countActiveFilters(view),
+                                })}
                             </Button>
                         </Box>
                     ) : (

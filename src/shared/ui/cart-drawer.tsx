@@ -65,7 +65,7 @@ export function CartDrawer() {
     } = useCartLineValidation(items);
 
     const [promoInput, setPromoInput] = useState("");
-    // Двухшаговое подтверждение очистки: первый клик «взводит», второй — чистит.
+    // Двухшаговое подтверждение очистки: первый клик «взводит», второй - чистит.
     const [clearArmed, setClearArmed] = useState(false);
     useEffect(() => {
         if (!clearArmed) return;

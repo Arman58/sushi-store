@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
+import { getFormValidationMessage } from "@/lib/backend-i18n";
 import { getLocalizedField, resolveRequestLocale } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
 
@@ -61,7 +62,10 @@ export async function GET(request: Request) {
                 error:
                     process.env.NODE_ENV === "development" && error instanceof Error
                         ? error.message
-                        : "Не удалось загрузить зоны доставки",
+                        : getFormValidationMessage(
+                              "form.deliveryZones.loadFailed",
+                              locale,
+                          ),
             },
             { status: 500 },
         );

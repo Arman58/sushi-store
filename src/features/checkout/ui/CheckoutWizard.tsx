@@ -401,7 +401,7 @@ export function CheckoutWizard() {
                                 left: 0,
                                 right: 0,
                                 bottom: 0,
-                                // Ниже бургер-меню (1200) и шторки корзины — CTA не «просвечивает» сквозь оверлеи
+                                // Ниже бургер-меню (1200) и шторки корзины - CTA не «просвечивает» сквозь оверлеи
                                 zIndex: 1050,
                                 p: 2,
                                 pb: "calc(16px + env(safe-area-inset-bottom))",

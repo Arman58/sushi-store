@@ -138,7 +138,7 @@ export function getHourInStoreTimezone(
         hour12: false,
     }).formatToParts(date);
     const raw = Number(parts.find((part) => part.type === "hour")?.value ?? 0);
-    // Intl may return 24 for midnight in some runtimes — normalize to 0–23.
+    // Intl may return 24 for midnight in some runtimes - normalize to 0–23.
     if (raw === 24) return 0;
     return Math.min(23, Math.max(0, raw));
 }
@@ -205,8 +205,8 @@ export function truncateChartLabel(label: string, maxLength = 14): string {
 export function downloadOrdersCsv(
     orders: AdminAnalyticsExportOrder[],
     periodDays: number,
+    headers: string[],
 ): void {
-    const header = ["ID", "Дата", "Сумма", "Зона", "Статус"];
     const rows = orders.map((order) => [
         order.id,
         order.date,
@@ -216,7 +216,7 @@ export function downloadOrdersCsv(
     ]);
     const escape = (value: string | number) =>
         `"${String(value).replace(/"/g, '""')}"`;
-    const csv = [header, ...rows]
+    const csv = [headers, ...rows]
         .map((row) => row.map(escape).join(","))
         .join("\n");
     const blob = new Blob([`\uFEFF${csv}`], {

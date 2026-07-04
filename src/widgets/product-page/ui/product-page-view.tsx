@@ -57,7 +57,7 @@ export function ProductPageView({ product, locale, breadcrumbs }: Props) {
     // История просмотров для блока «Вы недавно смотрели»
     useTrackProductView(product.id);
 
-    // «С этим часто берут»: exclude = текущий товар (его курируемые связи — первыми)
+    // «С этим часто берут»: exclude = текущий товар (его курируемые связи - первыми)
     const upsellExclude = useMemo(() => [product.id], [product.id]);
 
     const coverUrl = getProductCoverUrl(product);

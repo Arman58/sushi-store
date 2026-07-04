@@ -24,7 +24,7 @@ function isAbortError(e: unknown): boolean {
     );
 }
 
-/** 422/409 на validate-cart — бизнес-ответ, не сбой транспорта. */
+/** 422/409 на validate-cart - бизнес-ответ, не сбой транспорта. */
 function isValidationBusinessError(status: number): boolean {
     return status === 422 || status === 409;
 }

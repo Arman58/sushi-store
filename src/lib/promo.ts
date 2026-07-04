@@ -16,6 +16,67 @@ export type PromoForEvaluation = Pick<
     | "isActive"
 >;
 
+export type PromoRejection =
+    | { code: "notFound" }
+    | { code: "inactive" }
+    | { code: "expired" }
+    | { code: "usedUp" }
+    | { code: "belowMin"; minOrderAmount: number }
+    | { code: "misconfigured" }
+    | { code: "noDiscount" };
+
+/**
+ * Машиночитаемая причина отклонения промокода (для локализации в API).
+ * Текстовый аналог - getPromoRejectionReason (используется в тестах).
+ */
+export function getPromoRejectionCode(
+    promo: PromoForEvaluation | null,
+    opts: {
+        cartSubtotal: number;
+        grandTotalBeforeDiscount: number;
+        now?: Date;
+    },
+): PromoRejection | null {
+    const now = opts.now ?? new Date();
+
+    if (!promo) return { code: "notFound" };
+    if (!promo.isActive) return { code: "inactive" };
+    if (promo.expiresAt && promo.expiresAt.getTime() < now.getTime()) {
+        return { code: "expired" };
+    }
+    if (promo.maxUsages != null && promo.timesUsed >= promo.maxUsages) {
+        return { code: "usedUp" };
+    }
+    if (
+        promo.minOrderAmount != null &&
+        opts.cartSubtotal < promo.minOrderAmount
+    ) {
+        return { code: "belowMin", minOrderAmount: promo.minOrderAmount };
+    }
+
+    const discountType = promo.discountType as DiscountType;
+    if (
+        discountType === "PERCENTAGE" &&
+        (promo.discountValue < 0 || promo.discountValue > 100)
+    ) {
+        return { code: "misconfigured" };
+    }
+    if (discountType === "FIXED" && promo.discountValue < 0) {
+        return { code: "misconfigured" };
+    }
+    if (
+        computePromoDiscountAmount(
+            promo,
+            opts.cartSubtotal,
+            opts.grandTotalBeforeDiscount,
+        ) <= 0
+    ) {
+        return { code: "noDiscount" };
+    }
+
+    return null;
+}
+
 /**
  * Сумма позиций (без доставки) для проверки minOrderAmount и расчёта PERCENTAGE.
  * `grandTotalBeforeDiscount` = позиции + доставка, для FIXED и ограничения скидки сверху.

@@ -49,7 +49,7 @@ export default async function OrderPage({ params, searchParams }: PageProps) {
     const cookieStore = await cookies();
     const cookieAccessKey = cookieStore.get(orderAccessCookieName(id))?.value;
 
-    // Legacy ?key= для шаринга; cookie — основной путь после чекаута (см. lib/order-access.ts).
+    // Legacy ?key= для шаринга; cookie - основной путь после чекаута (см. lib/order-access.ts).
     const hasValidKey =
         (accessKey != null &&
             accessKey.length > 0 &&

@@ -2,6 +2,7 @@
 
 import { Box, CircularProgress, Stack, Typography } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { KitchenOrderDto, KitchenOrdersResponse } from "@/lib/kitchen-orders";
@@ -191,6 +192,7 @@ function KitchenColumn({
 }
 
 export function KitchenBoard() {
+    const t = useTranslations("admin.kitchen");
     const queryClient = useQueryClient();
     const [nowMs, setNowMs] = useState<number | null>(null);
     const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
@@ -279,7 +281,7 @@ export function KitchenBoard() {
                         color: "#0F172A",
                     }}
                 >
-                    Kitchen Display
+                    {t("title")}
                 </Typography>
                 <Typography
                     component="time"
@@ -310,7 +312,7 @@ export function KitchenBoard() {
                 </Box>
             ) : isError ? (
                 <Typography sx={{ p: 4, color: "#EF4444", fontSize: 14 }}>
-                    {error instanceof Error ? error.message : "Не удалось загрузить заказы"}
+                    {error instanceof Error ? error.message : t("loadFailed")}
                 </Typography>
             ) : (
                 <Box
@@ -325,30 +327,30 @@ export function KitchenBoard() {
                     }}
                 >
                     <KitchenColumn
-                        title="Новые"
+                        title={t("columnNew")}
                         orders={board.new}
                         nowMs={nowMs}
-                        emptyLabel="Нет новых заказов"
+                        emptyLabel={t("emptyNew")}
                         updatingOrderId={updatingOrderId}
                         onStartCooking={(orderId) =>
                             statusMutation.mutate({ orderId, status: "COOKING" })
                         }
                     />
                     <KitchenColumn
-                        title="Готовятся"
+                        title={t("columnCooking")}
                         orders={board.cooking}
                         nowMs={nowMs}
-                        emptyLabel="Ничего не готовится"
+                        emptyLabel={t("emptyCooking")}
                         updatingOrderId={updatingOrderId}
                         onMarkReady={(orderId) =>
                             statusMutation.mutate({ orderId, status: "DELIVERING" })
                         }
                     />
                     <KitchenColumn
-                        title="Готово к выдаче"
+                        title={t("columnReady")}
                         orders={board.readyForHandoff}
                         nowMs={nowMs}
-                        emptyLabel="Нет заказов к выдаче"
+                        emptyLabel={t("emptyReady")}
                         dimmed
                         updatingOrderId={updatingOrderId}
                         showPickupButton
