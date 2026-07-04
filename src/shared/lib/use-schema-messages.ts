@@ -18,6 +18,8 @@ export function useSchemaMessages(): SchemaMessages {
             emailInvalid: t("email.invalid"),
             addressRequired: t("address.required"),
             zoneRequired: t("zone.required"),
+            changeAmountRequired: t("change.amountRequired"),
+            scheduleRequired: t("schedule.required"),
             orderIdRequired: t("orderId.required"),
             orderIdInvalid: t("orderId.invalid"),
         }),

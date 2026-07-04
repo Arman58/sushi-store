@@ -7,10 +7,6 @@
         "brandName": "East West",
         "brandTagline": "Delivery",
         "logoAlt": "East West Delivery - sushi and pizza Yerevan",
-        "location": {
-            "city": "Yerevan",
-            "deliveryEta": "· 45-60 min"
-        },
         "address": {
             "full": "Nor Hachn, 19 Charents St., Kotayk, Armenia",
             "pickup": "Nor Hachn, 19 Charents St."
@@ -32,6 +28,12 @@
             "added": "Added to cart",
             "addedNamed": "{name} added to cart",
             "sessionExpired": "Session expired, please sign in again"
+        },
+        "eta": {
+            "arrivalLabel": "Arriving by",
+            "closedLabel": "Closed now",
+            "opensAt": "opens at {time}",
+            "range": "{min}–{max} min"
         }
     },
     "languageSwitcher": {
@@ -171,7 +173,7 @@
             "spicy": "Spicy",
             "soldOut": "Sold out"
         },
-        "deliveryTime": "45-60 min",
+        "deliveryTime": "{min}–{max} min",
         "aria": {
             "decrease": "Decrease quantity: {name}",
             "increase": "Increase quantity: {name}",
@@ -266,7 +268,9 @@
         },
         "minOrderReached": "Minimum reached — ready to checkout",
         "minOrderRemaining": "{amount} ֏ left to reach the minimum order",
-        "addonsTitle": "Frequently added"
+        "addonsTitle": "Frequently added",
+        "clearConfirm": "Sure? Tap again to clear",
+        "closedNotice": "The kitchen is closed — we open at {opens}. You can schedule a preorder."
     },
     "checkout": {
         "title": "Checkout",
@@ -295,7 +299,7 @@
         "phoneTemplate": "+374 (___) __-__-__",
         "pickupLocation": "Pickup from East West restaurant: {address}.",
         "banner": {
-            "chip": "Delivery in 45-60 minutes",
+            "chip": "Delivered in {min}–{max} minutes",
             "text": "The courier will call to confirm. We are open {hours}."
         },
         "missingItem": {
@@ -390,7 +394,20 @@
             "serverNotConfirmed": "Server did not confirm the order. Please try again.",
             "serverError": "Internal server error ({status})",
             "requestError": "Request error ({status})",
-            "submitConnectionError": "Could not submit the order. Check your connection."
+            "submitConnectionError": "Could not submit the order. Check your connection.",
+            "storeClosed": "The kitchen is closed right now — we take orders daily from {opens} to {closes}. But you can schedule a preorder below!"
+        },
+        "schedule": {
+            "title": "When to deliver?",
+            "asap": "As soon as possible",
+            "asapSublabel": "We start cooking right away",
+            "scheduled": "Schedule for later",
+            "scheduledSublabel": "Pick a convenient slot",
+            "slotLabel": "Delivery time",
+            "today": "Today, {time}",
+            "tomorrow": "Tomorrow, {time}",
+            "noSlots": "No slots available",
+            "hint": "We will time the cooking so your order arrives at the chosen slot"
         }
     },
     "order": {
@@ -449,7 +466,8 @@
             "payment": "Payment",
             "live": "Updates automatically",
             "changeFrom": "Change from",
-            "changeDue": "Change we will bring"
+            "changeDue": "Change we will bring",
+            "scheduledFor": "Scheduled for"
         },
         "success": {
             "title": "Thank you for your order!",
@@ -626,6 +644,12 @@
         "orderId": {
             "required": "Enter order number",
             "invalid": "Number must be greater than 0"
+        },
+        "change": {
+            "amountRequired": "Enter the amount you will pay with"
+        },
+        "schedule": {
+            "required": "Choose a delivery time"
         }
     },
     "metadata": {

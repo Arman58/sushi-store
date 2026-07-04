@@ -91,6 +91,44 @@ export function isStoreOpen(now = new Date()): boolean {
     return current >= opens && current < closes;
 }
 
+/**
+ * Обещание времени доставки — единый источник для всех текстов UI.
+ * Реальный ETA конкретного заказа задаёт кухня после оформления.
+ */
+export const DELIVERY_ETA = { minMinutes: 45, maxMinutes: 60 } as const;
+
+/**
+ * «Привезём к HH:MM»: сейчас + максимум обещания, округление вверх до 5 минут.
+ * Under-promise: показываем верхнюю границу — приехать раньше приятно.
+ */
+export function getExpectedArrivalTime(now = new Date()): Date {
+    const step = 5 * 60_000;
+    const t = now.getTime() + DELIVERY_ETA.maxMinutes * 60_000;
+    return new Date(Math.ceil(t / step) * step);
+}
+
+/** Минимальный запас до предзаказа (кухне нужно время). */
+export const SCHEDULE_MIN_LEAD_MINUTES = 60;
+/** Горизонт предзаказа. */
+export const SCHEDULE_MAX_AHEAD_HOURS = 48;
+
+/** Попадает ли конкретный момент в рабочие часы (Asia/Yerevan). */
+export function isWithinOpeningHours(at: Date): boolean {
+    const minutes = getStoreClockMinutes(at);
+    const opens = parseHm(OPENING_HOURS.opens);
+    const closes =
+        OPENING_HOURS.closes === "00:00" ? 24 * 60 : parseHm(OPENING_HOURS.closes);
+    return minutes >= opens && minutes < closes;
+}
+
+/** Валидация времени предзаказа: будущее с запасом, в горизонте и в рабочие часы. */
+export function isValidScheduleSlot(at: Date, now = new Date()): boolean {
+    const diffMs = at.getTime() - now.getTime();
+    if (diffMs < SCHEDULE_MIN_LEAD_MINUTES * 60_000) return false;
+    if (diffMs > SCHEDULE_MAX_AHEAD_HOURS * 3_600_000) return false;
+    return isWithinOpeningHours(at);
+}
+
 /** Состояние для Hero-бейджа; текст - через common.hours в i18n. */
 export function getOpeningHoursState(now = new Date()): {
     isOpen: boolean;

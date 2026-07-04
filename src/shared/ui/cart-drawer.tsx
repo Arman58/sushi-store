@@ -25,6 +25,7 @@ import {
     useCartStore,
 } from "@/features/cart";
 import { Link, usePathname } from "@/i18n/server";
+import { isStoreOpen, OPENING_HOURS } from "@/lib/site-config";
 import { ApiError, validatePromo } from "@/shared/api";
 import { SauceStrip, UpsellCarousel } from "@/widgets/upsell";
 
@@ -64,11 +65,35 @@ export function CartDrawer() {
     } = useCartLineValidation(items);
 
     const [promoInput, setPromoInput] = useState("");
+    // Двухшаговое подтверждение очистки: первый клик «взводит», второй — чистит.
+    const [clearArmed, setClearArmed] = useState(false);
+    useEffect(() => {
+        if (!clearArmed) return;
+        const id = window.setTimeout(() => setClearArmed(false), 3500);
+        return () => window.clearTimeout(id);
+    }, [clearArmed]);
+    const handleClearClick = () => {
+        if (!clearArmed) {
+            setClearArmed(true);
+            return;
+        }
+        clearCart();
+        setClearArmed(false);
+    };
     const [promoError, setPromoError] = useState("");
     const [promoDiscount, setPromoDiscount] = useState(0);
     const [promoApplying, setPromoApplying] = useState(false);
 
     const hasItems = items.length > 0;
+
+    // Часы работы: пересчёт раз в минуту, стартуем «открыто» (SSR-безопасно).
+    const [storeClosed, setStoreClosed] = useState(false);
+    useEffect(() => {
+        const update = () => setStoreClosed(!isStoreOpen());
+        update();
+        const id = window.setInterval(update, 60_000);
+        return () => window.clearInterval(id);
+    }, []);
 
     const subtotal = items.reduce(
         (s, i) => s + i.calculatedItemPrice * i.quantity,
@@ -200,7 +225,8 @@ export function CartDrawer() {
                         sx={{
                             position: "fixed",
                             inset: 0,
-                            zIndex: theme.zIndex.drawer - 1,
+                            // Поверх mobile bottom-nav (1200) и sticky-плашки корзины (1250)
+                            zIndex: theme.zIndex.modal + 9,
                             bgcolor: (t) => alpha(t.palette.common.black, 0.35),
                             backdropFilter: "blur(6px)",
                             WebkitBackdropFilter: "blur(6px)",
@@ -232,7 +258,7 @@ export function CartDrawer() {
                             borderColor: "divider",
                             boxShadow: (t) =>
                                 `-16px 0 48px ${alpha(t.palette.common.black, 0.14)}`,
-                            zIndex: theme.zIndex.drawer,
+                            zIndex: theme.zIndex.modal + 10,
                         }}
                     >
             <LayoutGroup id="cart-drawer">
@@ -248,8 +274,8 @@ export function CartDrawer() {
                         {/* ── Header ── */}
                         <Box
                             sx={{
-                                px: 3,
-                                py: 2.5,
+                                px: { xs: 2.5, sm: 3 },
+                                py: { xs: 2, sm: 2.5 },
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "space-between",
@@ -359,7 +385,7 @@ export function CartDrawer() {
                                         overflowY: "auto",
                                         overscrollBehaviorY: "contain",
                                         WebkitOverflowScrolling: "touch",
-                                        px: 3,
+                                        px: { xs: 2.5, sm: 3 },
                                         py: 2,
                                     }}
                                 >
@@ -408,6 +434,28 @@ export function CartDrawer() {
                                             </motion.div>
                                         ))}
                                     </Stack>
+
+                                    <Box sx={{ mt: 2.5 }}>
+                                        <SauceStrip cartItems={items} />
+                                    </Box>
+
+                                    <Box sx={{ mt: 2 }}>
+                                        <Typography
+                                            variant="overline"
+                                            color="text.secondary"
+                                            sx={{
+                                                display: "block",
+                                                mb: 1.25,
+                                                letterSpacing: "0.08em",
+                                            }}
+                                        >
+                                            {t("upsell_title")}
+                                        </Typography>
+                                        <UpsellCarousel
+                                            cartItems={items}
+                                            excludeCategorySlugs={["sauces"]}
+                                        />
+                                    </Box>
 
                                     {/* ── Promo code ── */}
                                     <Box sx={{ mt: 2 }}>
@@ -492,28 +540,13 @@ export function CartDrawer() {
                                     </Box>
                                 </Box>
 
-                                <Box sx={{ px: 3, pt: 2, pb: 1 }}>
-                                    <SauceStrip cartItems={items} />
-                                </Box>
-
-                                <Box sx={{ px: 3, pt: 1, pb: 1 }}>
-                                    <Typography
-                                        variant="overline"
-                                        color="text.secondary"
-                                        sx={{ display: "block", mb: 1.25, letterSpacing: "0.08em" }}
-                                    >
-                                        {t("upsell_title")}
-                                    </Typography>
-                                    <UpsellCarousel cartItems={items} />
-                                </Box>
-
                                 {/* ── Footer: totals + CTA ── */}
                                 <Box
                                     sx={{
-                                        px: 3,
-                                        pt: 2,
+                                        px: { xs: 2.5, sm: 3 },
+                                        pt: { xs: 1.5, sm: 2 },
                                         pb: {
-                                            xs: "calc(16px + env(safe-area-inset-bottom) + 64px)",
+                                            xs: "calc(12px + env(safe-area-inset-bottom))",
                                             sm: 3,
                                         },
                                         borderTop: "1px solid",
@@ -527,7 +560,7 @@ export function CartDrawer() {
                                     }}
                                 >
                                     {/* Breakdown */}
-                                    <Stack spacing={1} sx={{ mb: 2 }}>
+                                    <Stack spacing={0.75} sx={{ mb: { xs: 1.25, sm: 2 } }}>
                                         <Stack
                                             direction="row"
                                             justifyContent="space-between"
@@ -610,13 +643,13 @@ export function CartDrawer() {
                                         </Stack>
                                     </Stack>
 
-                                    <Divider sx={{ mb: 2 }} />
+                                    <Divider sx={{ mb: { xs: 1.25, sm: 2 } }} />
 
                                     {/* Total */}
                                     <Stack
                                         direction="row"
                                         justifyContent="space-between"
-                                        sx={{ mb: 2, minWidth: 0 }}
+                                        sx={{ mb: { xs: 1.25, sm: 2 }, minWidth: 0 }}
                                         component={motion.div}
                                         layout
                                         transition={{
@@ -676,6 +709,23 @@ export function CartDrawer() {
                                         </Typography>
                                     )}
 
+                                    {storeClosed && (
+                                        <Typography
+                                            variant="caption"
+                                            sx={{
+                                                display: "block",
+                                                mb: 1,
+                                                textAlign: "center",
+                                                lineHeight: 1.45,
+                                                color: "#B45309",
+                                            }}
+                                        >
+                                            {t("closedNotice", {
+                                                opens: OPENING_HOURS.opens,
+                                            })}
+                                        </Typography>
+                                    )}
+
                                     <MinOrderProgress total={total} />
 
                                     {/* CTA */}
@@ -710,24 +760,27 @@ export function CartDrawer() {
                                                 minHeight: 48,
                                             }}
                                         >
-                                            {t("checkout")}
+                                            {t("checkout")} · {fmt.format(total)} ֏
                                         </AppButton>
                                     )}
 
                                     {/* Clear */}
                                     <AppButton
-                                        onClick={clearCart}
+                                        onClick={handleClearClick}
                                         variant="text"
                                         fullWidth
                                         size="small"
                                         sx={{
                                             mt: 1,
-                                            color: tokens.textMuted,
+                                            color: clearArmed
+                                                ? tokens.red
+                                                : tokens.textMuted,
+                                            fontWeight: clearArmed ? 700 : 400,
                                             fontSize: 12,
                                             "&:hover": { color: tokens.red },
                                         }}
                                     >
-                                        {t("clear")}
+                                        {clearArmed ? t("clearConfirm") : t("clear")}
                                     </AppButton>
                                 </Box>
                             </>

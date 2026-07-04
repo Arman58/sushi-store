@@ -100,6 +100,11 @@ export function KitchenOrderCard({
                 <OrderTag
                     label={order.deliveryType === "PICKUP" ? "Самовывоз" : "Доставка"}
                 />
+                {order.scheduledFor ? (
+                    <OrderTag
+                        label={`⏰ Ко времени ${new Date(order.scheduledFor).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`}
+                    />
+                ) : null}
                 <OrderTag label={paymentLabel(order.paymentMethod)} />
                 {order.paymentMethod === "CASH" ? (
                     <OrderTag

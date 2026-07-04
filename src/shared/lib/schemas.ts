@@ -61,6 +61,10 @@ export const checkoutSchema = z
         changeAmount: z.number().int().positive().nullable().default(null),
         /** Обязательна при delivery; для pickup не используется */
         deliveryZoneId: z.number().int().positive().optional(),
+        /** Когда доставить: сразу или ко времени. */
+        scheduleMode: z.enum(["asap", "scheduled"]).default("asap"),
+        /** ISO-время предзаказа; null - как можно скорее. */
+        scheduledFor: z.string().nullable().default(null),
         hp: z.string().default(""),   // honeypot - must stay empty
     })
     .superRefine((data, ctx) => {

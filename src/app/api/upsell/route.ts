@@ -20,11 +20,17 @@ function parseExcludeIds(request: Request): number[] {
         .filter((id) => Number.isFinite(id) && id > 0);
 }
 
-async function findUpsellCategoryIds(): Promise<number[]> {
+async function findUpsellCategoryIds(
+    excludeSlugs: string[] = [],
+): Promise<number[]> {
+    const slugs = UPSELL_CATEGORY_SLUGS.filter(
+        (slug) => !excludeSlugs.includes(slug),
+    );
+    if (slugs.length === 0) return [];
     const bySlug = await prisma.category.findMany({
         where: {
             isActive: true,
-            slug: { in: [...UPSELL_CATEGORY_SLUGS] },
+            slug: { in: slugs },
         },
         select: { id: true },
     });
@@ -81,7 +87,13 @@ async function loadSauces(
 export async function GET(request: Request) {
     const locale = resolveRequestLocale(request);
     const excludeIds = parseExcludeIds(request);
-    const type = new URL(request.url).searchParams.get("type");
+    const url = new URL(request.url);
+    const type = url.searchParams.get("type");
+    /** Слаги категорий, которые не предлагать (напр. sauces — их показывает SauceStrip). */
+    const excludeCategorySlugs = (url.searchParams.get("excludeCategories") ?? "")
+        .split(",")
+        .map((slug) => slug.trim())
+        .filter(Boolean);
 
     if (type === "sauces") {
         try {
@@ -121,10 +133,24 @@ export async function GET(request: Request) {
             }
         }
 
-        const categoryIds = await findUpsellCategoryIds();
+        const categoryIds = await findUpsellCategoryIds(excludeCategorySlugs);
+
+        const excludedCategoryIds =
+            excludeCategorySlugs.length > 0
+                ? new Set(
+                      (
+                          await prisma.category.findMany({
+                              where: { slug: { in: excludeCategorySlugs } },
+                              select: { id: true },
+                          })
+                      ).map((c) => c.id),
+                  )
+                : new Set<number>();
 
         const baseWhere = {
             isActive: true,
+            // Стоп-лист не предлагаем: добавить его в корзину всё равно нельзя.
+            isAvailable: true,
             ...(excludeIds.length > 0 ? { id: { notIn: excludeIds } } : {}),
         };
 
@@ -157,6 +183,14 @@ export async function GET(request: Request) {
                 take: FALLBACK_LIMIT,
                 include: homeProductInclude,
             });
+        }
+
+        if (excludedCategoryIds.size > 0) {
+            productsRaw = productsRaw.filter(
+                (p) =>
+                    p.categoryId == null ||
+                    !excludedCategoryIds.has(p.categoryId),
+            );
         }
 
         const products = toStorefrontProducts(

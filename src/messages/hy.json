@@ -7,10 +7,6 @@
         "brandName": "East West",
         "brandTagline": "Առաքում",
         "logoAlt": "East West Delivery - սուշի և պիցցա Երևանում",
-        "location": {
-            "city": "Երևան",
-            "deliveryEta": "· 45–60 րոպե"
-        },
         "address": {
             "full": "Նոր Հաճն, Չարենցի 19, Կոտայք, Հայաստան",
             "pickup": "Նոր Հաճն, Չարենցի 19"
@@ -32,6 +28,12 @@
             "added": "Զամբյուղում ավելացվեց",
             "addedNamed": "{name} ավելացվեց զամբյուղում",
             "sessionExpired": "Նիստի ժամկետը լրացել է, մուտք գործեք կրկին"
+        },
+        "eta": {
+            "arrivalLabel": "Կհասցնենք մինչև",
+            "closedLabel": "Հիմա փակ է",
+            "opensAt": "կբացվենք {time}-ին",
+            "range": "{min}–{max} րոպե"
         }
     },
     "languageSwitcher": {
@@ -171,7 +173,7 @@
             "spicy": "Տաք",
             "soldOut": "Առկա չէ"
         },
-        "deliveryTime": "45-60 րոպե",
+        "deliveryTime": "{min}–{max} րոպե",
         "aria": {
             "decrease": "Նվազեցնել քանակը՝ {name}",
             "increase": "Ավելացնել քանակը՝ {name}",
@@ -266,7 +268,9 @@
         },
         "minOrderReached": "Նվազագույն գումարը հավաքված է — կարող եք պատվիրել",
         "minOrderRemaining": "Նվազագույն պատվերի համար մնաց {amount} ֏",
-        "addonsTitle": "Հաճախ ավելացնում են"
+        "addonsTitle": "Հաճախ ավելացնում են",
+        "clearConfirm": "Հաստա՞տ մաքրել — սեղմեք ևս մեկ անգամ",
+        "closedNotice": "Խոհանոցը հիմա փակ է — կբացվենք {opens}-ին։ Կարող եք ձևակերպել նախապատվեր։"
     },
     "checkout": {
         "title": "Պատվերի ձևակերպում",
@@ -292,7 +296,7 @@
         "phoneTemplate": "+374 (___) __-__-__",
         "pickupLocation": "Վերցնել տեղում East West ռեստորանից՝ {address}։",
         "banner": {
-            "chip": "Առաքում 45–60 րոպեում",
+            "chip": "Կհասցնենք {min}–{max} րոպեում",
             "text": "Առաքիչը կզանգի հաստատելու համար։ Աշխատում ենք {hours}։"
         },
         "missingItem": {
@@ -387,11 +391,24 @@
             "serverNotConfirmed": "Սերվերը չհաստատեց պատվերը։ Կրկին փորձեք։",
             "serverError": "Ներքին սերվերի սխալ ({status})",
             "requestError": "Հարցման սխալ ({status})",
-            "submitConnectionError": "Չհաջողվեց ուղարկել պատվերը։ Ստուգեք կապը։"
+            "submitConnectionError": "Չհաջողվեց ուղարկել պատվերը։ Ստուգեք կապը։",
+            "storeClosed": "Խոհանոցը հիմա փակ է — պատվերներն ընդունում ենք ամեն օր {opens}-{closes}։ Բայց կարող եք ձևակերպել նախապատվեր ստորև։"
         },
         "select_saved_address": "Ընտրել պահպանված հասցեն",
         "save_address": "Պահպանել այս հասցեն հետագա պատվերների համար",
-        "apartment": "Բնակարան"
+        "apartment": "Բնակարան",
+        "schedule": {
+            "title": "Ե՞րբ առաքել",
+            "asap": "Հնարավորինս շուտ",
+            "asapSublabel": "Պատրաստում ենք անմիջապես",
+            "scheduled": "Նշված ժամին",
+            "scheduledSublabel": "Ընտրեք հարմար ժամ",
+            "slotLabel": "Առաքման ժամը",
+            "today": "Այսօր, {time}",
+            "tomorrow": "Վաղը, {time}",
+            "noSlots": "Հասանելի ժամեր չկան",
+            "hint": "Կսկսենք պատրաստել այնպես, որ պատվերը հասնի ընտրված ժամին"
+        }
     },
     "order": {
         "checkStatus": "Ստուգել պատվերը",
@@ -449,7 +466,8 @@
             "payment": "Վճարում",
             "live": "Թարմացվում է ինքնաշխատ",
             "changeFrom": "Մանր՝",
-            "changeDue": "Կբերենք մանր"
+            "changeDue": "Կբերենք մանր",
+            "scheduledFor": "Նշված ժամին"
         },
         "success": {
             "title": "Շնորհակալություն պատվերի համար!",
@@ -626,6 +644,12 @@
         "orderId": {
             "required": "Մուտքագրեք պատվերի համարը",
             "invalid": "Համարը պետք է լինի 0-ից մեծ"
+        },
+        "change": {
+            "amountRequired": "Նշեք, թե ինչ գումարից է պետք մանրը"
+        },
+        "schedule": {
+            "required": "Ընտրեք առաքման ժամը"
         }
     },
     "metadata": {

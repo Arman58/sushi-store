@@ -14,6 +14,8 @@ export type SchemaMessages = {
     emailInvalid: string;
     addressRequired: string;
     zoneRequired: string;
+    changeAmountRequired: string;
+    scheduleRequired: string;
     orderIdRequired: string;
     orderIdInvalid: string;
 };
@@ -52,10 +54,38 @@ export function createCheckoutSchema(messages: SchemaMessages) {
             saveAddress: z.boolean().default(false),
             saveAddressLabel: z.string().default(""),
             payment: z.enum(["cash", "card"]).default("cash"),
+            // Сдача (наличные): zod вырезает неописанные ключи, поэтому поля
+            // ОБЯЗАНЫ быть здесь — иначе needsChange/changeAmount теряются
+            // при сабмите и заказ уходит как «без сдачи».
+            needsChange: z.boolean().default(false),
+            changeAmount: z.number().int().positive().nullable().default(null),
             deliveryZoneId: z.number().int().positive().optional(),
+        /** Когда доставить: сразу или ко времени. */
+        scheduleMode: z.enum(["asap", "scheduled"]).default("asap"),
+        /** ISO-время предзаказа; null - как можно скорее. */
+        scheduledFor: z.string().nullable().default(null),
             hp: z.string().default(""),
         })
         .superRefine((data, ctx) => {
+            if (data.scheduleMode === "scheduled" && !data.scheduledFor) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ["scheduledFor"],
+                    message: messages.scheduleRequired,
+                });
+            }
+            if (
+                data.payment === "cash" &&
+                data.needsChange &&
+                (data.changeAmount == null || data.changeAmount <= 0)
+            ) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ["changeAmount"],
+                    message: messages.changeAmountRequired,
+                });
+            }
+
             const phoneDigits = checkoutPhoneDigits(data.phone);
 
             if (data.delivery === "delivery") {

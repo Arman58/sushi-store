@@ -85,10 +85,11 @@ export function PaymentCard({
                     variant="caption"
                     color="text.secondary"
                     sx={{
-                        display: "block",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
                         overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
+                        lineHeight: 1.3,
                     }}
                 >
                     {sublabel}

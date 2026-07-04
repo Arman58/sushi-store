@@ -12,6 +12,7 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/server";
+import { cloudinaryImageLoader } from "@/shared/lib/cloudinary-loader";
 import { tokens } from "@/shared/ui/theme";
 
 export type HeroSectionProps = {
@@ -63,6 +64,7 @@ export function HeroSection({ deliveryStat, openingHoursStat }: HeroSectionProps
           }}
         >
           <Image
+                    loader={cloudinaryImageLoader}
             src={HERO_IMAGES[0]}
             alt="Sushi sets"
             fill
@@ -91,6 +93,7 @@ export function HeroSection({ deliveryStat, openingHoursStat }: HeroSectionProps
         }}
       >
         <Image
+                    loader={cloudinaryImageLoader}
           src={HERO_IMAGES[0]}
           alt="Sushi"
           fill
@@ -113,7 +116,7 @@ export function HeroSection({ deliveryStat, openingHoursStat }: HeroSectionProps
           position: "relative",
           zIndex: 3,
           px: { xs: 3, sm: 5, md: 8 },
-          py: { xs: 6, sm: 8, md: 10 },
+          py: { xs: 4, sm: 8, md: 10 },
           maxWidth: { xs: "100%", md: "55%" },
           display: "flex",
           flexDirection: "column",

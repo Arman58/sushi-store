@@ -94,6 +94,8 @@ export const orderPayloadSchema = z
         }),
         /** Наличные: сумма, с которой готовить сдачу (֏). null - не нужна. */
         changeFrom: PositiveInt.nullable().optional(),
+        /** Предзаказ: ISO-время доставки. null/отсутствует - как можно скорее. */
+        scheduledFor: z.string().datetime({ offset: true }).nullable().optional(),
         delivery: z.enum(["delivery", "pickup"], {
             errorMap: () => ({ message: "Некорректный тип доставки" }),
         }),

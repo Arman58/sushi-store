@@ -246,6 +246,9 @@ model Order {
   /** Наличные: сумма, с которой готовить сдачу (֏). null - сдача не нужна. */
   changeFrom Int?
 
+  /** Предзаказ «ко времени»: желаемое время доставки/самовывоза. null - как можно скорее. */
+  scheduledFor DateTime?
+
   items      OrderItem[]
 
   @@index([userId])

@@ -471,7 +471,8 @@ function MenuSectionInner({
                             },
                             left: 0,
                             right: 0,
-                            zIndex: 1250,
+                            // Ниже бургер-меню (1200) и шторки корзины
+                            zIndex: 1150,
                             px: 1.5,
                             pb: "calc(16px + env(safe-area-inset-bottom))",
                             bgcolor: "background.paper",
@@ -498,7 +499,7 @@ function MenuSectionInner({
                                 component={Link}
                                 href="/checkout"
                                 sx={{
-                                    height: 56,
+                                    height: 48,
                                     borderRadius: `${tokens.radiusCardLg}px`,
                                     bgcolor: "background.paper",
                                     color: "text.primary",
@@ -513,9 +514,9 @@ function MenuSectionInner({
                                 <Box
                                     sx={{
                                         display: "flex",
-                                        flexDirection: "column",
-                                        alignItems: "flex-start",
-                                        gap: 0.25,
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                        gap: 1,
                                         flex: 1,
                                         minWidth: 0,
                                         overflow: "hidden",
@@ -528,7 +529,7 @@ function MenuSectionInner({
                                             whiteSpace: "nowrap",
                                             overflow: "hidden",
                                             textOverflow: "ellipsis",
-                                            width: "100%",
+                                            minWidth: 0,
                                         }}
                                     >
                                         {t("stickyCart.label", { count: totalCount })}
@@ -545,10 +546,8 @@ function MenuSectionInner({
                                             color: "primary.main",
                                             fontVariantNumeric: "tabular-nums",
                                             whiteSpace: "nowrap",
-                                            overflow: "hidden",
-                                            textOverflow: "ellipsis",
-                                            width: "100%",
-                                            display: "block",
+                                            flexShrink: 0,
+                                            ml: "auto",
                                         }}
                                     >
                                         {formatStorePrice(totalPrice)} ֏

@@ -27,6 +27,7 @@ import {
     checkRateLimit,
     rateLimitExceededJsonResponse,
 } from "@/lib/rate-limit";
+import { isStoreOpen, isValidScheduleSlot } from "@/lib/site-config";
 import {
     buildKitchenStatusKeyboard,
     isKitchenTelegramConfigured,
@@ -55,6 +56,7 @@ type KitchenTelegramPayload = {
     comment: string | undefined;
     payment: OrderPayload["payment"];
     changeFrom: number | null;
+    scheduledFor: Date | null;
     delivery: OrderPayload["delivery"];
     verifiedItems: VerifiedOrderItem[];
     deliveryFee: number;
@@ -75,6 +77,7 @@ async function notifyKitchenTelegram(payload: KitchenTelegramPayload): Promise<v
         comment,
         payment,
         changeFrom,
+        scheduledFor,
         delivery,
         verifiedItems,
         deliveryFee,
@@ -88,6 +91,17 @@ async function notifyKitchenTelegram(payload: KitchenTelegramPayload): Promise<v
 
     lines.push("<b>🍣 Новый заказ East West</b>");
     lines.push(`<b>📋 Заказ №${orderId}</b>`);
+
+    if (scheduledFor) {
+        const when = new Intl.DateTimeFormat("ru-RU", {
+            timeZone: "Asia/Yerevan",
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+        }).format(scheduledFor);
+        lines.push(`<b>⏰ ПРЕДЗАКАЗ ко времени: ${when}</b>`);
+    }
     lines.push("");
     lines.push(`<b>👤 Имя:</b> ${escapeHtml(name)}`);
     lines.push(`<b>📞 Телефон:</b> <code>${escapeHtml(phone)}</code>`);
@@ -237,6 +251,28 @@ export async function POST(request: Request) {
     }
 
     const payload: OrderPayload = parsed.data;
+
+    // ── Предзаказ «ко времени» ───────────────────────────────────────────────
+    const scheduledFor = payload.scheduledFor
+        ? new Date(payload.scheduledFor)
+        : null;
+    if (scheduledFor && !isValidScheduleSlot(scheduledFor)) {
+        return localizedApiErrorJsonResponse(
+            API_ERROR_CODES.SCHEDULE_INVALID,
+            resolveOrderRequestLocale(request, payload.locale),
+            400,
+        );
+    }
+
+    // ── Часы работы: ночью принимаем только предзаказы ───────────────────────
+    if (!isStoreOpen() && !scheduledFor) {
+        return localizedApiErrorJsonResponse(
+            API_ERROR_CODES.STORE_CLOSED,
+            resolveOrderRequestLocale(request, payload.locale),
+            409,
+        );
+    }
+
     const {
         name,
         phone,
@@ -456,6 +492,7 @@ export async function POST(request: Request) {
                     userId: sessionUserId,
                     locale,
                     changeFrom,
+                    scheduledFor,
                     items: {
                         create: verifiedItems.map((item) => ({
                             productId: item.productId,
@@ -519,6 +556,7 @@ export async function POST(request: Request) {
             comment: comment ?? undefined,
             payment,
             changeFrom,
+            scheduledFor,
             delivery,
             verifiedItems,
             deliveryFee,

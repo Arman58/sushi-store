@@ -435,6 +435,23 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                             <Typography variant="body2">
                                 Адрес: {order.address || "-"}
                             </Typography>
+                            {order.scheduledFor && (
+                                <Typography
+                                    variant="body2"
+                                    sx={{ fontWeight: 700, color: "info.main" }}
+                                >
+                                    ⏰ Предзаказ ко времени:{" "}
+                                    {new Date(order.scheduledFor).toLocaleString(
+                                        "ru-RU",
+                                        {
+                                            day: "2-digit",
+                                            month: "2-digit",
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                        },
+                                    )}
+                                </Typography>
+                            )}
                             {order.changeFrom != null && (
                                 <Typography
                                     variant="body2"

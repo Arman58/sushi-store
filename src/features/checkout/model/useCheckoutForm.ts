@@ -13,6 +13,7 @@ import { toOrderPayloadItems, useCartStore } from "@/features/cart";
 import type { AppLocale } from "@/i18n/routing";
 import { useRouter } from "@/i18n/server";
 import { normalizePhoneToE164Digits } from "@/lib/phone";
+import { isStoreOpen, OPENING_HOURS } from "@/lib/site-config";
 import { ApiError, placeOrder } from "@/shared/api";
 import { API_ERROR_CODES } from "@/shared/lib/api-error";
 import { createCheckoutSchema } from "@/shared/lib/create-schemas";
@@ -87,6 +88,8 @@ export function useCheckoutForm({ sessionUser, hasItems }: UseCheckoutFormParams
             payment: draft?.payment ?? "cash",
             needsChange: false,
             changeAmount: null,
+            scheduleMode: "asap",
+            scheduledFor: null,
             delivery: draft?.delivery ?? "delivery",
             deliveryZoneId: draft?.deliveryZoneId,
             hp: "",
@@ -207,6 +210,20 @@ export function useCheckoutForm({ sessionUser, hasItems }: UseCheckoutFormParams
     ) => {
         if (!ctx.hasItems) return;
 
+        // Часы работы: ночью доступен только предзаказ «ко времени».
+        if (
+            !isStoreOpen() &&
+            !(data.scheduleMode === "scheduled" && data.scheduledFor)
+        ) {
+            const msg = t("storeClosed", {
+                opens: OPENING_HOURS.opens,
+                closes: OPENING_HOURS.closes,
+            });
+            setErrorMessage(msg);
+            showAppToast(msg, "error");
+            return;
+        }
+
         // Сдача: сумма клиента должна покрывать итог — не пускаем на сервер.
         if (
             data.payment === "cash" &&
@@ -247,6 +264,8 @@ export function useCheckoutForm({ sessionUser, hasItems }: UseCheckoutFormParams
                     data.payment === "cash" && data.needsChange
                         ? data.changeAmount
                         : null,
+                scheduledFor:
+                    data.scheduleMode === "scheduled" ? data.scheduledFor : null,
                 delivery: data.delivery,
                 items: toOrderPayloadItems(ctx.items),
                 totalPrice: ctx.grandTotal,
