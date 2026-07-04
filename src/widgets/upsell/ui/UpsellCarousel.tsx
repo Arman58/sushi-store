@@ -1,17 +1,13 @@
 "use client";
 
-import "swiper/css";
-
-import AddIcon from "@mui/icons-material/Add";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import IconButton from "@mui/material/IconButton";
+import ButtonBase from "@mui/material/ButtonBase";
 import Typography from "@mui/material/Typography";
 import dynamic from "next/dynamic";
 import { useLocale } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Swiper, SwiperSlide } from "swiper/react";
 
 import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
 import { useCartStore } from "@/features/cart";
@@ -19,7 +15,6 @@ import type { CartItem } from "@/features/cart/model/types";
 import type { StorefrontProduct } from "@/lib/i18n-utils";
 import { formatStorePrice } from "@/shared/lib/format-price";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
-import { ProductCoverImage } from "@/shared/ui/product-cover-image";
 import { tokens } from "@/shared/ui/theme";
 
 const ProductModifiersDialog = dynamic(
@@ -44,13 +39,25 @@ type Props = {
     excludeIds?: number[];
     /** Заголовок над каруселью; рендерится только когда есть что показать. */
     title?: string;
+    /** Слаги категорий, которые не предлагать (напр. sauces — их показывает SauceStrip). */
+    excludeCategorySlugs?: string[];
 };
 
 function hasRequiredModifiers(groups: MenuModifierGroup[] | undefined): boolean {
     return (groups ?? []).some((group) => group.required);
 }
 
-export function UpsellCarousel({ cartItems, excludeIds, title }: Props) {
+/**
+ * Компактные предложения «с этим часто заказывают»: маленькие чипы
+ * с фото, ценой и быстрым добавлением — единый стиль с SauceStrip,
+ * ненавязчиво и mobile-first (горизонтальный скролл).
+ */
+export function UpsellCarousel({
+    cartItems,
+    excludeIds,
+    title,
+    excludeCategorySlugs,
+}: Props) {
     const locale = useLocale();
     const addItem = useCartStore((s) => s.addItem);
 
@@ -66,6 +73,7 @@ export function UpsellCarousel({ cartItems, excludeIds, title }: Props) {
         },
         [excludeIds, cartItems],
     );
+    const excludeCatsKey = (excludeCategorySlugs ?? []).join(",");
 
     useEffect(() => {
         const controller = new AbortController();
@@ -76,6 +84,9 @@ export function UpsellCarousel({ cartItems, excludeIds, title }: Props) {
                 const params = new URLSearchParams({ locale });
                 if (excludeKey) {
                     params.set("exclude", excludeKey);
+                }
+                if (excludeCatsKey) {
+                    params.set("excludeCategories", excludeCatsKey);
                 }
 
                 const res = await fetch(`/api/upsell?${params.toString()}`, {
@@ -103,7 +114,7 @@ export function UpsellCarousel({ cartItems, excludeIds, title }: Props) {
 
         void load();
         return () => controller.abort();
-    }, [excludeKey, locale]);
+    }, [excludeKey, excludeCatsKey, locale]);
 
     const handleQuickAdd = useCallback(
         (product: UpsellProduct) => {
@@ -145,112 +156,110 @@ export function UpsellCarousel({ cartItems, excludeIds, title }: Props) {
             ) : null}
             <Box
                 sx={{
+                    display: "flex",
+                    gap: 1,
+                    overflowX: "auto",
+                    pb: 0.5,
                     mx: { xs: -0.5, sm: 0 },
-                    "& .swiper-slide": { width: "auto" },
+                    px: { xs: 0.5, sm: 0 },
+                    scrollbarWidth: "none",
+                    "&::-webkit-scrollbar": { display: "none" },
                 }}
             >
-                <Swiper slidesPerView="auto" spaceBetween={12}>
-                    {products.map((product) => {
-                        const coverUrl = getProductCoverUrl(product);
+                {products.map((product) => {
+                    const coverUrl = getProductCoverUrl(product);
 
-                        return (
-                            <SwiperSlide key={product.id}>
-                                <Card
-                                    variant="outlined"
+                    return (
+                        <ButtonBase
+                            key={product.id}
+                            onClick={() => handleQuickAdd(product)}
+                            aria-label={`${product.name} +${formatStorePrice(product.price)} ֏`}
+                            sx={{
+                                flexShrink: 0,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 1,
+                                pl: 0.5,
+                                pr: 0.75,
+                                py: 0.5,
+                                borderRadius: 999,
+                                border: "1px solid",
+                                borderColor: "divider",
+                                bgcolor: tokens.surfaceHi,
+                                transition:
+                                    "border-color 0.15s, background-color 0.15s",
+                                "&:hover": { borderColor: tokens.brand },
+                                "&:active": { transform: "scale(0.97)" },
+                            }}
+                        >
+                            <Avatar
+                                src={coverUrl ?? undefined}
+                                alt=""
+                                sx={{
+                                    width: 34,
+                                    height: 34,
+                                    bgcolor: tokens.surface,
+                                    fontSize: 13,
+                                }}
+                            >
+                                {product.name.slice(0, 1)}
+                            </Avatar>
+                            <Box
+                                sx={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "flex-start",
+                                    minWidth: 0,
+                                }}
+                            >
+                                <Typography
+                                    component="span"
                                     sx={{
-                                        width: 140,
-                                        borderRadius: 2,
-                                        display: "flex",
-                                        flexDirection: "column",
+                                        fontSize: 13,
+                                        fontWeight: 600,
+                                        lineHeight: 1.2,
+                                        color: "text.primary",
+                                        whiteSpace: "nowrap",
+                                        maxWidth: 130,
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
                                     }}
                                 >
-                                    <Box
-                                        sx={{
-                                            position: "relative",
-                                            height: 80,
-                                            overflow: "hidden",
-                                            borderTopLeftRadius: 8,
-                                            borderTopRightRadius: 8,
-                                        }}
-                                    >
-                                        <ProductCoverImage
-                                            src={coverUrl}
-                                            alt={product.name}
-                                            sizes="140px"
-                                        />
-                                    </Box>
-
-                                    <CardContent
-                                        sx={{
-                                            p: 1,
-                                            flex: 1,
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            gap: 0.5,
-                                            "&:last-child": { pb: 1 },
-                                        }}
-                                    >
-                                        <Typography
-                                            variant="body2"
-                                            fontWeight={600}
-                                            sx={{
-                                                lineHeight: 1.25,
-                                                display: "-webkit-box",
-                                                WebkitLineClamp: 1,
-                                                WebkitBoxOrient: "vertical",
-                                                overflow: "hidden",
-                                            }}
-                                        >
-                                            {product.name}
-                                        </Typography>
-
-                                        <Box
-                                            sx={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "space-between",
-                                                gap: 0.5,
-                                                mt: "auto",
-                                            }}
-                                        >
-                                            <Typography
-                                                variant="subtitle2"
-                                                color="primary.main"
-                                                sx={{
-                                                    fontVariantNumeric: "tabular-nums",
-                                                    minWidth: 0,
-                                                    overflow: "hidden",
-                                                    textOverflow: "ellipsis",
-                                                    whiteSpace: "nowrap",
-                                                }}
-                                            >
-                                                {formatStorePrice(product.price)} ֏
-                                            </Typography>
-
-                                            <IconButton
-                                                size="small"
-                                                aria-label={product.name}
-                                                onClick={() => handleQuickAdd(product)}
-                                                sx={{
-                                                    width: 28,
-                                                    height: 28,
-                                                    bgcolor: tokens.brandDim,
-                                                    color: tokens.brand,
-                                                    flexShrink: 0,
-                                                    "&:hover": {
-                                                        bgcolor: tokens.brandGlow,
-                                                    },
-                                                }}
-                                            >
-                                                <AddIcon sx={{ fontSize: 18 }} />
-                                            </IconButton>
-                                        </Box>
-                                    </CardContent>
-                                </Card>
-                            </SwiperSlide>
-                        );
-                    })}
-                </Swiper>
+                                    {product.name}
+                                </Typography>
+                                <Typography
+                                    component="span"
+                                    sx={{
+                                        fontSize: 11.5,
+                                        fontWeight: 700,
+                                        lineHeight: 1.2,
+                                        color: tokens.textMuted,
+                                        whiteSpace: "nowrap",
+                                        fontVariantNumeric: "tabular-nums",
+                                    }}
+                                >
+                                    +{formatStorePrice(product.price)} ֏
+                                </Typography>
+                            </Box>
+                            <Box
+                                component="span"
+                                sx={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    width: 22,
+                                    height: 22,
+                                    borderRadius: "50%",
+                                    bgcolor: tokens.brandDim,
+                                    color: tokens.brand,
+                                    flexShrink: 0,
+                                }}
+                            >
+                                <AddRoundedIcon sx={{ fontSize: 16 }} />
+                            </Box>
+                        </ButtonBase>
+                    );
+                })}
             </Box>
 
             <ProductModifiersDialog

@@ -45,6 +45,16 @@ export const BACKEND_ERROR_MESSAGES: Record<ApiErrorCode, BackendMessageTemplate
             ru: "Некорректные данные корзины. Обновите корзину и оформите заказ снова.",
             en: "Invalid cart data. Refresh your cart and try again.",
         },
+        SCHEDULE_INVALID: {
+            hy: "Ընտրված ժամը հասանելի չէ։ Ընտրեք այլ ժամ աշխատանքային ժամերի սահմաններում։",
+            ru: "Выбранное время недоступно. Выберите другое время в рамках рабочих часов.",
+            en: "The selected time is not available. Please pick another time within opening hours.",
+        },
+        STORE_CLOSED: {
+            hy: "Խոհանոցը հիմա փակ է։ Աշխատում ենք ամեն օր 12:00-00:00։",
+            ru: "Кухня сейчас закрыта. Мы работаем ежедневно с 12:00 до 00:00.",
+            en: "The kitchen is closed right now. We are open daily from 12:00 to 00:00.",
+        },
         CHANGE_FROM_TOO_SMALL: {
             hy: "Մանրի համար նշված գումարը փոքր է պատվերի գումարից։",
             ru: "Сумма для сдачи меньше суммы заказа.",

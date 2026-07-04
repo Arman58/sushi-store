@@ -28,6 +28,7 @@ export type PlaceOrderRequest = {
     payment: "cash" | "card";
     /** Наличные: сумма, с которой готовить сдачу (֏). null - сдача не нужна. */
     changeFrom?: number | null;
+    scheduledFor?: string | null;
     delivery: "delivery" | "pickup";
     items: OrderItemPayload[];
     totalPrice: number;
@@ -58,6 +59,7 @@ export type OrderStatusResponse = {
     payment: "CASH" | "CARD";
     /** Наличные: сумма, с которой готовить сдачу (֏). null - не нужна. */
     changeFrom?: number | null;
+    scheduledFor?: string | null;
     totalPrice: number;
     createdAt: string;
     /** ISO-строка или null - задаётся кухней */

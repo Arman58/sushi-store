@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 import { Link } from "@/i18n/server";
+import { cloudinaryImageLoader } from "@/shared/lib/cloudinary-loader";
 import { tokens } from "@/shared/ui/theme";
 
 const AUTOPLAY_MS = 5_000;
@@ -142,6 +143,7 @@ export function BannerCarousel({ items }: { items: BannerCarouselItem[] }) {
                             }}
                         >
                             <Image
+                    loader={cloudinaryImageLoader}
                                 src={banner.image}
                                 alt={banner.title || "promo"}
                                 fill

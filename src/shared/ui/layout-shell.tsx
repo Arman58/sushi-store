@@ -1,10 +1,9 @@
 "use client";
 
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import DeliveryDiningOutlinedIcon from "@mui/icons-material/DeliveryDiningOutlined";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import FavoriteBorderOutlinedIcon from "@mui/icons-material/FavoriteBorderOutlined";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import LocationOnIcon from "@mui/icons-material/LocationOn";
 import SearchIcon from "@mui/icons-material/Search";
 import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
 import AppBar from "@mui/material/AppBar";
@@ -27,6 +26,8 @@ import { useFavorites } from "@/features/favorites";
 import { Link, usePathname } from "@/i18n/server";
 import { SITE_LOGO_PATH } from "@/lib/site-config";
 import { PageTransition } from "@/shared/ui/page-transition";
+
+import { HeaderEta } from "./header-eta";
 
 const CartDrawer = dynamic(
     () => import("./cart-drawer").then((m) => m.CartDrawer),
@@ -401,14 +402,14 @@ export function LayoutShell({ children }: LayoutShellProps) {
                         {/* PWA back/forward - только в standalone (в браузере не рендерится) */}
                         <PwaNavArrows />
 
-                        {/* Logo: на xs скрыт - место отдано локации (паттерн Wolt/Glovo) */}
+                        {/* Logo: бренд виден всегда; на xs заменяет блок локации */}
                         <Box
                             component={Link}
                             href="/"
                             sx={{
-                                display: { xs: "none", sm: "flex" },
+                                display: "flex",
                                 alignItems: "center",
-                                gap: 1.25,
+                                gap: { xs: 1, sm: 1.25 },
                                 textDecoration: "none",
                                 minWidth: 0,
                                 flex: "0 1 auto",
@@ -439,12 +440,13 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                     style={{ objectFit: "cover" }}
                                 />
                             </Box>
-                            <Box sx={{ display: { xs: "none", sm: "block" } }}>
+                            <Box sx={{ minWidth: 0, overflow: "hidden" }}>
                                 <Typography
                                     variant="subtitle1"
+                                    noWrap
                                     sx={{
                                         fontWeight: 900,
-                                        fontSize: "1.35rem",
+                                        fontSize: { xs: "1.1rem", sm: "1.35rem" },
                                         lineHeight: 1,
                                         letterSpacing: -0.5,
                                         color: tokens.textPrimary,
@@ -455,62 +457,25 @@ export function LayoutShell({ children }: LayoutShellProps) {
                             </Box>
                         </Box>
 
-                        {/* Location: на xs - главный элемент шапки, тексты не переносятся */}
+                        {/* Location: на xs скрыт — в шапке лого; город/ETA видны с sm */}
                         <Box
                             sx={{
-                                display: "flex",
+                                display: { xs: "none", sm: "flex" },
                                 alignItems: "center",
                                 gap: 0.5,
                                 flexShrink: 0,
                                 ml: { xs: 0, md: 1 },
                             }}
                         >
-                            <LocationOnIcon
+                            <DeliveryDiningOutlinedIcon
                                 aria-hidden
                                 focusable="false"
                                 sx={{
-                                    fontSize: { xs: 22, sm: 20 },
+                                    fontSize: { xs: 22, sm: 22 },
                                     color: tokens.brand,
                                 }}
                             />
-                            <Box>
-                                <Box
-                                    sx={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 0.25,
-                                    }}
-                                >
-                                    <Typography
-                                        variant="body2"
-                                        fontWeight={700}
-                                        noWrap
-                                        sx={{
-                                            fontSize: { xs: 14.5, sm: 13.5 },
-                                            lineHeight: 1.2,
-                                        }}
-                                    >
-                                        {tCommon("location.city")}
-                                    </Typography>
-                                    <KeyboardArrowDownIcon
-                                        aria-hidden
-                                        focusable="false"
-                                        sx={{ fontSize: 16, color: tokens.textMuted }}
-                                    />
-                                </Box>
-                                <Typography
-                                    variant="caption"
-                                    noWrap
-                                    sx={{
-                                        color: tokens.textMuted,
-                                        display: "block",
-                                        lineHeight: 1.2,
-                                        fontSize: 11.5,
-                                    }}
-                                >
-                                    {tCommon("location.deliveryEta")}
-                                </Typography>
-                            </Box>
+                            <HeaderEta />
                         </Box>
 
                         {/* На /menu поиск в шапке скрыт - там свой sticky-поиск с фильтрами */}

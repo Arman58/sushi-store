@@ -1,5 +1,6 @@
 "use client";
 
+import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import StarIcon from "@mui/icons-material/Star";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
@@ -10,6 +11,7 @@ import { memo } from "react";
 
 import { useIsFavorite } from "@/features/favorites";
 import { Link } from "@/i18n/server";
+import { DELIVERY_ETA } from "@/lib/site-config";
 import { formatStorePrice } from "@/shared/lib/format-price";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { buildProductImageAlt } from "@/shared/lib/product-image-alt";
@@ -324,16 +326,26 @@ export const ProductCard = memo(function ProductCard({
                                     </Typography>
                                 </>
                             )}
+                            <AccessTimeRoundedIcon
+                                sx={{
+                                    fontSize: 12,
+                                    color: tokens.textMuted,
+                                    flexShrink: 0,
+                                    ml: hasRating ? 0.75 : 0,
+                                }}
+                            />
                             <Typography
                                 variant="caption"
                                 sx={{
                                     color: tokens.textMuted,
                                     fontSize: "0.75rem",
                                     lineHeight: 1,
-                                    ml: hasRating ? 1 : 0,
                                 }}
                             >
-                                {t("deliveryTime")}
+                                {t("deliveryTime", {
+                                    min: DELIVERY_ETA.minMinutes,
+                                    max: DELIVERY_ETA.maxMinutes,
+                                })}
                             </Typography>
                         </Stack>
                     </Box>

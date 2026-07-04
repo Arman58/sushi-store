@@ -270,9 +270,10 @@ export function DeliverySection({
                                     fontWeight={delivery === type ? 700 : 500}
                                     sx={{
                                         minWidth: 0,
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
                                         whiteSpace: "nowrap",
+                                        // На 320px «Самовывоз» должен помещаться целиком
+                                        fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                                        letterSpacing: { xs: -0.2, sm: 0 },
                                     }}
                                 >
                                     {t(`type.${type}`)}

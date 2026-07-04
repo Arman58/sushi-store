@@ -53,10 +53,10 @@ export function MenuHeroCtas() {
 
     return (
         <Stack
-            direction={{ xs: "column", sm: "row" }}
+            direction="row"
             spacing={1.5}
-            sx={{ mt: 3 }}
-            alignItems={{ xs: "stretch", sm: "center" }}
+            sx={{ mt: { xs: 2, sm: 3 }, flexWrap: "wrap", gap: 1 }}
+            alignItems="center"
         >
             <Box
                 role="button"

@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 
 import { SITE_LOGO_PATH } from "@/lib/site-config";
+import { cloudinaryImageLoader } from "@/shared/lib/cloudinary-loader";
 import { sanitizeProductImageSrc } from "@/shared/lib/product-cover";
 
 import { tokens } from "./theme";
@@ -95,6 +96,7 @@ export function ProductCoverImage({
                 src={safeSrc!}
                 alt={alt}
                 fill
+                loader={cloudinaryImageLoader}
                 sizes={sizes}
                 style={{
                     objectFit: "cover",

@@ -21,6 +21,8 @@ export type KitchenOrderDto = {
     /** Наличные: с какой суммы готовить сдачу (null — точная сумма). */
     changeFrom: number | null;
     totalPrice: number;
+    /** Предзаказ «ко времени» (ISO); null - как можно скорее. */
+    scheduledFor: string | null;
     items: KitchenOrderItemDto[];
 };
 
@@ -47,6 +49,7 @@ function mapOrder(
         comment: string | null;
         changeFrom: number | null;
         totalPrice: number;
+        scheduledFor: Date | null;
         items: {
             id: number;
             name: string;
@@ -64,6 +67,7 @@ function mapOrder(
         paymentMethod: order.payment,
         changeFrom: order.changeFrom,
         totalPrice: order.totalPrice,
+        scheduledFor: order.scheduledFor?.toISOString() ?? null,
         comment: order.comment?.trim() ? order.comment.trim() : null,
         items: order.items.map((item) => ({
             id: item.id,

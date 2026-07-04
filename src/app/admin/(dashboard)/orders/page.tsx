@@ -211,6 +211,7 @@ export default async function AdminOrdersPage({
         items: order.items,
         comment: order.comment,
         changeFrom: order.changeFrom,
+        scheduledFor: order.scheduledFor?.toISOString() ?? null,
         estimatedDeliveryAt: order.estimatedDeliveryAt?.toISOString() ?? null,
     }));
 

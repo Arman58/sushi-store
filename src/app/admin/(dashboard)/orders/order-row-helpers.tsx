@@ -87,6 +87,7 @@ export type OrderRowProps = {
         items: OrderItem[];
         comment?: string | null;
         changeFrom?: number | null;
+        scheduledFor?: string | null;
         estimatedDeliveryAt?: string | null;
     };
     searchQuery: string;

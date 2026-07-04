@@ -457,6 +457,17 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
                             label={tTracker("payment")}
                             value={tPayment(order.payment === "CASH" ? "cash" : "card")}
                         />
+                        {order.scheduledFor && (
+                            <InfoRow
+                                label={tTracker("scheduledFor")}
+                                value={new Intl.DateTimeFormat(undefined, {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                }).format(new Date(order.scheduledFor))}
+                            />
+                        )}
                         {order.changeFrom != null && (
                             <InfoRow
                                 label={tTracker("changeFrom")}

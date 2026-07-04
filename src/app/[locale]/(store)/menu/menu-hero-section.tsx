@@ -33,7 +33,7 @@ export async function MenuHeroSection() {
                 }}
             />
 
-            <Box sx={{ px: 2, pt: 3, pb: 4, position: "relative" }}>
+            <Box sx={{ px: 2, pt: { xs: 2, sm: 3 }, pb: { xs: 2.5, sm: 4 }, position: "relative" }}>
                 <Chip
                     label={t("hero.chip")}
                     size="small"
@@ -52,6 +52,7 @@ export async function MenuHeroSection() {
                         color: "text.primary",
                         lineHeight: 1.25,
                         maxWidth: 640,
+                        fontSize: { xs: "1.6rem", sm: "2.125rem" },
                     }}
                 >
                     {t("hero.title")}
@@ -73,7 +74,8 @@ export async function MenuHeroSection() {
                 <Typography
                     variant="body1"
                     color="text.secondary"
-                    sx={{ mt: 0.5, maxWidth: 560 }}
+                    // Мобайл: не съедаем первый экран длинным SEO-текстом
+                    sx={{ mt: 0.5, maxWidth: 560, display: { xs: "none", sm: "block" } }}
                 >
                     {t("hero.description")}
                 </Typography>

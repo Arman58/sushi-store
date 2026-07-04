@@ -54,6 +54,21 @@ export default function CartPage() {
     };
 
     const [promoDraft, setPromoDraft] = useState("");
+    // Двухшаговое подтверждение очистки корзины.
+    const [clearArmed, setClearArmed] = useState(false);
+    useEffect(() => {
+        if (!clearArmed) return;
+        const id = window.setTimeout(() => setClearArmed(false), 3500);
+        return () => window.clearTimeout(id);
+    }, [clearArmed]);
+    const handleClearClick = () => {
+        if (!clearArmed) {
+            setClearArmed(true);
+            return;
+        }
+        clearCart();
+        setClearArmed(false);
+    };
     const [promoError, setPromoError] = useState("");
     const [promoDiscount, setPromoDiscount] = useState(0);
     const [promoApplying, setPromoApplying] = useState(false);
@@ -201,13 +216,17 @@ export default function CartPage() {
                                 )}
                                 <AppButton
                                     variant="text"
-                                    color="inherit"
-                                    onClick={clearCart}
+                                    color={clearArmed ? "error" : "inherit"}
+                                    onClick={handleClearClick}
                                     startIcon={<DeleteOutlineIcon />}
                                     size="small"
-                                    sx={{ textTransform: "none", opacity: 0.6 }}
+                                    sx={{
+                                        textTransform: "none",
+                                        opacity: clearArmed ? 1 : 0.6,
+                                        fontWeight: clearArmed ? 700 : 600,
+                                    }}
                                 >
-                                    {t("clear")}
+                                    {clearArmed ? t("clearConfirm") : t("clear")}
                                 </AppButton>
                             </Stack>
 
@@ -286,7 +305,10 @@ export default function CartPage() {
                                 >
                                     {t("upsell_title")}
                                 </Typography>
-                                <UpsellCarousel cartItems={items} />
+                                <UpsellCarousel
+                                    cartItems={items}
+                                    excludeCategorySlugs={["sauces"]}
+                                />
                             </Box>
 
                             <Divider sx={{ my: 1.5 }} />
@@ -408,7 +430,8 @@ export default function CartPage() {
                                 disabled={!canProceedToCheckout}
                                 sx={{ fontWeight: 700 }}
                             >
-                                {t("checkout")}
+                                {t("checkout")} ·{" "}
+                                {totalPrice.toLocaleString("ru-RU")} ֏
                             </AppButton>
 
                             <Typography

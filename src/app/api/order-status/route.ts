@@ -51,6 +51,7 @@ function buildOrderStatusPayload(order: OrderWithItems) {
         delivery: order.delivery,
         payment: order.payment,
         changeFrom: order.changeFrom,
+        scheduledFor: order.scheduledFor?.toISOString() ?? null,
         totalPrice: order.totalPrice,
         createdAt: order.createdAt,
         estimatedDeliveryAt: order.estimatedDeliveryAt,

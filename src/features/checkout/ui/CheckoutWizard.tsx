@@ -15,6 +15,7 @@ import { useMemo } from "react";
 import { FormProvider } from "react-hook-form";
 
 import { useCartLineValidation, useCartStore } from "@/features/cart";
+import { DELIVERY_ETA } from "@/lib/site-config";
 import { PageContainer, SectionTitle } from "@/shared/ui";
 
 import { CHECKOUT_MOBILE_SCROLL_PAD } from "../model/constants";
@@ -24,7 +25,9 @@ import { CheckoutConsentCaption } from "./CheckoutConsentCaption";
 import { ContactSection } from "./sections/ContactSection";
 import { DeliverySection } from "./sections/DeliverySection";
 import { PaymentSection } from "./sections/PaymentSection";
+import { ScheduleSection } from "./sections/ScheduleSection";
 import { SummarySection } from "./sections/SummarySection";
+import { StoreClosedAlert } from "./StoreClosedAlert";
 
 export function CheckoutWizard() {
     const t = useTranslations("checkout");
@@ -156,6 +159,8 @@ export function CheckoutWizard() {
             >
                 <SectionTitle pageTitle>{t("pageTitle")}</SectionTitle>
 
+                <StoreClosedAlert />
+
                 <Paper
                     elevation={0}
                     sx={{
@@ -174,7 +179,10 @@ export function CheckoutWizard() {
                         alignItems={{ xs: "flex-start", sm: "center" }}
                     >
                         <Chip
-                            label={t("banner.chip")}
+                            label={t("banner.chip", {
+                                min: DELIVERY_ETA.minMinutes,
+                                max: DELIVERY_ETA.maxMinutes,
+                            })}
                             color="warning"
                             size="small"
                             sx={{ fontWeight: 700, borderRadius: 999 }}
@@ -319,6 +327,8 @@ export function CheckoutWizard() {
                                             }
                                         />
 
+                                        <ScheduleSection />
+
                                         <PaymentSection
                                             requiresManagerApproval={
                                                 delivery.requiresManagerApproval
@@ -391,7 +401,8 @@ export function CheckoutWizard() {
                                 left: 0,
                                 right: 0,
                                 bottom: 0,
-                                zIndex: 1250,
+                                // Ниже бургер-меню (1200) и шторки корзины — CTA не «просвечивает» сквозь оверлеи
+                                zIndex: 1050,
                                 p: 2,
                                 pb: "calc(16px + env(safe-area-inset-bottom))",
                                 bgcolor: "background.paper",
