@@ -691,11 +691,10 @@ const theme = createTheme({
 
         MuiSkeleton: {
             styleOverrides: {
-                root: { backgroundColor: tokens.surfaceHi },
-                wave: {
+                root: {
+                    backgroundColor: tokens.surfaceHi,
                     "&::after": {
-                        background:
-                            `linear-gradient(90deg, transparent, ${"rgba(var(--ew-text-rgb), 0.04)"}, transparent)`,
+                        background: `linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent)`,
                     },
                 },
             },

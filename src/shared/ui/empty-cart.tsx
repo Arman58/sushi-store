@@ -5,6 +5,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import { alpha } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
+import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/server";
@@ -52,6 +53,9 @@ export function EmptyCart({
             }}
         >
             <Box
+                component={motion.div}
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 sx={{
                     width: 120,
                     height: 120,

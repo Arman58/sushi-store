@@ -98,6 +98,11 @@
         "feature_fast_title": "Super fast delivery",
         "feature_fast_desc": "45-60 minutes to your door",
         "feature_big_title": "Generous portions",
+        "welcomePromo": {
+            "title": "🎁 10% off your first order!",
+            "description": "We are giving you a discount on your first order. Click the button below to apply the promo code to your cart.",
+            "apply": "Apply now"
+        },
         "feature_big_desc": "Every roll is a feast",
         "feature_quality_title": "Always fresh",
         "feature_quality_desc": "Made from quality ingredients",
@@ -262,9 +267,10 @@
         "validation": {
             "unavailable": "Item is no longer available. Remove it from the cart.",
             "priceChanged": "Price changed. Now {price} ֏ per unit.",
-            "priceChangedGeneric": "Price changed. Remove the line or rebuild your order.",
-            "orderPriceAlert": "The price of one or more items has changed - please review your order",
-            "modifiersChanged": "Item options changed. Remove and add it again."
+            "priceChangedGeneric": "The price has changed. Please remove the item or rebuild your order.",
+            "orderPriceAlert": "The price of one or more items has changed. Please review your order.",
+            "modifiersChanged": "Add-ons have changed. Please remove the item and add it again.",
+            "syncPrices": "Update prices"
         },
         "minOrderReached": "Minimum reached - ready to checkout",
         "minOrderRemaining": "{amount} ֏ left to reach the minimum order",

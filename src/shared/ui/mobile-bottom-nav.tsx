@@ -11,7 +11,7 @@ import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { motion } from "framer-motion";
+import { motion, useMotionValueEvent,useScroll } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
@@ -19,6 +19,7 @@ import { useEffect, useRef, useState } from "react";
 import { useCartStore } from "@/features/cart";
 import { useFavorites } from "@/features/favorites";
 import { Link, usePathname } from "@/i18n/server";
+import { triggerHaptic } from "@/shared/lib/haptic";
 
 import { tokens } from "./theme";
 
@@ -39,6 +40,7 @@ export function MobileBottomNav() {
         if (!addToast || addToast === lastAddToastRef.current) return;
         lastAddToastRef.current = addToast;
         queueMicrotask(() => setCartPulse((n) => n + 1));
+        triggerHaptic("success");
     }, [addToast]);
 
     const totalItems = items.reduce((s, i) => s + i.quantity, 0);
@@ -60,9 +62,27 @@ export function MobileBottomNav() {
                 : pathname.startsWith("/profile")
                   ? "profile"
                   : "";
+    const { scrollY } = useScroll();
+    const [hidden, setHidden] = useState(false);
+
+    useMotionValueEvent(scrollY, "change", (latest) => {
+        const previous = scrollY.getPrevious() ?? 0;
+        if (latest > previous && latest > 150) {
+            setHidden(true);
+        } else {
+            setHidden(false);
+        }
+    });
 
     return (
         <Box
+            component={motion.div}
+            variants={{
+                visible: { y: 0 },
+                hidden: { y: "150%" }
+            }}
+            animate={hidden ? "hidden" : "visible"}
+            transition={{ duration: 0.35, ease: "easeInOut" }}
             sx={{
                 position: "fixed",
                 left: 0,
@@ -261,12 +281,12 @@ export function MobileBottomNav() {
                         animate={
                             cartPulse === 0
                                 ? { scale: 1 }
-                                : { scale: [1, 1.1, 1] }
+                                : { scale: [1, 1.3, 0.9, 1.05, 1] }
                         }
                         transition={
                             cartPulse === 0
                                 ? { duration: 0 }
-                                : { duration: 0.2, times: [0, 0.4, 1], ease: "easeOut" }
+                                : { duration: 0.35, ease: "easeInOut", times: [0, 0.2, 0.5, 0.8, 1] }
                         }
                     >
                         <Badge

@@ -1,8 +1,10 @@
 "use client";
 
+import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { useCartStore } from "./store";
 import type { CartItem } from "./types";
 
 export type CartLineIssueReason =
@@ -51,96 +53,106 @@ export function useCartLineIssueMessage() {
     return (issue: CartLineIssue) => cartLineIssueMessage(issue, t);
 }
 
-/** Задержка фоновой проверки после optimistic-обновления корзины. */
 const VALIDATION_DEBOUNCE_MS = 650;
 
+type ValidateResponse = {
+    valid: boolean;
+    items: Array<{
+        cartItemId: string;
+        ok: boolean;
+        reason?: CartLineIssueReason;
+        serverUnitPrice?: number;
+    }>;
+};
+
 export function useCartLineValidation(items: CartItem[]) {
-    const [cartLineIssues, setCartLineIssues] = useState<
-        Record<string, CartLineIssue>
-    >({});
-    const [cartValidatePending, setCartValidatePending] = useState(false);
+    const [cartLineIssues, setCartLineIssues] = useState<Record<string, CartLineIssue>>({});
     const [validationUnavailable, setValidationUnavailable] = useState(false);
+    const markPriceMismatch = useCartStore((s) => s.markPriceMismatch);
+    
+    // We use a ref to only update state for the latest requested validation
     const cartValidateGenRef = useRef(0);
+
+    const mutation = useMutation<ValidateResponse, Error, CartItem[]>({
+        mutationFn: async (payloadItems) => {
+            const res = await fetch("/api/validate-cart", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    items: payloadItems.map((item) => ({
+                        cartItemId: item.cartItemId,
+                        productId: item.productId,
+                        price: item.calculatedItemPrice,
+                        quantity: item.quantity,
+                        selectedModifierIds: item.selectedModifiers.map((m) => m.id),
+                    })),
+                }),
+            });
+
+            if (!res.ok) {
+                if (!isValidationBusinessError(res.status)) {
+                    throw new Error("Unavailable");
+                }
+                // Even on 409, the server returns the { valid: false, items: [...] } payload
+                return res.json() as Promise<ValidateResponse>;
+            }
+
+            return res.json() as Promise<ValidateResponse>;
+        },
+    });
+
+    const mutate = mutation.mutate;
 
     useEffect(() => {
         if (items.length === 0) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setCartLineIssues({});
-            setCartValidatePending(false);
+             
             setValidationUnavailable(false);
             return;
         }
 
-        const ac = new AbortController();
         const gen = ++cartValidateGenRef.current;
-
         const timer = window.setTimeout(() => {
-            void (async () => {
-                if (cartValidateGenRef.current !== gen) return;
-                setCartValidatePending(true);
-                try {
-                    const res = await fetch("/api/validate-cart", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            items: items.map((item) => ({
-                                cartItemId: item.cartItemId,
-                                productId: item.productId,
-                                price: item.calculatedItemPrice,
-                                quantity: item.quantity,
-                                selectedModifierIds: item.selectedModifiers.map(
-                                    (m) => m.id,
-                                ),
-                            })),
-                        }),
-                        signal: ac.signal,
-                    });
+            mutate(items, {
+                onSuccess: (data) => {
                     if (cartValidateGenRef.current !== gen) return;
-
-                    if (!res.ok) {
-                        if (!isValidationBusinessError(res.status)) {
-                            setValidationUnavailable(true);
-                        }
-                        return;
-                    }
-
-                    const data = (await res.json()) as {
-                        items: Array<{
-                            cartItemId: string;
-                            ok: boolean;
-                            reason?: CartLineIssueReason;
-                            serverUnitPrice?: number;
-                        }>;
-                    };
-                    if (cartValidateGenRef.current !== gen) return;
-
+                    
                     const next: Record<string, CartLineIssue> = {};
+                    let hasPriceMismatch = false;
+                    
                     for (const row of data.items) {
                         if (!row.ok && row.reason) {
                             next[row.cartItemId] = {
                                 reason: row.reason,
                                 serverUnitPrice: row.serverUnitPrice,
                             };
+                            if (row.reason === "price_mismatch") {
+                                hasPriceMismatch = true;
+                            }
                         }
                     }
+                    
                     setCartLineIssues(next);
                     setValidationUnavailable(false);
-                } catch (e) {
-                    if (!isAbortError(e) && cartValidateGenRef.current === gen) {
+                    
+                    if (hasPriceMismatch) {
+                        markPriceMismatch();
+                    }
+                },
+                onError: (e) => {
+                    if (cartValidateGenRef.current !== gen) return;
+                    if (!isAbortError(e)) {
                         setValidationUnavailable(true);
                     }
-                } finally {
-                    if (cartValidateGenRef.current === gen) {
-                        setCartValidatePending(false);
-                    }
                 }
-            })();
+            });
         }, VALIDATION_DEBOUNCE_MS);
 
         return () => {
             window.clearTimeout(timer);
-            ac.abort();
         };
-    }, [items]);
+    }, [items, markPriceMismatch, mutate]);
 
     const hasCartLineProblems = useMemo(
         () => items.some((item) => Boolean(cartLineIssues[item.cartItemId])),
@@ -148,38 +160,31 @@ export function useCartLineValidation(items: CartItem[]) {
     );
 
     const hasPriceMismatchIssues = useMemo(
-        () =>
-            items.some(
-                (item) =>
-                    cartLineIssues[item.cartItemId]?.reason === "price_mismatch",
-            ),
+        () => items.some((item) => cartLineIssues[item.cartItemId]?.reason === "price_mismatch"),
         [items, cartLineIssues],
     );
 
     const problematicCartItemIds = useMemo(
-        () =>
-            items
-                .filter((item) => Boolean(cartLineIssues[item.cartItemId]))
-                .map((item) => item.cartItemId),
+        () => items.filter((item) => Boolean(cartLineIssues[item.cartItemId])).map((item) => item.cartItemId),
         [items, cartLineIssues],
     );
 
     const validSubtotal = useMemo(
-        () =>
-            items.reduce((sum, item) => {
-                if (cartLineIssues[item.cartItemId]) return sum;
-                return sum + item.calculatedItemPrice * item.quantity;
-            }, 0),
+        () => items.reduce((sum, item) => {
+            if (cartLineIssues[item.cartItemId]) return sum;
+            return sum + item.calculatedItemPrice * item.quantity;
+        }, 0),
         [items, cartLineIssues],
     );
 
     return {
         cartLineIssues,
-        cartValidatePending,
+        cartValidatePending: mutation.isPending,
         validationUnavailable,
         hasCartLineProblems,
         hasPriceMismatchIssues,
         problematicCartItemIds,
         validSubtotal,
+        serverItems: mutation.data?.items ?? [],
     };
 }

@@ -111,8 +111,7 @@ export default async function OrderPage({ params, searchParams }: PageProps) {
                 }}
             >
                 <Box sx={{ width: "100%", maxWidth: 600 }}>
-                    {/* Лучший момент подписки на пуши - ожидание заказа */}
-                    <PushPermissionPrompt />
+                    {session && <PushPermissionPrompt />}
                     <OrderTracker order={orderPayload} phone={order.phone} />
                 </Box>
             </Box>

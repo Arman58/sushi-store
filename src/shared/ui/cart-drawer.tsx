@@ -56,12 +56,14 @@ export function CartDrawer() {
     const clearCart = useCartStore((s) => s.clear);
     const appliedPromoCode = useCartStore((s) => s.appliedPromoCode);
     const setAppliedPromoCode = useCartStore((s) => s.setAppliedPromoCode);
+    const syncPricesWithServer = useCartStore((s) => s.syncPricesWithServer);
 
     const {
         cartLineIssues,
         hasCartLineProblems,
         hasPriceMismatchIssues,
         problematicCartItemIds,
+        serverItems,
     } = useCartLineValidation(items);
 
     const [promoInput, setPromoInput] = useState("");
@@ -391,9 +393,27 @@ export function CartDrawer() {
                                 >
                                     {hasCartLineProblems && (
                                         <Alert severity="error" sx={{ mb: 2 }}>
-                                            {hasPriceMismatchIssues
-                                                ? t("validation.orderPriceAlert")
-                                                : t("lineProblems.pageAlert")}
+                                            <Stack spacing={1}>
+                                                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                                    {hasPriceMismatchIssues
+                                                        ? t("validation.orderPriceAlert")
+                                                        : t("lineProblems.pageAlert")}
+                                                </Typography>
+                                                {hasPriceMismatchIssues && (
+                                                    <Button
+                                                        color="inherit"
+                                                        size="small"
+                                                        onClick={() => syncPricesWithServer(serverItems)}
+                                                        sx={{
+                                                            alignSelf: { xs: 'stretch', sm: 'flex-start' },
+                                                            backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                                                            '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.1)' }
+                                                        }}
+                                                    >
+                                                        {t("validation.syncPrices")}
+                                                    </Button>
+                                                )}
+                                            </Stack>
                                         </Alert>
                                     )}
                                     <Stack spacing={0} divider={null}>

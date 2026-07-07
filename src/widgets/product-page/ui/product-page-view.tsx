@@ -6,6 +6,7 @@ import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Stack from "@mui/material/Stack";
 import { alpha } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
+import { motion, useScroll, useTransform } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useState } from "react";
@@ -53,6 +54,12 @@ export function ProductPageView({ product, locale, breadcrumbs }: Props) {
     const addItem = useCartStore((s) => s.addItem);
 
     const [modifiersOpen, setModifiersOpen] = useState(false);
+
+    // Parallax effect hooks
+    const { scrollY } = useScroll();
+    const imageY = useTransform(scrollY, [0, 600], [0, 240]);
+    const imageScale = useTransform(scrollY, [-200, 0], [1.3, 1]);
+    const imageOpacity = useTransform(scrollY, [0, 400], [1, 0.2]);
 
     // История просмотров для блока «Вы недавно смотрели»
     useTrackProductView(product.id);
@@ -183,14 +190,27 @@ export function ProductPageView({ product, locale, breadcrumbs }: Props) {
                         overflow: "hidden",
                         bgcolor: tokens.surfaceHi,
                         mb: 2.5,
+                        // Enable 3D hardware acceleration for smoother parallax
+                        transform: "translateZ(0)",
                     }}
                 >
-                    <ProductCoverImage
-                        src={coverUrl}
-                        alt={imageAlt}
-                        priority
-                        sizes="(max-width: 600px) 100vw, 560px"
-                    />
+                    <motion.div
+                        style={{
+                            width: "100%",
+                            height: "100%",
+                            y: imageY,
+                            scale: imageScale,
+                            opacity: imageOpacity,
+                            transformOrigin: "bottom center",
+                        }}
+                    >
+                        <ProductCoverImage
+                            src={coverUrl}
+                            alt={imageAlt}
+                            priority
+                            sizes="(max-width: 600px) 100vw, 560px"
+                        />
+                    </motion.div>
                 </Box>
 
                 {product.category?.name ? (

@@ -15,6 +15,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import type { OrderStatus } from "@prisma/client";
+import { motion } from "framer-motion";
 import { useLocale, useTranslations } from "next-intl";
 import { type ReactNode,useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -338,6 +339,15 @@ export default function OrderStatusPage() {
                                             return (
                                                 <Stack key={step.key} spacing={0.75} alignItems="center" sx={{ position: "relative" }}>
                                                     <Box
+                                                        component={active ? motion.div : "div"}
+                                                        animate={active ? {
+                                                            boxShadow: [
+                                                                "0 10px 24px rgba(249,115,22,0.35)",
+                                                                "0 10px 24px rgba(249,115,22,0.8)",
+                                                                "0 10px 24px rgba(249,115,22,0.35)"
+                                                            ]
+                                                        } : undefined}
+                                                        transition={active ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : undefined}
                                                         sx={{
                                                             width: 40,
                                                             height: 40,

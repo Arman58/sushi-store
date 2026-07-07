@@ -8,11 +8,13 @@ import Drawer from "@mui/material/Drawer";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { motion } from "framer-motion";
 import { useLocale, useTranslations } from "next-intl";
 
 import type { ConnectableProduct } from "@/entities/product/ui/connected-product-card";
 import { Link } from "@/i18n/server";
 import { formatStorePrice } from "@/shared/lib/format-price";
+import { triggerHaptic } from "@/shared/lib/haptic";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { buildProductImageAlt } from "@/shared/lib/product-image-alt";
 import { ProductCoverImage } from "@/shared/ui/product-cover-image";
@@ -181,27 +183,30 @@ export function ProductQuickView({ open, onClose, product, onAdd }: Props) {
                     bgcolor: "background.paper",
                 }}
             >
-                <Button
-                    fullWidth
-                    variant="contained"
-                    size="large"
-                    disabled={!isAvailable}
-                    onClick={() => {
-                        onAdd();
-                        if (!hasModifiers) onClose();
-                    }}
-                    sx={{
-                        fontWeight: 800,
-                        borderRadius: "12px",
-                        minHeight: 50,
-                    }}
-                >
+                <Box component={motion.div} whileTap={isAvailable ? { scale: 0.95 } : undefined}>
+                    <Button
+                        fullWidth
+                        variant="contained"
+                        size="large"
+                        disabled={!isAvailable}
+                        onClick={() => {
+                            triggerHaptic("medium");
+                            onAdd();
+                            if (!hasModifiers) onClose();
+                        }}
+                        sx={{
+                            fontWeight: 800,
+                            borderRadius: "12px",
+                            minHeight: 50,
+                        }}
+                    >
                     {!isAvailable
                         ? tPage("soldOut")
                         : hasModifiers
                           ? tPage("quickView.choose")
                           : `${tPage("addToCart")} · ${formatStorePrice(product.price)} ֏`}
-                </Button>
+                    </Button>
+                </Box>
             </Box>
         </Drawer>
     );

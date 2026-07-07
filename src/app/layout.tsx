@@ -27,6 +27,7 @@ const PWA_APP_NAME = "East West Delivery";
 
 export const viewport: Viewport = {
     themeColor: "#00B341",
+    viewportFit: "cover",
 };
 
 export const metadata: Metadata = {
