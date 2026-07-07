@@ -26,7 +26,10 @@ import { AppProviders } from "./providers";
 const PWA_APP_NAME = "East West Delivery";
 
 export const viewport: Viewport = {
-    themeColor: "#00B341",
+    themeColor: [
+        { media: "(prefers-color-scheme: light)", color: "#27AE60" },
+        { media: "(prefers-color-scheme: dark)", color: "#0F1214" },
+    ],
     viewportFit: "cover",
 };
 
@@ -34,8 +37,35 @@ export const metadata: Metadata = {
     applicationName: PWA_APP_NAME,
     appleWebApp: {
         capable: true,
-        statusBarStyle: "default",
+        statusBarStyle: "black-translucent",
         title: "East West",
+        startupImage: [
+            // iPhone 15 Pro Max, 16 Plus (1290×2796)
+            {
+                url: "/pwa/splash-1290x2796.png",
+                media: "(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)",
+            },
+            // iPhone 14 Pro, 15, 16 (1179×2556)
+            {
+                url: "/pwa/splash-1179x2556.png",
+                media: "(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)",
+            },
+            // iPhone 12/13/14, 15 (1170×2532)
+            {
+                url: "/pwa/splash-1170x2532.png",
+                media: "(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)",
+            },
+            // iPhone X/XS/11 Pro (1125×2436)
+            {
+                url: "/pwa/splash-1125x2436.png",
+                media: "(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)",
+            },
+            // iPhone SE/8 (750×1334)
+            {
+                url: "/pwa/splash-750x1334.png",
+                media: "(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)",
+            },
+        ],
     },
     formatDetection: {
         telephone: false,
@@ -63,7 +93,10 @@ export const metadata: Metadata = {
     },
     icons: {
         icon: SITE_LOGO_PATH,
-        apple: "/pwa/icon-192x192.png",
+        apple: [
+            { url: "/pwa/apple-touch-icon-180x180.png", sizes: "180x180" },
+            { url: "/pwa/icon-192x192.png", sizes: "192x192" },
+        ],
     },
     openGraph: {
         title: "Sushi & Pizza Delivery in Yerevan & Nor Hachn | East West",

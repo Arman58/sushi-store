@@ -41,6 +41,10 @@ const StoreFooter = dynamic(
     () => import("./store-footer").then((m) => m.StoreFooter),
     { ssr: false, loading: () => null },
 );
+const NetworkStatus = dynamic(
+    () => import("./network-status").then((m) => m.NetworkStatus),
+    { ssr: false },
+);
 import LanguageSwitcher from "./LanguageSwitcher";
 import { MobileNavDrawer } from "./mobile-nav-drawer";
 import { PwaNavArrows } from "./pwa-nav-arrows";
@@ -641,6 +645,7 @@ export function LayoutShell({ children }: LayoutShellProps) {
 
             {/* Global overlays */}
             <CartDrawer />
+            <NetworkStatus />
             <SearchOverlay
                 open={searchOpen}
                 onClose={() => setSearchOpen(false)}
