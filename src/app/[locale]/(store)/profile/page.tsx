@@ -122,7 +122,7 @@ export default async function ProfilePage() {
                     <ProfileEmailVerificationAlert email={user.email} />
                 ) : null}
 
-                {user.emailVerified != null ? <PushPermissionPrompt /> : null}
+                <PushPermissionPrompt />
 
                 <ProfileSavedAddressesSection />
 

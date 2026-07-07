@@ -31,19 +31,32 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
     event.notification.close();
-    const url =
-        (event.notification.data && event.notification.data.url) || "/";
+
+    const rawUrl =
+        event.notification.data &&
+        typeof event.notification.data === "object" &&
+        "url" in event.notification.data &&
+        typeof event.notification.data.url === "string"
+            ? event.notification.data.url
+            : "/";
+
+    const targetUrl = new URL(rawUrl, self.location.origin).href;
+
     event.waitUntil(
         self.clients
             .matchAll({ type: "window", includeUncontrolled: true })
-            .then((clients) => {
-                for (const client of clients) {
-                    if ("focus" in client) {
-                        client.navigate(url);
+            .then((clientList) => {
+                for (const client of clientList) {
+                    if (client.url.startsWith(targetUrl) && "focus" in client) {
                         return client.focus();
                     }
                 }
-                return self.clients.openWindow(url);
+
+                if (self.clients.openWindow) {
+                    return self.clients.openWindow(targetUrl);
+                }
+
+                return undefined;
             }),
     );
 });
