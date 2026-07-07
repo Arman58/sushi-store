@@ -1,5 +1,6 @@
 import "./globals.css";
 
+import { Analytics } from "@vercel/analytics/next";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v13-appRouter";
 import { SerwistProvider } from "@serwist/next/react";
 import type { Metadata, Viewport } from "next";
@@ -175,6 +176,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                         <AppProviders>{children}</AppProviders>
                     </SerwistProvider>
                 </AppRouterCacheProvider>
+                <Analytics />
             </body>
         </html>
     );
