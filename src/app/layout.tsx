@@ -1,8 +1,8 @@
 import "./globals.css";
 
-import { Analytics } from "@vercel/analytics/next";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v13-appRouter";
 import { SerwistProvider } from "@serwist/next/react";
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { getLocale } from "next-intl/server";
 import type { ReactNode } from "react";
