@@ -7,6 +7,7 @@ import {
 } from "@/lib/backend-i18n";
 import { debugLog } from "@/lib/debug-log";
 import { prisma } from "@/lib/prisma";
+import { getVapidSubject } from "@/lib/push-vapid";
 
 export type PushNotificationPayload = {
     title: string;
@@ -15,8 +16,6 @@ export type PushNotificationPayload = {
 };
 
 const PUSH_NOTIFY_STATUSES: OrderStatus[] = ["COOKING", "DELIVERING", "DONE"];
-
-const VAPID_SUBJECT = "mailto:noreply@eastwestnh.com";
 
 let vapidConfigured = false;
 
@@ -30,9 +29,9 @@ function ensureVapidConfigured(): boolean {
     }
 
     webpush.setVapidDetails(
-        VAPID_SUBJECT,
-        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-        process.env.VAPID_PRIVATE_KEY!,
+        getVapidSubject(),
+        publicKey,
+        privateKey,
     );
     vapidConfigured = true;
     return true;
@@ -112,7 +111,12 @@ export async function sendPushNotification(
                         ? (error as { statusCode: number }).statusCode
                         : null;
 
-                if (statusCode === 410 || statusCode === 404) {
+                if (
+                    statusCode === 410 ||
+                    statusCode === 404 ||
+                    statusCode === 401 ||
+                    statusCode === 403
+                ) {
                     debugLog(
                         "[PUSH] Removing dead subscription:",
                         subscription.id,

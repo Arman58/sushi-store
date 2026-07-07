@@ -9,14 +9,15 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 import { debugLog } from "@/lib/debug-log";
-import { urlBase64ToUint8Array } from "@/lib/push-utils";
+import {
+    isPushSupported,
+    persistPushSubscription,
+    subscribeToPush,
+    syncPushSubscriptionWithBackend,
+} from "@/lib/push-client";
 import { AppButton } from "@/shared/ui";
 
 const IS_DEV = process.env.NODE_ENV === "development";
-/** В dev прод-sw.js падает на precache /_next/static - используем лёгкий sw-dev.js (только push). */
-const SW_URL = IS_DEV ? "/sw-dev.js" : "/sw.js";
-const SW_SCOPE = "/";
-const SW_READY_TIMEOUT_MS = 5_000;
 
 type PushStatus = "idle" | "loading" | "success" | "error";
 
@@ -26,19 +27,16 @@ export function PushPermissionPrompt() {
     const [errorMessage, setErrorMessage] = useState("");
 
     useEffect(() => {
-        if (!("serviceWorker" in navigator)) return;
+        if (!isPushSupported()) return;
 
         let cancelled = false;
 
-        void navigator.serviceWorker
-            .getRegistration(SW_SCOPE)
-            .then((registration) => {
-                if (cancelled || !registration) return null;
-                return registration.pushManager.getSubscription();
-            })
-            .then((subscription) => {
-                if (cancelled || !subscription) return;
-                setStatus("success");
+        void syncPushSubscriptionWithBackend()
+            .then((result) => {
+                if (cancelled) return;
+                if (result === "synced") {
+                    setStatus("success");
+                }
             })
             .catch(() => {
                 /* ignore - не блокируем UI */
@@ -54,11 +52,7 @@ export function PushPermissionPrompt() {
         setErrorMessage("");
 
         try {
-            if (
-                !("serviceWorker" in navigator) ||
-                !("PushManager" in window) ||
-                !("Notification" in window)
-            ) {
+            if (!isPushSupported()) {
                 setStatus("error");
                 setErrorMessage(t("no_support"));
                 return;
@@ -81,68 +75,20 @@ export function PushPermissionPrompt() {
                 return;
             }
 
-            debugLog("[PUSH] Registering service worker…");
-            await navigator.serviceWorker.register(SW_URL, {
-                scope: SW_SCOPE,
-                updateViaCache: "none",
-            });
+            let subscription = await subscribeToPush(vapidPublicKey);
+            let result = await persistPushSubscription(subscription);
 
-            const reg = await Promise.race([
-                navigator.serviceWorker.ready,
-                new Promise<ServiceWorkerRegistration>((_, reject) => {
-                    window.setTimeout(() => {
-                        reject(new Error("SW timeout"));
-                    }, SW_READY_TIMEOUT_MS);
-                }),
-            ]);
-
-            debugLog("[PUSH] Service worker ready, scope:", reg.scope);
-
-            let sub = await reg.pushManager.getSubscription();
-            if (!sub) {
-                debugLog("[PUSH] Subscribing to push manager…");
-                sub = await reg.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: urlBase64ToUint8Array(
-                        vapidPublicKey,
-                    ) as BufferSource,
-                });
-                debugLog("[PUSH] Push subscription created:", sub.endpoint);
+            if (!result.ok) {
+                subscription = await subscribeToPush(vapidPublicKey, { renew: true });
+                result = await persistPushSubscription(subscription);
             }
 
-            const subscriptionJson = sub.toJSON();
-            if (
-                !subscriptionJson.endpoint ||
-                !subscriptionJson.keys?.p256dh ||
-                !subscriptionJson.keys?.auth
-            ) {
+            if (!result.ok) {
                 setStatus("error");
-                setErrorMessage(t("subscribe_error"));
+                setErrorMessage(result.error ?? t("server_error"));
                 return;
             }
 
-            debugLog("[PUSH] Sending subscription to backend…");
-            const res = await fetch("/api/push/subscribe", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "same-origin",
-                body: JSON.stringify(subscriptionJson),
-            });
-
-            let data: { error?: string } = {};
-            try {
-                data = (await res.json()) as { error?: string };
-            } catch {
-                console.warn("[PUSH] Backend response is not JSON, status:", res.status);
-            }
-
-            if (!res.ok) {
-                setStatus("error");
-                setErrorMessage(data.error ?? t("server_error"));
-                return;
-            }
-
-            debugLog("[PUSH] Subscription saved successfully");
             setStatus("success");
         } catch (error) {
             console.error("[PUSH] Subscribe flow failed:", error);
