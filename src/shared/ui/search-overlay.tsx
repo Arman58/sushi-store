@@ -3,6 +3,7 @@
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import NorthWestRoundedIcon from "@mui/icons-material/NorthWestRounded";
+import SearchOffRoundedIcon from "@mui/icons-material/SearchOffRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
 import Box from "@mui/material/Box";
@@ -16,6 +17,7 @@ import { useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
@@ -307,15 +309,22 @@ export function SearchOverlay({
                     </Box>
                 )}
 
-                {/* Ничего не найдено */}
                 {nothing && (
-                    <Box sx={{ textAlign: "center", py: 6, px: 2 }}>
-                        <Typography fontWeight={700}>
+                    <Box sx={{ textAlign: "center", py: 8, px: 2, display: "flex", flexDirection: "column", alignItems: "center" }}>
+                        <Box
+                            component={motion.div}
+                            animate={{ rotate: [-5, 5, -5] }}
+                            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                            sx={{ mb: 2, color: tokens.textMuted }}
+                        >
+                            <SearchOffRoundedIcon sx={{ fontSize: 64, opacity: 0.5 }} />
+                        </Box>
+                        <Typography variant="h6" fontWeight={700}>
                             {t("noResults")}
                         </Typography>
                         <Typography
                             variant="body2"
-                            sx={{ color: tokens.textMuted, mt: 0.5 }}
+                            sx={{ color: tokens.textMuted, mt: 1, maxWidth: 280, mx: "auto" }}
                         >
                             {t("noResultsHint")}
                         </Typography>

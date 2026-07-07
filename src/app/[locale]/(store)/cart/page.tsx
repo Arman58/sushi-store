@@ -34,6 +34,7 @@ export default function CartPage() {
     const clearCart = useCartStore((state) => state.clear);
     const appliedPromoCode = useCartStore((state) => state.appliedPromoCode);
     const setAppliedPromoCode = useCartStore((state) => state.setAppliedPromoCode);
+    const syncPricesWithServer = useCartStore((state) => state.syncPricesWithServer);
 
     const hasItems = items.length > 0;
 
@@ -43,6 +44,7 @@ export default function CartPage() {
         hasPriceMismatchIssues,
         problematicCartItemIds,
         validSubtotal: subtotal,
+        serverItems,
     } = useCartLineValidation(items);
 
     const canProceedToCheckout = hasItems && !hasCartLineProblems;
@@ -202,6 +204,17 @@ export default function CartPage() {
                                 sx={{ mt: 1.5 }}
                                 alignItems={{ xs: "stretch", sm: "center" }}
                             >
+                                {hasPriceMismatchIssues && (
+                                    <AppButton
+                                        variant="outlined"
+                                        color="warning"
+                                        onClick={() => syncPricesWithServer(serverItems)}
+                                        size="small"
+                                        sx={{ textTransform: "none", fontWeight: 600 }}
+                                    >
+                                        {t("validation.syncPrices")}
+                                    </AppButton>
+                                )}
                                 {hasCartLineProblems && (
                                     <AppButton
                                         variant="outlined"
@@ -249,6 +262,29 @@ export default function CartPage() {
                             <Typography component="h2" variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
                                 {t("summary.title")}
                             </Typography>
+
+                            {/* Free Delivery Progress */}
+                            <Box sx={{ mb: 3 }}>
+                                <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 1 }}>
+                                    <Typography variant="body2" fontWeight={600}>
+                                        {subtotal >= 5000
+                                            ? `🎉 ${t("deliveryFree")}`
+                                            : `${(5000 - subtotal).toLocaleString("ru-RU")} ֏`}
+                                    </Typography>
+                                </Stack>
+                                <Box sx={{ width: "100%", bgcolor: "rgba(0,0,0,0.04)", borderRadius: 4, height: 6, overflow: "hidden" }}>
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${Math.min(100, (subtotal / 5000) * 100)}%` }}
+                                        transition={{ duration: 0.5, ease: "easeOut" }}
+                                        style={{
+                                            height: "100%",
+                                            background: subtotal >= 5000 ? "#27AE60" : "linear-gradient(90deg, #F59E0B, #FCD34D)",
+                                            borderRadius: 4,
+                                        }}
+                                    />
+                                </Box>
+                            </Box>
 
                             {/* Line items summary */}
                             <Stack spacing={1} sx={{ mb: 2 }}>

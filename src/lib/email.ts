@@ -2,24 +2,16 @@ import { render } from "@react-email/render";
 import { Resend } from "resend";
 
 import OtpEmail from "@/emails/otp-email";
-import WelcomeEmail from "@/emails/welcome-email";
 import type { AppLocale } from "@/i18n/routing";
 import {
     NOTIFICATION_FETCH_TIMEOUT_MS,
     withTimeout,
 } from "@/lib/fetch-with-timeout";
-import { SITE_URL } from "@/lib/site-config";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 
 /** Локальная разработка - Resend sandbox принимает только этот отправитель. */
 const DEV_FROM = "East West Delivery <onboarding@resend.dev>";
-
-const WELCOME_SUBJECT: Record<AppLocale, string> = {
-    ru: "Добро пожаловать в East West Delivery! 🍣",
-    hy: "Բարի գալուստ East West Delivery! 🍣",
-    en: "Welcome to East West Delivery! 🍣",
-};
 
 function normalizeLocale(locale?: string): AppLocale {
     if (locale === "ru" || locale === "en" || locale === "hy") {
@@ -66,10 +58,6 @@ function resolveRecipient(to: string): {
     return { recipient: normalizedTo, devRedirectNote: null };
 }
 
-function buildMenuUrl(): string {
-    return `${SITE_URL.replace(/\/$/, "")}/menu`;
-}
-
 function formatResendError(
     message: string,
     from: string,
@@ -90,69 +78,6 @@ const OTP_SUBJECT: Record<AppLocale, string> = {
 };
 
 export type SendEmailResult = { sent: boolean };
-
-export type SendWelcomeEmailResult = SendEmailResult;
-
-/**
- * Приветственное письмо после регистрации / повторная отправка из профиля.
- * Никогда не бросает исключение - ошибки логируются, UX не блокируется.
- */
-export async function sendWelcomeEmail(
-    to: string,
-    _name: string,
-    locale?: AppLocale | string,
-): Promise<SendWelcomeEmailResult> {
-    const resend = getResendClient();
-    if (!resend) {
-        console.error("Resend error: RESEND_API_KEY is not configured");
-        return { sent: false };
-    }
-
-    const resolvedLocale = normalizeLocale(locale);
-    const from = getFromAddress();
-    const { recipient, devRedirectNote } = resolveRecipient(to);
-    const menuUrl = buildMenuUrl();
-
-    let html: string;
-    try {
-        html = await render(
-            WelcomeEmail({
-                locale: resolvedLocale,
-                menuUrl,
-                devRedirectNote,
-            }),
-        );
-    } catch (error) {
-        console.error("Resend error:", error);
-        return { sent: false };
-    }
-
-    try {
-        const { error } = await withTimeout(
-            resend.emails.send({
-                from,
-                to: [recipient],
-                subject: WELCOME_SUBJECT[resolvedLocale],
-                html,
-            }),
-            NOTIFICATION_FETCH_TIMEOUT_MS,
-            "Resend welcome email",
-        );
-
-        if (error) {
-            console.error(
-                "Resend error:",
-                formatResendError(error.message, from, to, recipient),
-            );
-            return { sent: false };
-        }
-
-        return { sent: true };
-    } catch (error) {
-        console.error("Resend error:", error);
-        return { sent: false };
-    }
-}
 
 /**
  * OTP-код для подтверждения email при регистрации.

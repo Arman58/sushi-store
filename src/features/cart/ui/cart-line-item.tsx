@@ -9,6 +9,7 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import { alpha } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
+import { motion, PanInfo,useAnimation, useMotionValue } from "framer-motion";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 
@@ -18,11 +19,14 @@ import {
     useCartLineIssueMessage,
 } from "@/features/cart/model/use-cart-line-validation";
 import { formatStorePrice } from "@/shared/lib/format-price";
+import { triggerHaptic } from "@/shared/lib/haptic";
 import { sanitizeProductImageSrc } from "@/shared/lib/product-cover";
 import { ProductCoverPlaceholder } from "@/shared/ui/product-cover-image";
 import { tokens } from "@/shared/ui/theme";
 
 const IMAGE_SIZE = 56;
+const SWIPE_THRESHOLD = -50;
+const DELETE_BUTTON_WIDTH = 72;
 
 const stepperButtonSx = {
     minWidth: 32,
@@ -72,27 +76,80 @@ export function CartLineItem({
     const safeImage = sanitizeProductImageSrc(item.image);
     const modifiersText = modifiersLabel(item);
 
+    // Swipe-to-delete mechanics
+    const x = useMotionValue(0);
+    const controls = useAnimation();
+    const handleDragEnd = (event: unknown, info: PanInfo) => {
+        if (info.offset.x < SWIPE_THRESHOLD) {
+            triggerHaptic("heavy");
+            controls.start({ x: -DELETE_BUTTON_WIDTH });
+        } else {
+            controls.start({ x: 0 });
+        }
+    };
+    const handleDeleteClick = () => {
+        triggerHaptic("medium");
+        onRemove();
+    };
+    const handleIncrease = () => {
+        triggerHaptic("light");
+        onIncrease();
+    };
+    const handleDecrease = () => {
+        triggerHaptic("light");
+        onDecrease();
+    };
+
     return (
         <Box
             sx={{
-                py: isDrawer ? 1.5 : 2,
+                position: "relative",
                 bgcolor: lineInvalid ? tokens.redDim : "transparent",
-                border: lineInvalid
-                    ? `1px solid ${alpha(tokens.red, 0.35)}`
-                    : "none",
-                borderRadius: lineInvalid ? 2 : 0,
-                px: lineInvalid ? 1 : 0,
-                borderBottom: showDivider
-                    ? `1px solid ${alpha("#000", 0.08)}`
-                    : "none",
+                borderBottom: showDivider ? `1px solid ${alpha("#000", 0.08)}` : "none",
+                overflow: "hidden",
             }}
         >
+            {/* Delete Background */}
             <Box
                 sx={{
+                    position: "absolute",
+                    top: 0,
+                    bottom: 0,
+                    right: 0,
+                    width: DELETE_BUTTON_WIDTH,
+                    bgcolor: "error.main",
                     display: "flex",
                     alignItems: "center",
-                    gap: 1.5,
-                    width: "100%",
+                    justifyContent: "center",
+                    color: "white",
+                }}
+                component="button"
+                onClick={handleDeleteClick}
+                aria-label={tCart("aria.remove", { name: item.name })}
+            >
+                <DeleteOutlineIcon sx={{ fontSize: 24 }} />
+            </Box>
+
+            {/* Swipeable Content */}
+            <motion.div
+                drag="x"
+                dragConstraints={{ left: -DELETE_BUTTON_WIDTH, right: 0 }}
+                dragElastic={0.1}
+                onDragEnd={handleDragEnd}
+                style={{ x, position: "relative", zIndex: 1 }}
+                animate={controls}
+            >
+                <Box
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.5,
+                        width: "100%",
+                        py: isDrawer ? 1.5 : 2,
+                        px: lineInvalid ? 1 : 0,
+                        bgcolor: "background.paper", // important for covering the background
+                        border: lineInvalid ? `1px solid ${alpha(tokens.red, 0.35)}` : "none",
+                        borderRadius: lineInvalid ? 2 : 0,
                     minWidth: 0,
                 }}
             >
@@ -241,7 +298,7 @@ export function CartLineItem({
                     >
                         <IconButton
                             aria-label={tProduct("aria.decrease", { name: item.name })}
-                            onClick={onDecrease}
+                            onClick={handleDecrease}
                             sx={{
                                 ...stepperButtonSx,
                                 bgcolor: "background.paper",
@@ -274,7 +331,7 @@ export function CartLineItem({
 
                         <IconButton
                             aria-label={tProduct("aria.increase", { name: item.name })}
-                            onClick={onIncrease}
+                            onClick={handleIncrease}
                             sx={{
                                 ...stepperButtonSx,
                                 bgcolor: "primary.main",
@@ -287,30 +344,9 @@ export function CartLineItem({
                             <AddIcon sx={{ fontSize: 18 }} />
                         </IconButton>
                     </Stack>
-
-                    <IconButton
-                        size="small"
-                        aria-label={tCart("aria.remove", { name: item.name })}
-                        onClick={onRemove}
-                        sx={{
-                            width: 32,
-                            height: 32,
-                            minWidth: 32,
-                            minHeight: 32,
-                            p: 0,
-                            flexShrink: 0,
-                            mt: 0.25,
-                            color: "text.disabled",
-                            "&:hover": {
-                                color: tokens.red,
-                                bgcolor: tokens.redDim,
-                            },
-                        }}
-                    >
-                        <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-                    </IconButton>
                 </Stack>
             </Box>
+            </motion.div>
         </Box>
     );
 }

@@ -11,6 +11,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 
 import { formatStorePrice } from "@/shared/lib/format-price";
+import { triggerHaptic } from "@/shared/lib/haptic";
 import { tokens } from "@/shared/ui/theme";
 
 import { stepperButtonSx } from "./product-card-shared";
@@ -43,6 +44,24 @@ export function ProductCardFooter({
 }: ProductCardFooterProps) {
     const t = useTranslations("product");
     const hasInCart = quantity > 0;
+
+    const handleAdd = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        triggerHaptic("medium");
+        onAdd(e);
+    };
+
+    const handleIncrease = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        triggerHaptic("light");
+        if (onIncrease) onIncrease();
+    };
+
+    const handleDecrease = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        triggerHaptic("light");
+        if (onDecrease) onDecrease();
+    };
 
     return (
         <Box
@@ -120,10 +139,7 @@ export function ProductCardFooter({
                         >
                             <IconButton
                                 size="small"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onDecrease?.();
-                                }}
+                                onClick={handleDecrease}
                                 aria-label={t("aria.decrease", { name })}
                                 sx={{
                                     ...stepperButtonSx,
@@ -160,10 +176,7 @@ export function ProductCardFooter({
                             <IconButton
                                 size="small"
                                 disabled={maxQtyReached}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onIncrease?.();
-                                }}
+                                onClick={handleIncrease}
                                 aria-label={t("aria.increase", { name })}
                                 sx={{
                                     ...stepperButtonSx,
@@ -188,7 +201,7 @@ export function ProductCardFooter({
                     >
                         <IconButton
                             size="small"
-                            onClick={onAdd}
+                            onClick={handleAdd}
                             disabled={!isAvailable}
                             aria-label={
                                 isAvailable

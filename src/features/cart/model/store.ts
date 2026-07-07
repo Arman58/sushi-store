@@ -46,6 +46,12 @@ type CartState = {
     markPriceMismatch: () => void;
     resetPriceMismatch: () => void;
     setAppliedPromoCode: (code: string | null) => void;
+    syncPricesWithServer: (
+        serverItems: Array<{
+            cartItemId: string;
+            serverUnitPrice?: number;
+        }>
+    ) => void;
 };
 
 export const useCartStore = create<CartState>()(
@@ -226,6 +232,34 @@ export const useCartStore = create<CartState>()(
             resetPriceMismatch: () => set({ hasPriceMismatch: false }),
 
             setAppliedPromoCode: (code) => set({ appliedPromoCode: code }),
+
+            syncPricesWithServer: (serverItems) => set((state) => {
+                let updated = false;
+                const newItems = state.items.map((item) => {
+                    const serverMatch = serverItems.find(s => s.cartItemId === item.cartItemId);
+                    if (serverMatch?.serverUnitPrice != null && serverMatch.serverUnitPrice !== item.calculatedItemPrice) {
+                        updated = true;
+                        // Modifiers are stored as part of the line. If the server says the total line price has changed,
+                        // we must update the calculatedItemPrice and basePrice to reflect this.
+                        return {
+                            ...item,
+                            calculatedItemPrice: serverMatch.serverUnitPrice,
+                            basePrice: serverMatch.serverUnitPrice - item.selectedModifiers.reduce((sum, m) => sum + m.priceDelta, 0),
+                        };
+                    }
+                    return item;
+                });
+
+                if (!updated) return state;
+
+                return {
+                    items: newItems,
+                    hasPriceMismatch: false,
+                    addToast: Date.now(),
+                    appToastMessage: "Цены в корзине обновлены",
+                    appToastSeverity: "success",
+                };
+            }),
         }),
         {
             name: "sushi-cart-v2",

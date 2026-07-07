@@ -1,4 +1,3 @@
-export { CategoryPills, type CategoryPillsProps } from "./ui/CategoryPills";
 export {
     CategoryPillsList,
     type CategoryPillsListProps,

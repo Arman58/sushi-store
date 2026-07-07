@@ -9,6 +9,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import { alpha } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
+import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
@@ -39,6 +40,7 @@ export function CheckoutWizard() {
     const clearCart = useCartStore((s) => s.clear);
     const hasPriceMismatch = useCartStore((s) => s.hasPriceMismatch);
     const isPlacingOrder = useCartStore((s) => s.isPlacingOrder);
+    const syncPricesWithServer = useCartStore((s) => s.syncPricesWithServer);
 
     const hasItems = items.length > 0;
 
@@ -48,6 +50,7 @@ export function CheckoutWizard() {
         hasCartLineProblems,
         hasPriceMismatchIssues,
         validSubtotal: cartSubtotal,
+        serverItems,
     } = useCartLineValidation(items);
 
     const {
@@ -256,9 +259,27 @@ export function CheckoutWizard() {
 
                 {hasItems && hasCartLineProblems && (
                     <Alert severity="error" sx={{ mb: 3 }}>
-                        {hasPriceMismatchIssues
-                            ? tCart("validation.orderPriceAlert")
-                            : t("cartLineProblems")}
+                        <Stack spacing={1}>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                {hasPriceMismatchIssues
+                                    ? tCart("validation.orderPriceAlert")
+                                    : t("cartLineProblems")}
+                            </Typography>
+                            {hasPriceMismatchIssues && (
+                                <Button
+                                    color="inherit"
+                                    size="small"
+                                    onClick={() => syncPricesWithServer(serverItems)}
+                                    sx={{
+                                        alignSelf: { xs: 'stretch', sm: 'flex-start' },
+                                        backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                                        '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.1)' }
+                                    }}
+                                >
+                                    {tCart("validation.syncPrices")}
+                                </Button>
+                            )}
+                        </Stack>
                     </Alert>
                 )}
 
@@ -301,7 +322,7 @@ export function CheckoutWizard() {
 
                             <Grid container spacing={3} alignItems="stretch">
                                 <Grid size={{ xs: 12, md: 7 }}>
-                                    <Stack spacing={3} sx={{ minWidth: 0 }}>
+                                    <Stack component={motion.div} layout spacing={3} sx={{ minWidth: 0 }}>
                                         <ContactSection
                                             sessionUser={sessionUser}
                                             isDelivery={delivery.isDelivery}

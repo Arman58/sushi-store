@@ -6,6 +6,7 @@ import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Dialog from "@mui/material/Dialog";
 import Divider from "@mui/material/Divider";
+import Drawer from "@mui/material/Drawer";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import { alpha, useTheme } from "@mui/material/styles";
@@ -306,26 +307,28 @@ export function ProductModifiersDialog({
             }}
         >
             {/* Top bar: close */}
-            <Box
-                sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "flex-end",
-                    flexShrink: 0,
-                    px: { xs: 1, md: 2 },
-                    pt: isMobile ? "env(safe-area-inset-top)" : 1,
-                    pb: 0.5,
-                }}
-            >
-                <IconButton
-                    onClick={onClose}
-                    aria-label={tCommon("aria.close")}
-                    size="large"
-                    sx={{ flexShrink: 0 }}
+            {!isMobile && (
+                <Box
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "flex-end",
+                        flexShrink: 0,
+                        px: { xs: 1, md: 2 },
+                        pt: 1,
+                        pb: 0.5,
+                    }}
                 >
-                    <CloseIcon />
-                </IconButton>
-            </Box>
+                    <IconButton
+                        onClick={onClose}
+                        aria-label={tCommon("aria.close")}
+                        size="large"
+                        sx={{ flexShrink: 0 }}
+                    >
+                        <CloseIcon />
+                    </IconButton>
+                </Box>
+            )}
 
             {/* Scrollable content */}
             <Box
@@ -572,18 +575,34 @@ export function ProductModifiersDialog({
 
     if (isMobile) {
         return (
-            <Dialog
+            <Drawer
+                anchor="bottom"
                 open={open}
                 onClose={onClose}
-                fullScreen
-                sx={{
-                    "& .MuiDialog-paper": {
-                        bgcolor: "background.paper",
+                slotProps={{
+                    paper: {
+                        sx: {
+                            borderTopLeftRadius: 20,
+                            borderTopRightRadius: 20,
+                            maxHeight: "90dvh",
+                            pb: "env(safe-area-inset-bottom)",
+                            bgcolor: "background.paper",
+                        },
                     },
                 }}
             >
+                {/* Pull bar */}
+                <Box sx={{ pt: 1, display: "flex", justifyContent: "center", position: "relative" }}>
+                    <Box sx={{ width: 36, height: 4, borderRadius: 999, bgcolor: "divider" }} />
+                    <IconButton
+                        onClick={onClose}
+                        sx={{ position: "absolute", top: 6, right: 8 }}
+                    >
+                        <CloseIcon fontSize="small" />
+                    </IconButton>
+                </Box>
                 {dialogBody}
-            </Dialog>
+            </Drawer>
         );
     }
 

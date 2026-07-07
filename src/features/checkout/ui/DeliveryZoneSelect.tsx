@@ -183,7 +183,7 @@ export function DeliveryZoneSelect({
                         flexShrink: 0,
                     }}
                 >
-                    <Typography variant="subtitle1" fontWeight={700}>
+                    <Typography component="span" variant="subtitle1" fontWeight={700}>
                         {dialogTitle}
                     </Typography>
                     <IconButton

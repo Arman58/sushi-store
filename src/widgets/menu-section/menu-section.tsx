@@ -28,6 +28,8 @@ import { useCartStore } from "@/features/cart";
 import { FilterTriggerButton, useMenuFilters } from "@/features/filter";
 import { Link } from "@/i18n/server";
 import type { StorefrontCategory } from "@/lib/i18n-utils";
+import { itemListJsonLd,JsonLd } from "@/lib/seo/json-ld";
+import { SITE_URL } from "@/lib/site-config";
 import { formatStorePrice } from "@/shared/lib/format-price";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { AppInput } from "@/shared/ui";
@@ -235,12 +237,22 @@ function MenuSectionInner({
         return filterByCategory(products, categorySlug);
     }, [categorySlug, filterByCategory, products]);
 
-    /** Категория выбрана, но в ней ещё нет ни одного товара (не «ничего не нашлось» по поиску). */
     const isEmptyCategoryShelf =
         categorySlug !== "all" && productsInActiveCategory.length === 0;
 
+    const itemListStructuredData = useMemo(() => {
+        return itemListJsonLd(
+            filteredProducts.map((p) => ({
+                name: p.name,
+                url: `${SITE_URL}/menu/${p.slug}`,
+                image: getProductCoverUrl({ images: p.images, mainImage: p.mainImage }),
+            }))
+        );
+    }, [filteredProducts]);
+
     return (
         <Box sx={{ mt: 3, display: "flex", flexDirection: "column", gap: 2 }}>
+            <JsonLd data={itemListStructuredData} />
             {/* ══════════════════════════════════════════════════════
                 FILTER HEADER (sticky search + category pills)
             ══════════════════════════════════════════════════════ */}

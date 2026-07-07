@@ -197,3 +197,26 @@ export function breadcrumbListJsonLd(items: BreadcrumbJsonLdItem[]) {
         })),
     };
 }
+
+export type ItemListJsonLdItem = {
+    name: string;
+    url: string;
+    image?: string | null;
+};
+
+export function itemListJsonLd(items: ItemListJsonLdItem[]) {
+    return {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        itemListElement: items.map((item, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            item: {
+                "@type": "Product",
+                name: item.name,
+                url: item.url,
+                ...(item.image ? { image: item.image } : {}),
+            },
+        })),
+    };
+}

@@ -5,6 +5,7 @@ import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Typography from "@mui/material/Typography";
+import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useLocale } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -242,20 +243,31 @@ export function UpsellCarousel({
                                 </Typography>
                             </Box>
                             <Box
-                                component="span"
+                                component={motion.span}
+                                animate={{
+                                    boxShadow: [
+                                        "0px 0px 0px 0px rgba(39, 174, 96, 0.4)",
+                                        "0px 0px 0px 6px rgba(39, 174, 96, 0)",
+                                    ],
+                                }}
+                                transition={{
+                                    duration: 1.5,
+                                    repeat: Infinity,
+                                    ease: "easeInOut",
+                                }}
                                 sx={{
                                     display: "inline-flex",
                                     alignItems: "center",
                                     justifyContent: "center",
-                                    width: 22,
-                                    height: 22,
+                                    width: 24,
+                                    height: 24,
                                     borderRadius: "50%",
-                                    bgcolor: tokens.brandDim,
-                                    color: tokens.brand,
+                                    bgcolor: tokens.brand,
+                                    color: "white",
                                     flexShrink: 0,
                                 }}
                             >
-                                <AddRoundedIcon sx={{ fontSize: 16 }} />
+                                <AddRoundedIcon sx={{ fontSize: 18 }} />
                             </Box>
                         </ButtonBase>
                     );

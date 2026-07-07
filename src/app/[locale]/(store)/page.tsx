@@ -18,6 +18,7 @@ import { RecentlyViewedSection } from "@/widgets/home/recently-viewed-section";
 import { CategoryPillsSkeleton } from "@/widgets/home/skeletons/category-pills-skeleton";
 import { HeroSectionSkeleton } from "@/widgets/home/skeletons/hero-section-skeleton";
 import { PopularSectionSkeleton } from "@/widgets/home/skeletons/popular-section-skeleton";
+import { WelcomePromoDrawer } from "@/widgets/home/welcome-promo-drawer";
 import { SeoText } from "@/widgets/seo-text";
 
 export const revalidate = 60;
@@ -84,6 +85,8 @@ export default function HomePage() {
             <SeoText />
 
             <Box sx={{ height: { xs: 32, sm: 48, md: 64 } }} />
+
+            <WelcomePromoDrawer />
         </>
     );
 }

@@ -57,59 +57,12 @@ export async function PromoBannersSection({
             href: b.href,
         }));
     } catch (error) {
-        // Не роняем главную, но причина должна быть видна в логах
-        console.error("[BANNERS] Failed to load:", error);
-        // В dev показываем причину прямо на странице - никаких тихих исчезновений
-        if (process.env.NODE_ENV === "development") {
-            return (
-                <Container sx={{ ...sectionContainerSx, mt: 2 }}>
-                    <Box
-                        sx={{
-                            p: 2,
-                            borderRadius: 2,
-                            bgcolor: "rgba(231,76,60,0.1)",
-                            border: "1px solid rgba(231,76,60,0.4)",
-                            color: "#C0392B",
-                            fontSize: 13,
-                            fontFamily: "monospace",
-                            whiteSpace: "pre-wrap",
-                            wordBreak: "break-word",
-                        }}
-                    >
-                        [BANNERS dev-diagnostic]{" "}
-                        {error instanceof Error
-                            ? error.message
-                            : String(error)}
-                        {"\n\n"}Частая причина: dev-сервер запущен со старым
-                        prisma-клиентом. Перезапустите: Ctrl+C → npm run dev.
-                    </Box>
-                </Container>
-            );
-        }
+        // Не роняем главную, но причина должна быть видна в логах (используем warn, чтобы Next.js не перехватывал как фатальную ошибку в dev)
+        console.warn("[BANNERS] Failed to load:", error instanceof Error ? error.message : error);
         return null;
     }
 
     if (items.length === 0) {
-        // В dev поясняем, почему пусто (вместо тихого отсутствия секции)
-        if (process.env.NODE_ENV === "development") {
-            return (
-                <Container sx={{ ...sectionContainerSx, mt: 2 }}>
-                    <Box
-                        sx={{
-                            p: 1.5,
-                            borderRadius: 2,
-                            border: "1px dashed rgba(245,158,11,0.7)",
-                            color: "#B45309",
-                            fontSize: 13,
-                        }}
-                    >
-                        [BANNERS dev-diagnostic] Запрос выполнен успешно, но
-                        активных баннеров нет: проверьте в админке тумблер
-                        «Активен» и даты «Показ с/по» (истёкшие скрываются).
-                    </Box>
-                </Container>
-            );
-        }
         return null;
     }
 
