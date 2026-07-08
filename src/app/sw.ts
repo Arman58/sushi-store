@@ -218,24 +218,27 @@ const serwist = new Serwist({
 });
 
 self.addEventListener("push", (event: PushEvent) => {
-    const data = (() => {
-        try {
-            return event.data?.json() as { title?: string; body?: string; url?: string } | undefined;
-        } catch {
-            return undefined;
-        }
-    })();
+    let payload = { title: "East West Delivery", body: "", url: "/" };
 
-    const title = data?.title ?? "East West Delivery";
-    const body = data?.body ?? "";
-    const url = data?.url ?? "/";
+    if (event.data) {
+        try {
+            const rawData = event.data.text();
+            try {
+                payload = { ...payload, ...JSON.parse(rawData) };
+            } catch {
+                payload.body = rawData;
+            }
+        } catch (e) {
+            console.error("Failed to parse push event data:", e);
+        }
+    }
 
     event.waitUntil(
-        self.registration.showNotification(title, {
-            body,
+        self.registration.showNotification(payload.title, {
+            body: payload.body,
             icon: "/pwa/icon-192x192.png",
             badge: "/pwa/icon-192x192.png",
-            data: { url },
+            data: { url: payload.url },
         }),
     );
 });

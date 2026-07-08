@@ -173,6 +173,7 @@ function SidebarBrand() {
                     alt="East West"
                     fill
                     sizes="36px"
+                    priority
                     unoptimized
                     style={{ objectFit: "cover" }}
                 />

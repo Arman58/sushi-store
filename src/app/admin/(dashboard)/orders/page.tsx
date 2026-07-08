@@ -9,7 +9,9 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+
+import { resolveAdminLocale } from "@/lib/admin-locale";
 
 import {
     buildExportHref,
@@ -55,11 +57,11 @@ export default async function AdminOrdersPage({
                                                   searchParams,
                                               }: AdminOrdersPageProps) {
     const sp = await searchParams;
-    const locale = await getLocale();
-    const t = await getTranslations("admin.orders");
-    const tCommon = await getTranslations("admin.common");
-    const tOrder = await getTranslations("order");
-    const tNav = await getTranslations("nav");
+    const locale = await resolveAdminLocale();
+    const t = await getTranslations({ locale, namespace: "admin.orders" });
+    const tCommon = await getTranslations({ locale, namespace: "admin.common" });
+    const tOrder = await getTranslations({ locale, namespace: "order" });
+    const tNav = await getTranslations({ locale, namespace: "nav" });
 
     const orderLabels: OrderDisplayLabels = {
         paymentCash: tOrder("payment.cash"),

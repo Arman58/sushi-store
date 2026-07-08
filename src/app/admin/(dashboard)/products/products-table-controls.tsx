@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import { useTranslations } from "next-intl";
 
-import { getLocalizedField } from "@/lib/i18n-utils";
+import { getLocalizedField, type StoreLocale } from "@/lib/i18n-utils";
 
 // ─── View model ───────────────────────────────────────────────────────────────
 
@@ -80,6 +80,7 @@ function searchableText(product: FilterableProduct): string {
 export function filterAndSortProducts<T extends FilterableProduct>(
     products: readonly T[],
     view: ProductTableView,
+    contentLocale: StoreLocale = "hy",
 ): T[] {
     const query = view.search.trim().toLowerCase();
     const priceMin = view.priceMin ? Number(view.priceMin) : null;
@@ -109,17 +110,16 @@ export function filterAndSortProducts<T extends FilterableProduct>(
     });
 
     const dir = view.sortDir === "asc" ? 1 : -1;
-    const nameOf = (p: FilterableProduct) =>
-        getLocalizedField(p.name, "ru") || getLocalizedField(p.name, "hy");
+    const nameOf = (p: FilterableProduct) => getLocalizedField(p.name, contentLocale);
     const categoryOf = (p: FilterableProduct) =>
-        p.category ? getLocalizedField(p.category.name, "ru") : "";
+        p.category ? getLocalizedField(p.category.name, contentLocale) : "";
 
     return [...filtered].sort((a, b) => {
         switch (view.sortBy) {
             case "name":
-                return nameOf(a).localeCompare(nameOf(b), "ru") * dir;
+                return nameOf(a).localeCompare(nameOf(b), contentLocale) * dir;
             case "category":
-                return categoryOf(a).localeCompare(categoryOf(b), "ru") * dir;
+                return categoryOf(a).localeCompare(categoryOf(b), contentLocale) * dir;
             case "price":
                 return (a.price - b.price) * dir;
             case "isActive":
@@ -164,9 +164,11 @@ export function ProductsToolbar({
     totalCount,
     filteredCount,
     onChange,
-}: ProductsToolbarProps) {
+    contentLocale,
+}: ProductsToolbarProps & { contentLocale: StoreLocale }) {
     const t = useTranslations("admin.products");
     const tCommon = useTranslations("admin.common");
+    const tAi = useTranslations("admin.aiTranslate");
     const activeFilters = countActiveFilters(view);
 
     return (
@@ -321,6 +323,14 @@ export function ProductsToolbar({
                           })
                         : t("totalProducts", { total: totalCount })}
                 </Typography>
+                <Chip
+                    label={tAi("contentLanguageChip", {
+                        locale: contentLocale.toUpperCase(),
+                    })}
+                    size="small"
+                    variant="outlined"
+                    sx={{ fontWeight: 700, fontSize: "0.68rem" }}
+                />
                 {activeFilters > 0 && (
                     <Chip
                         label={t("resetFiltersChip", { count: activeFilters })}

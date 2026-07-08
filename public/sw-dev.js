@@ -14,11 +14,20 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("push", (event) => {
     let payload = { title: "East West", body: "", url: "/" };
-    try {
-        if (event.data) payload = { ...payload, ...event.data.json() };
-    } catch {
-        /* не-JSON payload */
+    
+    if (event.data) {
+        try {
+            const rawData = event.data.text();
+            try {
+                payload = { ...payload, ...JSON.parse(rawData) };
+            } catch {
+                payload.body = rawData;
+            }
+        } catch (e) {
+            console.error("Failed to extract push data:", e);
+        }
     }
+
     event.waitUntil(
         self.registration.showNotification(payload.title, {
             body: payload.body,

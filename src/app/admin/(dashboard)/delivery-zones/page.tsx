@@ -34,10 +34,14 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { useLocalizedFieldFn } from "@/features/admin/hooks/use-admin-content-locale";
+import { useAITranslation } from "@/features/admin/hooks/use-ai-translation";
+import { AdminLocalizationSection } from "@/features/admin/ui/admin-localization-section";
+import { LocalizedStatusChips } from "@/features/admin/ui/localized-status-chips";
 import {
     emptyLocalizedJson,
-    getLocalizedField,
     type LocalizedJson,
+    mergeLocalizedTranslations,
     parseLocalizedJson,
 } from "@/lib/i18n-utils";
 import { PageContainer, SectionTitle } from "@/shared/ui";
@@ -84,6 +88,7 @@ function formatRub(v: number) {
 export default function AdminDeliveryZonesPage() {
     const t = useTranslations("admin.deliveryZones");
     const tCommon = useTranslations("admin.common");
+    const lf = useLocalizedFieldFn();
     const tNav = useTranslations("admin.nav");
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -96,6 +101,31 @@ export default function AdminDeliveryZonesPage() {
     const [saving, setSaving] = useState(false);
     const [deleteLoadingId, setDeleteLoadingId] = useState<number | null>(null);
     const [toggleLoadingId, setToggleLoadingId] = useState<number | null>(null);
+
+    const { translate, isTranslating } = useAITranslation();
+
+    const handleTranslate = async (): Promise<boolean> => {
+        const fieldsToTranslate: Record<string, string> = {};
+        if (form.name?.ru) fieldsToTranslate.name = form.name.ru;
+        if (form.description?.ru) fieldsToTranslate.description = form.description.ru;
+        if (Object.keys(fieldsToTranslate).length === 0) return false;
+
+        const res = await translate(fieldsToTranslate);
+        if (!res) return false;
+
+        setForm((f) => ({
+            ...f,
+            name: mergeLocalizedTranslations(f.name, {
+                en: res.en.name,
+                hy: res.hy.name,
+            }),
+            description: mergeLocalizedTranslations(f.description, {
+                en: res.en.description,
+                hy: res.hy.description,
+            }),
+        }));
+        return true;
+    };
 
     const isEditMode = editId !== null;
     const title = useMemo(
@@ -335,9 +365,18 @@ export default function AdminDeliveryZonesPage() {
                                     rows.map((r) => (
                                         <TableRow key={r.id} hover>
                                             <TableCell>
-                                                <Typography fontWeight={600}>
-                                                    {getLocalizedField(r.name, "hy")}
-                                                </Typography>
+                                                <Box
+                                                    sx={{
+                                                        display: "flex",
+                                                        flexDirection: "column",
+                                                        gap: 0.75,
+                                                    }}
+                                                >
+                                                    <Typography fontWeight={600}>
+                                                        {lf(r.name)}
+                                                    </Typography>
+                                                    <LocalizedStatusChips value={r.name} />
+                                                </Box>
                                             </TableCell>
                                             <TableCell>
                                                 <Typography sx={{ fontVariantNumeric: "tabular-nums" }}>
@@ -370,7 +409,7 @@ export default function AdminDeliveryZonesPage() {
                                                         void handleToggleActive(r, checked)
                                                     }
                                                     inputProps={{
-                                                        "aria-label": `${r.isActive ? tCommon("disableZone") : tCommon("enableZone")} ${getLocalizedField(r.name, "hy")}`,
+                                                        "aria-label": `${r.isActive ? tCommon("disableZone") : tCommon("enableZone")} ${lf(r.name)}`,
                                                     }}
                                                 />
                                             </TableCell>
@@ -414,8 +453,9 @@ export default function AdminDeliveryZonesPage() {
                                         <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
                                             <Stack spacing={1.25}>
                                                 <Typography fontWeight={800}>
-                                                    {getLocalizedField(r.name, "hy")}
+                                                    {lf(r.name)}
                                                 </Typography>
+                                                <LocalizedStatusChips value={r.name} />
                                                 <Typography variant="body2">
                                                     {tCommon("delivery")}: {formatRub(r.deliveryPrice)}
                                                 </Typography>
@@ -481,12 +521,28 @@ export default function AdminDeliveryZonesPage() {
                     <DialogTitle>{title}</DialogTitle>
                     <DialogContent>
                         <Stack spacing={2} sx={{ mt: 1 }}>
-                            <LocalizedTextFields
-                                label={tCommon("name")}
-                                required
-                                value={form.name}
-                                onChange={(name) => setForm((f) => ({ ...f, name }))}
-                            />
+                            <AdminLocalizationSection
+                                fieldValues={[form.name, form.description]}
+                                onTranslate={handleTranslate}
+                                translating={isTranslating}
+                                disabled={saving}
+                            >
+                                <LocalizedTextFields
+                                    label={tCommon("name")}
+                                    required
+                                    value={form.name}
+                                    onChange={(name) => setForm((f) => ({ ...f, name }))}
+                                />
+                                <LocalizedTextFields
+                                    label={tCommon("description")}
+                                    value={form.description}
+                                    onChange={(description) =>
+                                        setForm((f) => ({ ...f, description }))
+                                    }
+                                    multiline
+                                    minRows={2}
+                                />
+                            </AdminLocalizationSection>
                             <TextField
                                 label={t("deliveryFee")}
                                 type="number"
@@ -524,15 +580,6 @@ export default function AdminDeliveryZonesPage() {
                                     ),
                                 }}
                                 inputProps={{ step: 1, min: 0 }}
-                            />
-                            <LocalizedTextFields
-                                label={tCommon("description")}
-                                value={form.description}
-                                onChange={(description) =>
-                                    setForm((f) => ({ ...f, description }))
-                                }
-                                multiline
-                                minRows={2}
                             />
                             <FormControlLabel
                                 control={

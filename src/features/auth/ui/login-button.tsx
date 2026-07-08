@@ -1,5 +1,6 @@
 "use client";
 
+import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
@@ -12,7 +13,7 @@ import MenuItem from "@mui/material/MenuItem";
 import dynamic from "next/dynamic";
 import { signOut, useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Link, useRouter } from "@/i18n/server";
 import { tokens } from "@/shared/ui/theme";
@@ -27,9 +28,20 @@ export function LoginButton() {
     const router = useRouter();
     const t = useTranslations("auth");
     const tNav = useTranslations("nav");
+    const tProfile = useTranslations("profile");
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (menuAnchor) {
+                setMenuAnchor(null);
+            }
+        };
+        window.addEventListener("scroll", handleScroll, { passive: true });
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, [menuAnchor]);
 
     const isAuthenticated = status === "authenticated" && session?.user?.id != null;
     const displayName = (session?.user?.name ?? "").trim();
@@ -136,8 +148,26 @@ export function LoginButton() {
                     onClick={() => setMenuAnchor(null)}
                     sx={{ gap: 1 }}
                 >
-                    <ReceiptLongOutlinedIcon sx={{ fontSize: 18 }} />
+                    <PersonOutlineOutlinedIcon sx={{ fontSize: 18 }} />
                     {tNav("profile")}
+                </MenuItem>
+                <MenuItem
+                    component={Link}
+                    href="/profile/addresses"
+                    onClick={() => setMenuAnchor(null)}
+                    sx={{ gap: 1 }}
+                >
+                    <HomeOutlinedIcon sx={{ fontSize: 18 }} />
+                    {tProfile("my_addresses")}
+                </MenuItem>
+                <MenuItem
+                    component={Link}
+                    href="/profile/orders"
+                    onClick={() => setMenuAnchor(null)}
+                    sx={{ gap: 1 }}
+                >
+                    <ReceiptLongOutlinedIcon sx={{ fontSize: 18 }} />
+                    {tProfile("orderHistory")}
                 </MenuItem>
                 <MenuItem
                     onClick={async () => {

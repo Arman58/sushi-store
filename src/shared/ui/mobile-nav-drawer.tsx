@@ -3,10 +3,16 @@
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import FavoriteBorderOutlinedIcon from "@mui/icons-material/FavoriteBorderOutlined";
+import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
+import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
+import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
+import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
+import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import Collapse from "@mui/material/Collapse";
 import Divider from "@mui/material/Divider";
@@ -41,10 +47,10 @@ const LANGUAGES = [
 ] as const;
 
 const STORE_NAV_HREFS = [
-    { href: "/", key: "home" },
-    { href: "/menu", key: "menu" },
-    { href: "/favorites", key: "favorites" },
-    { href: "/contacts", key: "contacts" },
+    { href: "/", key: "home", icon: HomeOutlinedIcon },
+    { href: "/menu", key: "menu", icon: MenuBookOutlinedIcon },
+    { href: "/favorites", key: "favorites", icon: FavoriteBorderOutlinedIcon },
+    { href: "/contacts", key: "contacts", icon: PhoneOutlinedIcon },
 ] as const;
 
 const DRAWER_WIDTH = 320;
@@ -92,10 +98,10 @@ function DrawerLanguageSwitcher({ onChange }: { onChange?: () => void }) {
                             flexShrink: 0,
                             border: "1px solid",
                             borderColor: selected ? "primary.main" : "divider",
-                            bgcolor: selected ? "primary.main" : "background.paper",
+                            bgcolor: selected ? "rgba(39, 174, 96, 0.12)" : "background.paper",
                             fontSize: 18,
                             "&:hover": {
-                                bgcolor: selected ? "primary.dark" : "action.hover",
+                                bgcolor: selected ? "rgba(39, 174, 96, 0.2)" : "action.hover",
                             },
                         }}
                     >
@@ -122,6 +128,7 @@ export function MobileNavDrawer() {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+
 
     const closeDrawer = () => {
         setDrawerOpen(false);
@@ -220,7 +227,7 @@ export function MobileNavDrawer() {
                     }}
                 >
                     <List disablePadding sx={{ py: 1 }}>
-                        {STORE_NAV_HREFS.map(({ href, key }) => (
+                        {STORE_NAV_HREFS.map(({ href, key, icon: Icon }) => (
                             <ListItemButton
                                 key={href}
                                 component={Link}
@@ -231,11 +238,28 @@ export function MobileNavDrawer() {
                                     py: 1.5,
                                     px: 2.5,
                                     fontWeight: pathname === href ? 700 : 500,
+                                    color: pathname === href ? tokens.brand : "text.primary",
+                                    bgcolor: pathname === href ? "rgba(39, 174, 96, 0.04)" : "transparent",
+                                    borderLeft: pathname === href ? `4px solid ${tokens.brand}` : "4px solid transparent",
+                                    transition: "all 0.2s ease",
+                                    "&.Mui-selected": {
+                                        bgcolor: "rgba(39, 174, 96, 0.04)",
+                                        color: tokens.brand,
+                                        "& .MuiListItemIcon-root": {
+                                            color: tokens.brand,
+                                        },
+                                    },
+                                    "& .MuiListItemIcon-root": {
+                                        color: pathname === href ? tokens.brand : "text.secondary",
+                                    }
                                 }}
                             >
+                                <ListItemIcon sx={{ minWidth: 40 }}>
+                                    <Icon sx={{ fontSize: 22 }} />
+                                </ListItemIcon>
                                 <ListItemText
                                     primary={t(key)}
-                                    primaryTypographyProps={{ fontWeight: "inherit" }}
+                                    primaryTypographyProps={{ fontWeight: "inherit", fontSize: "0.95rem" }}
                                 />
                             </ListItemButton>
                         ))}
@@ -251,16 +275,54 @@ export function MobileNavDrawer() {
                             sx={{
                                 flexShrink: 0,
                                 width: "100%",
-                                py: 1.5,
+                                py: 1.75,
                                 px: 2.5,
+                                borderLeft: isProfileOpen ? `4px solid ${tokens.brand}` : "4px solid transparent",
+                                bgcolor: isProfileOpen ? "rgba(39, 174, 96, 0.02)" : "transparent",
+                                transition: "all 0.25s ease",
                             }}
                         >
                             <ListItemIcon sx={{ minWidth: 40 }}>
-                                <AccountCircleOutlinedIcon />
+                                {isAuthenticated && session?.user?.image ? (
+                                    <Avatar
+                                        src={session.user.image}
+                                        alt={session.user.name || ""}
+                                        sx={{
+                                            width: 28,
+                                            height: 28,
+                                            border: `1.5px solid ${tokens.brand}`,
+                                        }}
+                                    />
+                                ) : isAuthenticated ? (
+                                    <Avatar
+                                        sx={{
+                                            width: 28,
+                                            height: 28,
+                                            bgcolor: tokens.brand,
+                                            fontSize: "0.85rem",
+                                            fontWeight: 800,
+                                            color: "#fff",
+                                        }}
+                                    >
+                                        {(session.user.name || "U").charAt(0).toUpperCase()}
+                                    </Avatar>
+                                ) : (
+                                    <AccountCircleOutlinedIcon sx={{ color: "text.secondary" }} />
+                                )}
                             </ListItemIcon>
                             <ListItemText
-                                primary={t("profile")}
-                                primaryTypographyProps={{ fontWeight: 600 }}
+                                primary={isAuthenticated ? (session.user.name || tProfile("defaultName")) : t("profile")}
+                                secondary={isAuthenticated ? session.user.email : null}
+                                primaryTypographyProps={{
+                                    fontWeight: 700,
+                                    fontSize: "0.95rem",
+                                    color: isProfileOpen ? tokens.brand : "text.primary"
+                                }}
+                                secondaryTypographyProps={{
+                                    variant: "caption",
+                                    color: "text.secondary",
+                                    sx: { display: "block", mt: 0.25 }
+                                }}
                             />
                             <ExpandMoreIcon
                                 sx={{
@@ -268,16 +330,17 @@ export function MobileNavDrawer() {
                                     transform: isProfileOpen
                                         ? "rotate(180deg)"
                                         : "rotate(0deg)",
+                                    color: isProfileOpen ? tokens.brand : "text.secondary",
                                 }}
                             />
                         </ListItemButton>
 
                         <Collapse in={isProfileOpen} timeout="auto" unmountOnExit>
-                            <List disablePadding sx={{ pb: 1 }}>
+                            <List disablePadding sx={{ pb: 1, bgcolor: "rgba(39, 174, 96, 0.01)" }}>
                                 {!isAuthenticated ? (
                                     <ListItemButton
                                         onClick={handleLoginClick}
-                                        sx={{ pl: 4.5, py: 1.25 }}
+                                        sx={{ pl: 7, py: 1.25 }}
                                     >
                                         <ListItemIcon sx={{ minWidth: 36 }}>
                                             <LoginOutlinedIcon sx={{ fontSize: 20 }} />
@@ -286,30 +349,134 @@ export function MobileNavDrawer() {
                                     </ListItemButton>
                                 ) : (
                                     <>
+                                        {/* My Profile Link */}
                                         <ListItemButton
                                             component={Link}
                                             href="/profile"
                                             onClick={handleNavClick}
-                                            selected={pathname.startsWith("/profile")}
-                                            sx={{ pl: 4.5, py: 1.25 }}
+                                            selected={pathname === "/profile"}
+                                            sx={{
+                                                pl: 7,
+                                                py: 1.5,
+                                                position: "relative",
+                                                "&.Mui-selected": {
+                                                    bgcolor: "rgba(39, 174, 96, 0.06)",
+                                                    color: tokens.brand,
+                                                    "& .MuiListItemIcon-root": {
+                                                        color: tokens.brand,
+                                                    },
+                                                    "&::before": {
+                                                        content: '""',
+                                                        position: "absolute",
+                                                        left: 0,
+                                                        top: 0,
+                                                        bottom: 0,
+                                                        width: 4,
+                                                        bgcolor: tokens.brand,
+                                                    }
+                                                }
+                                            }}
                                         >
                                             <ListItemIcon sx={{ minWidth: 36 }}>
-                                                <ReceiptLongOutlinedIcon
-                                                    sx={{ fontSize: 20 }}
-                                                />
+                                                <PersonOutlineOutlinedIcon sx={{ fontSize: 20 }} />
+                                            </ListItemIcon>
+                                            <ListItemText
+                                                primary={t("profile")}
+                                                primaryTypographyProps={{ fontWeight: pathname === "/profile" ? 700 : 500 }}
+                                            />
+                                        </ListItemButton>
+
+                                        {/* My Addresses Link */}
+                                        <ListItemButton
+                                            component={Link}
+                                            href="/profile/addresses"
+                                            onClick={handleNavClick}
+                                            selected={pathname === "/profile/addresses"}
+                                            sx={{
+                                                pl: 7,
+                                                py: 1.5,
+                                                position: "relative",
+                                                "&.Mui-selected": {
+                                                    bgcolor: "rgba(39, 174, 96, 0.06)",
+                                                    color: tokens.brand,
+                                                    "& .MuiListItemIcon-root": {
+                                                        color: tokens.brand,
+                                                    },
+                                                    "&::before": {
+                                                        content: '""',
+                                                        position: "absolute",
+                                                        left: 0,
+                                                        top: 0,
+                                                        bottom: 0,
+                                                        width: 4,
+                                                        bgcolor: tokens.brand,
+                                                    }
+                                                }
+                                            }}
+                                        >
+                                            <ListItemIcon sx={{ minWidth: 36 }}>
+                                                <HomeOutlinedIcon sx={{ fontSize: 20 }} />
+                                            </ListItemIcon>
+                                            <ListItemText
+                                                primary={tProfile("my_addresses")}
+                                                primaryTypographyProps={{ fontWeight: pathname === "/profile/addresses" ? 700 : 500 }}
+                                            />
+                                        </ListItemButton>
+
+                                        {/* My Orders Link */}
+                                        <ListItemButton
+                                            component={Link}
+                                            href="/profile/orders"
+                                            onClick={handleNavClick}
+                                            selected={pathname === "/profile/orders"}
+                                            sx={{
+                                                pl: 7,
+                                                py: 1.5,
+                                                position: "relative",
+                                                "&.Mui-selected": {
+                                                    bgcolor: "rgba(39, 174, 96, 0.06)",
+                                                    color: tokens.brand,
+                                                    "& .MuiListItemIcon-root": {
+                                                        color: tokens.brand,
+                                                    },
+                                                    "&::before": {
+                                                        content: '""',
+                                                        position: "absolute",
+                                                        left: 0,
+                                                        top: 0,
+                                                        bottom: 0,
+                                                        width: 4,
+                                                        bgcolor: tokens.brand,
+                                                    }
+                                                }
+                                            }}
+                                        >
+                                            <ListItemIcon sx={{ minWidth: 36 }}>
+                                                <ReceiptLongOutlinedIcon sx={{ fontSize: 20 }} />
                                             </ListItemIcon>
                                             <ListItemText
                                                 primary={tProfile("orderHistory")}
+                                                primaryTypographyProps={{ fontWeight: pathname === "/profile/orders" ? 700 : 500 }}
                                             />
                                         </ListItemButton>
                                         <ListItemButton
                                             onClick={handleLogout}
-                                            sx={{ pl: 4.5, py: 1.25 }}
+                                            sx={{
+                                                pl: 7,
+                                                py: 1.5,
+                                                color: "error.main",
+                                                "&:hover": {
+                                                    bgcolor: "error.lighter",
+                                                }
+                                            }}
                                         >
-                                            <ListItemIcon sx={{ minWidth: 36 }}>
+                                            <ListItemIcon sx={{ minWidth: 36, color: "inherit" }}>
                                                 <LogoutOutlinedIcon sx={{ fontSize: 20 }} />
                                             </ListItemIcon>
-                                            <ListItemText primary={tAuth("logout")} />
+                                            <ListItemText
+                                                primary={tAuth("logout")}
+                                                primaryTypographyProps={{ fontWeight: 600 }}
+                                            />
                                         </ListItemButton>
                                     </>
                                 )}

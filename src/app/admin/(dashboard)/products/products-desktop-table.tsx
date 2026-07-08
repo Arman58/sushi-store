@@ -18,7 +18,8 @@ import {
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 
-import { getLocalizedField } from "@/lib/i18n-utils";
+import { useLocalizedFieldFn } from "@/features/admin/hooks/use-admin-content-locale";
+import { LocalizedStatusChips } from "@/features/admin/ui/localized-status-chips";
 import { getProductCoverUrl, getProductImageUrls } from "@/shared/lib/product-cover";
 
 import type { ProductRow, ProductRowActions } from "./product-row-types";
@@ -43,6 +44,7 @@ export function ProductsDesktopTable(props: {
     const { products, view, onSort, actions } = props;
     const t = useTranslations("admin.products");
     const tCommon = useTranslations("admin.common");
+    const lf = useLocalizedFieldFn();
 
     const sortCell = (column: ProductSortBy, label: string, align?: "right") => (
         <TableCell
@@ -107,7 +109,7 @@ export function ProductsDesktopTable(props: {
                                         {thumb ? (
                                             <Image
                                                 src={thumb}
-                                                alt={getLocalizedField(product.name, "hy")}
+                                                alt={lf(product.name)}
                                                 width={50}
                                                 height={50}
                                                 style={{ objectFit: "cover" }}
@@ -131,7 +133,16 @@ export function ProductsDesktopTable(props: {
                                     </Box>
                                 </TableCell>
                                 <TableCell>
-                                    {getLocalizedField(product.name, "hy")}
+                                    <Box
+                                        sx={{
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            gap: 0.75,
+                                        }}
+                                    >
+                                        <span>{lf(product.name)}</span>
+                                        <LocalizedStatusChips value={product.name} />
+                                    </Box>
                                 </TableCell>
                                 <TableCell
                                     sx={{
@@ -140,15 +151,10 @@ export function ProductsDesktopTable(props: {
                                         wordBreak: "break-word",
                                     }}
                                 >
-                                    {trimComposition(
-                                        getLocalizedField(product.composition, "hy") ||
-                                            null,
-                                    )}
+                                    {trimComposition(lf(product.composition) || null)}
                                 </TableCell>
                                 <TableCell>
-                                    {product.category
-                                        ? getLocalizedField(product.category.name, "hy")
-                                        : "-"}
+                                    {product.category ? lf(product.category.name) : "-"}
                                 </TableCell>
                                 <TableCell align="right">
                                     {product.price.toLocaleString("ru-RU")} ֏

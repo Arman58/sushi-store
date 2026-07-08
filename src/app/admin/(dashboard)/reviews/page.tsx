@@ -24,7 +24,7 @@ import {
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 
-import { getLocalizedField } from "@/lib/i18n-utils";
+import { useLocalizedFieldFn } from "@/features/admin/hooks/use-admin-content-locale";
 import { PageContainer, SectionTitle } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
 
@@ -50,6 +50,7 @@ export default function AdminReviewsPage() {
     const t = useTranslations("admin.reviews");
     const tCommon = useTranslations("admin.common");
     const tNav = useTranslations("nav");
+    const lf = useLocalizedFieldFn();
     const [data, setData] = useState<AdminReviewsResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -175,7 +176,7 @@ export default function AdminReviewsPage() {
                                             sx={{ "& .MuiRating-iconFilled": { color: "#FFB800" } }}
                                         />
                                         <Typography variant="body2" fontWeight={700} noWrap>
-                                            {getLocalizedField(review.product.name, "ru")}
+                                            {lf(review.product.name)}
                                         </Typography>
                                         {review.verifiedPurchase && (
                                             <Chip

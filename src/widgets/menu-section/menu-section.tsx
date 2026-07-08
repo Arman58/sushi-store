@@ -7,7 +7,7 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import { alpha, useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -153,6 +153,18 @@ function MenuSectionInner({
         lastAddToastRef.current = addToast;
         queueMicrotask(() => setStickyCartPulse((n) => n + 1));
     }, [addToast]);
+
+    const { scrollY } = useScroll();
+    const [isCartHidden, setIsCartHidden] = useState(false);
+
+    useMotionValueEvent(scrollY, "change", (latest) => {
+        const previous = scrollY.getPrevious() ?? 0;
+        if (latest > previous && latest > 150) {
+            setIsCartHidden(true);
+        } else {
+            setIsCartHidden(false);
+        }
+    });
     const [modifierProduct, setModifierProduct] = useState<ConnectableProduct | null>(
         null,
     );
@@ -436,9 +448,13 @@ function MenuSectionInner({
                     {filteredProducts.map((product, index) => (
                             <Box
                                 component={motion.div}
-                                // Ремоунт при смене категории/поиска - stagger-появление
+                                // Ремоунт при смене категории/поиска - stagger-появление.
+                                // Анимируем только первый экран (~12 карточек):
+                                // ниже фолда паузы не видно, а рендер дешевле.
                                 key={`${categorySlug}-${product.id}`}
-                                initial={{ opacity: 0, y: 12 }}
+                                initial={
+                                    index < 12 ? { opacity: 0, y: 12 } : false
+                                }
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{
                                     duration: 0.25,
@@ -465,7 +481,7 @@ function MenuSectionInner({
                 FLOATING CART BAR
             ══════════════════════════════════════════════════════ */}
             <AnimatePresence>
-                {totalCount > 0 && (
+                {totalCount > 0 && !isCartHidden && (
                     <Box
                         component={motion.div}
                         key="menu-sticky-cart"

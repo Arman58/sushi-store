@@ -29,10 +29,9 @@ import {
     useWatch,
 } from "react-hook-form";
 
-import {
-    emptyLocalizedJson,
-    getLocalizedField,
-} from "@/lib/i18n-utils";
+import { useLocalizedField } from "@/features/admin/hooks/use-admin-content-locale";
+import { AdminLocalizationSection } from "@/features/admin/ui/admin-localization-section";
+import { emptyLocalizedJson } from "@/lib/i18n-utils";
 import { LocalizedTextFields } from "@/shared/ui/localized-text-fields";
 
 import {
@@ -55,6 +54,7 @@ const ModifierGroupAccordion = memo(function ModifierGroupAccordion(props: {
         control,
         name: `modifierGroups.${groupIndex}.name`,
     });
+    const groupDisplayName = useLocalizedField(groupName);
     const groupRequired = useWatch({
         control,
         name: `modifierGroups.${groupIndex}.required`,
@@ -76,7 +76,7 @@ const ModifierGroupAccordion = memo(function ModifierGroupAccordion(props: {
 
     const summaryTitle =
         groupName != null && hasLocalizedText(groupName)
-            ? getLocalizedField(groupName, "hy") || getLocalizedField(groupName, "ru")
+            ? groupDisplayName || t("modifierGroupDefault", { n: groupIndex + 1 })
             : t("modifierGroupDefault", { n: groupIndex + 1 });
 
     const maxN =
@@ -306,13 +306,22 @@ const ModifierGroupAccordion = memo(function ModifierGroupAccordion(props: {
 type ProductModifiersSectionProps = {
     control: Control<ProductDialogFormValues>;
     disabled: boolean;
+    onTranslate?: () => boolean | void | Promise<boolean | void>;
+    translating?: boolean;
 };
 
 export const ProductModifiersSection = memo(function ProductModifiersSection({
     control,
     disabled,
+    onTranslate,
+    translating,
 }: ProductModifiersSectionProps) {
     const t = useTranslations("admin.products");
+    const modifierGroups = useWatch({ control, name: "modifierGroups" }) ?? [];
+    const modifierFieldValues = modifierGroups.flatMap((group) => [
+        group.name,
+        ...group.modifiers.map((modifier) => modifier.name),
+    ]);
 
     const {
         fields: groupFields,
@@ -324,10 +333,12 @@ export const ProductModifiersSection = memo(function ProductModifiersSection({
     });
 
     return (
-        <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                {t("modifiersTitle")}
-            </Typography>
+        <AdminLocalizationSection
+            fieldValues={modifierFieldValues}
+            onTranslate={onTranslate}
+            translating={translating}
+            disabled={disabled}
+        >
             <Stack spacing={2}>
                 {groupFields.map((gf, groupIndex) => (
                     <ModifierGroupAccordion
@@ -358,6 +369,6 @@ export const ProductModifiersSection = memo(function ProductModifiersSection({
             >
                 {t("addModifierGroup")}
             </Button>
-        </Box>
+        </AdminLocalizationSection>
     );
 });

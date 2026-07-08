@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
+import { resolveAdminLocale } from "@/lib/admin-locale";
 import { isAdminSessionConfigured } from "@/lib/admin-session";
 
 import { LoginForm } from "./login-form";
@@ -9,7 +10,8 @@ const ADMIN_USER = process.env.ADMIN_USER;
 const ADMIN_PASS = process.env.ADMIN_PASS;
 
 export default async function AdminLoginPage() {
-    const t = await getTranslations("admin.login");
+    const locale = await resolveAdminLocale();
+    const t = await getTranslations({ locale, namespace: "admin.login" });
     const envConfigured =
         Boolean(ADMIN_USER && ADMIN_PASS) && isAdminSessionConfigured();
 

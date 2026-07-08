@@ -24,6 +24,7 @@ import {
     useState,
 } from "react";
 
+import { useAdminContentLocale } from "@/features/admin/hooks/use-admin-content-locale";
 import { getLocalizedField } from "@/lib/i18n-utils";
 import { getProductCoverUrl, getProductImageUrls } from "@/shared/lib/product-cover";
 import { PageContainer, SectionTitle } from "@/shared/ui";
@@ -57,6 +58,7 @@ const ProductFormDialog = dynamic(
 export default function AdminProductsPage() {
     const t = useTranslations("admin.products");
     const tCommon = useTranslations("admin.common");
+    const contentLocale = useAdminContentLocale();
     const [products, setProducts] = useState<ProductRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -95,19 +97,18 @@ export default function AdminProductsPage() {
             if (p.categoryId !== null && p.category) {
                 map.set(
                     p.categoryId,
-                    getLocalizedField(p.category.name, "ru") ||
-                        getLocalizedField(p.category.name, "hy"),
+                    getLocalizedField(p.category.name, contentLocale),
                 );
             }
         }
         return [...map.entries()]
             .map(([id, label]) => ({ id, label }))
-            .sort((a, b) => a.label.localeCompare(b.label, "ru"));
-    }, [products]);
+            .sort((a, b) => a.label.localeCompare(b.label, contentLocale));
+    }, [products, contentLocale]);
 
     const filteredProducts = useMemo(
-        () => filterAndSortProducts(products, view),
-        [products, view],
+        () => filterAndSortProducts(products, view, contentLocale),
+        [products, view, contentLocale],
     );
 
     /** Страница не выходит за пределы после сужения фильтра/удаления. */
@@ -561,6 +562,7 @@ export default function AdminProductsPage() {
                         totalCount={products.length}
                         filteredCount={filteredProducts.length}
                         onChange={patchView}
+                        contentLocale={contentLocale}
                     />
                 ) : null}
 

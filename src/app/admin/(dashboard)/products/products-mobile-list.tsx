@@ -9,11 +9,13 @@ import {
     Button,
     IconButton,
     Paper,
+    Stack,
     Typography,
 } from "@mui/material";
 import { useTranslations } from "next-intl";
 
-import { getLocalizedField } from "@/lib/i18n-utils";
+import { useLocalizedFieldFn } from "@/features/admin/hooks/use-admin-content-locale";
+import { LocalizedStatusChips } from "@/features/admin/ui/localized-status-chips";
 import { getProductCoverUrl, getProductImageUrls } from "@/shared/lib/product-cover";
 
 import type { ProductRow, ProductRowActions } from "./product-row-types";
@@ -26,6 +28,7 @@ export function ProductsMobileList(props: {
     const { products, actions } = props;
     const t = useTranslations("admin.products");
     const tCommon = useTranslations("admin.common");
+    const lf = useLocalizedFieldFn();
 
     return (
         <Box sx={{ display: { xs: "block", md: "none" }, mt: 2 }}>
@@ -57,7 +60,7 @@ export function ProductsMobileList(props: {
                                 src={imageUrl ?? undefined}
                                 variant="rounded"
                                 sx={{ width: 56, height: 56 }}
-                                alt={getLocalizedField(product.name, "hy")}
+                                alt={lf(product.name)}
                             />
                         ) : (
                             <Avatar
@@ -73,9 +76,12 @@ export function ProductsMobileList(props: {
                             </Avatar>
                         )}
                         <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography noWrap sx={{ fontWeight: 600 }}>
-                                {getLocalizedField(product.name, "hy")}
-                            </Typography>
+                            <Stack direction="row" spacing={0.75} alignItems="center">
+                                <Typography noWrap sx={{ fontWeight: 600, flex: 1, minWidth: 0 }}>
+                                    {lf(product.name)}
+                                </Typography>
+                                <LocalizedStatusChips value={product.name} />
+                            </Stack>
                             <Typography
                                 sx={{
                                     fontSize: "0.75rem",
@@ -83,9 +89,7 @@ export function ProductsMobileList(props: {
                                 }}
                                 noWrap
                             >
-                                {product.category
-                                    ? getLocalizedField(product.category.name, "hy")
-                                    : "-"}
+                                {product.category ? lf(product.category.name) : "-"}
                             </Typography>
                         </Box>
                         <Box sx={{ textAlign: "right", flexShrink: 0 }}>

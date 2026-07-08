@@ -1,11 +1,19 @@
 import Box from "@mui/material/Box";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 
-export const metadata: Metadata = {
-    title: "Kitchen Display",
-    robots: { index: false, follow: false },
-};
+import { resolveAdminLocale } from "@/lib/admin-locale";
+
+export async function generateMetadata(): Promise<Metadata> {
+    const locale = await resolveAdminLocale();
+    const t = await getTranslations({ locale, namespace: "admin.kitchen" });
+
+    return {
+        title: t("title"),
+        robots: { index: false, follow: false },
+    };
+}
 
 export default function KitchenLayout({ children }: { children: ReactNode }) {
     return (
