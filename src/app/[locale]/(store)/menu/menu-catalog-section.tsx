@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { cache } from "react";
 
@@ -11,7 +12,11 @@ import { MenuSection } from "@/widgets/menu-section";
 
 import { MenuLoadError } from "./menu-load-error";
 
-const getMenuData = cache(async (locale: string) => {
+const getMenuData = cache(async (locale: string) => getMenuDataCached(locale));
+
+/** Данные меню кэшируются на сервере на 60 сек — БД не дёргается на каждый визит. */
+const getMenuDataCached = unstable_cache(
+    async (locale: string) => {
     try {
         const [categoriesRaw, productsRaw, priceStats] = await Promise.all([
             prisma.category.findMany({
@@ -33,13 +38,11 @@ const getMenuData = cache(async (locale: string) => {
                 where: { isActive: true },
                 include: {
                     category: true,
+                    // Полные модификаторы в списке не нужны - клиент
+                    // подтянет их по требованию (/api/menu/modifiers).
                     modifierGroups: {
-                        orderBy: [{ position: "asc" }, { id: "asc" }],
-                        include: {
-                            modifiers: {
-                                orderBy: [{ position: "asc" }, { id: "asc" }],
-                            },
-                        },
+                        select: { id: true },
+                        take: 1,
                     },
                 },
                 orderBy: { id: "asc" },
@@ -66,9 +69,16 @@ const getMenuData = cache(async (locale: string) => {
                 };
             },
         );
-        const products = toStorefrontProducts(productsRaw, locale).sort((a, b) =>
-            a.name.localeCompare(b.name, locale),
-        );
+        const products = toStorefrontProducts(
+            productsRaw.map((p) => ({
+                ...p,
+                // select {id} take 1 - это только маркер наличия,
+                // не отдаём его клиенту как настоящие группы.
+                modifierGroups: undefined,
+                hasModifiers: p.modifierGroups.length > 0,
+            })),
+            locale,
+        ).sort((a, b) => a.name.localeCompare(b.name, locale));
 
         const minPrice = priceStats._min.price ?? 0;
         const maxPrice = priceStats._max.price ?? minPrice;
@@ -83,7 +93,10 @@ const getMenuData = cache(async (locale: string) => {
             error: true as const,
         };
     }
-});
+    },
+    ["menu-data"],
+    { revalidate: 60 },
+);
 
 export async function MenuCatalogSection() {
     const locale = await getLocale();

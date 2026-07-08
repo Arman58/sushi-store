@@ -38,7 +38,8 @@ export function ProductQuickView({ open, onClose, product, onAdd }: Props) {
     const locale = useLocale();
 
     const coverUrl = getProductCoverUrl(product);
-    const hasModifiers = (product.modifierGroups?.length ?? 0) > 0;
+    const hasModifiers =
+        product.hasModifiers ?? (product.modifierGroups?.length ?? 0) > 0;
     const isAvailable = product.isAvailable !== false;
     const previewText =
         product.description?.trim() || product.composition?.trim() || "";

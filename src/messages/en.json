@@ -161,6 +161,7 @@
             "title": "Nothing found",
             "subtitle": "Try a different search or reset filters"
         },
+        "modifiersLoadError": "Couldn't load dish options. Please try again.",
         "hero": {
             "chip": "Peak season - delivered without delay",
             "title": "Delivery menu",

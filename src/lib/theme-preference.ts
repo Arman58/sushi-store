@@ -40,7 +40,9 @@ export function readStoredThemeMode(): ThemeMode {
 /** Persist theme for SSR, MUI storageManager, and toggles. */
 export function writeThemePreference(mode: ThemeMode): void {
     if (typeof document === "undefined") return;
-    document.documentElement.dataset.theme = mode;
+    if (document.documentElement.dataset.theme !== mode) {
+        document.documentElement.dataset.theme = mode;
+    }
     try {
         localStorage.setItem(THEME_STORAGE_KEY, mode);
     } catch {
@@ -80,18 +82,15 @@ export const ewThemeStorageManager = ({
         },
         subscribe(handler: (value: unknown) => void) {
             if (!win) return () => {};
-            const notify = () => handler(readStoredThemeMode());
-            const observer = new MutationObserver(notify);
-            observer.observe(document.documentElement, {
-                attributes: true,
-                attributeFilter: ["data-theme"],
-            });
+            // Только cross-tab sync: MutationObserver на data-theme создавал
+            // feedback loop с MUI set() и блокировал main thread после кликов.
             const onStorage = (event: StorageEvent) => {
-                if (event.key === THEME_STORAGE_KEY) notify();
+                if (event.key === THEME_STORAGE_KEY) {
+                    handler(readStoredThemeMode());
+                }
             };
             win.addEventListener("storage", onStorage);
             return () => {
-                observer.disconnect();
                 win.removeEventListener("storage", onStorage);
             };
         },

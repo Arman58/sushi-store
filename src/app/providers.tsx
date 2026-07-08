@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SessionProvider } from "next-auth/react";
 import { type ReactNode, useEffect, useState } from "react";
 
+import { CartValidationProvider } from "@/features/cart";
 import {
     ewThemeStorageManager,
     THEME_STORAGE_KEY,
@@ -51,17 +52,19 @@ export function AppProviders({ children, initialTheme }: AppProvidersProps) {
             />
             <SessionProvider>
                 <QueryClientProvider client={queryClient}>
-                    <ThemePreferenceProvider initialTheme={initialTheme}>
-                        <ThemeProvider
-                            theme={theme}
-                            defaultMode={initialTheme}
-                            storageManager={ewThemeStorageManager}
-                            disableTransitionOnChange
-                        >
-                            <CssBaseline />
-                            {children}
-                        </ThemeProvider>
-                    </ThemePreferenceProvider>
+                    <CartValidationProvider>
+                        <ThemePreferenceProvider initialTheme={initialTheme}>
+                            <ThemeProvider
+                                theme={theme}
+                                defaultMode={initialTheme}
+                                storageManager={ewThemeStorageManager}
+                                disableTransitionOnChange
+                            >
+                                <CssBaseline />
+                                {children}
+                            </ThemeProvider>
+                        </ThemePreferenceProvider>
+                    </CartValidationProvider>
                 </QueryClientProvider>
             </SessionProvider>
         </>

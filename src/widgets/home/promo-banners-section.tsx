@@ -1,5 +1,6 @@
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
+import { unstable_cache } from "next/cache";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { getLocalizedField } from "@/lib/i18n-utils";
@@ -15,23 +16,11 @@ const sectionContainerSx = {
     px: { xs: 2, md: 6 },
 } as const;
 
-/**
- * Промо-баннеры из админки: активные и попадающие в окно дат.
- * Данные готовятся на сервере, карусель (автоплей/точки) - клиентская.
- */
-export async function PromoBannersSection({
-    nested = false,
-}: {
-    /** true - без собственного Container (страница уже даёт отступы). */
-    nested?: boolean;
-}) {
-    const locale = await getLocale();
-    const t = await getTranslations("home");
-
-    let items: BannerCarouselItem[] = [];
-    try {
+/** Активные баннеры кэшируются на 60 сек. */
+const getActiveBannersCached = unstable_cache(
+    async () => {
         const now = new Date();
-        const banners = await prisma.banner.findMany({
+        return prisma.banner.findMany({
             where: {
                 isActive: true,
                 AND: [
@@ -49,6 +38,27 @@ export async function PromoBannersSection({
                 href: true,
             },
         });
+    },
+    ["active-banners"],
+    { revalidate: 60 },
+);
+
+/**
+ * Промо-баннеры из админки: активные и попадающие в окно дат.
+ * Данные готовятся на сервере, карусель (автоплей/точки) - клиентская.
+ */
+export async function PromoBannersSection({
+    nested = false,
+}: {
+    /** true - без собственного Container (страница уже даёт отступы). */
+    nested?: boolean;
+}) {
+    const locale = await getLocale();
+    const t = await getTranslations("home");
+
+    let items: BannerCarouselItem[] = [];
+    try {
+        const banners = await getActiveBannersCached();
         items = banners.map((b) => ({
             id: b.id,
             image: b.image,

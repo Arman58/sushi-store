@@ -272,6 +272,11 @@ export type StorefrontProduct = {
     mainImage: string | null;
     category: StorefrontCategory | null;
     modifierGroups?: MenuModifierGroup[];
+    /**
+     * Есть ли у товара модификаторы. Позволяет НЕ грузить сами группы
+     * в списки (меню) - клиент подтянет их по требованию при открытии.
+     */
+    hasModifiers?: boolean;
     /** Денормализованный средний рейтинг (0 - нет отзывов). */
     ratingAvg: number;
     /** Кол-во опубликованных отзывов. */
@@ -337,6 +342,11 @@ export function toStorefrontProduct(
                   ),
               }
             : {}),
+        ...(typeof product.hasModifiers === "boolean"
+            ? { hasModifiers: product.hasModifiers }
+            : Array.isArray(product.modifierGroups)
+              ? { hasModifiers: product.modifierGroups.length > 0 }
+              : {}),
     };
 }
 

@@ -7,7 +7,7 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import { alpha, useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
-import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -23,7 +23,8 @@ import {
 } from "react";
 
 import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
-import { type ConnectableProduct,ConnectedProductCard } from "@/entities/product/ui/connected-product-card";
+import { useLazyProductModifiers } from "@/entities/product/model/use-lazy-product-modifiers";
+import { ConnectedProductCard } from "@/entities/product/ui/connected-product-card";
 import { useCartStore } from "@/features/cart";
 import { FilterTriggerButton, useMenuFilters } from "@/features/filter";
 import { Link } from "@/i18n/server";
@@ -31,6 +32,8 @@ import type { StorefrontCategory } from "@/lib/i18n-utils";
 import { itemListJsonLd,JsonLd } from "@/lib/seo/json-ld";
 import { SITE_URL } from "@/lib/site-config";
 import { formatStorePrice } from "@/shared/lib/format-price";
+import { useProgressiveRender } from "@/shared/lib/use-progressive-render";
+import { useScrollHide } from "@/shared/lib/use-scroll-hide";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { AppInput } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
@@ -70,6 +73,8 @@ export type MenuProduct = {
     mainImage?: string | null;
     category?: MenuCategory | null;
     modifierGroups?: MenuModifierGroup[];
+    /** Есть ли модификаторы; сами группы догружаются по требованию. */
+    hasModifiers?: boolean;
 };
 
 type MenuSectionProps = {
@@ -154,20 +159,9 @@ function MenuSectionInner({
         queueMicrotask(() => setStickyCartPulse((n) => n + 1));
     }, [addToast]);
 
-    const { scrollY } = useScroll();
-    const [isCartHidden, setIsCartHidden] = useState(false);
-
-    useMotionValueEvent(scrollY, "change", (latest) => {
-        const previous = scrollY.getPrevious() ?? 0;
-        if (latest > previous && latest > 150) {
-            setIsCartHidden(true);
-        } else {
-            setIsCartHidden(false);
-        }
-    });
-    const [modifierProduct, setModifierProduct] = useState<ConnectableProduct | null>(
-        null,
-    );
+    const isCartHidden = useScrollHide(150);
+    const { modifierProduct, openModifiers, closeModifiers } =
+        useLazyProductModifiers();
     // Инициализация из ?search= (поиск в шапке ведёт на /menu?search=…)
     const initialSearch = useSearchParams().get("search") ?? "";
     const [search, setSearch] = useState(initialSearch);
@@ -214,10 +208,6 @@ function MenuSectionInner({
         setFilterDrawerOpen(false);
     }, []);
 
-    const openModifiers = useCallback((product: ConnectableProduct) => {
-        setModifierProduct(product);
-    }, []);
-
     const filteredProducts = useMemo(() => {
         const base = filterByCategory(products, categorySlug);
         const byPrice = filterByPriceRange(base, priceRange);
@@ -244,6 +234,18 @@ function MenuSectionInner({
         products,
         deferredSearch,
     ]);
+
+    const filterResetKey = `${categorySlug}|${deferredSearch}|${priceRange[0]}-${priceRange[1]}`;
+    const visibleCount = useProgressiveRender(
+        filteredProducts.length,
+        filterResetKey,
+        { initialCount: 16, batchSize: 16 },
+    );
+    const visibleProducts = useMemo(
+        () => filteredProducts.slice(0, visibleCount),
+        [filteredProducts, visibleCount],
+    );
+    const hasMoreProducts = visibleCount < filteredProducts.length;
 
     const productsInActiveCategory = useMemo(() => {
         return filterByCategory(products, categorySlug);
@@ -426,6 +428,7 @@ function MenuSectionInner({
                 <Box
                     component="section"
                     aria-label={t("aria.catalog")}
+                    aria-busy={hasMoreProducts}
                     sx={{
                         display: "grid",
                         width: "100%",
@@ -445,26 +448,31 @@ function MenuSectionInner({
                         },
                     }}
                 >
-                    {filteredProducts.map((product, index) => (
+                    {visibleProducts.map((product, index) => {
+                        const animateEntry = index < 12;
+                        return (
                             <Box
-                                component={motion.div}
-                                // Ремоунт при смене категории/поиска - stagger-появление.
-                                // Анимируем только первый экран (~12 карточек):
-                                // ниже фолда паузы не видно, а рендер дешевле.
+                                component={animateEntry ? motion.div : "div"}
                                 key={`${categorySlug}-${product.id}`}
-                                initial={
-                                    index < 12 ? { opacity: 0, y: 12 } : false
-                                }
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{
-                                    duration: 0.25,
-                                    delay: Math.min(index, 11) * 0.03,
-                                    ease: "easeOut",
-                                }}
+                                {...(animateEntry
+                                    ? {
+                                          initial: { opacity: 0, y: 12 },
+                                          animate: { opacity: 1, y: 0 },
+                                          transition: {
+                                              duration: 0.25,
+                                              delay: Math.min(index, 11) * 0.03,
+                                              ease: "easeOut",
+                                          },
+                                      }
+                                    : {})}
                                 sx={{
                                     height: "100%",
                                     minWidth: 0,
                                     display: "flex",
+                                    ...(index >= 12 && {
+                                        contentVisibility: "auto",
+                                        containIntrinsicSize: "auto 340px",
+                                    }),
                                 }}
                             >
                                 <ConnectedProductCard
@@ -473,7 +481,8 @@ function MenuSectionInner({
                                     onOpenModifiers={openModifiers}
                                 />
                             </Box>
-                        ))}
+                        );
+                    })}
                 </Box>
             )}
 
@@ -598,7 +607,7 @@ function MenuSectionInner({
             </AnimatePresence>
             <ProductModifiersDialog
                 open={modifierProduct !== null}
-                onClose={() => setModifierProduct(null)}
+                onClose={closeModifiers}
                 productName={modifierProduct?.name ?? ""}
                 description={
                     modifierProduct?.description ??

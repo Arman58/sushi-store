@@ -1,8 +1,8 @@
 import type { Prisma } from "@prisma/client";
 
-import { getLocalizedField, toStorefrontModifierGroups } from "@/lib/i18n-utils";
+import { getLocalizedField } from "@/lib/i18n-utils";
 
-/** Единый include для карточек товара на главной и в меню. */
+/** Полный include — upsell, страница товара, API где нужны модификаторы сразу. */
 export const homeProductInclude = {
     category: true,
     modifierGroups: {
@@ -15,11 +15,27 @@ export const homeProductInclude = {
     },
 } satisfies Prisma.ProductInclude;
 
+/** Лёгкий include для списков (главная, by-ids): только флаг hasModifiers. */
+export const homeProductCardInclude = {
+    category: true,
+    modifierGroups: {
+        select: { id: true },
+        take: 1,
+    },
+} satisfies Prisma.ProductInclude;
+
 export type HomeProductPayload = Prisma.ProductGetPayload<{
     include: typeof homeProductInclude;
 }>;
 
-export function mapProductToPopular(p: HomeProductPayload, locale = "hy") {
+export type HomeProductCardPayload = Prisma.ProductGetPayload<{
+    include: typeof homeProductCardInclude;
+}>;
+
+export function mapProductToPopular(
+    p: HomeProductCardPayload,
+    locale = "hy",
+) {
     return {
         id: p.id,
         slug: p.slug,
@@ -41,9 +57,6 @@ export function mapProductToPopular(p: HomeProductPayload, locale = "hy") {
         isAvailable: p.isAvailable,
         minQty: p.minQty,
         maxQty: p.maxQty,
-        modifierGroups: toStorefrontModifierGroups(
-            (p.modifierGroups ?? []) as unknown as Record<string, unknown>[],
-            locale,
-        ),
+        hasModifiers: (p.modifierGroups?.length ?? 0) > 0,
     };
 }

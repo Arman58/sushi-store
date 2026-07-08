@@ -1,6 +1,5 @@
 "use client";
 
-import useMediaQuery from "@mui/material/useMediaQuery";
 import { memo, useCallback, useState } from "react";
 
 import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
@@ -9,6 +8,7 @@ import { ProductCard } from "@/entities/product/ui/product-card";
 import { ProductQuickView } from "@/entities/product/ui/product-quick-view";
 import { buildCartItemId, useCartStore } from "@/features/cart";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
+import { useMobileViewport } from "@/shared/lib/use-mobile-viewport";
 
 export type ConnectableProduct = {
     id: number;
@@ -22,6 +22,8 @@ export type ConnectableProduct = {
     mainImage?: string | null;
     category?: { name: string; slug?: string } | null;
     modifierGroups?: MenuModifierGroup[];
+    /** Есть ли модификаторы (сами группы могут догружаться по требованию). */
+    hasModifiers?: boolean;
     ratingAvg?: number;
     ratingCount?: number;
     isAvailable?: boolean;
@@ -63,7 +65,8 @@ export const ConnectedProductCard = memo(function ConnectedProductCard({
         (s) => s.decrementFirstLineForProduct,
     );
 
-    const hasModifiers = (product.modifierGroups?.length ?? 0) > 0;
+    const hasModifiers =
+        product.hasModifiers ?? (product.modifierGroups?.length ?? 0) > 0;
 
     const handleAddToCart = useCallback(() => {
         if (hasModifiers) {
@@ -117,7 +120,7 @@ export const ConnectedProductCard = memo(function ConnectedProductCard({
 
     // Mobile-first: на телефоне карточка открывает bottom-sheet (паттерн Wolt),
     // на десктопе - обычная ссылка на страницу товара (SEO/привычный UX).
-    const isMobile = useMediaQuery("(max-width:600px)");
+    const isMobile = useMobileViewport();
     const [quickViewOpen, setQuickViewOpen] = useState(false);
     const openQuickView = useCallback(() => setQuickViewOpen(true), []);
     const closeQuickView = useCallback(() => setQuickViewOpen(false), []);

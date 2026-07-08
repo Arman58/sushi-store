@@ -17,7 +17,7 @@ import Stepper from "@mui/material/Stepper";
 import { alpha, useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import type { OrderStatus } from "@prisma/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -207,7 +207,9 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
         staleTime: 0,
         refetchOnMount: "always",
         refetchOnWindowFocus: true,
-        refetchIntervalInBackground: true,
+        // Скрытая вкладка не поллит (батарея/трафик): о смене статуса
+        // сообщает push от SW, а при возврате сработает refetchOnWindowFocus.
+        refetchIntervalInBackground: false,
         refetchInterval: (query) => {
             const status = query.state.data?.status;
             if (!status || TERMINAL_STATUSES.has(status)) {
@@ -216,6 +218,29 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
             return POLL_INTERVAL_MS;
         },
     });
+
+    // Push от service worker - мгновенный refetch вместо ожидания поллинга.
+    const queryClient = useQueryClient();
+    useEffect(() => {
+        if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+            return;
+        }
+        const onMessage = (event: MessageEvent) => {
+            const data: unknown = event.data;
+            if (
+                data &&
+                typeof data === "object" &&
+                (data as { type?: unknown }).type === "ORDER_STATUS_PUSH"
+            ) {
+                void queryClient.invalidateQueries({
+                    queryKey: ["order", initial.id],
+                });
+            }
+        };
+        navigator.serviceWorker.addEventListener("message", onMessage);
+        return () =>
+            navigator.serviceWorker.removeEventListener("message", onMessage);
+    }, [queryClient, initial.id]);
 
     const order = data ?? initial;
     const status = order.status;

@@ -1,3 +1,4 @@
+export { CartValidationProvider } from "./model/cart-validation-provider";
 export { buildCartItemId } from "./model/line-id";
 export { parseSelectedModifiersJson } from "./model/parse-modifiers-json";
 export { useCartStore } from "./model/store";
