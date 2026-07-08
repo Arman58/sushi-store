@@ -28,8 +28,8 @@ body {
     }
 }
 
-*,
-*::before,
-*::after {
+html.theme-anim *,
+html.theme-anim *::before,
+html.theme-anim *::after {
     transition: background-color 0.2s ease;
 }

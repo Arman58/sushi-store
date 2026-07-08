@@ -27,8 +27,15 @@ import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
 import {
+    useAdminContentLocale,
+    useLocalizedFieldFn,
+} from "@/features/admin/hooks/use-admin-content-locale";
+import { useAITranslation } from "@/features/admin/hooks/use-ai-translation";
+import { AdminLocalizationSection } from "@/features/admin/ui/admin-localization-section";
+import {
     emptyLocalizedJson,
     getLocalizedField,
+    mergeLocalizedTranslations,
 } from "@/lib/i18n-utils";
 import {
     IMAGE_UPLOAD_ACCEPT,
@@ -65,6 +72,8 @@ export function ProductFormDialog(props: {
     const t = useTranslations("admin.products");
     const tCommon = useTranslations("admin.common");
     const tImage = useTranslations("admin.imageUpload");
+    const contentLocale = useAdminContentLocale();
+    const lf = useLocalizedFieldFn();
 
     const { control, handleSubmit, reset, register, setValue, getValues } =
         useForm<ProductDialogFormValues>({
@@ -75,6 +84,85 @@ export function ProductFormDialog(props: {
     useEffect(() => {
         reset(productDialogDefaults(editingProduct));
     }, [editingProduct, formKey, reset]);
+
+    const { translate, isTranslating } = useAITranslation();
+
+    const handleAITranslate = async (): Promise<boolean> => {
+        const values = getValues();
+        const fieldsToTranslate: Record<string, string> = {};
+
+        if (values.name?.ru) fieldsToTranslate.name = values.name.ru;
+        if (values.composition?.ru) fieldsToTranslate.composition = values.composition.ru;
+        if (values.description?.ru) fieldsToTranslate.description = values.description.ru;
+
+        values.modifierGroups?.forEach((group, groupIdx) => {
+            if (group.name?.ru) {
+                fieldsToTranslate[`modifierGroups.${groupIdx}.name`] = group.name.ru;
+            }
+            group.modifiers?.forEach((modifier, modIdx) => {
+                if (modifier.name?.ru) {
+                    fieldsToTranslate[`modifierGroups.${groupIdx}.modifiers.${modIdx}.name`] =
+                        modifier.name.ru;
+                }
+            });
+        });
+
+        if (Object.keys(fieldsToTranslate).length === 0) return false;
+
+        const translated = await translate(fieldsToTranslate);
+        if (!translated) return false;
+
+        const setLocalizedField = (
+            field: "name" | "composition" | "description",
+            en?: string,
+            hy?: string,
+        ) => {
+            setValue(
+                field,
+                mergeLocalizedTranslations(getValues(field), { en, hy }),
+                { shouldDirty: true, shouldTouch: true, shouldValidate: true },
+            );
+        };
+
+        setLocalizedField("name", translated.en.name, translated.hy.name);
+        setLocalizedField(
+            "composition",
+            translated.en.composition,
+            translated.hy.composition,
+        );
+        setLocalizedField(
+            "description",
+            translated.en.description,
+            translated.hy.description,
+        );
+
+        const nextModifierGroups = (values.modifierGroups ?? []).map(
+            (group, groupIdx) => ({
+                ...group,
+                name: mergeLocalizedTranslations(group.name, {
+                    en: translated.en[`modifierGroups.${groupIdx}.name`],
+                    hy: translated.hy[`modifierGroups.${groupIdx}.name`],
+                }),
+                modifiers: group.modifiers.map((modifier, modIdx) => ({
+                    ...modifier,
+                    name: mergeLocalizedTranslations(modifier.name, {
+                        en: translated.en[
+                            `modifierGroups.${groupIdx}.modifiers.${modIdx}.name`
+                        ],
+                        hy: translated.hy[
+                            `modifierGroups.${groupIdx}.modifiers.${modIdx}.name`
+                        ],
+                    }),
+                })),
+            }),
+        );
+        setValue("modifierGroups", nextModifierGroups, {
+            shouldDirty: true,
+            shouldTouch: true,
+        });
+
+        return true;
+    };
 
     const [categories, setCategories] = useState<AdminCategory[]>([]);
     const [newCategoryName, setNewCategoryName] = useState(emptyLocalizedJson);
@@ -266,8 +354,8 @@ export function ProductFormDialog(props: {
             setCategories((prev) => {
                 const next = [...prev, { id: created.id, name: created.name }];
                 next.sort((a, b) =>
-                    getLocalizedField(a.name, "hy").localeCompare(
-                        getLocalizedField(b.name, "hy"),
+                    getLocalizedField(a.name, contentLocale).localeCompare(
+                        getLocalizedField(b.name, contentLocale),
                         "hy",
                     ),
                 );
@@ -280,6 +368,19 @@ export function ProductFormDialog(props: {
         } finally {
             setAddCategoryLoading(false);
         }
+    };
+
+    const handleNewCategoryTranslate = async (): Promise<boolean> => {
+        if (!newCategoryName.ru?.trim()) return false;
+        const translated = await translate({ name: newCategoryName.ru });
+        if (!translated) return false;
+        setNewCategoryName((prev) =>
+            mergeLocalizedTranslations(prev, {
+                en: translated.en.name,
+                hy: translated.hy.name,
+            }),
+        );
+        return true;
     };
 
     const onValid = async (values: ProductDialogFormValues) => {
@@ -411,9 +512,11 @@ export function ProductFormDialog(props: {
                     </DialogTitle>
                     <DialogContent sx={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
                         <Stack spacing={2} sx={{ pt: 1 }}>
-                            <ProductLocalizedFieldsSection
+                             <ProductLocalizedFieldsSection
                                 control={control}
                                 disabled={submitLoading}
+                                onTranslate={handleAITranslate}
+                                translating={isTranslating}
                             />
                             <TextField
                                 {...register("price")}
@@ -474,8 +577,7 @@ export function ProductFormDialog(props: {
                                                 .id,
                                 )}
                                 getOptionLabel={(option) =>
-                                    getLocalizedField(option.name, "ru") ||
-                                    getLocalizedField(option.name, "hy")
+                                    lf(option.name)
                                 }
                                 isOptionEqualToValue={(o, v) => o.id === v.id}
                                 value={upsellIdsWatch
@@ -510,7 +612,7 @@ export function ProductFormDialog(props: {
                                 fullWidth
                                 options={categories}
                                 getOptionLabel={(option) =>
-                                    getLocalizedField(option.name, "hy")
+                                    lf(option.name)
                                 }
                                 value={
                                     categoryIdWatch
@@ -551,7 +653,7 @@ export function ProductFormDialog(props: {
                                             }}
                                         >
                                             <span>
-                                                {getLocalizedField(option.name, "hy")}
+                                                {lf(option.name)}
                                             </span>
                                             <IconButton
                                                 type="button"
@@ -559,7 +661,7 @@ export function ProductFormDialog(props: {
                                                 tabIndex={-1}
                                                 disabled={submitLoading}
                                                 aria-label={t("deleteCategoryAria", {
-                                                    name: getLocalizedField(option.name, "hy"),
+                                                    name: lf(option.name),
                                                 })}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
@@ -573,35 +675,44 @@ export function ProductFormDialog(props: {
                                     );
                                 }}
                             />
-                            <Stack
-                                direction={{ xs: "column", md: "row" }}
-                                spacing={1}
-                                alignItems={{ xs: "stretch", md: "flex-end" }}
+                            <AdminLocalizationSection
+                                fieldValues={[newCategoryName]}
+                                onTranslate={handleNewCategoryTranslate}
+                                translating={isTranslating}
+                                disabled={submitLoading || addCategoryLoading}
                             >
-                                <Box sx={{ flex: 1 }}>
-                                    <LocalizedTextFields
-                                        label={t("newCategory")}
-                                        value={newCategoryName}
-                                        onChange={setNewCategoryName}
-                                        disabled={submitLoading || addCategoryLoading}
-                                    />
-                                </Box>
-                                <Button
-                                    type="button"
-                                    size="small"
-                                    variant="outlined"
-                                    onClick={() => void handleAddCategory()}
-                                    disabled={submitLoading || addCategoryLoading}
-                                    aria-label={t("addCategory")}
-                                    sx={{ mb: 0.5 }}
+                                <Stack
+                                    direction={{ xs: "column", md: "row" }}
+                                    spacing={1}
+                                    alignItems={{ xs: "stretch", md: "flex-end" }}
                                 >
-                                    +
-                                </Button>
-                            </Stack>
+                                    <Box sx={{ flex: 1 }}>
+                                        <LocalizedTextFields
+                                            label={t("newCategory")}
+                                            value={newCategoryName}
+                                            onChange={setNewCategoryName}
+                                            disabled={submitLoading || addCategoryLoading}
+                                        />
+                                    </Box>
+                                    <Button
+                                        type="button"
+                                        size="small"
+                                        variant="outlined"
+                                        onClick={() => void handleAddCategory()}
+                                        disabled={submitLoading || addCategoryLoading}
+                                        aria-label={t("addCategory")}
+                                        sx={{ mb: 0.5 }}
+                                    >
+                                        +
+                                    </Button>
+                                </Stack>
+                            </AdminLocalizationSection>
 
                             <ProductModifiersSection
                                 control={control}
                                 disabled={submitLoading}
+                                onTranslate={handleAITranslate}
+                                translating={isTranslating}
                             />
 
                             <Box>

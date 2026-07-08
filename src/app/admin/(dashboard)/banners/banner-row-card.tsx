@@ -18,8 +18,9 @@ import {
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { useLocalizedFieldFn } from "@/features/admin/hooks/use-admin-content-locale";
+import { LocalizedStatusChips } from "@/features/admin/ui/localized-status-chips";
 import { validateBannerHref } from "@/lib/banner-href";
-import { getLocalizedField } from "@/lib/i18n-utils";
 import { tokens } from "@/shared/ui/theme";
 
 export type BannerRow = {
@@ -77,9 +78,10 @@ export function BannerRowCard({
 }: BannerRowCardProps) {
     const t = useTranslations("admin.banners");
     const [hrefError, setHrefError] = useState<string | null>(null);
+    const lf = useLocalizedFieldFn();
 
     const status = statusOf(banner);
-    const hasCaption = Boolean(getLocalizedField(banner.title, "ru"));
+    const hasCaption = Boolean(lf(banner.title));
 
     const patchDate = (field: "startsAt" | "endsAt", value: string) => {
         void onPatch(banner.id, {
@@ -152,10 +154,11 @@ export function BannerRowCard({
                             px: 0.5,
                         }}
                     >
-                        {hasCaption
-                            ? getLocalizedField(banner.title, "ru")
-                            : t("addCaption")}
+                        {hasCaption ? lf(banner.title) : t("addCaption")}
                     </Button>
+                    {hasCaption ? (
+                        <LocalizedStatusChips value={banner.title} />
+                    ) : null}
                     <Stack direction="row" spacing={1} sx={{ mt: 1.25 }}>
                         <TextField
                             size="small"

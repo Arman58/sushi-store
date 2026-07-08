@@ -47,6 +47,7 @@ const NetworkStatus = dynamic(
 );
 import LanguageSwitcher from "./LanguageSwitcher";
 import { MobileNavDrawer } from "./mobile-nav-drawer";
+import { PullToRefresh } from "./pull-to-refresh";
 import { PwaNavArrows } from "./pwa-nav-arrows";
 import { SearchOverlay } from "./search-overlay";
 import { tokens } from "./theme";
@@ -644,6 +645,7 @@ export function LayoutShell({ children }: LayoutShellProps) {
             </Box>
 
             {/* Global overlays */}
+            <PullToRefresh />
             <CartDrawer />
             <NetworkStatus />
             <SearchOverlay

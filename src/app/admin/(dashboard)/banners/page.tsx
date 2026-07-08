@@ -21,6 +21,8 @@ import {
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useAITranslation } from "@/features/admin/hooks/use-ai-translation";
+import { AdminLocalizationSection } from "@/features/admin/ui/admin-localization-section";
 import {
     type BannerHrefError,
     validateBannerHref,
@@ -28,6 +30,7 @@ import {
 import {
     emptyLocalizedJson,
     type LocalizedJson,
+    mergeLocalizedTranslations,
     parseLocalizedJson,
 } from "@/lib/i18n-utils";
 import { IMAGE_UPLOAD_ACCEPT } from "@/lib/validate-image-upload";
@@ -58,6 +61,32 @@ export default function AdminBannersPage() {
     const [ctaDraft, setCtaDraft] = useState<LocalizedJson>(
         emptyLocalizedJson(),
     );
+
+    const { translate, isTranslating } = useAITranslation();
+
+    const handleTranslate = async (): Promise<boolean> => {
+        const fieldsToTranslate: Record<string, string> = {};
+        if (titleDraft.ru) fieldsToTranslate.title = titleDraft.ru;
+        if (ctaDraft.ru) fieldsToTranslate.cta = ctaDraft.ru;
+        if (Object.keys(fieldsToTranslate).length === 0) return false;
+
+        const res = await translate(fieldsToTranslate);
+        if (!res) return false;
+
+        setTitleDraft((prev) =>
+            mergeLocalizedTranslations(prev, {
+                en: res.en.title,
+                hy: res.hy.title,
+            }),
+        );
+        setCtaDraft((prev) =>
+            mergeLocalizedTranslations(prev, {
+                en: res.en.cta,
+                hy: res.hy.cta,
+            }),
+        );
+        return true;
+    };
     const fileRef = useRef<HTMLInputElement>(null);
 
     const load = useCallback(async () => {
@@ -367,18 +396,22 @@ export default function AdminBannersPage() {
                     >
                         {t("captionDialogHint")}
                     </Typography>
-                    <LocalizedTextFields
-                        label={t("captionField")}
-                        value={titleDraft}
-                        onChange={setTitleDraft}
-                    />
-                    <Box sx={{ mt: 2 }}>
+                    <AdminLocalizationSection
+                        fieldValues={[titleDraft, ctaDraft]}
+                        onTranslate={handleTranslate}
+                        translating={isTranslating}
+                    >
+                        <LocalizedTextFields
+                            label={t("captionField")}
+                            value={titleDraft}
+                            onChange={setTitleDraft}
+                        />
                         <LocalizedTextFields
                             label={t("ctaField")}
                             value={ctaDraft}
                             onChange={setCtaDraft}
                         />
-                    </Box>
+                    </AdminLocalizationSection>
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2 }}>
                     <Button

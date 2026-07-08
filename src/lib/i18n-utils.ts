@@ -127,6 +127,33 @@ export function emptyLocalizedJson(): LocalizedJson {
     return { hy: "", ru: "", en: "" };
 }
 
+/** Подмешивает переводы HY/EN в существующий объект (RU не трогаем). */
+export function mergeLocalizedTranslations(
+    base: LocalizedJson,
+    translated: { en?: string; hy?: string },
+): LocalizedJson {
+    return {
+        ...base,
+        en: translated.en?.trim() ? translated.en : base.en,
+        hy: translated.hy?.trim() ? translated.hy : base.hy,
+    };
+}
+
+export type LocalizedFillStatus = Record<StoreLocale, boolean>;
+
+/** Какие локали заполнены в JSONB-поле. */
+export function localizedFillStatus(value: unknown): LocalizedFillStatus {
+    const record = asLocalizedRecord(value);
+    if (!record) {
+        return { hy: false, ru: false, en: false };
+    }
+    return {
+        hy: Boolean(record.hy?.trim()),
+        ru: Boolean(record.ru?.trim()),
+        en: Boolean(record.en?.trim()),
+    };
+}
+
 /** Парсит JSON из БД в объект для форм админки. */
 /** Источник для slug: предпочитаем латиницу (ru/en). */
 export function localizedSlugSource(value: unknown): string {

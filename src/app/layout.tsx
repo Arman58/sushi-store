@@ -8,6 +8,7 @@ import { getLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 
 import { routing } from "@/i18n/routing";
+import { resolveAdminLocale } from "@/lib/admin-locale";
 import {
     foodDeliveryServiceJsonLd,
     JsonLd,
@@ -19,7 +20,10 @@ import {
     SITE_NAME,
     SITE_URL,
 } from "@/lib/site-config";
-import { THEME_INIT_SCRIPT } from "@/shared/ui/theme-mode-toggle";
+import {
+    THEME_INIT_SCRIPT,
+} from "@/lib/theme-preference";
+import { resolveThemeMode } from "@/lib/theme-preference.server";
 
 import { interFont } from "./fonts";
 import { AppProviders } from "./providers";
@@ -130,15 +134,17 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     try {
         locale = await getLocale();
     } catch {
-        // /admin и прочие маршруты без next-intl контекста
+        locale = await resolveAdminLocale();
     }
+
+    const themeMode = await resolveThemeMode();
 
     return (
         <html
             lang={locale}
             className={interFont.variable}
             data-scroll-behavior="smooth"
-            data-theme="light"
+            data-theme={themeMode}
             suppressHydrationWarning
         >
             <head>
@@ -173,7 +179,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                             process.env.NEXT_PUBLIC_ENABLE_SW_DEV !== "1"
                         }
                     >
-                        <AppProviders>{children}</AppProviders>
+                        <AppProviders initialTheme={themeMode}>{children}</AppProviders>
                     </SerwistProvider>
                 </AppRouterCacheProvider>
                 <Analytics />

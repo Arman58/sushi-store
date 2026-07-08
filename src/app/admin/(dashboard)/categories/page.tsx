@@ -30,10 +30,14 @@ import {
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useLocalizedFieldFn } from "@/features/admin/hooks/use-admin-content-locale";
+import { useAITranslation } from "@/features/admin/hooks/use-ai-translation";
+import { AdminLocalizationSection } from "@/features/admin/ui/admin-localization-section";
+import { LocalizedStatusChips } from "@/features/admin/ui/localized-status-chips";
 import {
     emptyLocalizedJson,
-    getLocalizedField,
     type LocalizedJson,
+    mergeLocalizedTranslations,
     parseLocalizedJson,
 } from "@/lib/i18n-utils";
 import { IMAGE_UPLOAD_ACCEPT } from "@/lib/validate-image-upload";
@@ -222,6 +226,7 @@ function CategoryImageCell({
 export default function AdminCategoriesPage() {
     const t = useTranslations("admin.categories");
     const tCommon = useTranslations("admin.common");
+    const lf = useLocalizedFieldFn();
     const [categories, setCategories] = useState<CategoryRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [pageError, setPageError] = useState<string | null>(null);
@@ -231,6 +236,21 @@ export default function AdminCategoriesPage() {
     const [editing, setEditing] = useState<CategoryRow | null>(null);
     const [editName, setEditName] = useState<LocalizedJson>(emptyLocalizedJson());
     const [saveBusy, setSaveBusy] = useState(false);
+
+    const { translate, isTranslating } = useAITranslation();
+
+    const handleTranslate = async (): Promise<boolean> => {
+        if (!editName.ru) return false;
+        const res = await translate({ name: editName.ru });
+        if (!res) return false;
+        setEditName((prev) =>
+            mergeLocalizedTranslations(prev, {
+                en: res.en.name,
+                hy: res.hy.name,
+            }),
+        );
+        return true;
+    };
 
     // Delete confirm
     const [deleting, setDeleting] = useState<CategoryRow | null>(null);
@@ -417,15 +437,23 @@ export default function AdminCategoriesPage() {
                                         />
                                     </TableCell>
                                     <TableCell>
-                                        <Typography
-                                            variant="body2"
-                                            fontWeight={600}
+                                        <Box
+                                            sx={{
+                                                display: "flex",
+                                                flexDirection: "column",
+                                                gap: 0.75,
+                                            }}
                                         >
-                                            {getLocalizedField(
-                                                category.name,
-                                                "ru",
-                                            )}
-                                        </Typography>
+                                            <Typography
+                                                variant="body2"
+                                                fontWeight={600}
+                                            >
+                                                {lf(category.name)}
+                                            </Typography>
+                                            <LocalizedStatusChips
+                                                value={category.name}
+                                            />
+                                        </Box>
                                     </TableCell>
                                     <TableCell>
                                         <Typography
@@ -447,7 +475,7 @@ export default function AdminCategoriesPage() {
                                             }
                                             inputProps={{
                                                 "aria-label": t("categoryActiveAria", {
-                                                    name: getLocalizedField(category.name, "ru"),
+                                                    name: lf(category.name),
                                                 }),
                                             }}
                                         />
@@ -498,12 +526,19 @@ export default function AdminCategoriesPage() {
                 <DialogTitle>{t("renameCategory")}</DialogTitle>
                 <DialogContent>
                     <Box sx={{ pt: 1 }}>
-                        <LocalizedTextFields
-                            label={tCommon("name")}
-                            value={editName}
-                            onChange={setEditName}
-                            required
-                        />
+                        <AdminLocalizationSection
+                            fieldValues={[editName]}
+                            onTranslate={handleTranslate}
+                            translating={isTranslating}
+                            disabled={saveBusy}
+                        >
+                            <LocalizedTextFields
+                                label={tCommon("name")}
+                                value={editName}
+                                onChange={setEditName}
+                                required
+                            />
+                        </AdminLocalizationSection>
                     </Box>
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -537,7 +572,7 @@ export default function AdminCategoriesPage() {
                     <Typography variant="body2" sx={{ color: tokens.textSecondary }}>
                         {t("deleteBody", {
                             name: deleting
-                                ? getLocalizedField(deleting.name, "ru")
+                                ? lf(deleting.name)
                                 : "",
                         })}
                     </Typography>

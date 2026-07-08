@@ -10,20 +10,26 @@ import ButtonBase from "@mui/material/ButtonBase";
 import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
+import { useColorScheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore, useTransition } from "react";
 
 /**
- * Контролы шапки админки: тема (light/dark) и язык сайта.
- * Админка живёт вне [locale], поэтому компоненты self-contained и НЕ зависят
- * от next-intl - тема управляется атрибутом data-theme на <html>, язык -
- * cookie NEXT_LOCALE (влияет на язык витрины).
+ * Контролы шапки админки: тема (light/dark) и язык UI.
  */
 
-const THEME_KEY = "ew_theme";
 const LOCALE_COOKIE = "NEXT_LOCALE";
 const DEFAULT_LOCALE = "hy";
+
+function useIsHydrated(): boolean {
+    return useSyncExternalStore(
+        () => () => {},
+        () => true,
+        () => false,
+    );
+}
 
 const languages = [
     { code: "hy", labelKey: "localeHy" as const, flag: "🇦🇲" },
@@ -33,46 +39,33 @@ const languages = [
 
 // ─── Тема ───────────────────────────────────────────────────────────────────
 
-function currentMode(): "light" | "dark" {
-    if (typeof document === "undefined") return "light";
-    return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
-}
-
-function subscribeTheme(onChange: () => void): () => void {
-    if (typeof document === "undefined") return () => {};
-    const observer = new MutationObserver(onChange);
-    observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ["data-theme"],
-    });
-    return () => observer.disconnect();
-}
-
 function AdminThemeToggle() {
     const t = useTranslations("admin.header");
-    const mode = useSyncExternalStore(
-        subscribeTheme,
-        currentMode,
-        () => "light",
-    );
+    const hydrated = useIsHydrated();
+    const { mode, setMode } = useColorScheme();
+    const current = mode === "dark" ? "dark" : "light";
 
     const toggle = () => {
-        const next = currentMode() === "dark" ? "light" : "dark";
-        document.documentElement.dataset.theme = next;
-        try {
-            localStorage.setItem(THEME_KEY, next);
-        } catch {
-            /* приватный режим */
-        }
+        setMode(current === "dark" ? "light" : "dark");
     };
+
+    if (!hydrated) {
+        return (
+            <IconButton
+                aria-label={t("darkTheme")}
+                sx={{ width: 40, height: 40, color: "text.secondary" }}
+                disabled
+            />
+        );
+    }
 
     return (
         <IconButton
             onClick={toggle}
-            aria-label={mode === "dark" ? t("lightTheme") : t("darkTheme")}
+            aria-label={current === "dark" ? t("lightTheme") : t("darkTheme")}
             sx={{ width: 40, height: 40, color: "text.secondary" }}
         >
-            {mode === "dark" ? (
+            {current === "dark" ? (
                 <LightModeOutlinedIcon sx={{ fontSize: 21 }} />
             ) : (
                 <DarkModeOutlinedIcon sx={{ fontSize: 21 }} />
@@ -101,6 +94,8 @@ function readLocaleCookie(): string {
 function AdminLangSwitcher() {
     const t = useTranslations("admin.header");
     const tLang = useTranslations("languageSwitcher");
+    const router = useRouter();
+    const [, startTransition] = useTransition();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
 
@@ -115,8 +110,11 @@ function AdminLangSwitcher() {
         setAnchorEl(null);
         if (code === locale) return;
         writeLocaleCookie(code);
-        // Перерисовать: язык витрины берётся из cookie.
-        window.location.reload();
+        // Мягкое обновление server components (next-intl messages)
+        // без полной перезагрузки страницы и потери состояния клиента.
+        startTransition(() => {
+            router.refresh();
+        });
     };
 
     const current =

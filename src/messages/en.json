@@ -495,11 +495,11 @@
         "label_work": "Work",
         "phoneMissing": "Phone number not set (add it when placing an order)",
         "memberSince": "With us since {date}",
-        "orderHistory": "Order history",
+        "orderHistory": "My Orders",
         "orderNumber": "Order №{id}",
         "empty": {
             "title": "No orders yet",
-            "subtitle": "Your order history will appear here after your first purchase.",
+            "subtitle": "Your orders will appear here after your first purchase.",
             "cta": "Go to menu"
         },
         "login": {
@@ -761,6 +761,31 @@
             "lightTheme": "Light theme",
             "darkTheme": "Dark theme",
             "siteLanguage": "Site language"
+        },
+        "aiTranslate": {
+            "sectionTitle": "Content in 3 languages",
+            "sectionSubtitle": "Write in Russian, then auto-fill Armenian and English with one click.",
+            "sourceBadge": "Source",
+            "step1": "Fill in Russian on each field below",
+            "step2": "Click «Translate to HY & EN»",
+            "step3": "Review Armenian and English tabs",
+            "buttonAction": "Translate to HY & EN",
+            "translating": "Translating…",
+            "fieldsReady": "{count, plural, one {# field ready} other {# fields ready}}",
+            "noTextHint": "Add Russian text first — at least in the Name field",
+            "sourceFieldHint": "Source language — AI translates from this text",
+            "targetFieldHint": "Auto-filled after translation; you can edit manually",
+            "button": "AI Translate",
+            "noText": "No Russian text filled in to translate.",
+            "success": "Armenian and English fields updated. Review before saving.",
+            "errorGeneric": "Translation failed. Please try again.",
+            "errorTimeout": "Translation timed out. Please try again.",
+            "errorConfig": "Translation service is not configured on the server.",
+            "errorUpstream": "Translation service returned an error. Please try again.",
+            "localeFilled": "{locale} — filled",
+            "localeEmpty": "{locale} — missing",
+            "contentLanguageChip": "Content: {locale}",
+            "reviewAfterTranslate": "Switched to Armenian — check HY and EN tabs, then save."
         },
         "common": {
             "all": "All",
