@@ -11,7 +11,7 @@ import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { motion, useMotionValueEvent,useScroll } from "framer-motion";
+import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
@@ -20,6 +20,7 @@ import { useCartStore } from "@/features/cart";
 import { useFavorites } from "@/features/favorites";
 import { Link, usePathname } from "@/i18n/server";
 import { triggerHaptic } from "@/shared/lib/haptic";
+import { useScrollHide } from "@/shared/lib/use-scroll-hide";
 
 import { tokens } from "./theme";
 
@@ -62,17 +63,7 @@ export function MobileBottomNav() {
                 : pathname.startsWith("/profile")
                   ? "profile"
                   : "";
-    const { scrollY } = useScroll();
-    const [hidden, setHidden] = useState(false);
-
-    useMotionValueEvent(scrollY, "change", (latest) => {
-        const previous = scrollY.getPrevious() ?? 0;
-        if (latest > previous && latest > 150) {
-            setHidden(true);
-        } else {
-            setHidden(false);
-        }
-    });
+    const hidden = useScrollHide(150);
 
     return (
         <Box

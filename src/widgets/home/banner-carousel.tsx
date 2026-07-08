@@ -143,12 +143,16 @@ export function BannerCarousel({ items }: { items: BannerCarouselItem[] }) {
                             }}
                         >
                             <Image
-                    loader={cloudinaryImageLoader}
+                                loader={cloudinaryImageLoader}
                                 src={banner.image}
                                 alt={banner.title || "promo"}
                                 fill
                                 sizes="(max-width: 600px) 86vw, (max-width: 900px) 480px, 1152px"
                                 style={{ objectFit: "cover" }}
+                                priority={banner.id === items[0]?.id}
+                                loading={
+                                    banner.id === items[0]?.id ? undefined : "lazy"
+                                }
                             />
                             {banner.title ? (
                                 <Box

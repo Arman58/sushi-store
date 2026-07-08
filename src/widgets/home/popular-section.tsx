@@ -6,9 +6,8 @@ import ButtonBase from "@mui/material/ButtonBase";
 import Typography from "@mui/material/Typography";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
-import { useCallback, useState } from "react";
 
-import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
+import { useLazyProductModifiers } from "@/entities/product/model/use-lazy-product-modifiers";
 import type { ConnectableProduct } from "@/entities/product/ui/connected-product-card";
 import { ConnectedProductCard } from "@/entities/product/ui/connected-product-card";
 import type { ProductBadge } from "@/entities/product/ui/product-card";
@@ -28,22 +27,7 @@ const ProductModifiersDialog = dynamic(
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type PopularProduct = {
-    id: number;
-    slug: string;
-    name: string;
-    description?: string | null;
-    price: number;
-    weight?: number | null;
-    images?: unknown;
-    mainImage?: string | null;
-    category?: { name: string } | null;
-    composition?: string | null;
-    modifierGroups?: MenuModifierGroup[];
-    ratingAvg?: number;
-    ratingCount?: number;
-    isAvailable?: boolean;
-};
+export type PopularProduct = ConnectableProduct;
 
 type Props = {
     products: PopularProduct[];
@@ -145,13 +129,8 @@ export function PopularSection({
     const t = useTranslations("home");
     const sectionTitle = title ?? t("popular");
     const addItem = useCartStore((s) => s.addItem);
-    const [modifierProduct, setModifierProduct] = useState<ConnectableProduct | null>(
-        null,
-    );
-
-    const openModifiers = useCallback((product: ConnectableProduct) => {
-        setModifierProduct(product);
-    }, []);
+    const { modifierProduct, openModifiers, closeModifiers } =
+        useLazyProductModifiers();
 
     if (products.length === 0) return null;
 
@@ -199,7 +178,7 @@ export function PopularSection({
 
             <ProductModifiersDialog
                 open={modifierProduct !== null}
-                onClose={() => setModifierProduct(null)}
+                onClose={closeModifiers}
                 productName={modifierProduct?.name ?? ""}
                 description={
                     modifierProduct?.description ??

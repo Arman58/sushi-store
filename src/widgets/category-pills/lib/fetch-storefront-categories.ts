@@ -1,10 +1,11 @@
 import { type StorefrontCategory,toStorefrontCategory } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
+import { unstable_cache } from "next/cache";
 
-export async function fetchStorefrontCategories(
-    locale: string,
-): Promise<StorefrontCategory[]> {
+/** Категории кэшируются на 60 сек (данные редко меняются). */
+export const fetchStorefrontCategories = unstable_cache(
+    async (locale: string): Promise<StorefrontCategory[]> => {
     try {
         const categoriesRaw = await prisma.category.findMany({
             where: {
@@ -33,4 +34,7 @@ export async function fetchStorefrontCategories(
     } catch {
         return [];
     }
-}
+    },
+    ["storefront-categories"],
+    { revalidate: 60 },
+);

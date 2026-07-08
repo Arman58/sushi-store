@@ -234,12 +234,27 @@ self.addEventListener("push", (event: PushEvent) => {
     }
 
     event.waitUntil(
-        self.registration.showNotification(payload.title, {
-            body: payload.body,
-            icon: "/pwa/icon-192x192.png",
-            badge: "/pwa/icon-192x192.png",
-            data: { url: payload.url },
-        }),
+        (async () => {
+            await self.registration.showNotification(payload.title, {
+                body: payload.body,
+                icon: "/pwa/icon-192x192.png",
+                badge: "/pwa/icon-192x192.png",
+                data: { url: payload.url },
+            });
+
+            // Открытые вкладки узнают о push сразу - трекер заказа
+            // перезапрашивает статус мгновенно, не дожидаясь поллинга.
+            const clientList = await self.clients.matchAll({
+                type: "window",
+                includeUncontrolled: true,
+            });
+            for (const client of clientList) {
+                client.postMessage({
+                    type: "ORDER_STATUS_PUSH",
+                    url: payload.url,
+                });
+            }
+        })(),
     );
 });
 

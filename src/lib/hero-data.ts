@@ -1,5 +1,8 @@
 import type { PromoCode } from "@prisma/client";
 
+import { unstable_cache } from "next/cache";
+import { cache } from "react";
+
 import { getLocalizedField } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
 
@@ -25,9 +28,10 @@ export function formatDeliveryStat(
     return { kind: "deliveryFrom", price: zone.deliveryPrice };
 }
 
-export async function fetchHeroPageData(locale: string): Promise<HeroPageData> {
-    try {
-        const freeDeliveryZone = await prisma.deliveryZone.findFirst({
+/** Зона бесплатной доставки кэшируется на 5 мин (меняется редко). */
+const getFreeDeliveryZoneCached = unstable_cache(
+    async () =>
+        prisma.deliveryZone.findFirst({
             where: {
                 isActive: true,
                 deliveryPrice: 0,
@@ -35,7 +39,14 @@ export async function fetchHeroPageData(locale: string): Promise<HeroPageData> {
             },
             orderBy: { position: "asc" },
             select: { name: true, deliveryPrice: true },
-        });
+        }),
+    ["hero-free-delivery-zone"],
+    { revalidate: 300 },
+);
+
+export const fetchHeroPageData = cache(async (locale: string): Promise<HeroPageData> => {
+    try {
+        const freeDeliveryZone = await getFreeDeliveryZoneCached();
 
         const localizedZone = freeDeliveryZone
             ? {
@@ -55,4 +66,4 @@ export async function fetchHeroPageData(locale: string): Promise<HeroPageData> {
             promo: null,
         };
     }
-}
+});

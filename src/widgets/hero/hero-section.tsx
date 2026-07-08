@@ -20,11 +20,8 @@ export type HeroSectionProps = {
   openingHoursStat: string;
 };
 
-const HERO_IMAGES = [
-  "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=800&q=80",
-  "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=80",
-  "https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800&q=80",
-];
+const HERO_IMAGE =
+  "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=800&q=80";
 
 export function HeroSection({ deliveryStat, openingHoursStat }: HeroSectionProps) {
   const t = useTranslations("hero");
@@ -45,12 +42,12 @@ export function HeroSection({ deliveryStat, openingHoursStat }: HeroSectionProps
         bgcolor: tokens.surfaceHi,
       }}
     >
-      {/* Background food image - right side, blended into light bg */}
+      {/* Одно LCP-изображение вместо двух priority-копий (mobile + desktop). */}
       <Box
         sx={{
           position: "absolute",
           inset: 0,
-          display: { xs: "none", md: "block" },
+          overflow: "hidden",
         }}
       >
         <Box
@@ -59,53 +56,36 @@ export function HeroSection({ deliveryStat, openingHoursStat }: HeroSectionProps
             top: 0,
             right: 0,
             bottom: 0,
-            width: "52%",
-            overflow: "hidden",
+            width: { xs: "100%", md: "52%" },
           }}
         >
           <Image
-                    loader={cloudinaryImageLoader}
-            src={HERO_IMAGES[0]}
+            loader={cloudinaryImageLoader}
+            src={HERO_IMAGE}
             alt="Sushi sets"
             fill
-            sizes="(max-width: 900px) 0vw, 52vw"
+            sizes="(max-width: 900px) 100vw, 52vw"
             style={{ objectFit: "cover" }}
             priority
-          />
-          {/* Fade into hero background on the left edge */}
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              background:
-                "linear-gradient(to right, var(--ew-surface-hi) 0%, transparent 35%)",
-            }}
+            fetchPriority="high"
           />
         </Box>
-      </Box>
-
-      {/* Mobile: single background image with overlay */}
-      <Box
-        sx={{
-          position: "absolute",
-          inset: 0,
-          display: { xs: "block", md: "none" },
-        }}
-      >
-        <Image
-                    loader={cloudinaryImageLoader}
-          src={HERO_IMAGES[0]}
-          alt="Sushi"
-          fill
-          sizes="100vw"
-          style={{ objectFit: "cover" }}
-          priority
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            display: { xs: "block", md: "none" },
+            background:
+              "linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)",
+          }}
         />
         <Box
           sx={{
             position: "absolute",
             inset: 0,
-            background: "linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)",
+            display: { xs: "none", md: "block" },
+            background:
+              "linear-gradient(to right, var(--ew-surface-hi) 0%, transparent 35%)",
           }}
         />
       </Box>

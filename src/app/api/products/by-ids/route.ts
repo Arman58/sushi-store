@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getFormValidationMessage } from "@/lib/backend-i18n";
-import { homeProductInclude } from "@/lib/home-product-include";
+import { homeProductCardInclude } from "@/lib/home-product-include";
 import { resolveRequestLocale, toStorefrontProducts } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
 
@@ -29,12 +29,16 @@ export async function GET(request: Request) {
     try {
         const productsRaw = await prisma.product.findMany({
             where: { isActive: true, id: { in: ids } },
-            include: homeProductInclude,
+            include: homeProductCardInclude,
             orderBy: { id: "asc" },
         });
 
         const products = toStorefrontProducts(
-            productsRaw as unknown as Record<string, unknown>[],
+            productsRaw.map((p) => ({
+                ...p,
+                modifierGroups: undefined,
+                hasModifiers: p.modifierGroups.length > 0,
+            })) as unknown as Record<string, unknown>[],
             locale,
         );
 

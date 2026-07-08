@@ -29,12 +29,26 @@ self.addEventListener("push", (event) => {
     }
 
     event.waitUntil(
-        self.registration.showNotification(payload.title, {
-            body: payload.body,
-            icon: "/pwa/icon-192x192.png",
-            badge: "/pwa/icon-192x192.png",
-            data: { url: payload.url },
-        }),
+        (async () => {
+            await self.registration.showNotification(payload.title, {
+                body: payload.body,
+                icon: "/pwa/icon-192x192.png",
+                badge: "/pwa/icon-192x192.png",
+                data: { url: payload.url },
+            });
+
+            // Уведомляем открытые вкладки - мгновенный refetch статуса заказа.
+            const clientList = await self.clients.matchAll({
+                type: "window",
+                includeUncontrolled: true,
+            });
+            for (const client of clientList) {
+                client.postMessage({
+                    type: "ORDER_STATUS_PUSH",
+                    url: payload.url,
+                });
+            }
+        })(),
     );
 });
 
