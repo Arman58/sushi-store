@@ -2,37 +2,57 @@
 
 import { useSyncExternalStore } from "react";
 
-const MOBILE_QUERY = "(max-width:600px)";
-
 type MediaQueryListener = () => void;
 
-let mediaQuery: MediaQueryList | null = null;
-const listeners = new Set<MediaQueryListener>();
-
-function ensureMediaQuery(): MediaQueryList | null {
-    if (typeof window === "undefined") return null;
-    if (!mediaQuery) {
-        mediaQuery = window.matchMedia(MOBILE_QUERY);
-        mediaQuery.addEventListener("change", () => {
-            for (const listener of listeners) {
-                listener();
-            }
-        });
+const registry = new Map<
+    string,
+    {
+        mql: MediaQueryList;
+        listeners: Set<MediaQueryListener>;
     }
-    return mediaQuery;
+>();
+
+function ensure(query: string) {
+    let entry = registry.get(query);
+    if (!entry) {
+        const mql = window.matchMedia(query);
+        const listeners = new Set<MediaQueryListener>();
+        mql.addEventListener("change", () => {
+            for (const listener of listeners) listener();
+        });
+        entry = { mql, listeners };
+        registry.set(query, entry);
+    }
+    return entry;
 }
 
-function subscribe(listener: MediaQueryListener): () => void {
-    ensureMediaQuery();
-    listeners.add(listener);
-    return () => listeners.delete(listener);
+function subscribe(query: string, listener: MediaQueryListener): () => void {
+    if (typeof window === "undefined") return () => {};
+    const entry = ensure(query);
+    entry.listeners.add(listener);
+    return () => entry.listeners.delete(listener);
 }
 
-function getSnapshot(): boolean {
-    return ensureMediaQuery()?.matches ?? false;
+function getSnapshot(query: string): boolean {
+    if (typeof window === "undefined") return false;
+    return ensure(query).mql.matches;
 }
 
-/** Один matchMedia на все карточки вместо useMediaQuery в каждой. */
+/** Shared matchMedia subscription (one listener set per query string). */
+export function useMediaQueryMatch(query: string): boolean {
+    return useSyncExternalStore(
+        (listener) => subscribe(query, listener),
+        () => getSnapshot(query),
+        () => false,
+    );
+}
+
+/** Mobile phone viewport (MUI `sm` down). */
 export function useMobileViewport(): boolean {
-    return useSyncExternalStore(subscribe, getSnapshot, () => false);
+    return useMediaQueryMatch("(max-width:600px)");
+}
+
+/** Tablet and below (MUI `md` down) — admin cards / fullScreen dialogs. */
+export function useTabletDown(): boolean {
+    return useMediaQueryMatch("(max-width:900px)");
 }

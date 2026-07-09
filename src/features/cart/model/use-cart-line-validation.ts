@@ -42,8 +42,7 @@ export function useCartLineIssueMessage() {
 
 /**
  * Валидация строк корзины — читает единый контекст CartValidationProvider.
- * Аргумент `items` оставлен для совместимости вызовов, но не используется.
  */
-export function useCartLineValidation(_items?: unknown) {
+export function useCartLineValidation() {
     return useCartValidationContext();
 }

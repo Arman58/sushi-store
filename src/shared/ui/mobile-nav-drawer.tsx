@@ -301,7 +301,7 @@ export function MobileNavDrawer() {
                                             bgcolor: tokens.brand,
                                             fontSize: "0.85rem",
                                             fontWeight: 800,
-                                            color: "#fff",
+                                            color: "primary.contrastText",
                                         }}
                                     >
                                         {(session.user.name || "U").charAt(0).toUpperCase()}

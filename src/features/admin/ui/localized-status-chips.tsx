@@ -46,7 +46,7 @@ export function LocalizedStatusChips({
                                 bgcolor: filled
                                     ? "rgba(39, 174, 96, 0.12)"
                                     : "transparent",
-                                color: filled ? "#27AE60" : "text.secondary",
+                                color: filled ? "primary.main" : "text.secondary",
                                 borderColor: filled
                                     ? "rgba(39, 174, 96, 0.35)"
                                     : "divider",

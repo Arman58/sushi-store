@@ -114,7 +114,7 @@ function LocaleSwitcher({
                                     bgcolor: selected
                                         ? "rgba(255,255,255,0.18)"
                                         : "rgba(39, 174, 96, 0.1)",
-                                    color: selected ? "inherit" : "#27AE60",
+                                    color: selected ? "inherit" : "primary.main",
                                 }}
                             />
                         )}
@@ -160,7 +160,7 @@ function AdminLocalizationSectionInner({
                 borderRadius: 3,
                 borderColor: "divider",
                 bgcolor: "background.paper",
-                boxShadow: "0 1px 0 rgba(0,0,0,0.03)",
+                boxShadow: "0 1px 0 rgba(var(--ew-text-rgb), 0.04)",
             }}
         >
             <Stack spacing={2}>
@@ -179,7 +179,7 @@ function AdminLocalizationSectionInner({
                                 display: "grid",
                                 placeItems: "center",
                                 bgcolor: "rgba(39, 174, 96, 0.1)",
-                                color: "#27AE60",
+                                color: "primary.main",
                                 flexShrink: 0,
                             }}
                         >
@@ -235,11 +235,6 @@ function AdminLocalizationSectionInner({
                                         px: 2,
                                         py: 1,
                                         whiteSpace: "nowrap",
-                                        bgcolor: "#27AE60",
-                                        "&:hover": { bgcolor: "#219653" },
-                                        "&.Mui-disabled": {
-                                            bgcolor: "action.disabledBackground",
-                                        },
                                     }}
                                 >
                                     {translating ? t("translating") : t("buttonAction")}
@@ -280,7 +275,7 @@ function AdminLocalizationSectionInner({
                                             ? "rgba(39, 174, 96, 0.15)"
                                             : "background.paper",
                                     color:
-                                        index === 0 ? "#27AE60" : "text.secondary",
+                                        index === 0 ? "primary.main" : "text.secondary",
                                     flexShrink: 0,
                                 }}
                             >

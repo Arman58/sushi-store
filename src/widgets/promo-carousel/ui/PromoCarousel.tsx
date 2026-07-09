@@ -70,8 +70,8 @@ function PromoSlideCard({
                 sizes="(max-width: 600px) 100vw, 960px"
                 style={{ objectFit: "cover" }}
                 {...(priority
-                    ? { priority: true, fetchPriority: "high" as const }
-                    : { loading: "lazy" })}
+                    ? { loading: "eager" as const }
+                    : { loading: "lazy" as const })}
             />
 
             <Box

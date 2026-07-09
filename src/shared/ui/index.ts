@@ -1,6 +1,11 @@
 export { AppButton } from "./AppButton";
 export { AppInput } from "./AppInput";
 export { AppSelect } from "./AppSelect";
+export {
+    defaultAppSelectMenuPaperSx,
+    mergeAppSelectMenuProps,
+    useCloseMenuOnExternalScroll,
+} from "./select-menu";
 export * from "./cart-drawer";
 export * from "./cart-toast";
 export * from "./empty-cart";

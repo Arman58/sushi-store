@@ -105,7 +105,7 @@ export function CartLineItem({
             sx={{
                 position: "relative",
                 bgcolor: lineInvalid ? tokens.redDim : "transparent",
-                borderBottom: showDivider ? `1px solid ${alpha("#000", 0.08)}` : "none",
+                borderBottom: showDivider ? `1px solid ${tokens.border}` : "none",
                 overflow: "hidden",
             }}
         >

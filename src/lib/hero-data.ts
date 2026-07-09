@@ -1,5 +1,4 @@
 import type { PromoCode } from "@prisma/client";
-
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 

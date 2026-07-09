@@ -67,7 +67,7 @@ const focusVisibleRing = {
 
 /** Мягкая тень для карточек продукта / Paper - без жёсткого «дефолтного MUI». */
 const cardElevationShadow =
-    `0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06)`;
+    `0 1px 3px rgba(var(--ew-text-rgb), 0.04), 0 1px 2px rgba(var(--ew-text-rgb), 0.06)`;
 
 /** Общие цвета палитры (не зависят от темы). */
 const sharedPalette = {
@@ -414,7 +414,7 @@ const theme = createTheme({
                     transition:
                         "box-shadow 0.22s ease, border-color 0.22s ease",
                     "&:hover": {
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                        boxShadow: "0 2px 8px rgba(var(--ew-text-rgb), 0.08)",
                     },
                 },
             },
@@ -506,6 +506,9 @@ const theme = createTheme({
                     "&.MuiInputLabel-shrink": {
                         fontWeight: 650,
                         color: tokens.textMuted,
+                        // Notch sits on paper/surface — keep label readable in both themes
+                        bgcolor: "transparent",
+                        px: 0.25,
                     },
                     "&.Mui-error:not(.Mui-focused)": {
                         color: `${tokens.red} !important`,
@@ -668,7 +671,7 @@ const theme = createTheme({
             styleOverrides: {
                 badge: {
                     backgroundColor: tokens.brand,
-                    color: "#fff",
+                    color: sharedPalette.primary.contrastText,
                     fontWeight: 800,
                     fontSize: 10,
                     minWidth: 18,

@@ -94,10 +94,11 @@ function KitchenColumn({
                 maxHeight: "calc(100vh - 140px)",
                 display: "flex",
                 flexDirection: "column",
-                bgcolor: "#FFFFFF",
+                bgcolor: "background.paper",
                 borderRadius: "16px",
-                border: "1px solid #E2E8F0",
-                boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.05)",
+                border: "1px solid",
+                borderColor: "divider",
+                boxShadow: "0 1px 3px 0 rgba(var(--ew-text-rgb), 0.06)",
             }}
         >
             <Stack
@@ -108,10 +109,11 @@ function KitchenColumn({
                 sx={{
                     position: "sticky",
                     top: 0,
-                    bgcolor: "#FFFFFF",
+                    bgcolor: "background.paper",
                     px: 3,
                     py: 2.5,
-                    borderBottom: "1px solid #E2E8F0",
+                    borderBottom: "1px solid",
+                    borderColor: "divider",
                     borderTopLeftRadius: "16px",
                     borderTopRightRadius: "16px",
                     zIndex: 2,
@@ -125,7 +127,7 @@ function KitchenColumn({
                         fontWeight: 700,
                         textTransform: "uppercase",
                         letterSpacing: "1px",
-                        color: "#64748B",
+                        color: "text.secondary",
                     }}
                 >
                     {title}
@@ -133,8 +135,8 @@ function KitchenColumn({
                 <Box
                     component="span"
                     sx={{
-                        bgcolor: "#F1F5F9",
-                        color: "#0F172A",
+                        bgcolor: "action.hover",
+                        color: "text.primary",
                         borderRadius: "20px",
                         px: 1.5,
                         minWidth: 28,
@@ -152,11 +154,12 @@ function KitchenColumn({
                 {orders.length === 0 ? (
                     <Box
                         sx={{
-                            border: "1px dashed #E2E8F0",
+                            border: "1px dashed",
+                            borderColor: "divider",
                             borderRadius: "12px",
                             p: 3,
                             textAlign: "center",
-                            color: "#94A3B8",
+                            color: "text.secondary",
                             fontSize: 14,
                         }}
                     >
@@ -266,8 +269,9 @@ export function KitchenBoard() {
                 sx={{
                     px: 4,
                     py: 3,
-                    bgcolor: "#FFFFFF",
-                    borderBottom: "1px solid #E2E8F0",
+                    bgcolor: "background.paper",
+                    borderBottom: "1px solid",
+                    borderColor: "divider",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
@@ -278,7 +282,7 @@ export function KitchenBoard() {
                     sx={{
                         fontSize: 24,
                         fontWeight: 700,
-                        color: "#0F172A",
+                        color: "text.primary",
                     }}
                 >
                     {t("title")}
@@ -290,7 +294,7 @@ export function KitchenBoard() {
                     sx={{
                         fontSize: 24,
                         fontWeight: 500,
-                        color: "#64748B",
+                        color: "text.secondary",
                         fontVariantNumeric: "tabular-nums",
                     }}
                 >
@@ -308,10 +312,10 @@ export function KitchenBoard() {
                         py: 8,
                     }}
                 >
-                    <CircularProgress sx={{ color: "#059669" }} size={40} />
+                    <CircularProgress color="primary" size={40} />
                 </Box>
             ) : isError ? (
-                <Typography sx={{ p: 4, color: "#EF4444", fontSize: 14 }}>
+                <Typography sx={{ p: 4, color: "error.main", fontSize: 14 }}>
                     {error instanceof Error ? error.message : t("loadFailed")}
                 </Typography>
             ) : (

@@ -2,6 +2,7 @@
 
 import ClearIcon from "@mui/icons-material/Clear";
 import RestaurantMenuOutlined from "@mui/icons-material/RestaurantMenuOutlined";
+import SearchOffOutlinedIcon from "@mui/icons-material/SearchOffOutlined";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
@@ -20,11 +21,13 @@ import {
     useMemo,
     useRef,
     useState,
+    useTransition,
 } from "react";
 
 import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
 import { useLazyProductModifiers } from "@/entities/product/model/use-lazy-product-modifiers";
 import { ConnectedProductCard } from "@/entities/product/ui/connected-product-card";
+import { ProductCardSkeleton } from "@/entities/product/ui/product-card-skeleton";
 import { useCartStore } from "@/features/cart";
 import { FilterTriggerButton, useMenuFilters } from "@/features/filter";
 import { Link } from "@/i18n/server";
@@ -32,9 +35,9 @@ import type { StorefrontCategory } from "@/lib/i18n-utils";
 import { itemListJsonLd,JsonLd } from "@/lib/seo/json-ld";
 import { SITE_URL } from "@/lib/site-config";
 import { formatStorePrice } from "@/shared/lib/format-price";
+import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { useProgressiveRender } from "@/shared/lib/use-progressive-render";
 import { useScrollHide } from "@/shared/lib/use-scroll-hide";
-import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { AppInput } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
 import { CategoryPillsList } from "@/widgets/category-pills";
@@ -110,6 +113,20 @@ function MenuSectionFiltersFallback() {
     );
 }
 
+const CATALOG_SKELETON_COUNT = 8;
+
+function MenuProductGridSkeleton() {
+    return (
+        <>
+            {Array.from({ length: CATALOG_SKELETON_COUNT }).map((_, i) => (
+                <Box key={i} sx={{ height: "100%", minWidth: 0, display: "flex" }}>
+                    <ProductCardSkeleton />
+                </Box>
+            ))}
+        </>
+    );
+}
+
 function MenuSectionInner({
     categories,
     products,
@@ -139,6 +156,7 @@ function MenuSectionInner({
         maxPrice,
     });
     const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+    const [isFilterPending, startFilterTransition] = useTransition();
     const totalCount = useCartStore((s) =>
         s.items.reduce((sum, item) => sum + item.quantity, 0),
     );
@@ -167,6 +185,7 @@ function MenuSectionInner({
     const [search, setSearch] = useState(initialSearch);
     /** Отложенное значение: ввод не блокирует рендер большого списка. */
     const deferredSearch = useDeferredValue(search);
+    const isSearchPending = search !== deferredSearch;
     const stickySentinelRef = useRef<HTMLDivElement>(null);
     const [isStickyHeaderElevated, setIsStickyHeaderElevated] = useState(false);
 
@@ -236,7 +255,7 @@ function MenuSectionInner({
     ]);
 
     const filterResetKey = `${categorySlug}|${deferredSearch}|${priceRange[0]}-${priceRange[1]}`;
-    const visibleCount = useProgressiveRender(
+    const { visibleCount, loadMoreRef } = useProgressiveRender(
         filteredProducts.length,
         filterResetKey,
         { initialCount: 16, batchSize: 16 },
@@ -246,6 +265,17 @@ function MenuSectionInner({
         [filteredProducts, visibleCount],
     );
     const hasMoreProducts = visibleCount < filteredProducts.length;
+    const showCatalogSkeleton =
+        (isFilterPending || isSearchPending) && filteredProducts.length > 0;
+
+    const handleCategoryChange = useCallback(
+        (slug: string) => {
+            startFilterTransition(() => {
+                setCategorySlug(slug);
+            });
+        },
+        [setCategorySlug],
+    );
 
     const productsInActiveCategory = useMemo(() => {
         return filterByCategory(products, categorySlug);
@@ -300,6 +330,8 @@ function MenuSectionInner({
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder={t("search")}
+                        aria-busy={isSearchPending}
+                        inputProps={{ enterKeyHint: "search" }}
                         InputProps={{
                             endAdornment: search ? (
                                 <ClearIcon
@@ -340,7 +372,7 @@ function MenuSectionInner({
                         activeSlug={categorySlug}
                         mode="interactive"
                         variant="chip"
-                        onChange={setCategorySlug}
+                        onChange={handleCategoryChange}
                     />
                 ) : null}
             </Box>
@@ -402,7 +434,7 @@ function MenuSectionInner({
                 ) : (
                     <Box
                         sx={{
-                            py: 12,
+                            py: 10,
                             textAlign: "center",
                             display: "flex",
                             flexDirection: "column",
@@ -410,25 +442,41 @@ function MenuSectionInner({
                             gap: 1.5,
                         }}
                     >
-                        <Typography sx={{ fontSize: 52, lineHeight: 1 }}>
-                            🍽
-                        </Typography>
+                        <SearchOffOutlinedIcon
+                            sx={{ fontSize: 64, color: tokens.borderHi, mb: 0.5 }}
+                        />
                         <Typography component="p" variant="body1" fontWeight={700}>
                             {t("noResults.title")}
                         </Typography>
                         <Typography
                             variant="body2"
-                            sx={{ color: tokens.textSecondary }}
+                            sx={{ color: tokens.textSecondary, maxWidth: 280 }}
                         >
                             {t("noResults.subtitle")}
                         </Typography>
+                        {hasActiveFilters ? (
+                            <Button
+                                variant="outlined"
+                                color="primary"
+                                onClick={() => {
+                                    startTransition(() => {
+                                        resetFilters();
+                                        setSearch("");
+                                    });
+                                }}
+                                sx={{ mt: 1.5, borderRadius: `${tokens.radiusCardLg}px` }}
+                            >
+                                {t("reset_all")}
+                            </Button>
+                        ) : null}
                     </Box>
                 )
             ) : (
                 <Box
                     component="section"
                     aria-label={t("aria.catalog")}
-                    aria-busy={hasMoreProducts}
+                    aria-busy={hasMoreProducts || showCatalogSkeleton}
+                    aria-live="polite"
                     sx={{
                         display: "grid",
                         width: "100%",
@@ -437,7 +485,10 @@ function MenuSectionInner({
                         gap: 2,
                         pt: 2,
                         pb: {
-                            xs: "calc(72px + env(safe-area-inset-bottom))",
+                            // bottom nav (~72px) + optional sticky cart (~64px) + safe-area
+                            xs: totalCount > 0
+                                ? "calc(148px + env(safe-area-inset-bottom))"
+                                : "calc(88px + env(safe-area-inset-bottom))",
                             sm: 12,
                             md: 2,
                         },
@@ -448,47 +499,62 @@ function MenuSectionInner({
                         },
                     }}
                 >
-                    {visibleProducts.map((product, index) => {
-                        const animateEntry = index < 12;
-                        return (
-                            <Box
-                                component={animateEntry ? motion.div : "div"}
-                                key={`${categorySlug}-${product.id}`}
-                                {...(animateEntry
-                                    ? {
-                                          initial: { opacity: 0, y: 12 },
-                                          animate: { opacity: 1, y: 0 },
-                                          transition: {
-                                              duration: 0.25,
-                                              delay: Math.min(index, 11) * 0.03,
-                                              ease: "easeOut",
-                                          },
-                                      }
-                                    : {})}
-                                sx={{
-                                    height: "100%",
-                                    minWidth: 0,
-                                    display: "flex",
-                                    ...(index >= 12 && {
-                                        contentVisibility: "auto",
-                                        containIntrinsicSize: "auto 340px",
-                                    }),
-                                }}
-                            >
-                                <ConnectedProductCard
-                                    product={product}
-                                    index={index}
-                                    onOpenModifiers={openModifiers}
+                    {showCatalogSkeleton ? (
+                        <MenuProductGridSkeleton />
+                    ) : (
+                        <>
+                            {visibleProducts.map((product, index) => {
+                                const animateEntry = index < 12;
+                                return (
+                                    <Box
+                                        component={animateEntry ? motion.div : "div"}
+                                        key={`${categorySlug}-${product.id}`}
+                                        {...(animateEntry
+                                            ? {
+                                                  initial: { opacity: 0, y: 12 },
+                                                  animate: { opacity: 1, y: 0 },
+                                                  transition: {
+                                                      duration: 0.25,
+                                                      delay: Math.min(index, 11) * 0.03,
+                                                      ease: "easeOut",
+                                                  },
+                                              }
+                                            : {})}
+                                        sx={{
+                                            height: "100%",
+                                            minWidth: 0,
+                                            display: "flex",
+                                            ...(index >= 12 && {
+                                                contentVisibility: "auto",
+                                                containIntrinsicSize: "auto 340px",
+                                            }),
+                                        }}
+                                    >
+                                        <ConnectedProductCard
+                                            product={product}
+                                            index={index}
+                                            onOpenModifiers={openModifiers}
+                                        />
+                                    </Box>
+                                );
+                            })}
+                            {hasMoreProducts ? (
+                                <Box
+                                    ref={loadMoreRef}
+                                    aria-hidden
+                                    sx={{
+                                        gridColumn: "1 / -1",
+                                        height: 1,
+                                        pointerEvents: "none",
+                                    }}
                                 />
-                            </Box>
-                        );
-                    })}
+                            ) : null}
+                        </>
+                    )}
                 </Box>
             )}
 
-            {/* ══════════════════════════════════════════════════════
-                FLOATING CART BAR
-            ══════════════════════════════════════════════════════ */}
+            {/* Sticky checkout CTA — над bottom nav, не вместо него */}
             <AnimatePresence>
                 {totalCount > 0 && !isCartHidden && (
                     <Box
@@ -501,24 +567,27 @@ function MenuSectionInner({
                         sx={{
                             display: { xs: "flex", md: "none" },
                             position: "fixed",
-                            // xs: над мобильной bottom-nav; sm: nav нет - к низу
+                            // xs: над bottom nav; sm+: nav нет — у низа
                             bottom: {
                                 xs: "calc(72px + env(safe-area-inset-bottom))",
                                 sm: 0,
                             },
                             left: 0,
                             right: 0,
-                            // Ниже бургер-меню (1200) и шторки корзины
                             zIndex: 1150,
                             px: 1.5,
-                            pb: "calc(16px + env(safe-area-inset-bottom))",
-                            bgcolor: "background.paper",
-                            boxShadow: `0 -2px 10px ${alpha(theme.palette.common.black, 0.06)}`,
+                            pb: { xs: 1, sm: "calc(16px + env(safe-area-inset-bottom))" },
+                            pt: { xs: 0.5, sm: 1.5 },
+                            pointerEvents: "none",
+                            bgcolor: { sm: "background.paper" },
+                            boxShadow: {
+                                sm: `0 -2px 10px ${alpha(theme.palette.common.black, 0.06)}`,
+                            },
                         }}
                     >
                         <motion.div
                             key={stickyCartPulse}
-                            style={{ width: "100%" }}
+                            style={{ width: "100%", pointerEvents: "auto" }}
                             initial={{ scale: 1 }}
                             animate={
                                 stickyCartPulse === 0
@@ -545,6 +614,7 @@ function MenuSectionInner({
                                     textTransform: "none",
                                     border: "1px solid",
                                     borderColor: "divider",
+                                    boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.12)}`,
                                     "&:hover": { bgcolor: "action.hover" },
                                 }}
                             >

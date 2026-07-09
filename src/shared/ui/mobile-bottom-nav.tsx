@@ -101,6 +101,7 @@ export function MobileBottomNav() {
                 <ButtonBase
                     component={Link}
                     href="/"
+                    prefetch={false}
                     sx={{
                         flex: 1,
                         flexDirection: "column",
@@ -131,6 +132,7 @@ export function MobileBottomNav() {
                 <ButtonBase
                     component={Link}
                     href="/menu"
+                    prefetch={false}
                     sx={{
                         flex: 1,
                         flexDirection: "column",
@@ -161,6 +163,7 @@ export function MobileBottomNav() {
                 <ButtonBase
                     component={Link}
                     href="/favorites"
+                    prefetch={false}
                     sx={{
                         flex: 1,
                         flexDirection: "column",
@@ -182,8 +185,8 @@ export function MobileBottomNav() {
                         invisible={favoriteIds.length === 0}
                         sx={{
                             "& .MuiBadge-badge": {
-                                bgcolor: "#E74C3C",
-                                color: "#FFFFFF",
+                                bgcolor: "error.main",
+                                color: "error.contrastText",
                                 fontWeight: 800,
                                 fontSize: 9,
                                 minWidth: 15,
@@ -214,6 +217,7 @@ export function MobileBottomNav() {
                 <ButtonBase
                     component={Link}
                     href="/profile"
+                    prefetch={false}
                     sx={{
                         flex: 1,
                         flexDirection: "column",

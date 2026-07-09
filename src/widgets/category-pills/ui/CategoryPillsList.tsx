@@ -6,6 +6,7 @@ import Typography from "@mui/material/Typography";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+import { useEffect, useRef } from "react";
 
 import { Link } from "@/i18n/server";
 import type { StorefrontCategory } from "@/lib/i18n-utils";
@@ -107,6 +108,29 @@ export function CategoryPillsList({
     onChange,
 }: CategoryPillsListProps) {
     const t = useTranslations("menu");
+    const scrollContainerRef = useRef<HTMLUListElement>(null);
+    const pillRefs = useRef<Map<string, HTMLLIElement>>(new Map());
+
+    useEffect(() => {
+        const slug = isAllSlug(activeSlug) ? "all" : activeSlug ?? "all";
+        const pill = pillRefs.current.get(slug);
+        const container = scrollContainerRef.current;
+        if (!pill || !container) return;
+
+        const containerRect = container.getBoundingClientRect();
+        const pillRect = pill.getBoundingClientRect();
+        const isFullyVisible =
+            pillRect.left >= containerRect.left &&
+            pillRect.right <= containerRect.right;
+
+        if (!isFullyVisible) {
+            pill.scrollIntoView({
+                behavior: "smooth",
+                inline: "center",
+                block: "nearest",
+            });
+        }
+    }, [activeSlug]);
 
     const handleSelect = (slug: string) => {
         if (mode !== "interactive" || !onChange) return;
@@ -136,6 +160,7 @@ export function CategoryPillsList({
 
     return (
         <Stack
+            ref={scrollContainerRef}
             component="ul"
             aria-label={t("all_categories")}
             direction="row"
@@ -273,7 +298,7 @@ export function CategoryPillsList({
                             overflow: "hidden",
                             border: "1.5px solid",
                             borderColor: isActive ? tokens.brand : tokens.border,
-                            bgcolor: isActive ? tokens.brandDim : "#FFFFFF",
+                            bgcolor: isActive ? tokens.brandDim : tokens.surface,
                             cursor: "pointer",
                             transition:
                                 "border-color 0.2s, background-color 0.2s, transform 0.15s, box-shadow 0.2s",
@@ -281,7 +306,7 @@ export function CategoryPillsList({
                                 borderColor: isActive
                                     ? tokens.brand
                                     : tokens.borderHi,
-                                boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
+                                boxShadow: `0 2px 10px rgba(var(--ew-text-rgb), 0.08)`,
                                 transform: "translateY(-1px)",
                             },
                             "&:active": {
@@ -341,10 +366,19 @@ export function CategoryPillsList({
 
                 if (mode === "link") {
                     return (
-                        <Box component="li" key={pill.slug} sx={{ flexShrink: 0 }}>
+                        <Box
+                            component="li"
+                            key={pill.slug}
+                            ref={(node: HTMLLIElement | null) => {
+                                if (node) pillRefs.current.set(pill.slug, node);
+                                else pillRefs.current.delete(pill.slug);
+                            }}
+                            sx={{ flexShrink: 0 }}
+                        >
                             <Box
                                 component={Link}
                                 href={hrefForSlug(pill.slug)}
+                                prefetch={false}
                                 aria-current={isActive ? "page" : undefined}
                                 sx={{ textDecoration: "none", color: "inherit" }}
                             >
@@ -355,7 +389,15 @@ export function CategoryPillsList({
                 }
 
                 return (
-                    <Box component="li" key={pill.slug} sx={{ flexShrink: 0 }}>
+                    <Box
+                        component="li"
+                        key={pill.slug}
+                        ref={(node: HTMLLIElement | null) => {
+                            if (node) pillRefs.current.set(pill.slug, node);
+                            else pillRefs.current.delete(pill.slug);
+                        }}
+                        sx={{ flexShrink: 0 }}
+                    >
                         {pillContent}
                     </Box>
                 );

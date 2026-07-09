@@ -53,7 +53,8 @@ const drawerPaperSx = {
     px: 2.5,
     pt: 1.5,
     pb: 3,
-    background: "linear-gradient(180deg, #ffffff 0%, #f6f4f1 100%)",
+    bgcolor: "background.paper",
+    backgroundImage: `linear-gradient(180deg, ${"var(--ew-surface)"} 0%, ${"var(--ew-surface-hi)"} 100%)`,
 } as const;
 
 function DrawerHandle() {
@@ -230,7 +231,6 @@ export function InstallPwaPrompt() {
                                 alt={tInstall("logoAlt")}
                                 width={56}
                                 height={56}
-                                priority
                             />
                         </Box>
                         <Typography variant="subtitle1" fontWeight={800}>
@@ -292,7 +292,6 @@ export function InstallPwaPrompt() {
                                 alt={tInstall("logoAlt")}
                                 width={56}
                                 height={56}
-                                priority
                             />
                         </Box>
 

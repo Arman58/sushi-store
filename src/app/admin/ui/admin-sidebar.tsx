@@ -26,6 +26,7 @@ import {
     ADMIN_NAV_ITEMS,
     resolveAdminNavKey,
 } from "@/app/admin/config/nav-items";
+import { AdminToastHost } from "@/features/admin/ui/admin-toast-host";
 import { SITE_LOGO_PATH } from "@/lib/site-config";
 
 import { AdminHeaderControls } from "./admin-header-controls";
@@ -173,7 +174,7 @@ function SidebarBrand() {
                     alt="East West"
                     fill
                     sizes="36px"
-                    priority
+                    loading="eager"
                     unoptimized
                     style={{ objectFit: "cover" }}
                 />
@@ -371,6 +372,7 @@ export function AdminShell({ children }: AdminShellProps) {
                 >
                     {children}
                 </Box>
+                <AdminToastHost />
             </Box>
         </Box>
     );

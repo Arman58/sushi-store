@@ -5,12 +5,14 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import InputAdornment from "@mui/material/InputAdornment";
+import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useTranslations } from "next-intl";
 
 import { useCartLineValidation, useCartStore } from "@/features/cart";
 import { AppInput } from "@/shared/ui";
+import { skeletonSurfaceSx } from "@/shared/ui/skeleton-styles";
 import { tokens } from "@/shared/ui/theme";
 
 import { CheckoutOrderLine } from "../CheckoutOrderLine";
@@ -35,6 +37,7 @@ type SummarySectionProps = {
     onClearPromo: () => void;
     grandTotal: number;
     showDeliveryPendingHint: boolean;
+    deliveryLineLoading?: boolean;
 };
 
 export function SummarySection({
@@ -56,10 +59,11 @@ export function SummarySection({
     onClearPromo,
     grandTotal,
     showDeliveryPendingHint,
+    deliveryLineLoading = false,
 }: SummarySectionProps) {
     const t = useTranslations("checkout.summary");
     const items = useCartStore((s) => s.items);
-    const { cartLineIssues } = useCartLineValidation(items);
+    const { cartLineIssues } = useCartLineValidation();
 
     return (
         <Box
@@ -122,10 +126,11 @@ export function SummarySection({
                 </Typography>
             </Stack>
 
-            {showDeliveryBreakdown ? (
+            {showDeliveryBreakdown || deliveryLineLoading ? (
                 <Stack
                     direction="row"
                     justifyContent="space-between"
+                    alignItems="center"
                     sx={{ mb: 1, minWidth: 0 }}
                 >
                     <Typography
@@ -135,25 +140,35 @@ export function SummarySection({
                     >
                         {t("delivery")}
                     </Typography>
-                    <Typography
-                        variant="body2"
-                        fontWeight={600}
-                        color={
-                            requiresManagerApproval
-                                ? "error.main"
-                                : deliveryFee === 0
-                                  ? "success.main"
-                                  : "text.primary"
-                        }
-                        sx={{
-                            fontVariantNumeric: "tabular-nums",
-                            flexShrink: 0,
-                            whiteSpace: "nowrap",
-                            textAlign: "right",
-                        }}
-                    >
-                        {deliverySummaryLabel}
-                    </Typography>
+                    {deliveryLineLoading ? (
+                        <Skeleton
+                            variant="text"
+                            animation="wave"
+                            width={72}
+                            height={22}
+                            sx={{ flexShrink: 0, ...skeletonSurfaceSx }}
+                        />
+                    ) : (
+                        <Typography
+                            variant="body2"
+                            fontWeight={600}
+                            color={
+                                requiresManagerApproval
+                                    ? "error.main"
+                                    : deliveryFee === 0
+                                      ? "success.main"
+                                      : "text.primary"
+                            }
+                            sx={{
+                                fontVariantNumeric: "tabular-nums",
+                                flexShrink: 0,
+                                whiteSpace: "nowrap",
+                                textAlign: "right",
+                            }}
+                        >
+                            {deliverySummaryLabel}
+                        </Typography>
+                    )}
                 </Stack>
             ) : null}
 
@@ -164,6 +179,8 @@ export function SummarySection({
                     if (promoError) setPromoError(null);
                 }}
                 placeholder={t("promoPlaceholder")}
+                autoComplete="off"
+                name="promoCode"
                 {...checkoutFieldProps}
                 disabled={deliveryBlocked || !hasItems || promoApplying}
                 error={Boolean(promoError)}

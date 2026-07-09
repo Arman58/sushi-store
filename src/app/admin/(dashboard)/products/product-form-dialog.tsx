@@ -19,8 +19,6 @@ import {
     Stack,
     TextField,
     Typography,
-    useMediaQuery,
-    useTheme,
 } from "@mui/material";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
@@ -41,6 +39,8 @@ import {
     IMAGE_UPLOAD_ACCEPT,
     validateImageUpload,
 } from "@/lib/validate-image-upload";
+import { showAppToast } from "@/shared/lib/show-app-toast";
+import { useTabletDown } from "@/shared/lib/use-mobile-viewport";
 import { LocalizedTextFields } from "@/shared/ui/localized-text-fields";
 
 import {
@@ -279,7 +279,7 @@ export function ProductFormDialog(props: {
             if (err instanceof Error && err.message === "unsupported_image_format") {
                 showUploadFormatError();
             } else {
-                alert(err instanceof Error ? err.message : t("uploadNetworkError"));
+                showAppToast(err instanceof Error ? err.message : t("uploadNetworkError"), "error");
             }
         } finally {
             setUploadLoading(false);
@@ -304,12 +304,12 @@ export function ProductFormDialog(props: {
                 try {
                     const body = (await res.json()) as { error?: string };
                     if (body.error) {
-                        alert(body.error);
+                        showAppToast(body.error, "error");
                     } else {
-                        alert(t("categoryDeleteBlocked"));
+                        showAppToast(t("categoryDeleteBlocked"), "error");
                     }
                 } catch {
-                    alert(t("categoryDeleteBlocked"));
+                    showAppToast(t("categoryDeleteBlocked"), "error");
                 }
                 return;
             }
@@ -320,9 +320,9 @@ export function ProductFormDialog(props: {
             } catch {
                 /* keep */
             }
-            alert(msg);
+            showAppToast(msg, "error");
         } catch {
-            alert(t("categoryDeleteNetworkError"));
+            showAppToast(t("categoryDeleteNetworkError"), "error");
         }
     };
 
@@ -347,7 +347,7 @@ export function ProductFormDialog(props: {
                 } catch {
                     /* keep */
                 }
-                alert(msg);
+                showAppToast(msg, "error");
                 return;
             }
             const created = (await res.json()) as { id: number; name: unknown };
@@ -364,7 +364,7 @@ export function ProductFormDialog(props: {
             setValue("categoryId", String(created.id), { shouldDirty: true });
             setNewCategoryName(emptyLocalizedJson());
         } catch {
-            alert(t("categoryCreateNetworkError"));
+            showAppToast(t("categoryCreateNetworkError"), "error");
         } finally {
             setAddCategoryLoading(false);
         }
@@ -392,46 +392,46 @@ export function ProductFormDialog(props: {
         if (weightStr !== "") {
             const w = Number.parseFloat(weightStr);
             if (Number.isNaN(w) || !Number.isFinite(w) || w < 0) {
-                alert(t("invalidWeight"));
+                showAppToast(t("invalidWeight"), "error");
                 return;
             }
             weight = Math.round(w);
         }
 
         if (!name.hy.trim() && !name.ru.trim() && !name.en.trim()) {
-            alert(t("nameRequired"));
+            showAppToast(t("nameRequired"), "error");
             return;
         }
         if (Number.isNaN(price) || !Number.isFinite(price) || price < 0) {
-            alert(t("invalidPrice"));
+            showAppToast(t("invalidPrice"), "error");
             return;
         }
         if (Number.isNaN(categoryId) || !Number.isInteger(categoryId) || categoryId < 1) {
-            alert(t("categoryRequired"));
+            showAppToast(t("categoryRequired"), "error");
             return;
         }
 
         const minQty = Number.parseInt(values.minQty || "1", 10);
         if (Number.isNaN(minQty) || minQty < 1 || minQty > 999) {
-            alert(t("invalidMinQty"));
+            showAppToast(t("invalidMinQty"), "error");
             return;
         }
         let maxQty: number | null = null;
         if (values.maxQty.trim() !== "") {
             maxQty = Number.parseInt(values.maxQty, 10);
             if (Number.isNaN(maxQty) || maxQty < 1 || maxQty > 999) {
-                alert(t("invalidMaxQty"));
+                showAppToast(t("invalidMaxQty"), "error");
                 return;
             }
             if (maxQty < minQty) {
-                alert(t("maxQtyLessThanMin"));
+                showAppToast(t("maxQtyLessThanMin"), "error");
                 return;
             }
         }
 
         const modParsed = buildModifierPayload(values.modifierGroups);
         if (!modParsed.ok) {
-            alert(t("modifierGroupNameRequired", { n: modParsed.groupIndex }));
+            showAppToast(t("modifierGroupNameRequired", { n: modParsed.groupIndex }), "error");
             return;
         }
 
@@ -467,8 +467,7 @@ export function ProductFormDialog(props: {
         await onSave(payload);
     };
 
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+    const isMobile = useTabletDown();
 
     return (
         <>

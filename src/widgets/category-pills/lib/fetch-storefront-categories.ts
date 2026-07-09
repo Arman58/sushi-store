@@ -1,7 +1,8 @@
+import { unstable_cache } from "next/cache";
+
 import { type StorefrontCategory,toStorefrontCategory } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
-import { unstable_cache } from "next/cache";
 
 /** Категории кэшируются на 60 сек (данные редко меняются). */
 export const fetchStorefrontCategories = unstable_cache(

@@ -1,12 +1,13 @@
 "use client";
 
-import { useMediaQuery, useTheme } from "@mui/material";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import { useTranslations } from "next-intl";
+
+import { useTabletDown } from "@/shared/lib/use-mobile-viewport";
 
 type ProductFormDialogShellProps = {
     open: boolean;
@@ -20,8 +21,7 @@ export function ProductFormDialogShell({
     onClose,
 }: ProductFormDialogShellProps) {
     const t = useTranslations("admin.products");
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+    const isMobile = useTabletDown();
 
     return (
         <Dialog

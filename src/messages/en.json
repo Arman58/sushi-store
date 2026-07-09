@@ -2,6 +2,7 @@
     "common": {
         "loading": "Loading",
         "loadingEllipsis": "…",
+        "retry": "Retry",
         "networkError": "Network unavailable. Please try again.",
         "generic_server_error": "Something went wrong on our side. Please try again later.",
         "brandName": "East West",
@@ -22,7 +23,8 @@
             "mobileNavMenu": "Navigation menu",
             "toggleTheme": "Toggle theme",
             "openCart": "Open cart",
-            "cartOnCheckout": "Cart (on checkout page)"
+            "cartOnCheckout": "Cart (on checkout page)",
+            "skipToContent": "Skip to content"
         },
         "toast": {
             "added": "Added to cart",
@@ -472,6 +474,8 @@
             "deliveryType": "Pickup method",
             "payment": "Payment",
             "live": "Updates automatically",
+            "refresh": "Refresh",
+            "lastUpdated": "Updated {time}",
             "changeFrom": "Change from",
             "changeDue": "Change we will bring",
             "scheduledFor": "Scheduled for"

@@ -10,6 +10,7 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
+    Fab,
     Paper,
     Snackbar,
     Typography,
@@ -27,6 +28,7 @@ import {
 import { useAdminContentLocale } from "@/features/admin/hooks/use-admin-content-locale";
 import { getLocalizedField } from "@/lib/i18n-utils";
 import { getProductCoverUrl, getProductImageUrls } from "@/shared/lib/product-cover";
+import { showAppToast } from "@/shared/lib/show-app-toast";
 import { PageContainer, SectionTitle } from "@/shared/ui";
 
 import { ProductFormDialogShell } from "./product-form-dialog-shell";
@@ -247,10 +249,10 @@ export default function AdminProductsPage() {
                 } catch {
                     /* keep msg */
                 }
-                alert(msg);
+                showAppToast(msg, "error");
             }
         } catch {
-            alert(isEdit ? t("saveNetworkError") : t("createNetworkError"));
+            showAppToast(isEdit ? t("saveNetworkError") : t("createNetworkError"), "error");
         } finally {
             setSaveLoading(false);
         }
@@ -267,10 +269,10 @@ export default function AdminProductsPage() {
             if (res.ok) {
                 setProducts((prev) => prev.filter((p) => p.id !== id));
             } else {
-                alert(t("deleteFailed"));
+                showAppToast(t("deleteFailed"), "error");
             }
         } catch {
-            alert(tCommon("networkError"));
+            showAppToast(tCommon("networkError"), "error");
         } finally {
             setDeletingId(null);
         }
@@ -301,7 +303,7 @@ export default function AdminProductsPage() {
                 } catch {
                     /* keep msg */
                 }
-                alert(msg);
+                showAppToast(msg, "error");
                 return;
             }
             const updated = (await res.json()) as ProductRow;
@@ -309,7 +311,7 @@ export default function AdminProductsPage() {
                 prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)),
             );
         } catch {
-            alert(tCommon("networkError"));
+            showAppToast(tCommon("networkError"), "error");
         } finally {
             setRotatingMainId(null);
         }
@@ -335,7 +337,7 @@ export default function AdminProductsPage() {
                             p.id === id ? { ...p, isAvailable: !isAvailable } : p,
                         ),
                     );
-                    alert(t("inStockSaveFailed"));
+                    showAppToast(t("inStockSaveFailed"), "error");
                 }
             })();
         },
@@ -376,7 +378,7 @@ export default function AdminProductsPage() {
                             setHideUndoOpen(false);
                             setHideUndoProductId(null);
                         }
-                        alert(t("onShelfSaveFailed"));
+                        showAppToast(t("onShelfSaveFailed"), "error");
                     }
                 } catch {
                     setProducts((prev) =>
@@ -388,7 +390,7 @@ export default function AdminProductsPage() {
                         setHideUndoOpen(false);
                         setHideUndoProductId(null);
                     }
-                    alert(tCommon("networkError"));
+                    showAppToast(tCommon("networkError"), "error");
                 }
             })();
         },
@@ -410,13 +412,13 @@ export default function AdminProductsPage() {
                     setProducts((prev) =>
                         prev.map((p) => (p.id === id ? { ...p, isActive: false } : p)),
                     );
-                    alert(t("restoreShelfFailed"));
+                    showAppToast(t("restoreShelfFailed"), "error");
                 }
             } catch {
                 setProducts((prev) =>
                     prev.map((p) => (p.id === id ? { ...p, isActive: false } : p)),
                 );
-                alert(tCommon("networkError"));
+                showAppToast(tCommon("networkError"), "error");
             }
         })();
     }, [hideUndoProductId, persistProductActive, t, tCommon]);
@@ -540,6 +542,7 @@ export default function AdminProductsPage() {
                     onClick={handleAddClick}
                     sx={{
                         mb: 2,
+                        display: { xs: "none", md: "inline-flex" },
                         textTransform: "none",
                         fontWeight: 600,
                         borderColor: "divider",
@@ -555,6 +558,21 @@ export default function AdminProductsPage() {
                     {t("addProduct")}
                 </Button>
 
+                <Fab
+                    color="primary"
+                    aria-label={t("addProduct")}
+                    onClick={handleAddClick}
+                    sx={{
+                        display: { xs: "flex", md: "none" },
+                        position: "fixed",
+                        right: 16,
+                        bottom: "calc(16px + env(safe-area-inset-bottom))",
+                        zIndex: 1100,
+                    }}
+                >
+                    <AddIcon />
+                </Fab>
+
                 {!loading && !error && products.length > 0 ? (
                     <ProductsToolbar
                         view={view}
@@ -566,7 +584,14 @@ export default function AdminProductsPage() {
                     />
                 ) : null}
 
-                <Paper elevation={0} variant="outlined" sx={{ overflow: "auto" }}>
+                <Paper
+                    elevation={0}
+                    variant="outlined"
+                    sx={{
+                        overflow: "auto",
+                        pb: { xs: 10, md: 0 },
+                    }}
+                >
                     {loading ? (
                         <>
                             <Box sx={{ display: { xs: "none", md: "block" } }}>

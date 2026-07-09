@@ -220,7 +220,7 @@ export function ProductCardFooter({
                                     "background-color 0.18s ease, color 0.18s ease, transform 0.12s ease",
                                 "&:hover": {
                                     bgcolor: tokens.brand,
-                                    color: "#FFFFFF",
+                                    color: "primary.contrastText",
                                     boxShadow: `0 2px 8px ${alpha(tokens.brand, 0.35)}`,
                                 },
                                 "&:active": { transform: "scale(0.92)" },

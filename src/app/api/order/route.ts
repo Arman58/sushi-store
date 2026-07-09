@@ -491,6 +491,23 @@ export async function POST(request: Request) {
                       ? "-"
                       : phone;
 
+            // Сохраняем телефон в профиль — автозаполнение на следующих заказах.
+            if (sessionUserId && countPhoneDigits(phoneForDb) >= 8) {
+                const taken = await tx.user.findFirst({
+                    where: {
+                        phone: phoneForDb,
+                        NOT: { id: sessionUserId },
+                    },
+                    select: { id: true },
+                });
+                if (!taken) {
+                    await tx.user.update({
+                        where: { id: sessionUserId },
+                        data: { phone: phoneForDb },
+                    });
+                }
+            }
+
             const created = await tx.order.create({
                 data: {
                     name,

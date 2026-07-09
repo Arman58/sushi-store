@@ -45,6 +45,10 @@ const NetworkStatus = dynamic(
     () => import("./network-status").then((m) => m.NetworkStatus),
     { ssr: false },
 );
+const PullToRefresh = dynamic(
+    () => import("./pull-to-refresh").then((m) => m.PullToRefresh),
+    { ssr: false },
+);
 import LanguageSwitcher from "./LanguageSwitcher";
 import { MobileNavDrawer } from "./mobile-nav-drawer";
 import { PwaNavArrows } from "./pwa-nav-arrows";
@@ -166,8 +170,8 @@ function FavoritesHeaderButton() {
                         minWidth: 16,
                         height: 16,
                         borderRadius: 999,
-                        bgcolor: "#E74C3C",
-                        color: "#FFFFFF",
+                        bgcolor: "error.main",
+                        color: "error.contrastText",
                         fontSize: 9.5,
                         fontWeight: 800,
                         px: 0.4,
@@ -285,7 +289,7 @@ function CartHeaderButton() {
                             height: 17,
                             borderRadius: 999,
                             bgcolor: tokens.brand,
-                            color: "#FFFFFF",
+                            color: "primary.contrastText",
                             fontSize: 10,
                             fontWeight: 800,
                             px: 0.5,
@@ -373,6 +377,26 @@ export function LayoutShell({ children }: LayoutShellProps) {
 
     return (
         <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+            <Box
+                component="a"
+                href="#main-content"
+                sx={{
+                    position: "absolute",
+                    left: -9999,
+                    top: 8,
+                    zIndex: 2000,
+                    px: 2,
+                    py: 1,
+                    bgcolor: "primary.main",
+                    color: "primary.contrastText",
+                    borderRadius: 1,
+                    fontWeight: 700,
+                    textDecoration: "none",
+                    "&:focus": { left: 8 },
+                }}
+            >
+                {tCommon("aria.skipToContent")}
+            </Box>
             <Box component="header">
             <AppBar
                 position="sticky"
@@ -438,7 +462,7 @@ export function LayoutShell({ children }: LayoutShellProps) {
                                     alt={tCommon("logoAlt")}
                                     fill
                                     sizes="36px"
-                                    priority
+                                    loading="eager"
                                     fetchPriority="high"
                                     unoptimized
                                     style={{ objectFit: "cover" }}
@@ -644,6 +668,7 @@ export function LayoutShell({ children }: LayoutShellProps) {
             </Box>
 
             {/* Global overlays */}
+            <PullToRefresh />
             <CartDrawer />
             <NetworkStatus />
             <SearchOverlay

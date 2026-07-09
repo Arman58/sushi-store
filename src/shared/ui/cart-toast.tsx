@@ -45,7 +45,7 @@ export function CartToast() {
                     borderRadius: 2.5,
                     bgcolor: tokens.surfaceHi,
                     border: `1px solid ${tokens.brand}44`,
-                    boxShadow: `0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px ${tokens.border}`,
+                    boxShadow: `0 8px 32px rgba(var(--ew-text-rgb), 0.22), 0 0 0 1px ${tokens.border}`,
                     backdropFilter: "blur(16px)",
                     minWidth: 240,
                 }}

@@ -12,6 +12,7 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
+    Fab,
     Paper,
     Skeleton,
     Stack,
@@ -34,6 +35,7 @@ import {
     parseLocalizedJson,
 } from "@/lib/i18n-utils";
 import { IMAGE_UPLOAD_ACCEPT } from "@/lib/validate-image-upload";
+import { useTabletDown } from "@/shared/lib/use-mobile-viewport";
 import { PageContainer, SectionTitle } from "@/shared/ui";
 import { LocalizedTextFields } from "@/shared/ui/localized-text-fields";
 import { tokens } from "@/shared/ui/theme";
@@ -44,6 +46,7 @@ import { type BannerRow,BannerRowCard } from "./banner-row-card";
 
 export default function AdminBannersPage() {
     const t = useTranslations("admin.banners");
+    const isMobile = useTabletDown();
     const [banners, setBanners] = useState<BannerRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -88,6 +91,8 @@ export default function AdminBannersPage() {
         return true;
     };
     const fileRef = useRef<HTMLInputElement>(null);
+    const tRef = useRef(t);
+    tRef.current = t;
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -98,11 +103,11 @@ export default function AdminBannersPage() {
             if (!res.ok) throw new Error();
             setBanners((await res.json()) as BannerRow[]);
         } catch {
-            setError(t("loadError"));
+            setError(tRef.current("loadError"));
         } finally {
             setLoading(false);
         }
-    }, [t]);
+    }, []);
 
     useEffect(() => {
         void load();
@@ -125,12 +130,12 @@ export default function AdminBannersPage() {
                     prev.map((b) => (b.id === id ? updated : b)),
                 );
             } catch {
-                setError(t("saveError"));
+                setError(tRef.current("saveError"));
             } finally {
                 setBusyId(null);
             }
         },
-        [t],
+        [],
     );
 
     const hrefErrorMsg = (code: BannerHrefError) =>
@@ -262,8 +267,30 @@ export default function AdminBannersPage() {
                 </Alert>
             )}
 
+            {/* Создание — mobile: только ссылка; desktop: полная форма */}
+            <Box sx={{ display: { xs: "block", sm: "none" }, mb: 2 }}>
+                <TextField
+                    size="small"
+                    fullWidth
+                    label={t("linkClickLabel")}
+                    value={newHref}
+                    onChange={(e) => setNewHref(e.target.value)}
+                    placeholder={t("linkPlaceholder")}
+                    error={Boolean(newHrefError)}
+                    helperText={newHrefError ?? t("linkHelp")}
+                />
+            </Box>
+
             {/* Создание */}
-            <Paper variant="outlined" sx={{ p: 2, mb: 3, borderRadius: 2 }}>
+            <Paper
+                variant="outlined"
+                sx={{
+                    p: 2,
+                    mb: 3,
+                    borderRadius: 2,
+                    display: { xs: "none", sm: "block" },
+                }}
+            >
                 <Stack
                     direction={{ xs: "column", sm: "row" }}
                     spacing={1.5}
@@ -359,7 +386,7 @@ export default function AdminBannersPage() {
                     </Typography>
                 </Box>
             ) : (
-                <Stack spacing={1.5}>
+                <Stack spacing={1.5} sx={{ pb: { xs: 10, sm: 0 } }}>
                     {banners.map((banner, index) => (
                         <BannerRowCard
                             key={banner.id}
@@ -380,12 +407,33 @@ export default function AdminBannersPage() {
                 </Stack>
             )}
 
+            <Fab
+                color="primary"
+                aria-label={t("uploadCreate")}
+                disabled={uploading || Boolean(newHrefError)}
+                onClick={() => fileRef.current?.click()}
+                sx={{
+                    display: { xs: "flex", sm: "none" },
+                    position: "fixed",
+                    right: 16,
+                    bottom: "calc(16px + env(safe-area-inset-bottom))",
+                    zIndex: 1100,
+                }}
+            >
+                {uploading ? (
+                    <CircularProgress size={24} color="inherit" />
+                ) : (
+                    <AddPhotoAlternateOutlinedIcon />
+                )}
+            </Fab>
+
             {/* Подпись баннера (заголовок + CTA поверх фото) */}
             <Dialog
                 open={editingTitle !== null}
                 onClose={() => setEditingTitle(null)}
                 fullWidth
                 maxWidth="sm"
+                fullScreen={isMobile}
             >
                 <DialogTitle>{t("captionDialogTitle")}</DialogTitle>
                 <DialogContent>

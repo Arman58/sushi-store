@@ -7,9 +7,29 @@ import type { DraftData } from "./types";
 
 const digitsOnly = (value: string) => value.replace(/\D/g, "");
 
+/** Префикс страны в поле телефона чекаута — без кода оператора. */
+export const CHECKOUT_PHONE_PREFIX = "+374";
+
 export function armenianPhoneNationalDigits(value: string): string {
     const d = digitsOnly(value);
     return d.startsWith("374") ? d.slice(3) : d;
+}
+
+/** Полный армянский номер (8 национальных цифр) — можно подставлять из draft/профиля. */
+export function isCompleteCheckoutPhone(value: string): boolean {
+    return armenianPhoneNationalDigits(value).length === 8;
+}
+
+/**
+ * Стартовое значение телефона: только полный номер из draft,
+ * иначе префикс +374 (неполные вроде «+374 (77)» не восстанавливаем).
+ */
+export function resolveInitialCheckoutPhone(draftPhone?: string | null): string {
+    const raw = (draftPhone ?? "").trim();
+    if (raw && isCompleteCheckoutPhone(raw)) {
+        return formatPhone(raw);
+    }
+    return CHECKOUT_PHONE_PREFIX;
 }
 
 export function checkoutBasicsIncomplete(v: {
@@ -25,7 +45,8 @@ export function checkoutBasicsIncomplete(v: {
     if (
         v.delivery === "pickup" &&
         v.phone.trim().length > 0 &&
-        phoneDigits.length !== 8
+        phoneDigits.length !== 8 &&
+        digitsOnly(v.phone) !== "374"
     ) {
         return true;
     }
@@ -46,21 +67,56 @@ export function showCheckoutFieldError(
     return Boolean(touched[field] || isSubmitted);
 }
 
-export function formatPhone(input: string): string {
-    const digits = digitsOnly(input).slice(0, 11);
-    let formatted = "+";
+/**
+ * Маска +374 (XX) XX-XX-XX.
+ * `previous` нужен, чтобы Backspace по скобке/дефису реально удалял цифру
+ * (иначе digits не меняются и поле «залипает»).
+ */
+export function formatPhone(input: string, previous = ""): string {
+    const prevDigits = digitsOnly(previous);
+    let digits = digitsOnly(input);
 
-    if (digits.startsWith("374")) {
-        formatted += "374 ";
-        const rest = digits.slice(3);
-        if (rest.length > 0) formatted += `(${rest.slice(0, 2)}`;
-        if (rest.length >= 2) formatted += ")";
-        if (rest.length > 2) formatted += ` ${rest.slice(2, 4)}`;
-        if (rest.length > 4) formatted += `-${rest.slice(4, 6)}`;
-        if (rest.length > 6) formatted += `-${rest.slice(6, 8)}`;
-    } else {
-        formatted += digits;
+    // Удалили только символ маски — снимаем последнюю цифру
+    if (
+        previous.length > 0 &&
+        input.length < previous.length &&
+        digits.length === prevDigits.length &&
+        digits.length > 0
+    ) {
+        digits = digits.slice(0, -1);
     }
+
+    // Выделение + Delete/Backspace всего поля (или почти всего)
+    if (input.trim() === "" || input === "+" || input === "+3" || input === "+37") {
+        return CHECKOUT_PHONE_PREFIX;
+    }
+
+    digits = digits.slice(0, 11);
+
+    // Не даём «разъехать» код страны: 3 / 37 / пусто → снова +374
+    if (digits.length === 0 || digits === "3" || digits === "37" || digits === "374") {
+        return CHECKOUT_PHONE_PREFIX;
+    }
+
+    // Набрали локальные цифры без 374
+    if (!digits.startsWith("374")) {
+        if ("374".startsWith(digits)) {
+            return CHECKOUT_PHONE_PREFIX;
+        }
+        digits = `374${digits}`.slice(0, 11);
+    }
+
+    const rest = digits.slice(3).slice(0, 8);
+    if (rest.length === 0) {
+        return CHECKOUT_PHONE_PREFIX;
+    }
+
+    let formatted = "+374";
+    formatted += ` (${rest.slice(0, Math.min(2, rest.length))}`;
+    if (rest.length >= 2) formatted += ")";
+    if (rest.length > 2) formatted += ` ${rest.slice(2, 4)}`;
+    if (rest.length > 4) formatted += `-${rest.slice(4, 6)}`;
+    if (rest.length > 6) formatted += `-${rest.slice(6, 8)}`;
 
     return formatted;
 }
