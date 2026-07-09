@@ -1,7 +1,9 @@
 import { getLocale, getTranslations } from "next-intl/server";
+import { Suspense } from "react";
 
-import { type DeliveryStat,fetchHeroPageData } from "@/lib/hero-data";
+import { type DeliveryStat, fetchHeroPageData } from "@/lib/hero-data";
 import { getOpeningHoursState } from "@/lib/site-config";
+import { HeroMedia } from "@/widgets/hero/hero-media";
 import { HeroSection } from "@/widgets/hero/hero-section";
 
 function formatDeliveryStatLabel(
@@ -18,26 +20,56 @@ function formatDeliveryStatLabel(
     });
 }
 
-export async function HomeHeroSection() {
-    const locale = await getLocale();
-    const heroData = await fetchHeroPageData(locale);
-    const hoursState = getOpeningHoursState();
-    const tStats = await getTranslations("hero.stats");
-    const tHours = await getTranslations("common.hours");
+/** Sized placeholder — avoids CLS when Suspense resolves to real copy. */
+function HeroStatFallback({ minWidth }: { minWidth: number }) {
+    return (
+        <span
+            aria-hidden
+            style={{
+                display: "inline-block",
+                minWidth,
+                height: 13,
+                verticalAlign: "middle",
+            }}
+        />
+    );
+}
 
-    const openingHoursStat = hoursState.isOpen
+async function DeliveryStatText() {
+    const locale = await getLocale();
+    const [heroData, tStats] = await Promise.all([
+        fetchHeroPageData(locale),
+        getTranslations("hero.stats"),
+    ]);
+    return formatDeliveryStatLabel(heroData.deliveryStat, tStats, locale);
+}
+
+async function HoursStatText() {
+    const tHours = await getTranslations("common.hours");
+    const hoursState = getOpeningHoursState();
+    return hoursState.isOpen
         ? tHours("openUntil", { time: hoursState.time })
         : tHours("opensAt", { time: hoursState.time });
-    const deliveryStat = formatDeliveryStatLabel(
-        heroData.deliveryStat,
-        tStats,
-        locale,
-    );
+}
 
+/**
+ * Hero shell with LCP image in the initial HTML (not gated on Prisma).
+ * Stats stream in with sized fallbacks so layout does not jump (CLS).
+ */
+export function HomeHeroSection() {
     return (
         <HeroSection
-            deliveryStat={deliveryStat}
-            openingHoursStat={openingHoursStat}
+            deliveryStat={
+                <Suspense fallback={<HeroStatFallback minWidth={160} />}>
+                    <DeliveryStatText />
+                </Suspense>
+            }
+            openingHoursStat={
+                <Suspense fallback={<HeroStatFallback minWidth={120} />}>
+                    <HoursStatText />
+                </Suspense>
+            }
+            media={<HeroMedia />}
         />
     );
 }

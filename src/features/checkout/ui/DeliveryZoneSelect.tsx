@@ -164,6 +164,8 @@ export function DeliveryZoneSelect({
                 onClose={() => setSheetOpen(false)}
                 fullWidth
                 fullScreen
+                disableRestoreFocus
+                disableEnforceFocus
                 slotProps={{
                     paper: {
                         sx: {

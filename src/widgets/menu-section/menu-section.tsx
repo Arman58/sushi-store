@@ -8,7 +8,6 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import { alpha, useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
-import { AnimatePresence, motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -32,15 +31,15 @@ import { useCartStore } from "@/features/cart";
 import { FilterTriggerButton, useMenuFilters } from "@/features/filter";
 import { Link } from "@/i18n/server";
 import type { StorefrontCategory } from "@/lib/i18n-utils";
-import { itemListJsonLd,JsonLd } from "@/lib/seo/json-ld";
+import { itemListJsonLd, JsonLd } from "@/lib/seo/json-ld";
 import { SITE_URL } from "@/lib/site-config";
-import { formatStorePrice } from "@/shared/lib/format-price";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { useProgressiveRender } from "@/shared/lib/use-progressive-render";
-import { useScrollHide } from "@/shared/lib/use-scroll-hide";
 import { AppInput } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
 import { CategoryPillsList } from "@/widgets/category-pills";
+
+import { MenuStickyCartBar } from "./menu-sticky-cart-bar";
 
 const ProductModifiersDialog = dynamic(
     () =>
@@ -156,28 +155,8 @@ function MenuSectionInner({
         maxPrice,
     });
     const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
-    const [isFilterPending, startFilterTransition] = useTransition();
-    const totalCount = useCartStore((s) =>
-        s.items.reduce((sum, item) => sum + item.quantity, 0),
-    );
-    const totalPrice = useCartStore((s) =>
-        s.items.reduce(
-            (sum, item) => sum + item.calculatedItemPrice * item.quantity,
-            0,
-        ),
-    );
-    const addToast = useCartStore((s) => s.addToast);
+    const [, startFilterTransition] = useTransition();
     const addItem = useCartStore((s) => s.addItem);
-    const [stickyCartPulse, setStickyCartPulse] = useState(0);
-    const lastAddToastRef = useRef(0);
-
-    useEffect(() => {
-        if (!addToast || addToast === lastAddToastRef.current) return;
-        lastAddToastRef.current = addToast;
-        queueMicrotask(() => setStickyCartPulse((n) => n + 1));
-    }, [addToast]);
-
-    const isCartHidden = useScrollHide(150);
     const { modifierProduct, openModifiers, closeModifiers } =
         useLazyProductModifiers();
     // Инициализация из ?search= (поиск в шапке ведёт на /menu?search=…)
@@ -265,8 +244,7 @@ function MenuSectionInner({
         [filteredProducts, visibleCount],
     );
     const hasMoreProducts = visibleCount < filteredProducts.length;
-    const showCatalogSkeleton =
-        (isFilterPending || isSearchPending) && filteredProducts.length > 0;
+    const showCatalogSkeleton = isSearchPending && filteredProducts.length > 0;
 
     const handleCategoryChange = useCallback(
         (slug: string) => {
@@ -486,9 +464,7 @@ function MenuSectionInner({
                         pt: 2,
                         pb: {
                             // bottom nav (~72px) + optional sticky cart (~64px) + safe-area
-                            xs: totalCount > 0
-                                ? "calc(148px + env(safe-area-inset-bottom))"
-                                : "calc(88px + env(safe-area-inset-bottom))",
+                            xs: "calc(148px + env(safe-area-inset-bottom))",
                             sm: 12,
                             md: 2,
                         },
@@ -503,23 +479,9 @@ function MenuSectionInner({
                         <MenuProductGridSkeleton />
                     ) : (
                         <>
-                            {visibleProducts.map((product, index) => {
-                                const animateEntry = index < 12;
-                                return (
+                            {visibleProducts.map((product, index) => (
                                     <Box
-                                        component={animateEntry ? motion.div : "div"}
                                         key={`${categorySlug}-${product.id}`}
-                                        {...(animateEntry
-                                            ? {
-                                                  initial: { opacity: 0, y: 12 },
-                                                  animate: { opacity: 1, y: 0 },
-                                                  transition: {
-                                                      duration: 0.25,
-                                                      delay: Math.min(index, 11) * 0.03,
-                                                      ease: "easeOut",
-                                                  },
-                                              }
-                                            : {})}
                                         sx={{
                                             height: "100%",
                                             minWidth: 0,
@@ -533,11 +495,11 @@ function MenuSectionInner({
                                         <ConnectedProductCard
                                             product={product}
                                             index={index}
+                                            imagePriority={index < 4}
                                             onOpenModifiers={openModifiers}
                                         />
                                     </Box>
-                                );
-                            })}
+                            ))}
                             {hasMoreProducts ? (
                                 <Box
                                     ref={loadMoreRef}
@@ -554,127 +516,7 @@ function MenuSectionInner({
                 </Box>
             )}
 
-            {/* Sticky checkout CTA — над bottom nav, не вместо него */}
-            <AnimatePresence>
-                {totalCount > 0 && !isCartHidden && (
-                    <Box
-                        component={motion.div}
-                        key="menu-sticky-cart"
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 16 }}
-                        transition={{ duration: 0.18, ease: "easeOut" }}
-                        sx={{
-                            display: { xs: "flex", md: "none" },
-                            position: "fixed",
-                            // xs: над bottom nav; sm+: nav нет — у низа
-                            bottom: {
-                                xs: "calc(72px + env(safe-area-inset-bottom))",
-                                sm: 0,
-                            },
-                            left: 0,
-                            right: 0,
-                            zIndex: 1150,
-                            px: 1.5,
-                            pb: { xs: 1, sm: "calc(16px + env(safe-area-inset-bottom))" },
-                            pt: { xs: 0.5, sm: 1.5 },
-                            pointerEvents: "none",
-                            bgcolor: { sm: "background.paper" },
-                            boxShadow: {
-                                sm: `0 -2px 10px ${alpha(theme.palette.common.black, 0.06)}`,
-                            },
-                        }}
-                    >
-                        <motion.div
-                            key={stickyCartPulse}
-                            style={{ width: "100%", pointerEvents: "auto" }}
-                            initial={{ scale: 1 }}
-                            animate={
-                                stickyCartPulse === 0
-                                    ? { scale: 1 }
-                                    : { scale: [1, 1.03, 1] }
-                            }
-                            transition={
-                                stickyCartPulse === 0
-                                    ? { duration: 0 }
-                                    : { duration: 0.22, times: [0, 0.45, 1] }
-                            }
-                        >
-                            <Button
-                                fullWidth
-                                component={Link}
-                                href="/checkout"
-                                sx={{
-                                    height: 48,
-                                    borderRadius: `${tokens.radiusCardLg}px`,
-                                    bgcolor: "background.paper",
-                                    color: "text.primary",
-                                    justifyContent: "space-between",
-                                    px: 2,
-                                    textTransform: "none",
-                                    border: "1px solid",
-                                    borderColor: "divider",
-                                    boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.12)}`,
-                                    "&:hover": { bgcolor: "action.hover" },
-                                }}
-                            >
-                                <Box
-                                    sx={{
-                                        display: "flex",
-                                        flexDirection: "row",
-                                        alignItems: "center",
-                                        gap: 1,
-                                        flex: 1,
-                                        minWidth: 0,
-                                        overflow: "hidden",
-                                    }}
-                                >
-                                    <Typography
-                                        sx={{
-                                            fontWeight: 600,
-                                            fontSize: "0.9rem",
-                                            whiteSpace: "nowrap",
-                                            overflow: "hidden",
-                                            textOverflow: "ellipsis",
-                                            minWidth: 0,
-                                        }}
-                                    >
-                                        {t("stickyCart.label", { count: totalCount })}
-                                    </Typography>
-                                    <Typography
-                                        component={motion.span}
-                                        key={totalPrice}
-                                        initial={{ opacity: 0.7 }}
-                                        animate={{ opacity: 1 }}
-                                        transition={{ duration: 0.12 }}
-                                        sx={{
-                                            fontWeight: 800,
-                                            fontSize: "1rem",
-                                            color: "primary.main",
-                                            fontVariantNumeric: "tabular-nums",
-                                            whiteSpace: "nowrap",
-                                            flexShrink: 0,
-                                            ml: "auto",
-                                        }}
-                                    >
-                                        {formatStorePrice(totalPrice)} ֏
-                                    </Typography>
-                                </Box>
-                                <Typography
-                                    sx={{
-                                        color: "primary.main",
-                                        fontWeight: 800,
-                                        fontSize: "1.2rem",
-                                        flexShrink: 0,
-                                    }}
-                                >
-                                    →
-                                </Typography>
-                            </Button>
-                        </motion.div>
-                    </Box>
-                )}
-            </AnimatePresence>
+            <MenuStickyCartBar />
             <ProductModifiersDialog
                 open={modifierProduct !== null}
                 onClose={closeModifiers}

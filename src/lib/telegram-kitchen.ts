@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { timingSafeStringEqual } from "@/lib/timing-safe-equal";
 
 import {
     DEFAULT_FETCH_TIMEOUT_MS,
@@ -195,13 +195,6 @@ export async function editKitchenOrderMessageEta(params: {
 export function isAuthorizedKitchenChat(chatId: number | string | undefined): boolean {
     if (!TELEGRAM_CHAT_ID || chatId == null) return false;
     return String(chatId) === String(TELEGRAM_CHAT_ID);
-}
-
-function timingSafeStringEqual(a: string, b: string): boolean {
-    const aBuf = Buffer.from(a);
-    const bBuf = Buffer.from(b);
-    if (aBuf.length !== bBuf.length) return false;
-    return timingSafeEqual(aBuf, bBuf);
 }
 
 export function isTelegramWebhookAuthorized(request: Request): boolean {

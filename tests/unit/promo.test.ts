@@ -19,6 +19,8 @@ function makePromo(
         timesUsed: 0,
         expiresAt: null,
         isActive: true,
+        conditions: null,
+        actions: null,
         ...overrides,
     };
 }

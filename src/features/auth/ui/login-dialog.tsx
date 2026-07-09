@@ -12,13 +12,13 @@ import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import Typography from "@mui/material/Typography";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 
 import { useRouter } from "@/i18n/server";
 import { EMAIL_NOT_VERIFIED_ERROR } from "@/lib/otp-auth";
-import { OTP_TTL_SECONDS } from "@/lib/otp-store";
+import { OTP_CODE_LENGTH, OTP_TTL_SECONDS } from "@/lib/otp-store";
 import { showAppToast } from "@/shared/lib/show-app-toast";
 import { AppButton, AppInput } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
@@ -39,7 +39,7 @@ const authFieldSx = {
     },
 } as const;
 
-const emptyOtp = ["", "", "", ""] as const;
+const emptyOtp = Array.from({ length: OTP_CODE_LENGTH }, () => "");
 
 export type LoginDialogProps = {
     open: boolean;
@@ -63,6 +63,23 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
     const [error, setError] = useState<string | null>(null);
     const [emailExists, setEmailExists] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    const closeDialog = useCallback(() => {
+        if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+        }
+        onClose();
+    }, [onClose]);
+
+    const finishAuthSuccess = useCallback(
+        async (toastKey: "toast.welcome" | "toast.registerSuccess") => {
+            await getSession();
+            showAppToast(t(toastKey));
+            closeDialog();
+            router.refresh();
+        },
+        [closeDialog, router, t],
+    );
 
     const resetState = useCallback(() => {
         setTab("login");
@@ -163,9 +180,7 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                 return;
             }
 
-            showAppToast(t("toast.welcome"));
-            onClose();
-            router.refresh();
+            await finishAuthSuccess("toast.welcome");
         } catch {
             const msg = tCommon("networkError");
             setError(msg);
@@ -263,7 +278,7 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
         const email = regEmail.trim().toLowerCase();
         const codeToSend = otpDigits.join("").trim();
 
-        if (codeToSend.length !== 4) {
+        if (codeToSend.length !== OTP_CODE_LENGTH) {
             const msg = t("otp.invalidCode");
             setError(msg);
             showAppToast(msg, "error");
@@ -313,9 +328,7 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                 return;
             }
 
-            showAppToast(t("toast.registerSuccess"));
-            onClose();
-            router.refresh();
+            await finishAuthSuccess("toast.registerSuccess");
         } catch {
             const msg = tCommon("networkError");
             setError(msg);
@@ -327,10 +340,22 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
 
     const showOtpStep = tab === "register" && registerStep === "otp";
 
+    const dialogTitle = showOtpStep
+        ? t("otp.title")
+        : tab === "register"
+          ? t("dialog.registerTitle")
+          : t("dialog.title");
+    const dialogSubtitle = showOtpStep
+        ? t("otp.subtitle", { email: regEmail })
+        : tab === "register"
+          ? t("dialog.registerSubtitle")
+          : t("dialog.subtitle");
+
     return (
         <Dialog
             open={open}
-            onClose={loading ? undefined : onClose}
+            onClose={loading ? undefined : closeDialog}
+            disableRestoreFocus
             fullWidth
             maxWidth="xs"
             PaperProps={{
@@ -338,9 +363,9 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
             }}
         >
             <DialogTitle sx={{ pr: 6, fontWeight: 700, pb: 0 }}>
-                {showOtpStep ? t("otp.title") : t("dialog.title")}
+                {dialogTitle}
                 <IconButton
-                    onClick={onClose}
+                    onClick={closeDialog}
                     disabled={loading}
                     sx={{ position: "absolute", right: 8, top: 8 }}
                     aria-label={tCommon("aria.close")}
@@ -355,7 +380,7 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                     color="text.secondary"
                     sx={{ mb: 2, lineHeight: 1.5 }}
                 >
-                    {showOtpStep ? t("otp.subtitle", { email: regEmail }) : t("dialog.subtitle")}
+                    {dialogSubtitle}
                 </Typography>
 
                 {!showOtpStep ? (
@@ -461,10 +486,6 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                         <OtpResendTimer
                             secondsLeft={resendSeconds}
                             onResend={() => void handleResendOtp()}
-                            codeTimerLabel={t("code_timer")}
-                            resendAvailableLabel={t("resend_available")}
-                            resendWaitLabel={t("resend_wait")}
-                            codeExpiredLabel={t("code_expired")}
                             disabled={loading}
                         />
                         <AppButton

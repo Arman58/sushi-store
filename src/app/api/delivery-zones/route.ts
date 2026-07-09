@@ -25,20 +25,19 @@ export async function GET(request: Request) {
             orderBy: [{ position: "asc" }, { id: "asc" }],
             select: {
                 id: true,
-                name: true,
+                translations: true,
                 deliveryPrice: true,
                 minOrderAmount: true,
-                description: true,
                 requiresManagerApproval: true,
             },
         });
 
         const zones = zonesRaw.map((zone) => ({
             id: zone.id,
-            name: getLocalizedField(zone.name, locale),
+            name: getLocalizedField(zone.translations, locale, "name"),
             deliveryPrice: zone.deliveryPrice,
             minOrderAmount: zone.minOrderAmount,
-            description: getLocalizedField(zone.description, locale),
+            description: getLocalizedField(zone.translations, locale, "description"),
             requiresManagerApproval: zone.requiresManagerApproval,
         }));
 

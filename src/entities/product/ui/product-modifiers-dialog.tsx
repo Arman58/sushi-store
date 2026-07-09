@@ -578,7 +578,14 @@ export function ProductModifiersDialog({
             <Drawer
                 anchor="bottom"
                 open={open}
-                onClose={onClose}
+                onClose={() => {
+                    // Blur before MUI sets aria-hidden on the modal root (Chrome a11y warning).
+                    if (document.activeElement instanceof HTMLElement) {
+                        document.activeElement.blur();
+                    }
+                    onClose();
+                }}
+                disableRestoreFocus
                 slotProps={{
                     paper: {
                         sx: {

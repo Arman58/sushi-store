@@ -79,7 +79,7 @@ export function ProductCoverImage({
     }
 
     return (
-        <>
+        <div style={{ position: "absolute", inset: 0 }}>
             {!loaded && (
                 <Skeleton
                     variant="rectangular"
@@ -98,17 +98,18 @@ export function ProductCoverImage({
                 fill
                 loader={cloudinaryImageLoader}
                 sizes={sizes}
+                priority={priority}
                 style={{
                     objectFit: "cover",
                     width: "100%",
                     height: "100%",
                 }}
                 {...(priority
-                    ? { loading: "eager" as const, fetchPriority: "high" as const }
+                    ? { fetchPriority: "high" as const }
                     : { loading: "lazy" as const })}
                 onLoad={() => setLoaded(true)}
                 onError={() => setFailed(true)}
             />
-        </>
+        </div>
     );
 }

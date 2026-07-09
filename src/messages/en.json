@@ -562,7 +562,9 @@
         },
         "dialog": {
             "title": "Sign in to your account",
-            "subtitle": "Save order history and repeat orders in one click"
+            "subtitle": "Save order history and repeat orders in one click",
+            "registerTitle": "Create an account",
+            "registerSubtitle": "Sign up to save orders and check out faster"
         },
         "tabs": {
             "login": "Sign in",
@@ -592,7 +594,8 @@
         "code_expired": "Code expired, request a new one",
         "otp": {
             "title": "Verify your email",
-            "subtitle": "Enter the 4-digit code sent to {email}",
+            "subtitle": "Enter the 6-digit code sent to {email}",
+            "digitAria": "Digit {n}",
             "confirm": "Confirm",
             "resend": "Resend code",
             "resendIn": "Resend in {seconds}s",

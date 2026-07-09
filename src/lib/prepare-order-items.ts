@@ -12,23 +12,24 @@ import { type ApiErrorCode } from "@/shared/lib/api-error";
 
 const PRODUCT_BASE_SELECT = {
     id: true,
-    name: true,
+    translations: true,
     price: true,
     isActive: true,
     isAvailable: true,
     minQty: true,
     maxQty: true,
+    categoryId: true,
 } as const;
 
 const MODIFIER_GROUP_SELECT = Prisma.validator<Prisma.ModifierGroupSelect>()({
     id: true,
     productId: true,
-    name: true,
+    translations: true,
     required: true,
     maxChoices: true,
     modifiers: {
         orderBy: [{ position: "asc" }, { id: "asc" }],
-        select: { id: true, name: true, priceDelta: true },
+        select: { id: true, translations: true, priceDelta: true },
     },
 });
 
@@ -38,12 +39,13 @@ type ModifierGroupRow = Prisma.ModifierGroupGetPayload<{
 
 type ProductBaseRow = {
     id: number;
-    name: unknown;
+    translations: unknown;
     price: number;
     isActive: boolean;
     isAvailable: boolean;
     minQty: number;
     maxQty: number | null;
+    categoryId: number | null;
 };
 
 type CheckoutProductRow = ProductBaseRow & {
@@ -134,6 +136,7 @@ export type VerifiedOrderItem = {
     name: string;
     price: number;
     quantity: number;
+    categoryId: number | null;
     selectedModifiers: Prisma.InputJsonValue;
 };
 
@@ -175,7 +178,7 @@ export async function prepareOrderItems(
             };
         }
 
-        const productName = getLocalizedField(product.name, locale);
+        const productName = getLocalizedField(product.translations, locale, "name");
 
         if (!product.isActive || product.isAvailable === false) {
             return {
@@ -220,6 +223,7 @@ export async function prepareOrderItems(
             name: productName,
             price: priced.unitPrice,
             quantity: item.quantity,
+            categoryId: product.categoryId,
             selectedModifiers:
                 priced.snapshot as unknown as Prisma.InputJsonValue,
         });

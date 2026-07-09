@@ -14,6 +14,7 @@ import Typography from "@mui/material/Typography";
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 
 import {
     CartLineItem,
@@ -28,13 +29,25 @@ import { SauceStrip, UpsellCarousel } from "@/widgets/upsell";
 export default function CartPage() {
     const t = useTranslations("cart");
     const tCommon = useTranslations("common");
-    const items = useCartStore((state) => state.items);
-    const setItemQuantity = useCartStore((state) => state.setItemQuantity);
-    const removeItem = useCartStore((state) => state.removeItem);
-    const clearCart = useCartStore((state) => state.clear);
-    const appliedPromoCode = useCartStore((state) => state.appliedPromoCode);
-    const setAppliedPromoCode = useCartStore((state) => state.setAppliedPromoCode);
-    const syncPricesWithServer = useCartStore((state) => state.syncPricesWithServer);
+    const {
+        items,
+        setItemQuantity,
+        removeItem,
+        clearCart,
+        appliedPromoCode,
+        setAppliedPromoCode,
+        syncPricesWithServer,
+    } = useCartStore(
+        useShallow((state) => ({
+            items: state.items,
+            setItemQuantity: state.setItemQuantity,
+            removeItem: state.removeItem,
+            clearCart: state.clear,
+            appliedPromoCode: state.appliedPromoCode,
+            setAppliedPromoCode: state.setAppliedPromoCode,
+            syncPricesWithServer: state.syncPricesWithServer,
+        })),
+    );
 
     const hasItems = items.length > 0;
 
@@ -90,7 +103,7 @@ export default function CartPage() {
                 const res = await validatePromo({
                     code: appliedPromoCode,
                     cartAmount: subtotal,
-                    deliveryAmount: 0,
+                    items: items.map(i => ({ productId: i.productId, quantity: i.quantity, price: i.calculatedItemPrice }))
                 });
                 if (!cancelled) {
                     setPromoDiscount(res.discountAmount);

@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { translationsToLocalized } from "@/lib/admin-localized";
 import { validateBannerHref } from "@/lib/banner-href";
 import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
+import { invalidateBannersCache } from "@/lib/revalidate-storefront";
 import { verifyAdmin } from "@/lib/verify-admin";
 
 const bannerBodySchema = z.object({
@@ -17,14 +19,24 @@ const bannerBodySchema = z.object({
     endsAt: z.string().datetime().nullable().optional(),
 });
 
+function mapBannerRow<T extends { translations?: unknown }>(banner: T) {
+    const { translations, ...rest } = banner;
+    return {
+        ...rest,
+        title: translationsToLocalized(translations, "title"),
+        ctaText: translationsToLocalized(translations, "ctaText"),
+    };
+}
+
 export async function GET(request: Request) {
     const auth = await verifyAdmin(request);
     if (!auth.ok) return auth.response;
     try {
         const banners = await prisma.banner.findMany({
             orderBy: [{ position: "asc" }, { id: "asc" }],
+            include: { translations: true },
         });
-        return NextResponse.json(banners);
+        return NextResponse.json(banners.map(mapBannerRow));
     } catch {
         return NextResponse.json(
             { error: "Failed to fetch banners" },
@@ -48,12 +60,18 @@ export async function POST(request: Request) {
         );
     }
 
+    const titleData = parsed.data.title as Record<string, string>;
+    const ctaTextData = parsed.data.ctaText as Record<string, string>;
+    const translationsData = ["hy", "ru", "en"].map((loc) => ({
+        locale: loc,
+        title: titleData[loc] || "",
+        ctaText: ctaTextData[loc] || "",
+    }));
+
     try {
         const banner = await prisma.banner.create({
             data: {
                 image: parsed.data.image,
-                title: parsed.data.title,
-                ctaText: parsed.data.ctaText,
                 href: href.value,
                 isActive: parsed.data.isActive,
                 position: parsed.data.position,
@@ -61,9 +79,14 @@ export async function POST(request: Request) {
                     ? new Date(parsed.data.startsAt)
                     : null,
                 endsAt: parsed.data.endsAt ? new Date(parsed.data.endsAt) : null,
+                translations: {
+                    create: translationsData,
+                },
             },
+            include: { translations: true },
         });
-        return NextResponse.json(banner, { status: 201 });
+        invalidateBannersCache();
+        return NextResponse.json(mapBannerRow(banner), { status: 201 });
     } catch {
         return NextResponse.json(
             { error: "Failed to create banner" },

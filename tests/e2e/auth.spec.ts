@@ -37,5 +37,7 @@ test.describe("Регистрация и логин", () => {
         await expect(page.getByRole("textbox", { name: "Digit 2" })).toBeVisible();
         await expect(page.getByRole("textbox", { name: "Digit 3" })).toBeVisible();
         await expect(page.getByRole("textbox", { name: "Digit 4" })).toBeVisible();
+        await expect(page.getByRole("textbox", { name: "Digit 5" })).toBeVisible();
+        await expect(page.getByRole("textbox", { name: "Digit 6" })).toBeVisible();
     });
 });

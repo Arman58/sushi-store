@@ -65,7 +65,19 @@ export function ProfileEmailVerificationAlert({
         <>
             <Alert
                 severity="warning"
-                sx={{ mb: 3, borderRadius: 2, py: 1, px: 1.5 }}
+                sx={{
+                    mb: 3,
+                    borderRadius: 2,
+                    py: 0.75,
+                    px: 1.5,
+                    // Keep compact so the user Paper above remains the LCP candidate.
+                    maxWidth: 560,
+                    "& .MuiAlert-message": {
+                        fontSize: 13,
+                        lineHeight: 1.4,
+                        py: 0,
+                    },
+                }}
             >
                 <Stack direction="column" spacing={1}>
                     <Typography variant="body2">{t("verifyPrompt")}</Typography>

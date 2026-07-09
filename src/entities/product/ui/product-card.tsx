@@ -176,9 +176,19 @@ export const ProductCard = memo(function ProductCard({
                     borderRadius: `${tokens.radiusCardLg}px`,
                     overflow: "hidden",
                     bgcolor: "background.paper",
+                    transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                    "@media (hover: hover) and (pointer: fine)": {
+                        "&:hover": {
+                            transform: "translateY(-4px)",
+                            boxShadow: `0 12px 28px rgba(var(--ew-text-rgb), 0.12)`,
+                        },
+                    },
                 }}
             >
                 <Box
+                    {...(hasProductLink
+                        ? { component: Link, href: productLink! }
+                        : { component: "div" })}
                     role={!hasProductLink && onOpenDetails ? "button" : undefined}
                     tabIndex={!hasProductLink && onOpenDetails ? 0 : undefined}
                     aria-label={
@@ -202,10 +212,12 @@ export const ProductCard = memo(function ProductCard({
                         display: "flex",
                         flexDirection: "column",
                         cursor:
-                            !hasProductLink && onOpenDetails ? "pointer" : undefined,
+                            hasProductLink || onOpenDetails ? "pointer" : undefined,
                         outline: "none",
+                        textDecoration: "none",
+                        color: "inherit",
                         "&:focus-visible":
-                            !hasProductLink && onOpenDetails
+                            hasProductLink || onOpenDetails
                                 ? {
                                       boxShadow: (theme) =>
                                           `inset 0 0 0 2px ${theme.palette.primary.main}`,
@@ -231,11 +243,8 @@ export const ProductCard = memo(function ProductCard({
                     >
                         {hasProductLink ? (
                             <Typography
-                                component={Link}
-                                href={productLink!}
                                 variant="body2"
                                 sx={{
-                                    ...linkSx,
                                     fontWeight: 700,
                                     display: "-webkit-box",
                                     WebkitLineClamp: 2,

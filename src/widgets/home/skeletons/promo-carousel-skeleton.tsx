@@ -4,50 +4,38 @@ import Stack from "@mui/material/Stack";
 
 import { skeletonSurfaceSx } from "@/shared/ui/skeleton-styles";
 
+/**
+ * Matches BannerCarousel slide geometry (aspect-ratio 5/2, mobile 86vw).
+ * Old fixed heights (220/320/420) caused large CLS when real banners resolved.
+ */
 export function PromoCarouselSkeleton() {
     return (
-        <Box sx={{ position: "relative" }}>
-            <Skeleton
-                variant="rectangular"
-                animation="wave"
+        <Box
+            sx={{
+                position: "relative",
+                mx: { xs: -2, md: 0 },
+                px: { xs: 2, md: 0 },
+            }}
+        >
+            <Box
                 sx={{
-                    width: "100%",
-                    height: { xs: 220, sm: 320, md: 420 },
+                    width: { xs: "86vw", sm: 480, md: "100%" },
+                    maxWidth: "100%",
+                    aspectRatio: "5 / 2",
                     borderRadius: { xs: 2, md: 3 },
-                    ...skeletonSurfaceSx,
-                }}
-            />
-            <Stack
-                spacing={1}
-                sx={{
-                    position: "absolute",
-                    left: { xs: 20, md: 32 },
-                    bottom: { xs: 20, md: 32 },
-                    maxWidth: "60%",
+                    overflow: "hidden",
                 }}
             >
                 <Skeleton
-                    variant="text"
+                    variant="rectangular"
                     animation="wave"
-                    width={120}
-                    height={20}
-                    sx={skeletonSurfaceSx}
+                    sx={{
+                        width: "100%",
+                        height: "100%",
+                        ...skeletonSurfaceSx,
+                    }}
                 />
-                <Skeleton
-                    variant="text"
-                    animation="wave"
-                    width="100%"
-                    height={36}
-                    sx={skeletonSurfaceSx}
-                />
-                <Skeleton
-                    variant="rounded"
-                    animation="wave"
-                    width={140}
-                    height={40}
-                    sx={{ borderRadius: 999, ...skeletonSurfaceSx }}
-                />
-            </Stack>
+            </Box>
             <Stack
                 direction="row"
                 spacing={0.75}

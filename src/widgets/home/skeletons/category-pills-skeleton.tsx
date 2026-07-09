@@ -12,6 +12,9 @@ const sectionContainerSx = {
     px: { xs: 2, md: 6 },
 } as const;
 
+/**
+ * Matches home CategoryPillsList `chip` variant (not the tall card variant).
+ */
 export function CategoryPillsSkeleton() {
     return (
         <Container
@@ -47,7 +50,7 @@ export function CategoryPillsSkeleton() {
 
             <Stack
                 direction="row"
-                spacing={1.5}
+                spacing={1}
                 sx={{
                     overflowX: "auto",
                     flexWrap: "nowrap",
@@ -62,26 +65,30 @@ export function CategoryPillsSkeleton() {
                     <Box
                         key={i}
                         sx={{
-                            display: "flex",
-                            flexDirection: "column",
+                            display: "inline-flex",
                             alignItems: "center",
+                            gap: 0.75,
                             flexShrink: 0,
-                            width: { xs: 108, sm: 124 },
+                            minHeight: 40,
+                            px: 1.25,
+                            borderRadius: 999,
+                            border: "1px solid",
+                            borderColor: "divider",
                         }}
                     >
                         <Skeleton
                             variant="circular"
                             animation="wave"
-                            width={60}
-                            height={60}
+                            width={30}
+                            height={30}
                             sx={skeletonSurfaceSx}
                         />
                         <Skeleton
                             variant="text"
                             animation="wave"
-                            width="72%"
-                            height={18}
-                            sx={{ mt: 1, borderRadius: 1, ...skeletonSurfaceSx }}
+                            width={56 + (i % 3) * 12}
+                            height={16}
+                            sx={skeletonSurfaceSx}
                         />
                     </Box>
                 ))}

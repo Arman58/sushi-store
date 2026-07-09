@@ -7,6 +7,7 @@ import type {
     UseFormSetValue,
     UseFormWatch,
 } from "react-hook-form";
+import { useShallow } from "zustand/react/shallow";
 
 import { useCartStore } from "@/features/cart";
 import { ApiError, validatePromo } from "@/shared/api";
@@ -30,8 +31,13 @@ export function useDeliveryCalc({
 }: UseDeliveryCalcParams) {
     const t = useTranslations("checkout.delivery");
     const locale = useLocale();
-    const appliedPromoCode = useCartStore((s) => s.appliedPromoCode);
-    const setAppliedPromoCode = useCartStore((s) => s.setAppliedPromoCode);
+    const { appliedPromoCode, setAppliedPromoCode, cartItems } = useCartStore(
+        useShallow((s) => ({
+            appliedPromoCode: s.appliedPromoCode,
+            setAppliedPromoCode: s.setAppliedPromoCode,
+            cartItems: s.items,
+        })),
+    );
 
     const [deliveryZones, setDeliveryZones] = useState<DeliveryZoneOption[]>([]);
     const [zonesLoading, setZonesLoading] = useState(true);
@@ -184,6 +190,7 @@ export function useDeliveryCalc({
                     code: appliedPromoCode,
                     cartAmount: cartSubtotal,
                     deliveryAmount: deliveryFee,
+                    items: cartItems.map(i => ({ productId: i.productId, quantity: i.quantity, price: i.calculatedItemPrice }))
                 });
                 if (!cancelled) {
                     setPromoDiscount(res.discountAmount);
@@ -207,7 +214,7 @@ export function useDeliveryCalc({
         return () => {
             cancelled = true;
         };
-    }, [appliedPromoCode, cartSubtotal, deliveryFee, setAppliedPromoCode, t]);
+    }, [appliedPromoCode, cartSubtotal, deliveryFee, setAppliedPromoCode, t, cartItems]);
 
     const handleApplyPromoClick = async () => {
         setPromoError(null);
@@ -232,6 +239,7 @@ export function useDeliveryCalc({
                 code: raw,
                 cartAmount: cartSubtotal,
                 deliveryAmount: deliveryFee,
+                items: cartItems.map(i => ({ productId: i.productId, quantity: i.quantity, price: i.calculatedItemPrice }))
             });
             setAppliedPromoCode(raw);
         } catch (e) {

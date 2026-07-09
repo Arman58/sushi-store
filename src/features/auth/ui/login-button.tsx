@@ -13,15 +13,19 @@ import MenuItem from "@mui/material/MenuItem";
 import dynamic from "next/dynamic";
 import { signOut, useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 
 import { Link, useRouter } from "@/i18n/server";
 import { tokens } from "@/shared/ui/theme";
 
-const LoginDialog = dynamic(
-    () => import("@/features/auth/ui/login-dialog").then((m) => m.LoginDialog),
-    { ssr: false },
-);
+const loginDialogImport = () =>
+    import("@/features/auth/ui/login-dialog").then((m) => m.LoginDialog);
+
+const LoginDialog = dynamic(loginDialogImport, { ssr: false });
+
+function preloadLoginDialog() {
+    void loginDialogImport();
+}
 
 export function LoginButton() {
     const { data: session, status } = useSession();
@@ -34,11 +38,27 @@ export function LoginButton() {
     const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
 
     useEffect(() => {
-        const handleScroll = () => {
-            if (menuAnchor) {
-                setMenuAnchor(null);
-            }
+        let cancelled = false;
+        const run = () => {
+            if (!cancelled) preloadLoginDialog();
         };
+        let idleId: number | undefined;
+        let timeoutId: number | undefined;
+        if (typeof window.requestIdleCallback === "function") {
+            idleId = window.requestIdleCallback(run, { timeout: 2500 });
+        } else {
+            timeoutId = window.setTimeout(run, 1500);
+        }
+        return () => {
+            cancelled = true;
+            if (idleId != null) window.cancelIdleCallback?.(idleId);
+            if (timeoutId != null) window.clearTimeout(timeoutId);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!menuAnchor) return;
+        const handleScroll = () => setMenuAnchor(null);
         window.addEventListener("scroll", handleScroll, { passive: true });
         return () => window.removeEventListener("scroll", handleScroll);
     }, [menuAnchor]);
@@ -51,11 +71,17 @@ export function LoginButton() {
             ? displayName.charAt(0).toUpperCase()
             : (session?.user?.email ?? "?").charAt(0).toUpperCase();
 
+    const openDialog = () => {
+        preloadLoginDialog();
+        startTransition(() => setDialogOpen(true));
+    };
+
     const handleClick = (event: React.MouseEvent<HTMLElement>) => {
         if (isAuthenticated) {
-            setMenuAnchor(event.currentTarget);
+            const target = event.currentTarget;
+            startTransition(() => setMenuAnchor(target));
         } else {
-            setDialogOpen(true);
+            openDialog();
         }
     };
 
@@ -66,7 +92,8 @@ export function LoginButton() {
                     variant="text"
                     size="small"
                     startIcon={<PersonOutlineOutlinedIcon />}
-                    onClick={() => setDialogOpen(true)}
+                    onClick={openDialog}
+                    onPointerEnter={preloadLoginDialog}
                     sx={{
                         display: { xs: "none", sm: "inline-flex" },
                         fontWeight: 600,
@@ -79,7 +106,8 @@ export function LoginButton() {
                     {t("login")}
                 </Button>
                 <IconButton
-                    onClick={() => setDialogOpen(true)}
+                    onClick={openDialog}
+                    onPointerEnter={preloadLoginDialog}
                     aria-label={t("aria.login")}
                     sx={{
                         display: { xs: "flex", sm: "none" },
@@ -96,7 +124,15 @@ export function LoginButton() {
                 >
                     <LoginOutlinedIcon fontSize="small" />
                 </IconButton>
-                <LoginDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
+                <LoginDialog
+                    open={dialogOpen}
+                    onClose={() => {
+                        if (document.activeElement instanceof HTMLElement) {
+                            document.activeElement.blur();
+                        }
+                        setDialogOpen(false);
+                    }}
+                />
             </>
         );
     }
@@ -138,6 +174,8 @@ export function LoginButton() {
                 anchorEl={menuAnchor}
                 open={Boolean(menuAnchor)}
                 onClose={() => setMenuAnchor(null)}
+                TransitionProps={{ timeout: 100 }}
+                disableAutoFocusItem
                 anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
                 transformOrigin={{ vertical: "top", horizontal: "right" }}
                 PaperProps={{ sx: { mt: 0.5, minWidth: 200, borderRadius: 2 } }}

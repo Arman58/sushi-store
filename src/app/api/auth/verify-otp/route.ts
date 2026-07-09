@@ -19,7 +19,7 @@ const verifyOtpSchema = z.object({
     code: z
         .string()
         .trim()
-        .regex(/^\d{4}$/, "Invalid code"),
+        .regex(/^\d{6}$/, "Invalid code"),
 });
 
 export async function POST(request: Request) {

@@ -207,19 +207,15 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
         staleTime: 4_000,
         refetchOnMount: "always",
         refetchOnWindowFocus: true,
-        // Скрытая вкладка не поллит (батарея/трафик): о смене статуса
-        // сообщает push от SW, а при возврате сработает refetchOnWindowFocus.
+        // SSE is primary; poll as fallback when the stream is unavailable.
         refetchIntervalInBackground: false,
         refetchInterval: (query) => {
-            const status = query.state.data?.status;
-            if (!status || TERMINAL_STATUSES.has(status)) {
-                return false;
-            }
-            return POLL_INTERVAL_MS;
+            const status = query.state.data?.status ?? initial.status;
+            return TERMINAL_STATUSES.has(status) ? false : POLL_INTERVAL_MS;
         },
     });
 
-    // Push от service worker - мгновенный refetch вместо ожидания поллинга.
+    // Push от service worker - мгновенный refetch
     const queryClient = useQueryClient();
     useEffect(() => {
         if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
@@ -241,6 +237,50 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
         return () =>
             navigator.serviceWorker.removeEventListener("message", onMessage);
     }, [queryClient, initial.id]);
+
+    // Server-Sent Events (SSE) для мгновенного обновления без поллинга
+    useEffect(() => {
+        const status = queryClient.getQueryData<OrderStatusResponse>(["order", initial.id])?.status || initial.status;
+        if (TERMINAL_STATUSES.has(status)) return;
+
+        const qs = new URLSearchParams({ id: String(initial.id) });
+        if (phone.trim()) {
+            qs.set("phone", phone);
+        }
+
+        const sse = new EventSource(`/api/order-status/stream?${qs.toString()}`);
+
+        sse.onmessage = (event) => {
+            try {
+                const updatedOrder = JSON.parse(event.data);
+                // Преобразуем даты из строк
+                if (updatedOrder.createdAt) {
+                    updatedOrder.createdAt = new Date(updatedOrder.createdAt).toISOString();
+                }
+                if (updatedOrder.estimatedDeliveryAt) {
+                    updatedOrder.estimatedDeliveryAt = new Date(updatedOrder.estimatedDeliveryAt).toISOString();
+                }
+                
+                queryClient.setQueryData(["order", initial.id], updatedOrder);
+
+                if (TERMINAL_STATUSES.has(updatedOrder.status)) {
+                    sse.close();
+                }
+            } catch (err) {
+                console.error("Failed to parse SSE data", err);
+            }
+        };
+
+        sse.onerror = () => {
+            // Браузер сам переподключится через несколько секунд,
+            // но мы можем инвалидировать текущие данные, чтобы useQuery сделал обычный fetch.
+            void queryClient.invalidateQueries({ queryKey: ["order", initial.id] });
+        };
+
+        return () => {
+            sse.close();
+        };
+    }, [initial.id, phone, queryClient]);
 
     const order = data ?? initial;
     const status = order.status;

@@ -74,10 +74,7 @@ export default async function ProfileLayout({
             <PageContainer>
                 <SectionTitle pageTitle>{t("pageTitle")}</SectionTitle>
 
-                {user.emailVerified == null && user.email ? (
-                    <ProfileEmailVerificationAlert email={user.email} />
-                ) : null}
-
+                {/* User card first — preferred LCP candidate over the verify Alert. */}
                 <Paper
                     elevation={0}
                     sx={{
@@ -154,6 +151,10 @@ export default async function ProfileLayout({
                         />
                     </Stack>
                 </Paper>
+
+                {user.emailVerified == null && user.email ? (
+                    <ProfileEmailVerificationAlert email={user.email} />
+                ) : null}
 
                 <ProfileTabs labels={tabLabels} />
 

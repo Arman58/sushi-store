@@ -3,9 +3,10 @@ import { NextResponse } from "next/server";
 
 import { parseAdminModifierGroupsPayload } from "@/lib/admin-product-modifiers";
 import { adminProductCreateSchema } from "@/lib/api-schemas";
-import { localizedSlugSource } from "@/lib/i18n-utils";
+import { asLocalizedRecord, localizedSlugSource } from "@/lib/i18n-utils";
 import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
+import { invalidateCatalogCache } from "@/lib/revalidate-storefront";
 import { verifyAdmin } from "@/lib/verify-admin";
 
 function slugifyName(name: string): string {
@@ -27,6 +28,34 @@ async function makeUniqueProductSlug(name: string): Promise<string> {
     return `${base}-${Date.now()}`;
 }
 
+function emptyLocalized() {
+    return { hy: "", ru: "", en: "" };
+}
+
+function mapProductListRow(
+    product: Prisma.ProductGetPayload<{
+        include: {
+            translations: true;
+            category: { include: { translations: true } };
+            upsells: { select: { suggestedId: true } };
+        };
+    }>,
+) {
+    const { translations, category, ...rest } = product;
+    return {
+        ...rest,
+        name: asLocalizedRecord(translations, "name") ?? emptyLocalized(),
+        description: asLocalizedRecord(translations, "description") ?? emptyLocalized(),
+        composition: asLocalizedRecord(translations, "composition") ?? emptyLocalized(),
+        category: category
+            ? {
+                  ...category,
+                  name: asLocalizedRecord(category.translations, "name") ?? emptyLocalized(),
+              }
+            : null,
+    };
+}
+
 export async function GET(request: Request) {
     const auth = await verifyAdmin(request);
     if (!auth.ok) {
@@ -34,30 +63,25 @@ export async function GET(request: Request) {
     }
 
     try {
+        // List payload stays light: modifiers load on GET /api/admin/products/[id] when editing.
         const products = await prisma.product.findMany({
             include: {
-                category: true,
+                translations: true,
+                category: { include: { translations: true } },
                 upsells: {
                     orderBy: { position: "asc" },
                     select: { suggestedId: true },
                 },
-                modifierGroups: {
-                    orderBy: [{ position: "asc" }, { id: "asc" }],
-                    include: {
-                        modifiers: {
-                            orderBy: [{ position: "asc" }, { id: "asc" }],
-                        },
-                    },
-                },
             },
             orderBy: { id: "asc" },
         });
-        return NextResponse.json(products);
+        return NextResponse.json(products.map(mapProductListRow));
     } catch {
         // Error logged in production monitoring
         return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });
     }
 }
+
 
 export async function POST(request: Request) {
     const auth = await verifyAdmin(request);
@@ -153,23 +177,31 @@ export async function POST(request: Request) {
         }
     }
 
+    const nameData = b.name as Record<string, string>;
+    const descriptionData = b.description as Record<string, string> | undefined;
+    const compositionData = b.composition as Record<string, string> | undefined;
+
+    const translationsData = ["hy", "ru", "en"].map((loc) => ({
+        locale: loc,
+        name: nameData[loc] || "",
+        description: descriptionData?.[loc] || null,
+        composition: compositionData?.[loc] || null,
+    }));
+
     try {
         const product = await prisma.product.create({
             data: {
-                name: b.name,
                 slug,
                 price,
                 categoryId: b.categoryId,
-                description:
-                    b.description == null ? Prisma.DbNull : b.description,
-                composition:
-                    b.composition == null ? Prisma.DbNull : b.composition,
-                weight: b.weight ?? null,
                 images,
                 mainImage,
                 isActive: b.isActive ?? true,
                 minQty: b.minQty ?? 1,
                 maxQty: b.maxQty ?? null,
+                translations: {
+                    create: translationsData,
+                },
                 ...(b.upsellIds && b.upsellIds.length > 0
                     ? {
                           upsells: {
@@ -196,6 +228,7 @@ export async function POST(request: Request) {
                 },
             },
         });
+        invalidateCatalogCache();
         return NextResponse.json(product, { status: 201 });
     } catch {
         // Error logged in production monitoring

@@ -5,8 +5,9 @@ import {
     type AdminModifierGroupInput,
     parseAdminModifierGroupsPayload,
 } from "@/lib/admin-product-modifiers";
-import { isLocalizedJson } from "@/lib/i18n-utils";
+import { asLocalizedRecord, isLocalizedJson } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
+import { invalidateCatalogCache } from "@/lib/revalidate-storefront";
 import { verifyAdmin } from "@/lib/verify-admin";
 
 function parseProductId(
@@ -39,8 +40,9 @@ function parseProductId(
 async function parsePutBodyToPrismaUpdate(
     raw: Record<string, unknown>,
     productId: number,
-): Promise<{ data: Prisma.ProductUpdateInput } | { response: NextResponse }> {
+): Promise<{ data: Prisma.ProductUpdateInput; translationsPayload: Record<string, any> } | { response: NextResponse }> {
     const data: Prisma.ProductUpdateInput = {};
+    const translationsPayload: Record<string, any> = {};
     const has = (key: string) => Object.prototype.hasOwnProperty.call(raw, key);
 
     if (has("name")) {
@@ -48,7 +50,7 @@ async function parsePutBodyToPrismaUpdate(
         if (!isLocalizedJson(v) || (!v.hy.trim() && !v.ru.trim() && !v.en.trim())) {
             return { response: NextResponse.json({ error: "Invalid name" }, { status: 400 }) };
         }
-        data.name = v;
+        translationsPayload.name = v;
     }
     if (has("slug")) {
         const v = raw.slug;
@@ -60,9 +62,9 @@ async function parsePutBodyToPrismaUpdate(
     if (has("description")) {
         const v = raw.description;
         if (v === null) {
-            data.description = Prisma.DbNull;
+            translationsPayload.description = { hy: "", ru: "", en: "" }; // treated as null later
         } else if (isLocalizedJson(v)) {
-            data.description = v;
+            translationsPayload.description = v;
         } else {
             return { response: NextResponse.json({ error: "Invalid description" }, { status: 400 }) };
         }
@@ -70,9 +72,9 @@ async function parsePutBodyToPrismaUpdate(
     if (has("composition")) {
         const v = raw.composition;
         if (v === null) {
-            data.composition = Prisma.DbNull;
+            translationsPayload.composition = { hy: "", ru: "", en: "" };
         } else if (isLocalizedJson(v)) {
-            data.composition = v;
+            translationsPayload.composition = v;
         } else {
             return { response: NextResponse.json({ error: "Invalid composition" }, { status: 400 }) };
         }
@@ -164,7 +166,7 @@ async function parsePutBodyToPrismaUpdate(
         }
     }
 
-    return { data };
+    return { data, translationsPayload };
 }
 
 function urlListFromJson(images: unknown): string[] {
@@ -269,6 +271,7 @@ async function handleProductJsonPartialUpdate(request: Request, params: Promise<
 
     if (
         Object.keys(parsed.data).length === 0 &&
+        Object.keys(parsed.translationsPayload).length === 0 &&
         replacementGroups === undefined &&
         upsellReplacement === undefined
     ) {
@@ -300,6 +303,44 @@ async function handleProductJsonPartialUpdate(request: Request, params: Promise<
                     where: { id: idResult.id },
                     data: finalData,
                 });
+            }
+
+            if (Object.keys(parsed.translationsPayload).length > 0) {
+                const locales = ["hy", "ru", "en"];
+                for (const loc of locales) {
+                    const updateData: any = {};
+                    if ("name" in parsed.translationsPayload) {
+                        updateData.name = parsed.translationsPayload.name[loc] || "";
+                    }
+                    if ("description" in parsed.translationsPayload) {
+                        updateData.description = parsed.translationsPayload.description[loc] || null;
+                    }
+                    if ("composition" in parsed.translationsPayload) {
+                        updateData.composition = parsed.translationsPayload.composition[loc] || null;
+                    }
+                    if (Object.keys(updateData).length > 0) {
+                        // We need the existing translation to provide fallback name if creating
+                        const existingT = await tx.productTranslation.findUnique({
+                            where: { productId_locale: { productId: idResult.id, locale: loc } }
+                        });
+                        if (existingT) {
+                            await tx.productTranslation.update({
+                                where: { productId_locale: { productId: idResult.id, locale: loc } },
+                                data: updateData,
+                            });
+                        } else {
+                            await tx.productTranslation.create({
+                                data: {
+                                    productId: idResult.id,
+                                    locale: loc,
+                                    name: updateData.name ?? "",
+                                    description: updateData.description ?? null,
+                                    composition: updateData.composition ?? null,
+                                }
+                            });
+                        }
+                    }
+                }
             }
 
             if (replacementGroups !== undefined) {
@@ -341,6 +382,7 @@ async function handleProductJsonPartialUpdate(request: Request, params: Promise<
             });
         });
 
+        invalidateCatalogCache();
         return NextResponse.json(product);
     } catch (error) {
         if (
@@ -361,23 +403,83 @@ async function handleProductJsonPartialUpdate(request: Request, params: Promise<
     }
 }
 
+const LOCALES = ["hy", "ru", "en"] as const;
+
+function localizedNameParts(
+    name: AdminModifierGroupInput["name"] | AdminModifierGroupInput["modifiers"][number]["name"],
+): Record<(typeof LOCALES)[number], string> {
+    const record =
+        name && typeof name === "object"
+            ? (name as Record<string, unknown>)
+            : ({} as Record<string, unknown>);
+    return {
+        hy: typeof record.hy === "string" ? record.hy : "",
+        ru: typeof record.ru === "string" ? record.ru : "",
+        en: typeof record.en === "string" ? record.en : "",
+    };
+}
+
+async function upsertGroupTranslations(
+    tx: Prisma.TransactionClient,
+    modifierGroupId: number,
+    name: AdminModifierGroupInput["name"],
+): Promise<void> {
+    const parts = localizedNameParts(name);
+    await Promise.all(
+        LOCALES.map((locale) =>
+            tx.modifierGroupTranslation.upsert({
+                where: {
+                    modifierGroupId_locale: { modifierGroupId, locale },
+                },
+                create: {
+                    modifierGroupId,
+                    locale,
+                    name: parts[locale],
+                },
+                update: { name: parts[locale] },
+            }),
+        ),
+    );
+}
+
+async function upsertModifierTranslations(
+    tx: Prisma.TransactionClient,
+    modifierId: number,
+    name: AdminModifierGroupInput["modifiers"][number]["name"],
+): Promise<void> {
+    const parts = localizedNameParts(name);
+    await Promise.all(
+        LOCALES.map((locale) =>
+            tx.modifierTranslation.upsert({
+                where: { modifierId_locale: { modifierId, locale } },
+                create: { modifierId, locale, name: parts[locale] },
+                update: { name: parts[locale] },
+            }),
+        ),
+    );
+}
+
 /**
- * Upsert-стратегия для ModifierGroup и вложенных Modifier:
- *
- *   1. Удалить группы товара, которых нет в incoming (по id).
- *   2. Для каждой incoming-группы:
- *      - id есть → update (с anti-IDOR проверкой productId);
- *      - id нет  → create.
- *   3. Внутри группы - то же для опций (anti-IDOR по modifierGroupId).
- *
- * onDelete: Cascade в схеме сам подчистит modifiers удалённых групп.
+ * Upsert ModifierGroup + Modifier без N+1 ownership checks:
+ * ownership загружается одним запросом, переводы пишутся параллельно.
  */
 async function upsertProductModifierGroups(
     tx: Prisma.TransactionClient,
     productId: number,
     incomingGroups: AdminModifierGroupInput[],
 ): Promise<void> {
-    // 1) Удаляем группы, которых больше нет.
+    const existingGroups = await tx.modifierGroup.findMany({
+        where: { productId },
+        select: {
+            id: true,
+            modifiers: { select: { id: true } },
+        },
+    });
+    const ownedGroupIds = new Set(existingGroups.map((g) => g.id));
+    const ownedModifierIdsByGroup = new Map(
+        existingGroups.map((g) => [g.id, new Set(g.modifiers.map((m) => m.id))]),
+    );
+
     const incomingGroupIds = incomingGroups
         .map((g) => g.id)
         .filter((id): id is number => typeof id === "number");
@@ -391,20 +493,13 @@ async function upsertProductModifierGroups(
         },
     });
 
-    // 2) Для каждой incoming-группы - update либо create.
     for (let gi = 0; gi < incomingGroups.length; gi++) {
         const g = incomingGroups[gi];
         const groupPosition = g.position || gi;
-
         let groupId: number;
 
         if (typeof g.id === "number") {
-            // anti-IDOR: убеждаемся, что эта группа принадлежит именно этому товару.
-            const owns = await tx.modifierGroup.findFirst({
-                where: { id: g.id, productId },
-                select: { id: true },
-            });
-            if (!owns) {
+            if (!ownedGroupIds.has(g.id)) {
                 throw Object.assign(
                     new Error(`Группа модификаторов id=${String(g.id)} не принадлежит товару`),
                     { httpStatus: 400 },
@@ -413,28 +508,34 @@ async function upsertProductModifierGroups(
             await tx.modifierGroup.update({
                 where: { id: g.id },
                 data: {
-                    name: g.name,
                     required: g.required,
                     maxChoices: g.maxChoices,
                     position: groupPosition,
                 },
             });
+            await upsertGroupTranslations(tx, g.id, g.name);
             groupId = g.id;
         } else {
             const created = await tx.modifierGroup.create({
                 data: {
                     productId,
-                    name: g.name,
                     required: g.required,
                     maxChoices: g.maxChoices,
                     position: groupPosition,
+                    translations: {
+                        create: LOCALES.map((locale) => ({
+                            locale,
+                            name: localizedNameParts(g.name)[locale],
+                        })),
+                    },
                 },
                 select: { id: true },
             });
             groupId = created.id;
+            ownedModifierIdsByGroup.set(groupId, new Set());
         }
 
-        // 3) Опции внутри группы.
+        const ownedModifierIds = ownedModifierIdsByGroup.get(groupId) ?? new Set<number>();
         const incomingModifierIds = g.modifiers
             .map((m) => m.id)
             .filter((id): id is number => typeof id === "number");
@@ -453,38 +554,117 @@ async function upsertProductModifierGroups(
             const modPosition = m.position || mi;
 
             if (typeof m.id === "number") {
-                // anti-IDOR: опция должна принадлежать именно этой группе.
-                const owns = await tx.modifier.findFirst({
-                    where: { id: m.id, modifierGroupId: groupId },
-                    select: { id: true },
-                });
-                if (!owns) {
+                if (!ownedModifierIds.has(m.id)) {
                     throw Object.assign(
-                        new Error(
-                            `Опция id=${String(m.id)} не принадлежит группе`,
-                        ),
+                        new Error(`Опция id=${String(m.id)} не принадлежит группе`),
                         { httpStatus: 400 },
                     );
                 }
                 await tx.modifier.update({
                     where: { id: m.id },
                     data: {
-                        name: m.name,
                         priceDelta: m.priceDelta,
                         position: modPosition,
                     },
                 });
+                await upsertModifierTranslations(tx, m.id, m.name);
             } else {
                 await tx.modifier.create({
                     data: {
                         modifierGroupId: groupId,
-                        name: m.name,
                         priceDelta: m.priceDelta,
                         position: modPosition,
+                        translations: {
+                            create: LOCALES.map((locale) => ({
+                                locale,
+                                name: localizedNameParts(m.name)[locale],
+                            })),
+                        },
                     },
                 });
             }
         }
+    }
+}
+
+const productDetailInclude = {
+    translations: true,
+    category: { include: { translations: true } },
+    upsells: {
+        orderBy: { position: "asc" as const },
+        select: { suggestedId: true },
+    },
+    modifierGroups: {
+        orderBy: [{ position: "asc" as const }, { id: "asc" as const }],
+        include: {
+            translations: true,
+            modifiers: {
+                orderBy: [{ position: "asc" as const }, { id: "asc" as const }],
+                include: { translations: true },
+            },
+        },
+    },
+} satisfies Prisma.ProductInclude;
+
+function emptyLocalized() {
+    return { hy: "", ru: "", en: "" };
+}
+
+function mapProductDetailForAdmin(
+    product: Prisma.ProductGetPayload<{ include: typeof productDetailInclude }>,
+) {
+    const { translations, category, modifierGroups, ...rest } = product;
+    return {
+        ...rest,
+        name: asLocalizedRecord(translations, "name") ?? emptyLocalized(),
+        description: asLocalizedRecord(translations, "description") ?? emptyLocalized(),
+        composition: asLocalizedRecord(translations, "composition") ?? emptyLocalized(),
+        category: category
+            ? {
+                  ...category,
+                  name: asLocalizedRecord(category.translations, "name") ?? emptyLocalized(),
+              }
+            : null,
+        modifierGroups: modifierGroups.map((g) => ({
+            id: g.id,
+            required: g.required,
+            maxChoices: g.maxChoices,
+            position: g.position,
+            name: asLocalizedRecord(g.translations, "name") ?? emptyLocalized(),
+            modifiers: g.modifiers.map((m) => ({
+                id: m.id,
+                priceDelta: m.priceDelta,
+                position: m.position,
+                name: asLocalizedRecord(m.translations, "name") ?? emptyLocalized(),
+            })),
+        })),
+    };
+}
+
+export async function GET(
+    request: Request,
+    context: { params: Promise<{ id: string }> },
+) {
+    const auth = await verifyAdmin(request);
+    if (!auth.ok) {
+        return auth.response;
+    }
+
+    const params = await context.params;
+    const idResult = parseProductId(request, params);
+    if (!idResult.ok) return idResult.response;
+
+    try {
+        const product = await prisma.product.findUnique({
+            where: { id: idResult.id },
+            include: productDetailInclude,
+        });
+        if (!product) {
+            return NextResponse.json({ error: "Product not found" }, { status: 404 });
+        }
+        return NextResponse.json(mapProductDetailForAdmin(product));
+    } catch {
+        return NextResponse.json({ error: "Failed to fetch product" }, { status: 500 });
     }
 }
 
@@ -511,6 +691,7 @@ export async function DELETE(
 
     try {
         await prisma.product.delete({ where: { id: idResult.id } });
+        invalidateCatalogCache();
         return NextResponse.json({ ok: true });
     } catch {
         // Error logged in production monitoring

@@ -5,6 +5,7 @@ import FavoriteOutlinedIcon from "@mui/icons-material/FavoriteOutlined";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
+import { motion } from "framer-motion";
 
 import { Link } from "@/i18n/server";
 import { ProductCoverImage } from "@/shared/ui/product-cover-image";
@@ -64,11 +65,21 @@ export function ProductCardMedia({
 }: ProductCardMediaProps) {
     const content = (
         <>
-            <ProductCoverImage
-                src={imageUrl}
-                alt={imageAlt}
-                priority={imagePriority}
-            />
+            <Box
+                component={motion.div}
+                variants={{
+                    initial: { scale: 1 },
+                    hover: { scale: 1.05 }
+                }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                sx={{ width: "100%", height: "100%" }}
+            >
+                <ProductCoverImage
+                    src={imageUrl}
+                    alt={imageAlt}
+                    priority={imagePriority}
+                />
+            </Box>
 
             {badges.length > 0 && (
                 <Stack
@@ -142,19 +153,6 @@ export function ProductCardMedia({
             )}
         </>
     );
-
-    if (href) {
-        return (
-            <Box
-                component={Link}
-                href={href}
-                aria-label={ariaLabel}
-                sx={{ ...linkSx, ...mediaSx }}
-            >
-                {content}
-            </Box>
-        );
-    }
 
     return <Box sx={mediaSx}>{content}</Box>;
 }

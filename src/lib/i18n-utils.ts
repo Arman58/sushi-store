@@ -12,28 +12,25 @@ export function isLocalizedJson(value: unknown): value is LocalizedJson {
     return Boolean(record.hy?.trim() || record.ru?.trim() || record.en?.trim());
 }
 
-function tryParseLocalizedJsonString(value: string): LocalizedJson | null {
-    const trimmed = value.trim();
-    if (!trimmed.startsWith("{")) return null;
-    try {
-        const parsed: unknown = JSON.parse(trimmed);
-        return asLocalizedRecord(parsed);
-    } catch {
-        return null;
+/** Преобразует массив переводов из БД (Prisma) в плоский LocalizedJson */
+export function asLocalizedRecord(value: unknown, fieldName: string = "name"): LocalizedJson | null {
+    if (Array.isArray(value)) {
+        const hy = value.find(t => t.locale === "hy")?.[fieldName] || "";
+        const ru = value.find(t => t.locale === "ru")?.[fieldName] || "";
+        const en = value.find(t => t.locale === "en")?.[fieldName] || "";
+        if (!hy.trim() && !ru.trim() && !en.trim()) return null;
+        return { hy, ru, en };
     }
-}
-
-/** Нормализует Prisma Json / частичный объект в { hy, ru, en }. */
-function asLocalizedRecord(value: unknown): LocalizedJson | null {
-    if (value == null || typeof value !== "object" || Array.isArray(value)) {
-        return null;
+    // Обратная совместимость для старого JSON-формата, если где-то остался
+    if (value != null && typeof value === "object" && !Array.isArray(value)) {
+        const raw = value as Record<string, unknown>;
+        const hy = typeof raw.hy === "string" ? raw.hy : "";
+        const ru = typeof raw.ru === "string" ? raw.ru : "";
+        const en = typeof raw.en === "string" ? raw.en : "";
+        if (!hy.trim() && !ru.trim() && !en.trim()) return null;
+        return { hy, ru, en };
     }
-    const raw = value as Record<string, unknown>;
-    const hy = typeof raw.hy === "string" ? raw.hy : "";
-    const ru = typeof raw.ru === "string" ? raw.ru : "";
-    const en = typeof raw.en === "string" ? raw.en : "";
-    if (!hy.trim() && !ru.trim() && !en.trim()) return null;
-    return { hy, ru, en };
+    return null;
 }
 
 function pickLocaleString(record: LocalizedJson, locale: string): string {
@@ -50,37 +47,16 @@ function pickLocaleString(record: LocalizedJson, locale: string): string {
     return "";
 }
 
-/** Извлекает одну строку для витрины из JSON-поля Prisma. */
-export function getLocalizedField(jsonField: unknown, locale: string): string {
-    if (jsonField == null) return "";
-
-    if (typeof jsonField === "string") {
-        const trimmed = jsonField.trim();
-        if (!trimmed) return "";
-
-        const parsed = tryParseLocalizedJsonString(trimmed);
-        if (parsed) return pickLocaleString(parsed, locale);
-
-        // Пустой JSON в БД иногда приходит как строка "{}" - не показываем как текст
-        if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-            try {
-                const json = JSON.parse(trimmed) as unknown;
-                if (
-                    json !== null &&
-                    typeof json === "object" &&
-                    !Array.isArray(json)
-                ) {
-                    return "";
-                }
-            } catch {
-                /* обычная строка, не JSON */
-            }
-        }
-
-        return trimmed;
+/** Извлекает одну строку для витрины из массива translations (Prisma). */
+export function getLocalizedField(translations: unknown, locale: string, fieldName: string = "name"): string {
+    if (!translations) return "";
+    
+    // Если передана простая строка, возвращаем её (например, для нелокализованных полей)
+    if (typeof translations === "string") {
+        return translations;
     }
 
-    const record = asLocalizedRecord(jsonField);
+    const record = asLocalizedRecord(translations, fieldName);
     if (record) return pickLocaleString(record, locale);
 
     return "";
@@ -90,29 +66,25 @@ export type LocalizedFields<T, K extends keyof T> = Omit<T, K> & {
     [P in K]: string;
 };
 
-/** Заменяет JSON-поля сущности на обычные строки для витрины. */
+/** Заменяет JSON-поля сущности на обычные строки для витрины, читая из массива translations. */
 export function localizeEntity<
-    T extends Record<string, unknown>,
+    T extends { translations?: unknown },
     K extends keyof T & string,
 >(
     entity: T,
     locale: string,
     fields: readonly K[],
 ): LocalizedFields<T, K> {
-    const out = { ...entity } as LocalizedFields<T, K>;
+    const out = { ...entity } as any;
     for (const field of fields) {
-        if (field in out) {
-            (out as Record<string, unknown>)[field] = getLocalizedField(
-                out[field],
-                locale,
-            );
-        }
+        // Мы предполагаем, что translations содержит все нужные поля (name, description, и т.д.)
+        out[field] = getLocalizedField(entity.translations, locale, field);
     }
     return out;
 }
 
 export function localizeEntities<
-    T extends Record<string, unknown>,
+    T extends { translations?: unknown },
     K extends keyof T & string,
 >(
     entities: readonly T[],
@@ -141,9 +113,9 @@ export function mergeLocalizedTranslations(
 
 export type LocalizedFillStatus = Record<StoreLocale, boolean>;
 
-/** Какие локали заполнены в JSONB-поле. */
-export function localizedFillStatus(value: unknown): LocalizedFillStatus {
-    const record = asLocalizedRecord(value);
+/** Какие локали заполнены в массиве translations. */
+export function localizedFillStatus(translations: unknown, fieldName: string = "name"): LocalizedFillStatus {
+    const record = asLocalizedRecord(translations, fieldName);
     if (!record) {
         return { hy: false, ru: false, en: false };
     }
@@ -154,46 +126,39 @@ export function localizedFillStatus(value: unknown): LocalizedFillStatus {
     };
 }
 
-/** Парсит JSON из БД в объект для форм админки. */
 /** Источник для slug: предпочитаем латиницу (ru/en). */
-export function localizedSlugSource(value: unknown): string {
-    const ru = getLocalizedField(value, "ru");
+export function localizedSlugSource(translations: unknown, fieldName: string = "name"): string {
+    const ru = getLocalizedField(translations, "ru", fieldName);
     if (ru.trim()) return ru;
-    const en = getLocalizedField(value, "en");
+    const en = getLocalizedField(translations, "en", fieldName);
     if (en.trim()) return en;
-    return getLocalizedField(value, DEFAULT_STORE_LOCALE);
+    return getLocalizedField(translations, DEFAULT_STORE_LOCALE, fieldName);
 }
 
 type ProductWithCategory = {
-    name: unknown;
-    description?: unknown;
-    composition?: unknown;
-    category?: { name: unknown } | null;
+    translations?: unknown;
+    category?: { translations?: unknown } | null;
 };
 
 export function localizeProduct<T extends ProductWithCategory>(
     product: T,
     locale: string,
-): T {
-    const localized = localizeEntity(
-        product as Record<string, unknown>,
-        locale,
-        ["name", "description", "composition"],
-    );
+): T & { name: string; description: string | null; composition: string | null } {
+    const localized = {
+        name: getLocalizedField(product.translations, locale, "name"),
+        description: getLocalizedField(product.translations, locale, "description") || null,
+        composition: getLocalizedField(product.translations, locale, "composition") || null,
+    };
     const category = product.category
-        ? localizeEntity(
-              product.category as Record<string, unknown>,
-              locale,
-              ["name"],
-          )
+        ? { ...product.category, name: getLocalizedField(product.category.translations, locale, "name") }
         : product.category;
-    return { ...product, ...localized, category } as T;
+    return { ...product, ...localized, category } as any;
 }
 
 export function localizeProducts<T extends ProductWithCategory>(
     products: readonly T[],
     locale: string,
-): T[] {
+): (T & { name: string; description: string | null; composition: string | null })[] {
     return products.map((product) => localizeProduct(product, locale));
 }
 
@@ -215,7 +180,7 @@ export function toStorefrontCategory(
     return {
         id: Number(category.id),
         slug: String(category.slug),
-        name: getLocalizedField(category.name, locale),
+        name: getLocalizedField(category.translations, locale, "name"),
         ...(typeof category.position === "number"
             ? { position: category.position }
             : {}),
@@ -244,7 +209,7 @@ export function toStorefrontModifierGroups(
                   const mod = m as Record<string, unknown>;
                   return {
                       id: Number(mod.id),
-                      name: getLocalizedField(mod.name, locale),
+                      name: getLocalizedField(mod.translations, locale, "name"),
                       priceDelta: Number(mod.priceDelta),
                   };
               })
@@ -252,7 +217,7 @@ export function toStorefrontModifierGroups(
 
         return {
             id: Number(g.id),
-            name: getLocalizedField(g.name, locale),
+            name: getLocalizedField(g.translations, locale, "name"),
             required: Boolean(g.required),
             maxChoices: Number(g.maxChoices),
             modifiers,
@@ -303,9 +268,9 @@ export function toStorefrontProduct(
     return {
         id: Number(product.id),
         slug: String(product.slug),
-        name: getLocalizedField(product.name, locale),
-        description: getLocalizedField(product.description, locale) || null,
-        composition: getLocalizedField(product.composition, locale) || null,
+        name: getLocalizedField(product.translations, locale, "name"),
+        description: getLocalizedField(product.translations, locale, "description") || null,
+        composition: getLocalizedField(product.translations, locale, "composition") || null,
         price: Number(product.price),
         weight:
             typeof product.weight === "number" && Number.isFinite(product.weight)

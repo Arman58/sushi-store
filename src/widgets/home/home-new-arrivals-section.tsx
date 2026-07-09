@@ -7,6 +7,7 @@ import {
     homeProductCardInclude,
     mapProductToPopular,
 } from "@/lib/home-product-include";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 import { prisma } from "@/lib/prisma";
 
 const PopularSection = dynamic(
@@ -33,7 +34,7 @@ const getNewArrivalsCached = unstable_cache(
         return newProductsRaw.map((p) => mapProductToPopular(p, locale));
     },
     ["home-new-arrivals"],
-    { revalidate: 60 },
+    { revalidate: 3600, tags: [CACHE_TAGS.products] },
 );
 
 export async function HomeNewArrivalsSection() {

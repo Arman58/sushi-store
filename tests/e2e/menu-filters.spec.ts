@@ -10,8 +10,11 @@ async function openMenu(page: Page) {
     ).toBeVisible({ timeout: 30_000 });
 }
 
-function categoryParam(page: Page) {
-    return new URL(page.url()).searchParams.get("category");
+function categoryFromUrl(page: Page) {
+    const url = new URL(page.url());
+    const pathMatch = url.pathname.match(/\/menu\/c\/([^/?#]+)/);
+    if (pathMatch?.[1]) return decodeURIComponent(pathMatch[1]);
+    return url.searchParams.get("category");
 }
 
 test.describe("Фильтры меню", () => {
@@ -28,8 +31,8 @@ test.describe("Фильтры меню", () => {
         await expect(pizzaPill).toBeVisible({ timeout: 15_000 });
 
         await pizzaPill.click();
-        await page.waitForURL(/category=pizza/, { timeout: 10_000 });
-        expect(categoryParam(page)).toBe("pizza");
+        await page.waitForURL(/\/menu\/c\/pizza/, { timeout: 10_000 });
+        expect(categoryFromUrl(page)).toBe("pizza");
         await expect(pizzaPill).toHaveClass(/MuiChip-filled/);
 
         const pillsRow = page.locator(".MuiStack-root").filter({
@@ -37,10 +40,13 @@ test.describe("Фильтры меню", () => {
         });
         const allPill = pillsRow.getByRole("button", { name: /все/i });
         await allPill.click();
-        await page.waitForURL((url) => !url.searchParams.has("category"), {
-            timeout: 10_000,
-        });
-        expect(categoryParam(page)).toBeNull();
+        await page.waitForURL(
+            (url) =>
+                /\/menu\/?$/.test(url.pathname) &&
+                !url.pathname.includes("/menu/c/"),
+            { timeout: 10_000 },
+        );
+        expect(categoryFromUrl(page)).toBeNull();
         await expect(allPill).toHaveClass(/MuiChip-filled/);
         await expect(pizzaPill).not.toHaveClass(/MuiChip-filled/);
     });

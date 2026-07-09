@@ -65,6 +65,11 @@ public/swe-worker*
 
 # local sqlite dev database
 prisma/dev.db
+*.db
+*.db-journal
+
+# backup / editor junk
+*.bak
 
 # Cursor IDE — локальные логи агента и debug-сессий
 .cursor/

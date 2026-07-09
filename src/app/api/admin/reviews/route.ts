@@ -28,7 +28,7 @@ export async function GET(request: Request) {
                 take: PAGE_SIZE,
                 include: {
                     user: { select: { name: true, email: true } },
-                    product: { select: { id: true, name: true, slug: true } },
+                    product: { select: { id: true, translations: true, slug: true } },
                 },
             }),
             prisma.review.count({ where }),

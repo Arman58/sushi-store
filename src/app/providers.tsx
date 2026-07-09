@@ -1,27 +1,31 @@
 "use client";
 
 import CssBaseline from "@mui/material/CssBaseline";
-import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SessionProvider } from "next-auth/react";
 import { type ReactNode, useEffect, useState } from "react";
 
-import { CartValidationProvider } from "@/features/cart";
+import { CartSyncProvider, CartValidationProvider } from "@/features/cart";
 import {
     ewThemeStorageManager,
-    THEME_STORAGE_KEY,
     type ThemeMode,
 } from "@/lib/theme-preference";
 import theme from "@/shared/ui/theme";
+import { ThemeInitScript } from "@/shared/ui/theme-init-script";
 import { ThemePreferenceProvider } from "@/shared/ui/theme-preference-context";
 
 type AppProvidersProps = {
     children: ReactNode;
     initialTheme: ThemeMode;
+    nonce?: string;
 };
 
-export function AppProviders({ children, initialTheme }: AppProvidersProps) {
+export function AppProviders({
+    children,
+    initialTheme,
+    nonce,
+}: AppProvidersProps) {
     const [queryClient] = useState(
         () =>
             new QueryClient({
@@ -45,26 +49,25 @@ export function AppProviders({ children, initialTheme }: AppProvidersProps) {
 
     return (
         <>
-            <InitColorSchemeScript
-                attribute="data-theme"
-                defaultMode={initialTheme}
-                modeStorageKey={THEME_STORAGE_KEY}
-            />
+            {/* SSR-only inject — avoids React 19 script-in-component warning. */}
+            <ThemeInitScript nonce={nonce} />
             <SessionProvider>
                 <QueryClientProvider client={queryClient}>
-                    <CartValidationProvider>
-                        <ThemePreferenceProvider initialTheme={initialTheme}>
-                            <ThemeProvider
-                                theme={theme}
-                                defaultMode={initialTheme}
-                                storageManager={ewThemeStorageManager}
-                                disableTransitionOnChange
-                            >
-                                <CssBaseline />
-                                {children}
-                            </ThemeProvider>
-                        </ThemePreferenceProvider>
-                    </CartValidationProvider>
+                    <CartSyncProvider>
+                        <CartValidationProvider>
+                            <ThemePreferenceProvider initialTheme={initialTheme}>
+                                <ThemeProvider
+                                    theme={theme}
+                                    defaultMode={initialTheme}
+                                    storageManager={ewThemeStorageManager}
+                                    disableTransitionOnChange
+                                >
+                                    <CssBaseline />
+                                    {children}
+                                </ThemeProvider>
+                            </ThemePreferenceProvider>
+                        </CartValidationProvider>
+                    </CartSyncProvider>
                 </QueryClientProvider>
             </SessionProvider>
         </>

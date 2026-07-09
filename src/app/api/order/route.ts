@@ -1,4 +1,3 @@
-import { DeliveryType, PaymentMethod, Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
@@ -9,205 +8,24 @@ import {
     localizedApiErrorJsonResponse,
     resolveOrderRequestLocale,
 } from "@/lib/backend-i18n";
-import { escapeHtml } from "@/lib/escape-html";
-import {
-    fetchWithTimeout,
-    NOTIFICATION_FETCH_TIMEOUT_MS,
-} from "@/lib/fetch-with-timeout";
-import { getLocalizedField } from "@/lib/i18n-utils";
 import {
     ORDER_ACCESS_COOKIE_MAX_AGE_SEC,
     orderAccessCookieName,
 } from "@/lib/order-access";
-import { prepareOrderItems, type VerifiedOrderItem } from "@/lib/prepare-order-items";
 import { prisma } from "@/lib/prisma";
-import {
-    computePromoDiscountAmount,
-    getPromoRejectionCode,
-} from "@/lib/promo";
 import {
     checkRateLimit,
     rateLimitExceededJsonResponse,
 } from "@/lib/rate-limit";
-import { isStoreOpen, isValidScheduleSlot } from "@/lib/site-config";
-import {
-    buildKitchenStatusKeyboard,
-    isKitchenTelegramConfigured,
-} from "@/lib/telegram-kitchen";
+import { notifyKitchenTelegram } from "@/lib/telegram-kitchen-notify";
+import { createOrder, OrderServiceError } from "@/server/services/order.service";
 import { API_ERROR_CODES, type ApiErrorCode } from "@/shared/lib/api-error";
 
 import {
-    countPhoneDigits,
     firstZodMessage,
     type OrderPayload,
     orderPayloadSchema,
 } from "./_schema";
-
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-
-const telegramNotifyEnabled = isKitchenTelegramConfigured();
-
-type KitchenTelegramPayload = {
-    orderId: number;
-    name: string;
-    phone: string;
-    address: string | undefined;
-    comment: string | undefined;
-    payment: OrderPayload["payment"];
-    changeFrom: number | null;
-    scheduledFor: Date | null;
-    delivery: OrderPayload["delivery"];
-    verifiedItems: VerifiedOrderItem[];
-    deliveryFee: number;
-    zoneNameSnapshot: string | null;
-    promoCodeRaw: string | undefined;
-    payableForNotify: number;
-    grandBeforePay: number;
-};
-
-async function notifyKitchenTelegram(payload: KitchenTelegramPayload): Promise<void> {
-    if (!telegramNotifyEnabled || !TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
-
-    const {
-        orderId,
-        name,
-        phone,
-        address,
-        comment,
-        payment,
-        changeFrom,
-        scheduledFor,
-        delivery,
-        verifiedItems,
-        deliveryFee,
-        zoneNameSnapshot,
-        promoCodeRaw,
-        payableForNotify,
-        grandBeforePay,
-    } = payload;
-
-    const lines: string[] = [];
-
-    lines.push("<b>🍣 Новый заказ East West</b>");
-    lines.push(`<b>📋 Заказ №${orderId}</b>`);
-
-    if (scheduledFor) {
-        const when = new Intl.DateTimeFormat("ru-RU", {
-            timeZone: "Asia/Yerevan",
-            day: "2-digit",
-            month: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-        }).format(scheduledFor);
-        lines.push(`<b>⏰ ПРЕДЗАКАЗ ко времени: ${when}</b>`);
-    }
-    lines.push("");
-    lines.push(`<b>👤 Имя:</b> ${escapeHtml(name)}`);
-    lines.push(`<b>📞 Телефон:</b> <code>${escapeHtml(phone)}</code>`);
-
-    if (delivery === "delivery") {
-        lines.push(
-            `<b>📍 Доставка:</b> ${escapeHtml(address || "адрес не указан")}`,
-        );
-    } else {
-        lines.push("<b>📍</b> <i>Самовывоз</i>");
-    }
-
-    lines.push(
-        `<b>💳 Оплата:</b> ${payment === "cash" ? "<i>Наличными</i>" : "<i>Картой</i>"}`,
-    );
-
-    if (payment === "cash") {
-        if (changeFrom != null) {
-            const changeDue = changeFrom - payableForNotify;
-            lines.push(
-                `<b>💵 Клиент даст:</b> <i>${changeFrom.toLocaleString("ru-RU")} ֏</i>` +
-                    (changeDue > 0
-                        ? ` - подготовить сдачу <b>${changeDue.toLocaleString("ru-RU")} ֏</b>`
-                        : " <i>(без сдачи)</i>"),
-            );
-        } else {
-            lines.push("<b>💵 Сдача:</b> <i>не нужна - клиент даст точную сумму</i>");
-        }
-    }
-
-    if (comment) {
-        lines.push("");
-        lines.push(`<b>💬 Комментарий:</b> <i>${escapeHtml(comment)}</i>`);
-    }
-
-    lines.push("");
-    lines.push("<b>🧾 Позиции:</b>");
-
-    for (const item of verifiedItems) {
-        const modsRaw = item.selectedModifiers;
-        let modSuffix = "";
-        if (Array.isArray(modsRaw) && modsRaw.length > 0) {
-            const labels = modsRaw
-                .map((m: unknown) =>
-                    m &&
-                    typeof m === "object" &&
-                    "name" in m &&
-                    typeof (m as { name: string }).name === "string"
-                        ? escapeHtml((m as { name: string }).name)
-                        : null,
-                )
-                .filter(Boolean);
-            if (labels.length > 0) {
-                modSuffix = ` <i>(${labels.join(", ")})</i>`;
-            }
-        }
-        lines.push(
-            `• ${escapeHtml(item.name)}${modSuffix} × ${item.quantity} - <b>${(
-                item.price * item.quantity
-            ).toLocaleString("ru-RU")} ֏</b>`,
-        );
-    }
-
-    if (delivery === "delivery" && deliveryFee > 0 && zoneNameSnapshot) {
-        lines.push("");
-        lines.push(
-            `<b>🚚 Доставка (${escapeHtml(zoneNameSnapshot)}):</b> <b>${deliveryFee.toLocaleString("ru-RU")} ֏</b>`,
-        );
-    }
-
-    if (promoCodeRaw && payableForNotify < grandBeforePay) {
-        const disc = grandBeforePay - payableForNotify;
-        lines.push("");
-        lines.push(
-            `<b>🏷️ Промокод</b> <code>${escapeHtml(promoCodeRaw)}</code>: <b>−${disc.toLocaleString("ru-RU")} ֏</b>`,
-        );
-    }
-
-    lines.push("");
-    lines.push(`<b>💰 Итого: ${payableForNotify.toLocaleString("ru-RU")} ֏</b>`);
-
-    const text = lines.join("\n");
-    const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-
-    const telegramResponse = await fetchWithTimeout(
-        telegramUrl,
-        {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                chat_id: TELEGRAM_CHAT_ID,
-                text,
-                parse_mode: "HTML",
-                reply_markup: buildKitchenStatusKeyboard(orderId),
-            }),
-        },
-        NOTIFICATION_FETCH_TIMEOUT_MS,
-    );
-
-    if (!telegramResponse.ok) {
-        // Telegram notification failed; order still proceeds
-        void telegramResponse.text().catch(() => "");
-    }
-}
-
-// ─── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
     const rateLimit = await checkRateLimit(request, "order");
@@ -215,14 +33,12 @@ export async function POST(request: Request) {
         return rateLimitExceededJsonResponse();
     }
 
-    // Авторизованный - привяжем к userId. Гостевые остаются гостевыми.
     const session = await auth();
     const sessionUserIdRaw =
         session?.user?.id != null && Number.isFinite(session.user.id)
             ? Number(session.user.id)
             : null;
 
-    /** Привязываем только к существующему User (Int), иначе null - без FK-ошибки. */
     const sessionUserId =
         sessionUserIdRaw != null
             ? (
@@ -240,7 +56,6 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    // ── Zod-валидация формата ────────────────────────────────────────────────
     const parsed = orderPayloadSchema.safeParse(json);
 
     if (!parsed.success) {
@@ -264,370 +79,86 @@ export async function POST(request: Request) {
     }
 
     const payload: OrderPayload = parsed.data;
-
-    // ── Предзаказ «ко времени» ───────────────────────────────────────────────
-    const scheduledFor = payload.scheduledFor
-        ? new Date(payload.scheduledFor)
-        : null;
-    if (scheduledFor && !isValidScheduleSlot(scheduledFor)) {
-        return localizedApiErrorJsonResponse(
-            API_ERROR_CODES.SCHEDULE_INVALID,
-            resolveOrderRequestLocale(request, payload.locale),
-            400,
-        );
-    }
-
-    // ── Часы работы: ночью принимаем только предзаказы ───────────────────────
-    if (!isStoreOpen() && !scheduledFor) {
-        return localizedApiErrorJsonResponse(
-            API_ERROR_CODES.STORE_CLOSED,
-            resolveOrderRequestLocale(request, payload.locale),
-            409,
-        );
-    }
-
-    const {
-        name,
-        phone,
-        address,
-        comment,
-        payment,
-        delivery,
-        items,
-        totalPrice,
-        subtotalBeforeDiscount: declaredSubtotal,
-        discountAmount: declaredDiscount,
-        deliveryZoneId,
-        promoCode: promoCodeRaw,
-        locale: payloadLocale,
-        changeFrom: changeFromRaw,
-    } = payload;
-
-    const locale = resolveOrderRequestLocale(request, payloadLocale);
-
-    // Сдача актуальна только для наличных.
-    const changeFrom =
-        payment === "cash" && changeFromRaw != null ? changeFromRaw : null;
-
-    // ── Сверка позиций с БД (пересчёт цен, snapshot, правила групп) ──────────
-    const declaredItemsTotal = items.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0,
-    );
-
-    const verifiedItemsResult = await prepareOrderItems(items, locale);
-
-    if (!verifiedItemsResult.ok) {
-        if (
-            verifiedItemsResult.code === API_ERROR_CODES.INVALID_CART_PAYLOAD &&
-            verifiedItemsResult.invalidReason
-        ) {
-            return NextResponse.json(
-                {
-                    error: getInvalidCartPayloadMessage(
-                        verifiedItemsResult.invalidReason,
-                        locale,
-                    ),
-                    code: verifiedItemsResult.code,
-                },
-                { status: verifiedItemsResult.httpStatus },
-            );
-        }
-        return localizedApiErrorJsonResponse(
-            verifiedItemsResult.code,
-            locale,
-            verifiedItemsResult.httpStatus,
-            verifiedItemsResult.params,
-        );
-    }
-
-    const verifiedItems = verifiedItemsResult.items;
-    const verifiedTotal = verifiedItemsResult.total;
-
-    if (verifiedTotal !== declaredItemsTotal) {
-        return localizedApiErrorJsonResponse(
-            API_ERROR_CODES.PRICE_MISMATCH,
-            locale,
-            409,
-        );
-    }
-
-    // ── Зона доставки ────────────────────────────────────────────────────────
-    let deliveryFee = 0;
-    let zoneIdForDb: number | null = null;
-    let zoneNameSnapshot: string | null = null;
-
-    if (delivery === "delivery") {
-        const zoneId = deliveryZoneId;
-        if (!zoneId) {
-            return NextResponse.json(
-                { error: getFormValidationMessage("form.zone.selectRequired", locale) },
-                { status: 400 },
-            );
-        }
-
-        const zone = await prisma.deliveryZone.findFirst({
-            where: { id: zoneId, isActive: true },
-        });
-
-        if (!zone) {
-            return NextResponse.json(
-                { error: getFormValidationMessage("form.zone.unavailable", locale) },
-                { status: 400 },
-            );
-        }
-
-        if (verifiedTotal < zone.minOrderAmount) {
-            return NextResponse.json(
-                {
-                    error: getFormValidationMessage("form.zone.belowMin", locale, {
-                        amount: zone.minOrderAmount.toLocaleString("ru-RU"),
-                    }),
-                },
-                { status: 400 },
-            );
-        }
-
-        deliveryFee = zone.deliveryPrice;
-        zoneIdForDb = zone.id;
-        zoneNameSnapshot = getLocalizedField(zone.name, locale);
-    }
-
-    const grandBeforePay = verifiedTotal + deliveryFee;
-
-    let discountAmt = 0;
-    let promoDbId: number | null = null;
-
-    if (promoCodeRaw) {
-        const promoRow = await prisma.promoCode.findUnique({
-            where: { code: promoCodeRaw },
-        });
-        const rejection = getPromoRejectionCode(promoRow, {
-            cartSubtotal: verifiedTotal,
-            grandTotalBeforeDiscount: grandBeforePay,
-        });
-        if (rejection) {
-            const reason = getPromoRejectionMessage(
-                rejection.code,
-                locale,
-                rejection.code === "belowMin"
-                    ? { amount: rejection.minOrderAmount.toLocaleString("ru-RU") }
-                    : undefined,
-            );
-            return NextResponse.json({ error: reason }, { status: 422 });
-        }
-        discountAmt = computePromoDiscountAmount(
-            promoRow!,
-            verifiedTotal,
-            grandBeforePay,
-        );
-        promoDbId = promoRow!.id;
-    }
-
-    const payableTotal = verifiedTotal - discountAmt + deliveryFee;
-
-    // Сдача не может быть меньше суммы заказа.
-    if (changeFrom != null && changeFrom < payableTotal) {
-        return localizedApiErrorJsonResponse(
-            API_ERROR_CODES.CHANGE_FROM_TOO_SMALL,
-            locale,
-            400,
-        );
-    }
-
-    if (declaredSubtotal !== undefined && declaredSubtotal !== verifiedTotal) {
-        return localizedApiErrorJsonResponse(
-            API_ERROR_CODES.SUBTOTAL_MISMATCH,
-            locale,
-            409,
-        );
-    }
-    if (declaredDiscount !== undefined && declaredDiscount !== discountAmt) {
-        return localizedApiErrorJsonResponse(
-            API_ERROR_CODES.DISCOUNT_MISMATCH,
-            locale,
-            409,
-        );
-    }
-
-    // ── Транзакция: инкремент промокода и создание заказа ─────────────────────
-    let createdOrderId!: number;
-    let createdAccessToken!: string;
-    let payableForNotify = payableTotal;
+    const locale = resolveOrderRequestLocale(request, payload.locale);
 
     try {
-        await prisma.$transaction(async (tx) => {
-            if (promoCodeRaw && promoDbId != null) {
-                const bumped = await tx.$queryRaw<Array<{ id: number }>>(
-                    Prisma.sql`
-                        UPDATE "PromoCode"
-                        SET "timesUsed" = "timesUsed" + 1
-                        WHERE "id" = ${promoDbId}
-                          AND "isActive" = true
-                          AND ("maxUsages" IS NULL OR "timesUsed" < "maxUsages")
-                        RETURNING "id"
-                    `,
-                );
+        const result = await createOrder(payload, sessionUserId, locale);
 
-                if (bumped.length === 0) {
-                    throw Object.assign(new Error(API_ERROR_CODES.PROMO_UNAVAILABLE), {
-                        httpStatus: 409,
-                        code: API_ERROR_CODES.PROMO_UNAVAILABLE,
-                    });
-                }
-            }
-
-            if (payableTotal !== totalPrice) {
-                throw Object.assign(new Error(API_ERROR_CODES.TOTAL_MISMATCH), {
-                    httpStatus: 409,
-                    code: API_ERROR_CODES.TOTAL_MISMATCH,
-                });
-            }
-
-            const phoneForDb =
-                countPhoneDigits(phone) >= 8
-                    ? phone
-                    : delivery === "pickup"
-                      ? "-"
-                      : phone;
-
-            // Сохраняем телефон в профиль — автозаполнение на следующих заказах.
-            if (sessionUserId && countPhoneDigits(phoneForDb) >= 8) {
-                const taken = await tx.user.findFirst({
-                    where: {
-                        phone: phoneForDb,
-                        NOT: { id: sessionUserId },
-                    },
-                    select: { id: true },
-                });
-                if (!taken) {
-                    await tx.user.update({
-                        where: { id: sessionUserId },
-                        data: { phone: phoneForDb },
-                    });
-                }
-            }
-
-            const created = await tx.order.create({
-                data: {
-                    name,
-                    phone: phoneForDb,
-                    address: address || null,
-                    comment: comment || null,
-                    payment:
-                        payment === "cash" ? PaymentMethod.CASH : PaymentMethod.CARD,
-                    delivery:
-                        delivery === "delivery"
-                            ? DeliveryType.DELIVERY
-                            : DeliveryType.PICKUP,
-                    status: "NEW",
-                    subtotalBeforeDiscount: verifiedTotal,
-                    discountAmount: discountAmt,
-                    totalPrice: payableTotal,
-                    deliveryZoneId: zoneIdForDb,
-                    deliveryZoneName: zoneNameSnapshot,
-                    deliveryPrice: deliveryFee,
-                    promoCodeId: promoDbId,
-                    userId: sessionUserId,
-                    locale,
-                    changeFrom,
-                    scheduledFor,
-                    items: {
-                        create: verifiedItems.map((item) => ({
-                            productId: item.productId,
-                            name: item.name,
-                            price: item.price,
-                            quantity: item.quantity,
-                            selectedModifiers: item.selectedModifiers,
-                        })),
-                    },
-                },
-                select: { id: true, accessToken: true },
-            });
-            createdOrderId = created.id;
-            createdAccessToken = created.accessToken;
-            payableForNotify = payableTotal;
-        });
-    } catch (error: unknown) {
-        const fallbackError = getFormValidationMessage("form.invalidPayload", locale);
-        const msg =
-            error instanceof Error ? error.message : fallbackError;
-        const httpStatus =
-            typeof error === "object" &&
-            error !== null &&
-            "httpStatus" in error &&
-            typeof (error as { httpStatus?: unknown }).httpStatus === "number"
-                ? (error as { httpStatus: number }).httpStatus
-                : 500;
-        const code =
-            typeof error === "object" &&
-            error !== null &&
-            "code" in error &&
-            typeof (error as { code?: unknown }).code === "string"
-                ? (error as { code: string }).code
-                : undefined;
-        if (httpStatus >= 400 && httpStatus < 500) {
-            if (
-                code &&
-                Object.values(API_ERROR_CODES).includes(code as ApiErrorCode)
-            ) {
-                return localizedApiErrorJsonResponse(
-                    code as ApiErrorCode,
-                    locale,
-                    httpStatus,
-                );
-            }
-            return NextResponse.json({ error: msg }, { status: httpStatus });
+        if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
+            void notifyKitchenTelegram({
+                orderId: result.createdOrderId,
+                name: payload.name,
+                phone: payload.phone,
+                address: payload.address ?? undefined,
+                comment: payload.comment ?? undefined,
+                payment: payload.payment,
+                changeFrom: payload.payment === "cash" && payload.changeFrom != null ? payload.changeFrom : null,
+                scheduledFor: payload.scheduledFor ? new Date(payload.scheduledFor) : null,
+                delivery: payload.delivery,
+                verifiedItems: result.verifiedItems,
+                deliveryFee: result.deliveryFee,
+                zoneNameSnapshot: result.zoneNameSnapshot,
+                promoCodeRaw: payload.promoCode ?? undefined,
+                payableForNotify: result.payableForNotify,
+                grandBeforePay: result.grandBeforePay,
+            }).catch(() => {});
         }
-        // Error logged in production monitoring
-        return localizedApiErrorJsonResponse(
-            API_ERROR_CODES.INTERNAL_SERVER_ERROR,
-            locale,
-            500,
+
+        const response = NextResponse.json(
+            {
+                ok: true,
+                order: { id: result.createdOrderId, accessToken: result.createdAccessToken },
+            },
+            { status: 201 },
         );
-    }
 
-    // ── Telegram-уведомление (не блокирует ответ 201) ────────────────────────
-    if (telegramNotifyEnabled) {
-        void notifyKitchenTelegram({
-            orderId: createdOrderId,
-            name,
-            phone,
-            address: address ?? undefined,
-            comment: comment ?? undefined,
-            payment,
-            changeFrom,
-            scheduledFor,
-            delivery,
-            verifiedItems,
-            deliveryFee,
-            zoneNameSnapshot,
-            promoCodeRaw: promoCodeRaw ?? undefined,
-            payableForNotify,
-            grandBeforePay,
-        }).catch(() => {
-            // Telegram notification failed; order still created
+        response.cookies.set({
+            name: orderAccessCookieName(result.createdOrderId),
+            value: result.createdAccessToken,
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: ORDER_ACCESS_COOKIE_MAX_AGE_SEC,
+            path: "/",
         });
+
+        return response;
+    } catch (error: unknown) {
+        if (error instanceof OrderServiceError) {
+            if (error.code === "INVALID_CART_PAYLOAD") {
+                if (error.invalidReason?.startsWith("promo.")) {
+                    const reason = getPromoRejectionMessage(
+                        error.invalidReason.replace("promo.", ""),
+                        locale,
+                        error.params
+                    );
+                    return NextResponse.json({ error: reason }, { status: error.httpStatus });
+                }
+                if (error.invalidReason?.startsWith("form.")) {
+                    return NextResponse.json({ error: getFormValidationMessage(error.invalidReason, locale, error.params) }, { status: error.httpStatus });
+                }
+                return NextResponse.json(
+                    {
+                        error: getInvalidCartPayloadMessage((error.invalidReason || "unknown") as Parameters<typeof getInvalidCartPayloadMessage>[0], locale),
+                        code: error.code,
+                    },
+                    { status: error.httpStatus },
+                );
+            }
+            if (error.code === "PROMO_UNAVAILABLE" || error.code === "TOTAL_MISMATCH") {
+                const fallbackError = getFormValidationMessage("form.invalidPayload", locale);
+                return NextResponse.json({ error: fallbackError }, { status: error.httpStatus });
+            }
+            return localizedApiErrorJsonResponse(
+                error.code as ApiErrorCode,
+                locale,
+                error.httpStatus,
+                error.params
+            );
+        }
+
+        const fallbackError = getFormValidationMessage("form.invalidPayload", locale);
+        const msg = error instanceof Error ? error.message : fallbackError;
+        return NextResponse.json({ error: msg }, { status: 500 });
     }
-
-    const response = NextResponse.json(
-        {
-            ok: true,
-            order: { id: createdOrderId, accessToken: createdAccessToken },
-        },
-        { status: 201 },
-    );
-
-    // HttpOnly cookie: гость видит трекер без ?key= в URL (см. order-access.ts).
-    response.cookies.set({
-        name: orderAccessCookieName(createdOrderId),
-        value: createdAccessToken,
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: ORDER_ACCESS_COOKIE_MAX_AGE_SEC,
-        path: "/",
-    });
-
-    return response;
 }

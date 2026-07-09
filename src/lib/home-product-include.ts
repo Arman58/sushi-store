@@ -4,12 +4,15 @@ import { getLocalizedField } from "@/lib/i18n-utils";
 
 /** Полный include — upsell, страница товара, API где нужны модификаторы сразу. */
 export const homeProductInclude = {
-    category: true,
+    category: { include: { translations: true } },
+    translations: true,
     modifierGroups: {
         orderBy: [{ position: "asc" as const }, { id: "asc" as const }],
         include: {
+            translations: true,
             modifiers: {
                 orderBy: [{ position: "asc" as const }, { id: "asc" as const }],
+                include: { translations: true },
             },
         },
     },
@@ -17,7 +20,8 @@ export const homeProductInclude = {
 
 /** Лёгкий include для списков (главная, by-ids): только флаг hasModifiers. */
 export const homeProductCardInclude = {
-    category: true,
+    category: { include: { translations: true } },
+    translations: true,
     modifierGroups: {
         select: { id: true },
         take: 1,
@@ -39,19 +43,19 @@ export function mapProductToPopular(
     return {
         id: p.id,
         slug: p.slug,
-        name: getLocalizedField(p.name, locale),
-        description: getLocalizedField(p.description, locale) || null,
+        name: getLocalizedField(p.translations, locale, "name"),
+        description: getLocalizedField(p.translations, locale, "description") || null,
         price: p.price,
         weight: p.weight,
         images: p.images,
         mainImage: p.mainImage,
         category: p.category
             ? {
-                  name: getLocalizedField(p.category.name, locale),
+                  name: getLocalizedField(p.category.translations, locale, "name"),
                   slug: p.category.slug,
               }
             : null,
-        composition: getLocalizedField(p.composition, locale) || undefined,
+        composition: getLocalizedField(p.translations, locale, "composition") || undefined,
         ratingAvg: p.ratingAvg,
         ratingCount: p.ratingCount,
         isAvailable: p.isAvailable,

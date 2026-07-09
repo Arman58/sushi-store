@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 
 import { routing } from "@/i18n/routing";
+import { menuCategoryPath } from "@/lib/menu-paths";
 import { prisma } from "@/lib/prisma";
 import { SITE_URL } from "@/lib/site-config";
 
@@ -69,7 +70,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const categoryPages: MetadataRoute.Sitemap = routing.locales.flatMap(
         (locale) =>
             categories.map((category) => ({
-                url: `${baseUrl}${localizedPath(locale, "/menu")}?category=${category.slug}`,
+                url: `${baseUrl}${localizedPath(locale, menuCategoryPath(category.slug))}`,
                 lastModified: now,
                 changeFrequency: "daily" as const,
                 priority: 0.8,

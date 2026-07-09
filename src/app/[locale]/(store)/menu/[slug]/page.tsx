@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { getPathname } from "@/i18n/server";
+import { menuCategoryPath } from "@/lib/menu-paths";
 import { getActiveProductBySlug } from "@/lib/product-by-slug";
 import { absoluteProductImageUrl } from "@/lib/seo/absolute-image-url";
 import { breadcrumbListJsonLd, JsonLd, productJsonLd } from "@/lib/seo/json-ld";
@@ -83,7 +84,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
     const categoryPath = product.category?.slug
         ? getPathname({
               locale,
-              href: `/menu?category=${product.category.slug}`,
+              href: menuCategoryPath(product.category.slug),
           })
         : null;
     const productPath = getPathname({
@@ -125,7 +126,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         category: product.category
             ? {
                   label: product.category.name,
-                  href: `/menu?category=${product.category.slug}`,
+                  href: menuCategoryPath(product.category.slug),
               }
             : undefined,
         current: product.name,

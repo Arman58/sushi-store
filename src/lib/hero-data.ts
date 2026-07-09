@@ -2,6 +2,7 @@ import type { PromoCode } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
+import { CACHE_TAGS } from "@/lib/cache-tags";
 import { getLocalizedField } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
 
@@ -37,10 +38,10 @@ const getFreeDeliveryZoneCached = unstable_cache(
                 requiresManagerApproval: false,
             },
             orderBy: { position: "asc" },
-            select: { name: true, deliveryPrice: true },
+            include: { translations: true },
         }),
     ["hero-free-delivery-zone"],
-    { revalidate: 300 },
+    { revalidate: 3600, tags: [CACHE_TAGS.deliveryZones] },
 );
 
 export const fetchHeroPageData = cache(async (locale: string): Promise<HeroPageData> => {
@@ -50,7 +51,7 @@ export const fetchHeroPageData = cache(async (locale: string): Promise<HeroPageD
         const localizedZone = freeDeliveryZone
             ? {
                   ...freeDeliveryZone,
-                  name: getLocalizedField(freeDeliveryZone.name, locale),
+                  name: getLocalizedField(freeDeliveryZone.translations, locale, "name"),
               }
             : null;
 
@@ -66,3 +67,53 @@ export const fetchHeroPageData = cache(async (locale: string): Promise<HeroPageD
         };
     }
 });
+
+export async function getBanners() {
+    return prisma.banner.findMany({
+        where: {
+            isActive: true,
+            OR: [
+                { startsAt: null, endsAt: null },
+                {
+                    startsAt: { lte: new Date() },
+                    endsAt: { gte: new Date() },
+                },
+            ],
+        },
+        orderBy: [{ position: "asc" }, { id: "asc" }],
+        include: { translations: true },
+    });
+}
+
+export async function getDeliveryZones() {
+    return prisma.deliveryZone.findMany({
+        where: { isActive: true },
+        orderBy: [{ position: "asc" }, { id: "asc" }],
+        include: { translations: true },
+    });
+}
+
+export async function getHeroData(locale = "hy") {
+    const [banners, zones] = await Promise.all([
+        getBanners(),
+        getDeliveryZones(),
+    ]);
+
+    return {
+        banners: banners.map((b) => ({
+            id: b.id,
+            image: b.image,
+            title: getLocalizedField(b.translations, locale, "title"),
+            ctaText: getLocalizedField(b.translations, locale, "ctaText"),
+            href: b.href,
+        })),
+        deliveryZones: zones.map((z) => ({
+            id: z.id,
+            name: getLocalizedField(z.translations, locale, "name"),
+            description: getLocalizedField(z.translations, locale, "description") || null,
+            deliveryPrice: z.deliveryPrice,
+            minOrderAmount: z.minOrderAmount,
+            requiresManagerApproval: z.requiresManagerApproval,
+        })),
+    };
+}

@@ -1,14 +1,16 @@
 import "./globals.css";
 
-import { AppRouterCacheProvider } from "@mui/material-nextjs/v13-appRouter";
+import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
 import { SerwistProvider } from "@serwist/next/react";
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { getLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 
 import { routing } from "@/i18n/routing";
 import { resolveAdminLocale } from "@/lib/admin-locale";
+import { CSP_NONCE_HEADER } from "@/lib/csp";
 import {
     foodDeliveryServiceJsonLd,
     JsonLd,
@@ -20,9 +22,6 @@ import {
     SITE_NAME,
     SITE_URL,
 } from "@/lib/site-config";
-import {
-    THEME_INIT_SCRIPT,
-} from "@/lib/theme-preference";
 import { resolveThemeMode } from "@/lib/theme-preference.server";
 
 import { interFont } from "./fonts";
@@ -138,6 +137,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     }
 
     const themeMode = await resolveThemeMode();
+    const headerStore = await headers();
+    const nonce = headerStore.get(CSP_NONCE_HEADER) ?? undefined;
 
     return (
         <html
@@ -151,10 +152,13 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 {/* Ранние соединения к CDN изображений - быстрее LCP */}
                 <link rel="preconnect" href="https://res.cloudinary.com" />
                 <link rel="preconnect" href="https://images.unsplash.com" />
-                {/* Тема до первой отрисовки - без вспышки светлого фона */}
-                <script
-                    dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }}
-                />
+                {nonce ? (
+                    <meta
+                        name="csp-nonce"
+                        content={nonce}
+                        suppressHydrationWarning
+                    />
+                ) : null}
             </head>
             <body
                 suppressHydrationWarning
@@ -163,7 +167,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 <JsonLd
                     data={[restaurantJsonLd(), foodDeliveryServiceJsonLd()]}
                 />
-                <AppRouterCacheProvider options={{ enableCssLayer: true }}>
+                <AppRouterCacheProvider
+                    options={{ enableCssLayer: true, nonce }}
+                >
                     <SerwistProvider
                         // Dev-тест пушей: лёгкий sw-dev.js без precache
                         // (прод-sw.js падает в dev на precache /_next/static)
@@ -179,7 +185,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                             process.env.NEXT_PUBLIC_ENABLE_SW_DEV !== "1"
                         }
                     >
-                        <AppProviders initialTheme={themeMode}>{children}</AppProviders>
+                        <AppProviders initialTheme={themeMode} nonce={nonce}>
+                            {children}
+                        </AppProviders>
                     </SerwistProvider>
                 </AppRouterCacheProvider>
                 <Analytics />

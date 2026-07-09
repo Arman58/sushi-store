@@ -97,20 +97,23 @@ export function CheckoutOrderLine({ item, lineIssue }: CheckoutOrderLineProps) {
                 <Box
                     sx={{
                         flexShrink: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
                         textAlign: "right",
                         whiteSpace: "nowrap",
                     }}
                 >
                     <Typography
                         variant="body2"
+                        fontWeight={600}
                         color={lineInvalid ? "error.main" : "text.secondary"}
                         sx={{
                             fontVariantNumeric: "tabular-nums",
                             whiteSpace: "nowrap",
-                            lineHeight: 1.2,
                         }}
                     >
-                        × {item.quantity}
+                        {item.quantity} шт.
                     </Typography>
                     <Typography
                         variant="body2"
@@ -119,8 +122,8 @@ export function CheckoutOrderLine({ item, lineIssue }: CheckoutOrderLineProps) {
                         sx={{
                             fontVariantNumeric: "tabular-nums",
                             whiteSpace: "nowrap",
-                            lineHeight: 1.2,
                             textDecoration: lineInvalid ? "line-through" : undefined,
+                            minWidth: "70px",
                         }}
                     >
                         {fmt.format(lineTotal)} ֏

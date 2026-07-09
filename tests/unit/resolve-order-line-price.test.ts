@@ -16,21 +16,21 @@ function makeProduct(
         modifierGroups: [
             {
                 id: 10,
-                name: "Соус",
+                translations: "Соус",
                 required: true,
                 maxChoices: 2,
                 modifiers: [
-                    { id: 101, name: "Соевый", priceDelta: 0 },
-                    { id: 102, name: "Спайси", priceDelta: 200 },
-                    { id: 103, name: "Унаги", priceDelta: 300 },
+                    { id: 101, translations: "Соевый", priceDelta: 0 },
+                    { id: 102, translations: "Спайси", priceDelta: 200 },
+                    { id: 103, translations: "Унаги", priceDelta: 300 },
                 ],
             },
             {
                 id: 20,
-                name: "Допы",
+                translations: "Допы",
                 required: false,
                 maxChoices: 0,
-                modifiers: [{ id: 201, name: "Имбирь", priceDelta: 100 }],
+                modifiers: [{ id: 201, translations: "Имбирь", priceDelta: 100 }],
             },
         ],
         ...overrides,

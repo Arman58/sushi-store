@@ -142,18 +142,21 @@ export function BannerCarousel({ items }: { items: BannerCarouselItem[] }) {
                                 bgcolor: tokens.surfaceHi,
                             }}
                         >
-                            <Image
-                                loader={cloudinaryImageLoader}
-                                src={banner.image}
-                                alt={banner.title || "promo"}
-                                fill
-                                sizes="(max-width: 600px) 86vw, (max-width: 900px) 480px, 1152px"
-                                style={{ objectFit: "cover" }}
-                                // Без priority: на home LCP — hero; preload баннера даёт unused-preload warning
-                                loading={
-                                    banner.id === items[0]?.id ? "eager" : "lazy"
-                                }
-                            />
+                            <div style={{ position: "absolute", inset: 0 }}>
+                                <Image
+                                    loader={cloudinaryImageLoader}
+                                    src={banner.image}
+                                    alt={banner.title || "promo"}
+                                    fill
+                                    sizes="(max-width: 600px) 86vw, (max-width: 900px) 480px, 1152px"
+                                    style={{ objectFit: "cover" }}
+                                    priority={banner.id === items[0]?.id}
+                                    fetchPriority={banner.id === items[0]?.id ? "high" : "auto"}
+                                    loading={
+                                        banner.id === items[0]?.id ? "eager" : "lazy"
+                                    }
+                                />
+                            </div>
                             {banner.title ? (
                                 <Box
                                     sx={{

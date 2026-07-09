@@ -19,7 +19,6 @@ import { HomeNewArrivalsSection } from "@/widgets/home/home-new-arrivals-section
 import { FeaturesBlock } from "@/widgets/home/lazy-home-widgets";
 import { PromoBannersSection } from "@/widgets/home/promo-banners-section";
 import { CategoryPillsSkeleton } from "@/widgets/home/skeletons/category-pills-skeleton";
-import { HeroSectionSkeleton } from "@/widgets/home/skeletons/hero-section-skeleton";
 import { PopularSectionSkeleton } from "@/widgets/home/skeletons/popular-section-skeleton";
 import { SeoText } from "@/widgets/seo-text";
 
@@ -51,12 +50,13 @@ export default function HomePage() {
                 disableGutters
                 sx={{ ...sectionContainerSx, px: { xs: 0, sm: 3, md: 6 } }}
             >
-                <Suspense fallback={<HeroSectionSkeleton />}>
-                    <HomeHeroSection />
-                </Suspense>
+                {/* No Suspense: LCP img must be in the initial HTML, not behind a skeleton. */}
+                <HomeHeroSection />
             </Container>
 
             <Suspense fallback={null}>
+                {/* No tall skeleton: empty banners would collapse 200px+ (CLS).
+                    When banners exist they appear below hero with reserved aspect-ratio. */}
                 <PromoBannersSection />
             </Suspense>
 

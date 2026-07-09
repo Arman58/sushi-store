@@ -9,50 +9,40 @@ generator client {
 
 
 model Category {
-  id        Int       @id @default(autoincrement())
-  name      Json      @db.JsonB
-  slug      String    @unique
-  /** Порядок на витрине (меньше - выше). */
-  position  Int       @default(0)
-  isActive  Boolean   @default(true)
-  /** Фото категории на витрине (Cloudinary URL). null - берётся обложка первого товара. */
-  image     String?
-  products  Product[]
-  createdAt DateTime  @default(now())
+  id           Int                   @id @default(autoincrement())
+  slug         String                @unique
+  position     Int                   @default(0)
+  isActive     Boolean               @default(true)
+  image        String?
+  products     Product[]
+  createdAt    DateTime              @default(now())
+  translations CategoryTranslation[]
 }
 
 model Product {
   id             Int             @id @default(autoincrement())
-  name           Json            @db.JsonB
   slug           String          @unique
-  description    Json?           @db.JsonB
-  composition    Json?           @db.JsonB
+  /// Цена в целых AMD (драмах), без минорных единиц. Пример: 3500 = 3500 ֏.
   price          Int
   weight         Int?
   images         Json            @default("[]")
-  /** Обложка на витрине; должна совпадать с одним из URL в `images`, иначе игнорируется при сохранении. */
   mainImage      String?
-  /** На витрине: если false - гость не видит товар в меню/на главной; при заказе из сохранённой корзины - понятная ошибка. */
   isActive       Boolean         @default(true)
-  /** Стоп-лист: false - «закончилось сегодня», товар виден, но заказ заблокирован. */
   isAvailable    Boolean         @default(true)
-  /** Минимальное количество в заказе (первое добавление кладёт столько). */
   minQty         Int             @default(1)
-  /** Максимум на заказ; null - без лимита. */
   maxQty         Int?
-  /** Кросс-селл: что предложить к этому товару (задаётся в админке). */
   upsells        ProductUpsell[] @relation("UpsellSource")
-  /** Обратная связь: в каких товарах этот предлагается. */
   upsellOf       ProductUpsell[] @relation("UpsellSuggested")
   category       Category?       @relation(fields: [categoryId], references: [id])
   categoryId     Int?
   createdAt      DateTime        @default(now())
   modifierGroups ModifierGroup[]
 
-  /** Денормализованные агрегаты отзывов; пересчитываются в транзакции при изменении отзывов. */
-  ratingAvg   Float    @default(0)
-  ratingCount Int      @default(0)
-  reviews     Review[]
+  ratingAvg      Float           @default(0)
+  ratingCount    Int             @default(0)
+  reviews        Review[]
+  translations   ProductTranslation[]
+  cartLines      CartLine[]
 }
 
 /** Отзыв покупателя. Один отзыв на товар от пользователя (upsert-семантика в API). */
@@ -95,21 +85,15 @@ model ReviewVote {
 
 /** Промо-баннер на главной (карусель под hero). Управляется из админки. */
 model Banner {
-  id        Int       @id @default(autoincrement())
-  /** Cloudinary URL (рекомендация: 1200x480). */
-  image     String
-  /** Подпись для доступности и заголовка поверх фото; локализованная. */
-  title     Json      @default("{}") @db.JsonB
-  /** Текст CTA-кнопки; пусто - дефолтный «Смотреть». Локализованный. */
-  ctaText   Json      @default("{}") @db.JsonB
-  /** Куда ведёт клик: внутренний путь (/menu?category=...) или https-ссылка. null - некликабельный. */
-  href      String?
-  position  Int       @default(0)
-  isActive  Boolean   @default(true)
-  /** Показ с/по; null - без ограничения. */
-  startsAt  DateTime?
-  endsAt    DateTime?
-  createdAt DateTime  @default(now())
+  id           Int                 @id @default(autoincrement())
+  image        String
+  href         String?
+  position     Int                 @default(0)
+  isActive     Boolean             @default(true)
+  startsAt     DateTime?
+  endsAt       DateTime?
+  createdAt    DateTime            @default(now())
+  translations BannerTranslation[]
 }
 
 /** Кросс-селл «с этим берут»: к товару productId предлагается suggested. */
@@ -128,28 +112,25 @@ model ProductUpsell {
 
 /** Группа опций к товару (размер, добавки). maxChoices: 0 = без верхней границы. */
 model ModifierGroup {
-  id         Int        @id @default(autoincrement())
-  name       Json       @db.JsonB
-  productId  Int
-  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
-  required   Boolean    @default(false)
-  maxChoices Int        @default(1)
-  /** Порядок вывода группы в UI (по возрастанию). */
-  position   Int        @default(0)
-  modifiers  Modifier[]
+  id           Int                        @id @default(autoincrement())
+  productId    Int
+  product      Product                    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  required     Boolean                    @default(false)
+  maxChoices   Int                        @default(1)
+  position     Int                        @default(0)
+  modifiers    Modifier[]
+  translations ModifierGroupTranslation[]
 
   @@index([productId])
 }
 
 model Modifier {
-  id              Int           @id @default(autoincrement())
-  name            Json          @db.JsonB
-  /** Дельта к цене товара. Может быть 0 или отрицательной (скидка за «без сыра» и т.п.). */
-  priceDelta      Int           @default(0)
+  id              Int                   @id @default(autoincrement())
+  priceDelta      Int                   @default(0)
   modifierGroupId Int
-  modifierGroup   ModifierGroup @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
-  /** Порядок вывода опции внутри группы (по возрастанию). */
-  position        Int           @default(0)
+  modifierGroup   ModifierGroup         @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+  position        Int                   @default(0)
+  translations    ModifierTranslation[]
 
   @@index([modifierGroupId])
 }
@@ -188,23 +169,21 @@ model PromoCode {
   timesUsed       Int           @default(0)
   expiresAt       DateTime?
   isActive        Boolean       @default(true)
+  conditions      Json?         /// Условия применения промокода (JSON-массив правил)
+  actions         Json?         /// Действия промокода (бесплатная доставка, скидка на категорию и т.д.)
   orders          Order[]
 }
 
 
 model DeliveryZone {
-  id             Int      @id @default(autoincrement())
-  /** Порядок в админке и на витрине (меньше - выше) */
-  position       Int      @default(0)
-  name           Json     @db.JsonB
-  deliveryPrice  Int
-  minOrderAmount Int
-  /** Пояснение на чекауте (напр. плавающая цена доставки) */
-  description    Json?    @default("{}") @db.JsonB
-  /** true - оформление как заявка, менеджер перезванивает для уточнения */
-  requiresManagerApproval Boolean @default(false)
-  isActive       Boolean  @default(true)
-  orders         Order[]
+  id                      Int                       @id @default(autoincrement())
+  position                Int                       @default(0)
+  deliveryPrice           Int
+  minOrderAmount          Int
+  requiresManagerApproval Boolean                   @default(false)
+  isActive                Boolean                   @default(true)
+  orders                  Order[]
+  translations            DeliveryZoneTranslation[]
 }
 
 model Order {
@@ -256,6 +235,7 @@ model Order {
   @@index([status, createdAt])
   /** Админ-список и аналитика: сортировка/фильтр по дате. */
   @@index([createdAt])
+  @@index([phone])
 }
 
 /**
@@ -277,6 +257,45 @@ model User {
   savedAddresses SavedAddress[]
   reviews       Review[]
   reviewVotes   ReviewVote[]
+  cart          Cart?
+}
+
+model Cart {
+  id               Int        @id @default(autoincrement())
+  userId           Int        @unique
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appliedPromoCode String?
+  lines            CartLine[]
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+}
+
+/**
+ * Нормализованная позиция серверной корзины (H-3).
+ * selectedModifiers остаётся JSON snapshot — состав модификаторов меняется редко
+ * и не нужен для аналитики «сколько productId в корзинах».
+ */
+model CartLine {
+  id                  Int      @id @default(autoincrement())
+  cartId              Int
+  cart                Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  /** Клиентский ключ строки: productId + набор модификаторов */
+  cartItemId          String
+  productId           Int
+  product             Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name                String
+  basePrice           Int
+  quantity            Int
+  selectedModifiers   Json     @default("[]")
+  calculatedItemPrice Int
+  image               String?
+  position            Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([cartId, cartItemId])
+  @@index([productId])
+  @@index([cartId])
 }
 
 model SavedAddress {
@@ -316,4 +335,68 @@ model OrderItem {
   quantity  Int
   /** Снимок выбранных модификаторов на момент заказа: [{ id, name, priceDelta }] */
   selectedModifiers Json @default("[]")
+}
+
+model CategoryTranslation {
+  id         Int      @id @default(autoincrement())
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  locale     String   @db.VarChar(2) // hy, ru, en
+  name       String
+
+  @@unique([categoryId, locale])
+}
+
+model ProductTranslation {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  locale      String   @db.VarChar(2)
+  name        String
+  description String?
+  composition String?
+
+  @@unique([productId, locale])
+}
+
+model BannerTranslation {
+  id       Int    @id @default(autoincrement())
+  bannerId Int
+  banner   Banner @relation(fields: [bannerId], references: [id], onDelete: Cascade)
+  locale   String @db.VarChar(2)
+  title    String
+  ctaText  String?
+
+  @@unique([bannerId, locale])
+}
+
+model ModifierGroupTranslation {
+  id              Int           @id @default(autoincrement())
+  modifierGroupId Int
+  modifierGroup   ModifierGroup @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+  locale          String        @db.VarChar(2)
+  name            String
+
+  @@unique([modifierGroupId, locale])
+}
+
+model ModifierTranslation {
+  id         Int      @id @default(autoincrement())
+  modifierId Int
+  modifier   Modifier @relation(fields: [modifierId], references: [id], onDelete: Cascade)
+  locale     String   @db.VarChar(2)
+  name       String
+
+  @@unique([modifierId, locale])
+}
+
+model DeliveryZoneTranslation {
+  id             Int          @id @default(autoincrement())
+  deliveryZoneId Int
+  deliveryZone   DeliveryZone @relation(fields: [deliveryZoneId], references: [id], onDelete: Cascade)
+  locale         String       @db.VarChar(2)
+  name           String
+  description    String?
+
+  @@unique([deliveryZoneId, locale])
 }

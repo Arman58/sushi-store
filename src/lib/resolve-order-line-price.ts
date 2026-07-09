@@ -13,10 +13,10 @@ export type ProductForOrderPricing = {
     price: number;
     modifierGroups: Array<{
         id: number;
-        name: unknown;
+        translations: unknown;
         required: boolean;
         maxChoices: number;
-        modifiers: Array<{ id: number; name: unknown; priceDelta: number }>;
+        modifiers: Array<{ id: number; translations: unknown; priceDelta: number }>;
     }>;
 };
 
@@ -64,14 +64,14 @@ export function resolveOrderLinePrice(
 
     const idToModifier = new Map<
         number,
-        { groupId: number; name: unknown; priceDelta: number }
+        { groupId: number; translations: unknown; priceDelta: number }
     >();
 
     for (const g of product.modifierGroups) {
         for (const m of g.modifiers) {
             idToModifier.set(m.id, {
                 groupId: g.id,
-                name: m.name,
+                translations: m.translations,
                 priceDelta: m.priceDelta,
             });
         }
@@ -100,7 +100,7 @@ export function resolveOrderLinePrice(
     for (const g of product.modifierGroups) {
         const groupModIdSet = new Set(g.modifiers.map((m) => m.id));
         const picked = selectedModifierIds.filter((id) => groupModIdSet.has(id));
-        const groupLabel = getLocalizedField(g.name, locale);
+        const groupLabel = getLocalizedField(g.translations, locale, "name");
 
         if (g.required && picked.length === 0) {
             return {
@@ -129,7 +129,7 @@ export function resolveOrderLinePrice(
             if (seen.has(m.id)) {
                 snapshot.push({
                     id: m.id,
-                    name: getLocalizedField(m.name, locale),
+                    name: getLocalizedField(m.translations, locale, "name"),
                     priceDelta: m.priceDelta,
                 });
                 delta += m.priceDelta;
