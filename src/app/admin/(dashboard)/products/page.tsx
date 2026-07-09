@@ -185,7 +185,20 @@ export default function AdminProductsPage() {
         setEditingProduct({} as Record<string, never>);
     };
 
-    const handleEditClick = useCallback((product: ProductRow) => {
+    const handleEditClick = useCallback(async (product: ProductRow) => {
+        try {
+            const res = await fetch(`/api/admin/products/${product.id}`, {
+                credentials: "same-origin",
+            });
+            if (res.ok) {
+                const detail = (await res.json()) as ProductRow;
+                setFormSession((n) => n + 1);
+                setEditingProduct({ ...product, ...detail });
+                return;
+            }
+        } catch {
+            // Fall through to list-row edit without modifiers.
+        }
         setFormSession((n) => n + 1);
         setEditingProduct(product);
     }, []);

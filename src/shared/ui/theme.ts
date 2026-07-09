@@ -122,17 +122,17 @@ const darkPalette = {
     ...sharedPalette,
     mode: "dark" as const,
     background: {
-        default: "#0F1214",
-        paper: "#16191C",
+        default: "#0B100E",
+        paper: "#111815",
     },
     text: {
-        primary: "#F2F4F5",
-        secondary: "#C3C9CD",
-        disabled: "#8A9299",
+        primary: "#F0F4F2",
+        secondary: "#B8C2BD",
+        disabled: "#828D87",
     },
-    divider: "#2A2F34",
+    divider: "#212F28",
     action: {
-        hover: "rgba(242, 244, 245, 0.045)",
+        hover: "rgba(240, 244, 242, 0.05)",
         selected: tokens.brandDim,
         focus: alpha(primaryMain, 0.12),
     },
@@ -238,16 +238,16 @@ const theme = createTheme({
                     colorScheme: "light",
                 },
                 '[data-theme="dark"]': {
-                    "--ew-bg": "#0F1214",
-                    "--ew-surface": "#16191C",
-                    "--ew-surface-hi": "#22272B",
-                    "--ew-border": "#2A2F34",
-                    "--ew-border-hi": "#3A4046",
-                    "--ew-text": "#F2F4F5",
-                    "--ew-text-2": "#C3C9CD",
-                    "--ew-text-3": "#8A9299",
-                    "--ew-text-rgb": "242, 244, 245",
-                    "--ew-surface-rgb": "22, 25, 28",
+                    "--ew-bg": "#0B100E",
+                    "--ew-surface": "#111815",
+                    "--ew-surface-hi": "#19241F",
+                    "--ew-border": "#212F28",
+                    "--ew-border-hi": "#2C3E36",
+                    "--ew-text": "#F0F4F2",
+                    "--ew-text-2": "#B8C2BD",
+                    "--ew-text-3": "#828D87",
+                    "--ew-text-rgb": "240, 244, 242",
+                    "--ew-surface-rgb": "17, 24, 21",
                     colorScheme: "dark",
                 },
                 "*, *::before, *::after": { boxSizing: "border-box" },
@@ -296,9 +296,6 @@ const theme = createTheme({
                     paddingInline: 22,
                     paddingBlock: 12,
                     fontSize: "0.875rem",
-                    transition:
-                        "transform 0.18s ease, box-shadow 0.2s ease, background-color 0.18s ease, color 0.18s ease",
-                    "&:active": { transform: "scale(0.975)" },
                 },
                 contained: {
                     "&:focus-visible": focusVisibleRing["&:focus-visible"],
@@ -307,10 +304,8 @@ const theme = createTheme({
                     boxShadow: `0 4px 16px ${alpha(primaryMain, 0.32)}`,
                     "&:hover": {
                         boxShadow: `0 6px 22px ${alpha(primaryMain, 0.42)}`,
-                        transform: "translateY(-1px)",
                         background: tokens.brandHi,
                     },
-                    "&:active": { transform: "scale(0.975)" },
                     "&.Mui-disabled": {
                         boxShadow: "none",
                         opacity: 0.72,
@@ -411,11 +406,6 @@ const theme = createTheme({
                     borderRadius: tokens.radiusCardLg,
                     boxShadow: cardElevationShadow,
                     overflow: "hidden",
-                    transition:
-                        "box-shadow 0.22s ease, border-color 0.22s ease",
-                    "&:hover": {
-                        boxShadow: "0 2px 8px rgba(var(--ew-text-rgb), 0.08)",
-                    },
                 },
             },
         },
@@ -612,9 +602,9 @@ const theme = createTheme({
             styleOverrides: {
                 root: {
                     backgroundImage: "none",
-                    backgroundColor: "rgba(var(--ew-surface-rgb), 0.92)",
-                    backdropFilter: "saturate(160%) blur(12px)",
-                    WebkitBackdropFilter: "saturate(160%) blur(12px)",
+                    backgroundColor: "rgba(var(--ew-surface-rgb), 0.75)",
+                    backdropFilter: "saturate(180%) blur(20px)",
+                    WebkitBackdropFilter: "saturate(180%) blur(20px)",
                     borderBottom: `1px solid ${tokens.border}`,
                     boxShadow: "none",
                     color: tokens.textPrimary,
@@ -697,7 +687,7 @@ const theme = createTheme({
                 root: {
                     backgroundColor: tokens.surfaceHi,
                     "&::after": {
-                        background: `linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent)`,
+                        background: `linear-gradient(90deg, transparent, rgba(var(--ew-text-rgb), 0.08), transparent)`,
                     },
                 },
             },

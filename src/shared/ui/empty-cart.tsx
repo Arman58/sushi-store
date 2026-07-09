@@ -54,10 +54,10 @@ export function EmptyCart({
         >
             <Box
                 component={motion.div}
-                animate={{ y: [0, -8, 0] }}
+                animate={{ y: [0, -12, 0], boxShadow: [`0 10px 32px rgba(var(--ew-text-rgb), 0.07)`, `0 20px 40px rgba(var(--ew-text-rgb), 0.12)`, `0 10px 32px rgba(var(--ew-text-rgb), 0.07)`] }}
                 transition={{
-                    duration: 2,
-                    repeat: 2,
+                    duration: 3,
+                    repeat: Infinity,
                     ease: "easeInOut",
                 }}
                 sx={{

@@ -1,10 +1,11 @@
 import { unstable_cache } from "next/cache";
 
+import { CACHE_TAGS } from "@/lib/cache-tags";
 import { type StorefrontCategory,toStorefrontCategory } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 
-/** Категории кэшируются на 60 сек (данные редко меняются). */
+/** Категории кэшируются; инвалидация через revalidateTag(CACHE_TAGS.categories). */
 export const fetchStorefrontCategories = unstable_cache(
     async (locale: string): Promise<StorefrontCategory[]> => {
     try {
@@ -15,6 +16,7 @@ export const fetchStorefrontCategories = unstable_cache(
             },
             orderBy: { position: "asc" },
             include: {
+                translations: true,
                 products: {
                     where: { isActive: true },
                     orderBy: { id: "asc" },
@@ -37,5 +39,5 @@ export const fetchStorefrontCategories = unstable_cache(
     }
     },
     ["storefront-categories"],
-    { revalidate: 60 },
+    { revalidate: 3600, tags: [CACHE_TAGS.categories] },
 );

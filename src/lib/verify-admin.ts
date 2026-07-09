@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { isAdminSessionConfigured, verifyAdminSessionToken } from "@/lib/admin-session";
+import {
+    checkRateLimit,
+    rateLimitExceededJsonResponse,
+} from "@/lib/rate-limit";
+import { timingSafeStringEqual } from "@/lib/timing-safe-equal";
 
 function readCookie(cookieHeader: string | null, name: string): string | null {
     if (!cookieHeader) return null;
@@ -30,7 +35,7 @@ function decodeBasicCredentials(
 
 /**
  * Cookie `admin_auth`: подписанный JWT.
- * Опционально Basic (для API/скриптов): при верных учётных данных доступ разрешён без проверки JWT в заголовке.
+ * Basic Auth разрешён только вне production (локальные скрипты/API).
  */
 export async function isAdminRequestAuthorized(request: Request): Promise<boolean> {
     const adminUser = process.env.ADMIN_USER;
@@ -42,11 +47,20 @@ export async function isAdminRequestAuthorized(request: Request): Promise<boolea
         return true;
     }
 
+    // Production: JWT cookie only — never accept Basic (credentials in every request).
+    if (process.env.NODE_ENV === "production") {
+        return false;
+    }
+
     const authHeader = request.headers.get("authorization");
     if (authHeader?.startsWith("Basic ")) {
         const token = authHeader.slice("Basic ".length).trim();
         const creds = decodeBasicCredentials(token);
-        if (creds && creds.user === adminUser && creds.pass === adminPass) {
+        if (
+            creds &&
+            timingSafeStringEqual(creds.user, adminUser) &&
+            timingSafeStringEqual(creds.pass, adminPass)
+        ) {
             return true;
         }
     }
@@ -63,6 +77,11 @@ export type VerifyAdminResult =
  * При отказе возвращайте `result.response` (401 JSON).
  */
 export async function verifyAdmin(request: Request): Promise<VerifyAdminResult> {
+    const rateLimit = await checkRateLimit(request, "adminApi");
+    if (!rateLimit.allowed) {
+        return { ok: false, response: rateLimitExceededJsonResponse() };
+    }
+
     if (!(await isAdminRequestAuthorized(request))) {
         return {
             ok: false,

@@ -4,6 +4,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
     createContext,
     type ReactNode,
+    startTransition,
     useContext,
     useEffect,
     useMemo,
@@ -71,16 +72,22 @@ export function CartValidationProvider({ children }: { children: ReactNode }) {
     const markPriceMismatch = useCartStore((s) => s.markPriceMismatch);
     const hasPriceMismatch = useCartStore((s) => s.hasPriceMismatch);
 
-    const payloadKey = useMemo(() => buildPayloadKey(items), [items]);
-    const [debouncedKey, setDebouncedKey] = useState(payloadKey);
+    // Defer JSON.stringify off the click stack — only after debounce.
+    const [debouncedKey, setDebouncedKey] = useState("[]");
 
     useEffect(() => {
-        if (payloadKey === debouncedKey) return;
+        if (items.length === 0) {
+            startTransition(() => setDebouncedKey("[]"));
+            return;
+        }
+
         const timer = window.setTimeout(() => {
-            setDebouncedKey(payloadKey);
+            startTransition(() => {
+                setDebouncedKey(buildPayloadKey(items));
+            });
         }, VALIDATION_DEBOUNCE_MS);
         return () => window.clearTimeout(timer);
-    }, [payloadKey, debouncedKey]);
+    }, [items]);
 
     const query = useQuery<ValidateResponse, Error>({
         queryKey: ["validate-cart", debouncedKey],

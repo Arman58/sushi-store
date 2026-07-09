@@ -23,6 +23,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
 import { useRouter } from "@/i18n/server";
+import { menuCategoryPath } from "@/lib/menu-paths";
 import { tokens } from "@/shared/ui/theme";
 
 type SearchProduct = {
@@ -255,7 +256,7 @@ export function SearchOverlay({
                                 key={`c-${c.id}`}
                                 image={c.image}
                                 title={c.name}
-                                onClick={() => go(`/menu?category=${c.slug}`)}
+                                onClick={() => go(menuCategoryPath(c.slug))}
                                 rounded
                             />
                         ))}
@@ -408,13 +409,15 @@ function ResultRow({
                 }}
             >
                 {image ? (
-                    <Image
-                        src={image}
-                        alt=""
-                        fill
-                        sizes="48px"
-                        style={{ objectFit: "cover" }}
-                    />
+                    <div style={{ position: "absolute", inset: 0 }}>
+                        <Image
+                            src={image}
+                            alt=""
+                            fill
+                            sizes="48px"
+                            style={{ objectFit: "cover" }}
+                        />
+                    </div>
                 ) : (
                     <SearchRoundedIcon
                         sx={{

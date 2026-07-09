@@ -50,8 +50,8 @@ export const KITCHEN_ADDRESS = {
 export const OPENING_HOURS = {
     /** schema.org OpeningHoursSpecification / openingHours text */
     schema: "Mo-Su 12:00-00:00",
-    opens: "12:00",
-    closes: "00:00",
+    opens: process.env.NEXT_PUBLIC_STORE_OPENS ?? "12:00",
+    closes: process.env.NEXT_PUBLIC_STORE_CLOSES ?? "00:00",
     days: [
         "Monday",
         "Tuesday",
@@ -95,7 +95,10 @@ export function isStoreOpen(now = new Date()): boolean {
  * Обещание времени доставки - единый источник для всех текстов UI.
  * Реальный ETA конкретного заказа задаёт кухня после оформления.
  */
-export const DELIVERY_ETA = { minMinutes: 45, maxMinutes: 60 } as const;
+export const DELIVERY_ETA = { 
+    minMinutes: Number(process.env.NEXT_PUBLIC_DELIVERY_ETA_MIN) || 45, 
+    maxMinutes: Number(process.env.NEXT_PUBLIC_DELIVERY_ETA_MAX) || 60 
+} as const;
 
 /**
  * «Привезём к HH:MM»: сейчас + максимум обещания, округление вверх до 5 минут.
@@ -154,3 +157,12 @@ export const DEFAULT_OG_IMAGE = "/og-image.png";
 
 /** Локальный логотип в public/ - регистр пути должен совпадать с файлом (Linux/Vercel). */
 export const SITE_LOGO_PATH = "/east-west-logo.png";
+
+/**
+ * Hero background image (M-3).
+ * Override via NEXT_PUBLIC_HERO_IMAGE_URL without redeploying code.
+ * Prefer Cloudinary URLs in production.
+ */
+export const HERO_IMAGE_URL =
+    process.env.NEXT_PUBLIC_HERO_IMAGE_URL?.trim() ||
+    "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=800&q=80";

@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 export type RateLimitBucket =
     | "order"
     | "adminLogin"
+    | "adminApi"
     | "register"
     | "verifyOtp"
     | "resendOtp"
@@ -25,6 +26,7 @@ type BucketConfig = {
 export const RATE_LIMIT_BUCKETS: Record<RateLimitBucket, BucketConfig> = {
     order: { requests: 5, window: "60 s", prefix: "rl:order" },
     adminLogin: { requests: 5, window: "15 m", prefix: "rl:admin-login" },
+    adminApi: { requests: 100, window: "60 s", prefix: "rl:admin-api" },
     register: { requests: 5, window: "15 m", prefix: "rl:register" },
     verifyOtp: { requests: 10, window: "15 m", prefix: "rl:verify-otp" },
     resendOtp: { requests: 5, window: "15 m", prefix: "rl:resend-otp" },
@@ -60,6 +62,7 @@ function createLimiter(bucket: RateLimitBucket): Ratelimit | null {
 const limiters: Record<RateLimitBucket, Ratelimit | null> = {
     order: createLimiter("order"),
     adminLogin: createLimiter("adminLogin"),
+    adminApi: createLimiter("adminApi"),
     register: createLimiter("register"),
     verifyOtp: createLimiter("verifyOtp"),
     resendOtp: createLimiter("resendOtp"),
@@ -94,7 +97,7 @@ export type RateLimitOutcome =
 
 /**
  * Проверяет и учитывает попытку (sliding window).
- * Production без Upstash → fail-closed (unavailable).
+ * Production без Upstash → fail-open (чтобы не терять заказы).
  * Development без Upstash → fail-open.
  */
 export async function checkRateLimit(
@@ -106,9 +109,8 @@ export async function checkRateLimit(
     if (!limiter) {
         if (isProduction) {
             console.error(
-                `[rate-limit] Upstash Redis is not configured; failing closed (bucket=${bucket})`,
+                `[rate-limit] Upstash Redis is not configured; failing open in production to prevent revenue loss (bucket=${bucket})`,
             );
-            return { allowed: false, reason: "unavailable" };
         }
         return { allowed: true };
     }
@@ -123,10 +125,10 @@ export async function checkRateLimit(
     } catch (error) {
         if (isProduction) {
             console.error(
-                `[rate-limit] Upstash request failed; failing closed (bucket=${bucket})`,
+                `[rate-limit] Upstash request failed; failing open in production to prevent revenue loss (bucket=${bucket})`,
                 error,
             );
-            return { allowed: false, reason: "unavailable" };
+            return { allowed: true };
         }
         console.warn(
             `[rate-limit] Upstash request failed; failing open in development (bucket=${bucket})`,

@@ -1,6 +1,7 @@
 "use client";
 
-import { memo, useCallback, useState } from "react";
+import { memo, startTransition, useCallback, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 
 import type { MenuModifierGroup } from "@/entities/product/model/modifiers";
 import type { ProductBadge } from "@/entities/product/ui/product-card";
@@ -47,22 +48,14 @@ export const ConnectedProductCard = memo(function ConnectedProductCard({
     onOpenModifiers,
 }: ConnectedProductCardProps) {
     const quantity = useCartStore(
-        useCallback(
-            (state) =>
-                state.items.reduce(
-                    (sum, item) =>
-                        item.productId === product.id
-                            ? sum + item.quantity
-                            : sum,
-                    0,
-                ),
-            [product.id],
-        ),
+        (state) => state.qtyByProductId[product.id] ?? 0,
     );
-    const setItemQuantity = useCartStore((s) => s.setItemQuantity);
-    const addItem = useCartStore((s) => s.addItem);
-    const decrementFirstLineForProduct = useCartStore(
-        (s) => s.decrementFirstLineForProduct,
+    const { setItemQuantity, addItem, decrementFirstLineForProduct } = useCartStore(
+        useShallow((s) => ({
+            setItemQuantity: s.setItemQuantity,
+            addItem: s.addItem,
+            decrementFirstLineForProduct: s.decrementFirstLineForProduct,
+        })),
     );
 
     const hasModifiers =
@@ -73,23 +66,24 @@ export const ConnectedProductCard = memo(function ConnectedProductCard({
             onOpenModifiers(product);
             return;
         }
-        addItem({
-            productId: product.id,
-            name: product.name,
-            basePrice: product.price,
-            selectedModifiers: [],
-            calculatedItemPrice: product.price,
-            image:
-                getProductCoverUrl({
-                    images: product.images,
-                    mainImage: product.mainImage,
-                }) ?? undefined,
+        startTransition(() => {
+            const minQty = product.minQty ?? 1;
+            addItem({
+                productId: product.id,
+                name: product.name,
+                basePrice: product.price,
+                selectedModifiers: [],
+                calculatedItemPrice: product.price,
+                image:
+                    getProductCoverUrl({
+                        images: product.images,
+                        mainImage: product.mainImage,
+                    }) ?? undefined,
+            });
+            if (minQty > 1 && quantity === 0) {
+                setItemQuantity(buildCartItemId(product.id, []), minQty);
+            }
         });
-        // Минимальная партия: первое добавление кладёт minQty штук
-        const minQty = product.minQty ?? 1;
-        if (minQty > 1 && quantity === 0) {
-            setItemQuantity(buildCartItemId(product.id, []), minQty);
-        }
     }, [addItem, hasModifiers, onOpenModifiers, product, quantity, setItemQuantity]);
 
     const maxQty = product.maxQty ?? null;
@@ -102,7 +96,9 @@ export const ConnectedProductCard = memo(function ConnectedProductCard({
             return;
         }
         const cartItemId = buildCartItemId(product.id, []);
-        setItemQuantity(cartItemId, quantity + 1);
+        startTransition(() => {
+            setItemQuantity(cartItemId, quantity + 1);
+        });
     }, [
         hasModifiers,
         maxReached,
@@ -113,7 +109,9 @@ export const ConnectedProductCard = memo(function ConnectedProductCard({
     ]);
 
     const handleDecrease = useCallback(() => {
-        decrementFirstLineForProduct(product.id);
+        startTransition(() => {
+            decrementFirstLineForProduct(product.id);
+        });
     }, [decrementFirstLineForProduct, product.id]);
 
     const productHref = `/menu/${product.slug}`;

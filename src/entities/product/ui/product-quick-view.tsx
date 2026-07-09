@@ -48,7 +48,13 @@ export function ProductQuickView({ open, onClose, product, onAdd }: Props) {
         <Drawer
             anchor="bottom"
             open={open}
-            onClose={onClose}
+            onClose={() => {
+                if (document.activeElement instanceof HTMLElement) {
+                    document.activeElement.blur();
+                }
+                onClose();
+            }}
+            disableRestoreFocus
             slotProps={{
                 paper: {
                     sx: {

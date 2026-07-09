@@ -8,6 +8,7 @@ import {
     checkRateLimit,
     rateLimitExceededPlainResponse,
 } from "@/lib/rate-limit";
+import { timingSafeStringEqual } from "@/lib/timing-safe-equal";
 
 const ADMIN_USER = process.env.ADMIN_USER;
 const ADMIN_PASS = process.env.ADMIN_PASS;
@@ -26,7 +27,9 @@ export async function POST(request: Request) {
     const user = (formData.get("user") as string) ?? "";
     const pass = (formData.get("pass") as string) ?? "";
 
-    if (user !== ADMIN_USER || pass !== ADMIN_PASS) {
+    const userOk = timingSafeStringEqual(user, ADMIN_USER);
+    const passOk = timingSafeStringEqual(pass, ADMIN_PASS);
+    if (!userOk || !passOk) {
         return new NextResponse("Unauthorized", { status: 401 });
     }
 

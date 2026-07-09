@@ -5,8 +5,10 @@ import {
     deleteOtpCode,
     generateOtpCode,
     getOtpCode,
+    isValidOtpCodeFormat,
     saveOtpCode,
 } from "@/lib/otp-store";
+import { timingSafeStringEqual } from "@/lib/timing-safe-equal";
 
 export const EMAIL_NOT_VERIFIED_ERROR = "EMAIL_NOT_VERIFIED";
 
@@ -31,7 +33,7 @@ export async function verifyOtpCode(
     const normalizedEmail = normalizeEmail(email);
     const cleanCode = String(code).trim();
 
-    if (!/^\d{4}$/.test(cleanCode)) {
+    if (!isValidOtpCodeFormat(cleanCode)) {
         return "invalid";
     }
 
@@ -40,7 +42,7 @@ export async function verifyOtpCode(
         return "expired";
     }
 
-    if (String(redisCode) === cleanCode) {
+    if (timingSafeStringEqual(String(redisCode), cleanCode)) {
         await deleteOtpCode(normalizedEmail);
         return "valid";
     }

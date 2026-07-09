@@ -3,6 +3,7 @@ import Container from "@mui/material/Container";
 import { unstable_cache } from "next/cache";
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { CACHE_TAGS } from "@/lib/cache-tags";
 import { getLocalizedField } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
 
@@ -16,31 +17,24 @@ const sectionContainerSx = {
     px: { xs: 2, md: 6 },
 } as const;
 
-/** Активные баннеры кэшируются на 60 сек. */
-const getActiveBannersCached = unstable_cache(
-    async () => {
-        const now = new Date();
-        return prisma.banner.findMany({
+const getBannersCached = unstable_cache(
+    async () =>
+        prisma.banner.findMany({
             where: {
                 isActive: true,
-                AND: [
-                    { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
-                    { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
+                OR: [
+                    { startsAt: null, endsAt: null },
+                    {
+                        startsAt: { lte: new Date() },
+                        endsAt: { gte: new Date() },
+                    },
                 ],
             },
-            orderBy: [{ position: "asc" }, { id: "asc" }],
-            take: 8,
-            select: {
-                id: true,
-                image: true,
-                title: true,
-                ctaText: true,
-                href: true,
-            },
-        });
-    },
-    ["active-banners"],
-    { revalidate: 60 },
+            orderBy: { position: "asc" },
+            include: { translations: true },
+        }),
+    ["promo-banners"],
+    { revalidate: 3600, tags: [CACHE_TAGS.banners] },
 );
 
 /**
@@ -58,12 +52,12 @@ export async function PromoBannersSection({
 
     let items: BannerCarouselItem[] = [];
     try {
-        const banners = await getActiveBannersCached();
+        const banners = await getBannersCached();
         items = banners.map((b) => ({
             id: b.id,
             image: b.image,
-            title: getLocalizedField(b.title, locale),
-            cta: getLocalizedField(b.ctaText, locale) || t("bannerCta"),
+            title: getLocalizedField(b.translations, locale, "title"),
+            cta: getLocalizedField(b.translations, locale, "ctaText") || t("bannerCta"),
             href: b.href,
         }));
     } catch (error) {

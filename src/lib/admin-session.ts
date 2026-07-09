@@ -1,7 +1,12 @@
-import { jwtVerify,SignJWT } from "jose";
+import { randomUUID } from "node:crypto";
+
+import { jwtVerify, SignJWT } from "jose";
+
+import { getUpstashRedis } from "@/lib/upstash-redis";
 
 /** Согласовано с TTL JWT и Max-Age куки. */
 const SESSION_MAX_AGE_SEC = 12 * 60 * 60;
+const DENY_KEY_PREFIX = "admin:session:deny:";
 
 const JWT_ALG = "HS256";
 
@@ -36,17 +41,35 @@ export function getAdminAuthCookieSettings(): {
     };
 }
 
-/** Подписанный JWT без учётных данных в payload. */
+/** Подписанный JWT с jti для последующего revoke. */
 export async function signAdminSessionToken(): Promise<string | null> {
     const key = getSecretKey();
     if (!key) return null;
 
+    const jti = randomUUID();
     return new SignJWT({})
         .setProtectedHeader({ alg: JWT_ALG })
         .setSubject("admin")
+        .setJti(jti)
         .setIssuedAt()
         .setExpirationTime(`${SESSION_MAX_AGE_SEC}s`)
         .sign(key);
+}
+
+async function isSessionRevoked(jti: string): Promise<boolean> {
+    if (!jti) return true;
+    const redis = getUpstashRedis();
+    if (!redis) {
+        // Without Redis, revocation is best-effort (cookie clear only).
+        return false;
+    }
+    try {
+        const denied = await redis.get(`${DENY_KEY_PREFIX}${jti}`);
+        return denied != null;
+    } catch {
+        // Fail open on Redis errors so admin panel stays usable.
+        return false;
+    }
 }
 
 export async function verifyAdminSessionToken(token: string): Promise<boolean> {
@@ -57,8 +80,36 @@ export async function verifyAdminSessionToken(token: string): Promise<boolean> {
 
     try {
         const { payload } = await jwtVerify(trimmed, key, { algorithms: [JWT_ALG] });
-        return payload.sub === "admin";
+        if (payload.sub !== "admin") return false;
+        const jti = typeof payload.jti === "string" ? payload.jti : "";
+        if (!jti) return false;
+        if (await isSessionRevoked(jti)) return false;
+        return true;
     } catch {
         return false;
+    }
+}
+
+/**
+ * Revoke a session token (logout). Stores jti in Redis denylist until JWT expiry.
+ * Safe no-op when Redis is unavailable or token is invalid.
+ */
+export async function revokeAdminSessionToken(token: string): Promise<void> {
+    const key = getSecretKey();
+    const redis = getUpstashRedis();
+    if (!key || !redis) return;
+    const trimmed = token.trim();
+    if (!trimmed) return;
+
+    try {
+        const { payload } = await jwtVerify(trimmed, key, { algorithms: [JWT_ALG] });
+        const jti = typeof payload.jti === "string" ? payload.jti : "";
+        if (!jti) return;
+
+        const exp = typeof payload.exp === "number" ? payload.exp : 0;
+        const ttlSec = Math.max(1, exp - Math.floor(Date.now() / 1000));
+        await redis.set(`${DENY_KEY_PREFIX}${jti}`, "1", { ex: ttlSec });
+    } catch {
+        // ignore invalid/expired tokens on logout
     }
 }

@@ -26,6 +26,8 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
     interface JWT {
         uid?: number;
+        /** Unique session id for Redis revocation denylist. */
+        jti?: string;
         name?: string | null;
         email?: string | null;
         picture?: string | null;

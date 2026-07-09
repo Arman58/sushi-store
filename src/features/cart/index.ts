@@ -13,4 +13,5 @@ export {
     useCartLineIssueMessage,
     useCartLineValidation,
 } from "./model/use-cart-line-validation";
+export { CartSyncProvider } from "./model/use-cart-sync";
 export { CartButton, CartLineItem, ModifiersList } from "./ui";

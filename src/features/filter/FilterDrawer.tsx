@@ -77,7 +77,13 @@ export function FilterDrawer({
         <Drawer
             anchor="right"
             open={isOpen}
-            onClose={onClose}
+            onClose={() => {
+                if (document.activeElement instanceof HTMLElement) {
+                    document.activeElement.blur();
+                }
+                onClose();
+            }}
+            disableRestoreFocus
             slotProps={{
                 backdrop: { sx: { bgcolor: alpha(theme.palette.common.black, 0.35) } },
             }}

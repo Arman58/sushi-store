@@ -584,18 +584,46 @@ const OPT_LARGE = L("Большая", "Մեծ", "Large");
 const OPT_SPICY = L("Острая", "Սուր", "Spicy");
 const OPT_GARLIC = L("Чесночная", "Սխտորով", "Garlic");
 
+function TName(localizedObj: ReturnType<typeof L>) {
+    return {
+        create: ["hy", "ru", "en"].map(loc => ({ locale: loc, name: localizedObj[loc as keyof typeof localizedObj] || "" }))
+    };
+}
+
+function TProduct(nameObj: ReturnType<typeof L>, descObj: ReturnType<typeof L>, compObj: ReturnType<typeof L>) {
+    return {
+        create: ["hy", "ru", "en"].map(loc => ({
+            locale: loc,
+            name: nameObj[loc as keyof typeof nameObj] || "",
+            description: descObj[loc as keyof typeof descObj] || "",
+            composition: compObj[loc as keyof typeof compObj] || "",
+        }))
+    };
+}
+
+function TZone(nameObj: ReturnType<typeof L>, descObj: ReturnType<typeof L> | string) {
+    const descJson = typeof descObj === "string" ? { hy: "", ru: "", en: "" } : descObj;
+    return {
+        create: ["hy", "ru", "en"].map(loc => ({
+            locale: loc,
+            name: nameObj[loc as keyof typeof nameObj] || "",
+            description: descJson[loc as keyof typeof descJson] || "",
+        }))
+    };
+}
+
 async function addPizzaSizeModifier(productId: number): Promise<void> {
     await prisma.modifierGroup.create({
         data: {
             productId,
-            name: LToJson(MOD_SIZE),
+            translations: TName(MOD_SIZE),
             required: true,
             maxChoices: 1,
             position: 0,
             modifiers: {
                 create: [
-                    { name: LToJson(OPT_30), priceDelta: 0, position: 0 },
-                    { name: LToJson(OPT_45), priceDelta: 2000, position: 1 },
+                    { translations: TName(OPT_30), priceDelta: 0, position: 0 },
+                    { translations: TName(OPT_45), priceDelta: 2000, position: 1 },
                 ],
             },
         },
@@ -606,14 +634,14 @@ async function addShawarmaModifiers(productId: number): Promise<void> {
     await prisma.modifierGroup.create({
         data: {
             productId,
-            name: LToJson(MOD_SIZE),
+            translations: TName(MOD_SIZE),
             required: true,
             maxChoices: 1,
             position: 0,
             modifiers: {
                 create: [
-                    { name: LToJson(OPT_SMALL), priceDelta: 0, position: 0 },
-                    { name: LToJson(OPT_LARGE), priceDelta: 500, position: 1 },
+                    { translations: TName(OPT_SMALL), priceDelta: 0, position: 0 },
+                    { translations: TName(OPT_LARGE), priceDelta: 500, position: 1 },
                 ],
             },
         },
@@ -622,14 +650,14 @@ async function addShawarmaModifiers(productId: number): Promise<void> {
     await prisma.modifierGroup.create({
         data: {
             productId,
-            name: LToJson(MOD_SAUCE),
+            translations: TName(MOD_SAUCE),
             required: false,
             maxChoices: 1,
             position: 1,
             modifiers: {
                 create: [
-                    { name: LToJson(OPT_SPICY), priceDelta: 0, position: 0 },
-                    { name: LToJson(OPT_GARLIC), priceDelta: 0, position: 1 },
+                    { translations: TName(OPT_SPICY), priceDelta: 0, position: 0 },
+                    { translations: TName(OPT_GARLIC), priceDelta: 0, position: 1 },
                 ],
             },
         },
@@ -664,7 +692,7 @@ async function main() {
         CATEGORIES.map((c) =>
             prisma.category.create({
                 data: {
-                    name: LToJson(c.name),
+                    translations: TName(c.name),
                     slug: c.slug,
                     position: c.position,
                     isActive: true,
@@ -690,10 +718,8 @@ async function main() {
 
         const created = await prisma.product.create({
             data: {
-                name: LToJson(i18n.name),
+                translations: TProduct(i18n.name, i18n.description, i18n.composition),
                 slug: p.slug,
-                description: LToJson(i18n.description),
-                composition: LToJson(i18n.composition),
                 price: p.price,
                 weight: p.weight,
                 images,
@@ -722,17 +748,18 @@ async function main() {
         },
     });
 
-    await prisma.deliveryZone.createMany({
-        data: deliveryZonesData.map((z) => ({
-            name: LToJson(z.name),
-            deliveryPrice: z.deliveryPrice,
-            minOrderAmount: z.minOrderAmount,
-            description: z.description === "" ? {} : LToJson(z.description),
-            requiresManagerApproval: z.requiresManagerApproval,
-            position: z.position,
-            isActive: true,
-        })),
-    });
+    for (const z of deliveryZonesData) {
+        await prisma.deliveryZone.create({
+            data: {
+                translations: TZone(z.name, z.description),
+                deliveryPrice: z.deliveryPrice,
+                minOrderAmount: z.minOrderAmount,
+                requiresManagerApproval: z.requiresManagerApproval,
+                position: z.position,
+                isActive: true,
+            },
+        });
+    }
 
     console.log(`✅ Категорий: ${categories.length}`);
     console.log(`✅ Товаров: ${productsData.length}`);

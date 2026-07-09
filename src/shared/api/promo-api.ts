@@ -8,6 +8,7 @@ export type ValidatePromoRequest = {
     code: string;
     cartAmount: number;
     deliveryAmount?: number;
+    items?: Array<{ productId: number; quantity: number; price: number }>;
 };
 
 export type ValidatePromoResponse = {

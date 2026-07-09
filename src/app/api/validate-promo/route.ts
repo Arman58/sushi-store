@@ -57,10 +57,25 @@ export async function POST(request: Request) {
         });
 
         const grandTotal = cartAmount + deliveryAmount;
+        
+        let enrichedItems = parsed.data.items;
+        if (enrichedItems && enrichedItems.length > 0) {
+            const productIds = enrichedItems.map(i => i.productId);
+            const dbProducts = await prisma.product.findMany({
+                where: { id: { in: productIds } },
+                select: { id: true, categoryId: true }
+            });
+            enrichedItems = enrichedItems.map(item => ({
+                ...item,
+                categoryId: dbProducts.find(p => p.id === item.productId)?.categoryId
+            }));
+        }
 
         const rejection = getPromoRejectionCode(promo, {
             cartSubtotal: cartAmount,
             grandTotalBeforeDiscount: grandTotal,
+            deliveryAmount: deliveryAmount,
+            items: enrichedItems,
         });
 
         if (rejection) {
@@ -93,6 +108,8 @@ export async function POST(request: Request) {
             promo,
             cartAmount,
             grandTotal,
+            deliveryAmount,
+            enrichedItems,
         );
 
         return NextResponse.json({

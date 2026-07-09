@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { cache } from "react";
 
+import { CACHE_TAGS } from "@/lib/cache-tags";
 import {
     toStorefrontCategories,
     toStorefrontProducts,
@@ -26,6 +27,7 @@ const getMenuDataCached = unstable_cache(
                 },
                 orderBy: { position: "asc" },
                 include: {
+                    translations: true,
                     products: {
                         where: { isActive: true },
                         orderBy: { id: "asc" },
@@ -37,7 +39,10 @@ const getMenuDataCached = unstable_cache(
             prisma.product.findMany({
                 where: { isActive: true },
                 include: {
-                    category: true,
+                    translations: true,
+                    category: {
+                        include: { translations: true }
+                    },
                     // Полные модификаторы в списке не нужны - клиент
                     // подтянет их по требованию (/api/menu/modifiers).
                     modifierGroups: {
@@ -95,7 +100,7 @@ const getMenuDataCached = unstable_cache(
     }
     },
     ["menu-data"],
-    { revalidate: 60 },
+    { revalidate: 3600, tags: [CACHE_TAGS.menu, CACHE_TAGS.categories, CACHE_TAGS.products] },
 );
 
 export async function MenuCatalogSection() {

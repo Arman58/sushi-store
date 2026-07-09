@@ -17,13 +17,13 @@ export type ProductRow = {
     category: { name: unknown } | null;
     modifierGroups?: {
         id: number;
-        name: string;
+        name: unknown;
         required: boolean;
         maxChoices: number;
         position: number;
         modifiers: {
             id: number;
-            name: string;
+            name: unknown;
             priceDelta: number;
             position: number;
         }[];

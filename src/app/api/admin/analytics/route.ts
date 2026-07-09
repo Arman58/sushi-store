@@ -9,11 +9,11 @@ import {
     type AdminAnalyticsResponse,
     type AdminAnalyticsZoneSlice,
     buildDayRange,
+    dayKeyToEndUtc,
     dayKeyToStartUtc,
     emptyStatusDistribution,
     formatDayLabel,
     formatExportOrderDate,
-    getHourInStoreTimezone,
     toDayKey,
 } from "@/lib/admin-analytics";
 import { resolveAdminLocale } from "@/lib/admin-locale";
@@ -27,6 +27,9 @@ const ACTIVE_STATUSES: OrderStatus[] = [
     OrderStatus.DELIVERING,
 ];
 
+/** Cap CSV export rows to avoid OOM on large periods. */
+const EXPORT_ORDERS_LIMIT = 500;
+
 function parsePeriodDays(searchParams: URLSearchParams): number {
     const raw = Number(searchParams.get("days") ?? "14");
     if (raw === 7) return 7;
@@ -34,17 +37,9 @@ function parsePeriodDays(searchParams: URLSearchParams): number {
     return 14;
 }
 
-function getZoneLabel(
-    order: {
-        delivery: DeliveryType;
-        deliveryZoneName: string | null;
-    },
-    pickupLabel: string,
-): string {
-    if (order.delivery === DeliveryType.PICKUP || !order.deliveryZoneName?.trim()) {
-        return pickupLabel;
-    }
-    return order.deliveryZoneName.trim();
+function safeNumber(value: unknown): number {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
 }
 
 function emptyPaymentSlices(
@@ -66,10 +61,26 @@ function emptyHourSlices(): AdminAnalyticsHourSlice[] {
     }));
 }
 
-function safeNumber(value: unknown): number {
-    const n = Number(value);
-    return Number.isFinite(n) ? n : 0;
-}
+type DailyRow = { day: string; orders: bigint | number; revenue: bigint | number };
+type StatusRow = { status: OrderStatus; count: bigint | number };
+type ZoneRow = { zone: string; orders: bigint | number; revenue: bigint | number };
+type HourRow = { hour: number; orders: bigint | number; revenue: bigint | number };
+type PaymentRow = {
+    payment: PaymentMethod;
+    orders: bigint | number;
+    revenue: bigint | number;
+};
+type PromoRow = { promo: bigint | number };
+type TodayRow = {
+    orders_today: bigint | number;
+    done_today: bigint | number;
+    revenue_today: bigint | number;
+};
+type ProductRow = {
+    name: string;
+    quantity: bigint | number;
+    revenue: bigint | number;
+};
 
 export async function GET(request: Request) {
     try {
@@ -105,8 +116,125 @@ export async function GET(request: Request) {
         const dayKeys = buildDayRange(periodDays);
         const rangeStart = dayKeyToStartUtc(dayKeys[0]!);
         const todayKey = toDayKey(new Date());
+        const todayStart = dayKeyToStartUtc(todayKey);
+        const todayEnd = dayKeyToEndUtc(todayKey);
 
-        const [orders, orderItems, activeOrders] = await Promise.all([
+        const [
+            dailyRows,
+            statusRows,
+            zoneRows,
+            hourRows,
+            paymentRows,
+            promoRows,
+            todayRows,
+            productRows,
+            activeOrders,
+            exportOrderRows,
+        ] = await Promise.all([
+            prisma.$queryRaw<DailyRow[]>`
+                SELECT
+                    to_char(
+                        ("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Yerevan',
+                        'YYYY-MM-DD'
+                    ) AS day,
+                    COUNT(*)::int AS orders,
+                    COALESCE(
+                        SUM(CASE WHEN status = 'DONE' THEN "totalPrice" ELSE 0 END),
+                        0
+                    )::int AS revenue
+                FROM "Order"
+                WHERE "createdAt" >= ${rangeStart}
+                GROUP BY 1
+            `,
+            prisma.$queryRaw<StatusRow[]>`
+                SELECT status, COUNT(*)::int AS count
+                FROM "Order"
+                WHERE "createdAt" >= ${rangeStart}
+                GROUP BY status
+            `,
+            prisma.$queryRaw<ZoneRow[]>`
+                SELECT
+                    CASE
+                        WHEN delivery = 'PICKUP'
+                            OR "deliveryZoneName" IS NULL
+                            OR BTRIM("deliveryZoneName") = ''
+                        THEN ${pickupLabel}
+                        ELSE BTRIM("deliveryZoneName")
+                    END AS zone,
+                    COUNT(*)::int AS orders,
+                    COALESCE(
+                        SUM(CASE WHEN status = 'DONE' THEN "totalPrice" ELSE 0 END),
+                        0
+                    )::int AS revenue
+                FROM "Order"
+                WHERE "createdAt" >= ${rangeStart}
+                    AND status <> 'CANCELLED'
+                GROUP BY 1
+            `,
+            prisma.$queryRaw<HourRow[]>`
+                SELECT
+                    EXTRACT(
+                        HOUR FROM (("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Yerevan')
+                    )::int AS hour,
+                    COUNT(*)::int AS orders,
+                    COALESCE(
+                        SUM(CASE WHEN status = 'DONE' THEN "totalPrice" ELSE 0 END),
+                        0
+                    )::int AS revenue
+                FROM "Order"
+                WHERE "createdAt" >= ${rangeStart}
+                    AND status <> 'CANCELLED'
+                GROUP BY 1
+            `,
+            prisma.$queryRaw<PaymentRow[]>`
+                SELECT
+                    payment,
+                    COUNT(*)::int AS orders,
+                    COALESCE(
+                        SUM(CASE WHEN status = 'DONE' THEN "totalPrice" ELSE 0 END),
+                        0
+                    )::int AS revenue
+                FROM "Order"
+                WHERE "createdAt" >= ${rangeStart}
+                    AND status <> 'CANCELLED'
+                GROUP BY payment
+            `,
+            prisma.$queryRaw<PromoRow[]>`
+                SELECT COALESCE(SUM("discountAmount"), 0)::int AS promo
+                FROM "Order"
+                WHERE "createdAt" >= ${rangeStart}
+            `,
+            prisma.$queryRaw<TodayRow[]>`
+                SELECT
+                    COUNT(*)::int AS orders_today,
+                    COUNT(*) FILTER (WHERE status = 'DONE')::int AS done_today,
+                    COALESCE(
+                        SUM("totalPrice") FILTER (WHERE status = 'DONE'),
+                        0
+                    )::int AS revenue_today
+                FROM "Order"
+                WHERE "createdAt" >= ${todayStart}
+                    AND "createdAt" <= ${todayEnd}
+            `,
+            prisma.$queryRaw<ProductRow[]>`
+                SELECT
+                    CASE
+                        WHEN BTRIM(oi.name) = '' THEN ${untitledProduct}
+                        ELSE BTRIM(oi.name)
+                    END AS name,
+                    SUM(oi.quantity)::int AS quantity,
+                    SUM(oi.price * oi.quantity)::int AS revenue
+                FROM "OrderItem" oi
+                INNER JOIN "Order" o ON o.id = oi."orderId"
+                WHERE o."createdAt" >= ${rangeStart}
+                    AND o.status = 'DONE'
+                GROUP BY 1
+                ORDER BY revenue DESC
+                LIMIT 5
+            `,
+            prisma.order.count({
+                where: { status: { in: ACTIVE_STATUSES } },
+            }),
             prisma.order.findMany({
                 where: { createdAt: { gte: rangeStart } },
                 select: {
@@ -114,28 +242,11 @@ export async function GET(request: Request) {
                     createdAt: true,
                     status: true,
                     totalPrice: true,
-                    payment: true,
                     delivery: true,
                     deliveryZoneName: true,
-                    discountAmount: true,
                 },
                 orderBy: { createdAt: "desc" },
-            }),
-            prisma.orderItem.findMany({
-                where: {
-                    order: {
-                        createdAt: { gte: rangeStart },
-                        status: OrderStatus.DONE,
-                    },
-                },
-                select: {
-                    name: true,
-                    price: true,
-                    quantity: true,
-                },
-            }),
-            prisma.order.count({
-                where: { status: { in: ACTIVE_STATUSES } },
+                take: EXPORT_ORDERS_LIMIT,
             }),
         ]);
 
@@ -145,119 +256,77 @@ export async function GET(request: Request) {
                 { date, label: formatDayLabel(date), revenue: 0, orders: 0 },
             ]),
         );
+        for (const row of dailyRows) {
+            const bucket = dailyMap.get(row.day);
+            if (bucket) {
+                bucket.orders = safeNumber(row.orders);
+                bucket.revenue = safeNumber(row.revenue);
+            }
+        }
 
         const statusMap = new Map<OrderStatus, number>(
             emptyStatusDistribution().map(({ status }) => [status, 0]),
         );
+        for (const row of statusRows) {
+            statusMap.set(row.status, safeNumber(row.count));
+        }
 
         const zoneMap = new Map<string, AdminAnalyticsZoneSlice>();
+        for (const row of zoneRows) {
+            zoneMap.set(row.zone, {
+                name: row.zone,
+                orders: safeNumber(row.orders),
+                revenue: safeNumber(row.revenue),
+            });
+        }
+
         const hourMap = new Map<number, AdminAnalyticsHourSlice>(
             emptyHourSlices().map((slice) => [slice.hour, { ...slice }]),
         );
+        for (const row of hourRows) {
+            const hour = safeNumber(row.hour);
+            const slice = hourMap.get(hour);
+            if (slice) {
+                slice.orders = safeNumber(row.orders);
+                slice.revenue = safeNumber(row.revenue);
+            }
+        }
+
         const paymentMap = new Map<PaymentMethod, AdminAnalyticsPaymentSlice>(
             emptyPaymentSlices(paymentLabels).map((slice) => [slice.method, { ...slice }]),
         );
-
-        let revenueToday = 0;
-        let ordersToday = 0;
-        let doneOrdersToday = 0;
-        let promoImpact = 0;
-
-        for (const order of orders) {
-            const day = toDayKey(order.createdAt);
-            const totalPrice = safeNumber(order.totalPrice);
-            const discountAmount = safeNumber(order.discountAmount);
-            const isDone = order.status === OrderStatus.DONE;
-
-            const bucket = dailyMap.get(day);
-            if (bucket) {
-                bucket.orders += 1;
-                if (isDone) {
-                    bucket.revenue += totalPrice;
-                }
-            }
-
-            statusMap.set(
-                order.status,
-                (statusMap.get(order.status) ?? 0) + 1,
-            );
-            promoImpact += discountAmount;
-
-            if (order.status !== OrderStatus.CANCELLED) {
-                const zoneName = getZoneLabel(order, pickupLabel);
-                const zoneSlice = zoneMap.get(zoneName) ?? {
-                    name: zoneName,
-                    orders: 0,
-                    revenue: 0,
-                };
-                zoneSlice.orders += 1;
-                if (isDone) {
-                    zoneSlice.revenue += totalPrice;
-                }
-                zoneMap.set(zoneName, zoneSlice);
-
-                const hour = getHourInStoreTimezone(order.createdAt);
-                const hourSlice = hourMap.get(hour);
-                if (hourSlice) {
-                    hourSlice.orders += 1;
-                    if (isDone) {
-                        hourSlice.revenue += totalPrice;
-                    }
-                }
-
-                const paymentSlice = paymentMap.get(order.payment);
-                if (paymentSlice) {
-                    paymentSlice.orders += 1;
-                    if (isDone) {
-                        paymentSlice.revenue += totalPrice;
-                    }
-                }
-            }
-
-            if (day === todayKey) {
-                ordersToday += 1;
-                if (isDone) {
-                    revenueToday += totalPrice;
-                    doneOrdersToday += 1;
-                }
+        for (const row of paymentRows) {
+            const slice = paymentMap.get(row.payment);
+            if (slice) {
+                slice.orders = safeNumber(row.orders);
+                slice.revenue = safeNumber(row.revenue);
             }
         }
 
-        const productMap = new Map<
-            string,
-            { name: string; quantity: number; revenue: number }
-        >();
+        const today = todayRows[0];
+        const revenueToday = safeNumber(today?.revenue_today);
+        const ordersToday = safeNumber(today?.orders_today);
+        const doneOrdersToday = safeNumber(today?.done_today);
+        const promoImpact = safeNumber(promoRows[0]?.promo);
 
-        for (const item of orderItems) {
-            const key = item.name.trim() || untitledProduct;
-            const lineRevenue =
-                safeNumber(item.price) * safeNumber(item.quantity);
-            const existing = productMap.get(key);
-            if (existing) {
-                existing.quantity += safeNumber(item.quantity);
-                existing.revenue += lineRevenue;
-            } else {
-                productMap.set(key, {
-                    name: key,
-                    quantity: safeNumber(item.quantity),
-                    revenue: lineRevenue,
-                });
-            }
-        }
-
-        const topProducts = [...productMap.values()]
-            .sort((a, b) => b.revenue - a.revenue)
-            .slice(0, 5);
+        const topProducts = productRows.map((row) => ({
+            name: row.name,
+            quantity: safeNumber(row.quantity),
+            revenue: safeNumber(row.revenue),
+        }));
 
         const salesByZone = [...zoneMap.values()].sort(
             (a, b) => b.revenue - a.revenue,
         );
 
-        const exportOrders: AdminAnalyticsExportOrder[] = orders.map((order) => ({
+        const exportOrders: AdminAnalyticsExportOrder[] = exportOrderRows.map((order) => ({
             id: order.id,
             date: formatExportOrderDate(order.createdAt),
             totalPrice: safeNumber(order.totalPrice),
-            zone: getZoneLabel(order, pickupLabel),
+            zone:
+                order.delivery === DeliveryType.PICKUP || !order.deliveryZoneName?.trim()
+                    ? pickupLabel
+                    : order.deliveryZoneName.trim(),
             status: order.status,
             statusLabel: statusLabels[order.status],
         }));

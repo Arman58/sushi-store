@@ -4,6 +4,10 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { usePathname } from "@/i18n/server";
+import {
+    categorySlugFromPathname,
+    menuCategoryPath,
+} from "@/lib/menu-paths";
 
 import {
     DEFAULT_CATEGORY_SLUG,
@@ -69,9 +73,24 @@ function readWindowSearchParams(): URLSearchParams {
     return new URLSearchParams(window.location.search);
 }
 
+/** next-intl pathname is locale-stripped; restore prefix for history.pushState. */
+function withLocalePrefix(pathWithoutLocale: string): string {
+    if (typeof window === "undefined") return pathWithoutLocale;
+    const match = window.location.pathname.match(/^\/(en|ru)(?=\/|$)/);
+    if (!match) return pathWithoutLocale;
+    return pathWithoutLocale === "/"
+        ? match[0]
+        : `${match[0]}${pathWithoutLocale}`;
+}
+
+function stripLocalePrefix(pathname: string): string {
+    return pathname.replace(/^\/(en|ru)(?=\/|$)/, "") || "/";
+}
+
 function applyMenuFilterParams(pathname: string, params: URLSearchParams) {
     const qs = params.toString();
-    const href = qs ? `${pathname}?${qs}` : pathname;
+    const localized = withLocalePrefix(pathname);
+    const href = qs ? `${localized}?${qs}` : localized;
     window.history.pushState(window.history.state, "", href);
     window.dispatchEvent(new Event(MENU_FILTERS_URL_EVENT));
 }
@@ -100,12 +119,18 @@ export function useMenuFilters(options: UseMenuFiltersOptions) {
     const routerParamsString = routerSearchParams.toString();
 
     const [localParamsString, setLocalParamsString] = useState(routerParamsString);
+    const [localPathname, setLocalPathname] = useState(pathname);
     const [prevRouterParamsString, setPrevRouterParamsString] =
         useState(routerParamsString);
+    const [prevPathname, setPrevPathname] = useState(pathname);
 
     if (prevRouterParamsString !== routerParamsString) {
         setPrevRouterParamsString(routerParamsString);
         setLocalParamsString(routerParamsString);
+    }
+    if (prevPathname !== pathname) {
+        setPrevPathname(pathname);
+        setLocalPathname(pathname);
     }
 
     const localParams = useMemo(
@@ -116,6 +141,7 @@ export function useMenuFilters(options: UseMenuFiltersOptions) {
     useEffect(() => {
         const syncFromWindow = () => {
             setLocalParamsString(readWindowSearchParams().toString());
+            setLocalPathname(stripLocalePrefix(window.location.pathname));
         };
 
         window.addEventListener("popstate", syncFromWindow);
@@ -126,8 +152,9 @@ export function useMenuFilters(options: UseMenuFiltersOptions) {
         };
     }, []);
 
+    const pathCategory = categorySlugFromPathname(localPathname);
     const categorySlug = parseCategory(
-        localParams.get("category"),
+        pathCategory ?? localParams.get("category"),
         validCategorySlugs,
     );
     const priceRange = parsePriceRange(localParams, minPrice, maxPrice);
@@ -141,12 +168,10 @@ export function useMenuFilters(options: UseMenuFiltersOptions) {
 
             const newCategory = next.category ?? categorySlug;
             const newRange = next.priceRange ?? priceRange;
+            const nextPath = menuCategoryPath(newCategory);
 
             params.delete("sort");
-
-            if (newCategory === DEFAULT_CATEGORY_SLUG) params.delete("category");
-            else params.set("category", newCategory);
-
+            params.delete("category");
             params.delete("price");
 
             if (isDefaultPriceRange(newRange, minPrice, maxPrice)) {
@@ -158,15 +183,15 @@ export function useMenuFilters(options: UseMenuFiltersOptions) {
             }
 
             const nextParams = new URLSearchParams(params.toString());
-            applyMenuFilterParams(pathname, nextParams);
+            applyMenuFilterParams(nextPath, nextParams);
             setLocalParamsString(nextParams.toString());
+            setLocalPathname(nextPath);
         },
         [
             categorySlug,
             localParams,
             maxPrice,
             minPrice,
-            pathname,
             priceRange,
         ],
     );

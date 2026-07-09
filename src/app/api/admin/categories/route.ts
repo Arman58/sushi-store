@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 
+import {
+    translationsToLocalized,
+} from "@/lib/admin-localized";
 import { adminCategoryCreateSchema } from "@/lib/api-schemas";
 import { localizedSlugSource } from "@/lib/i18n-utils";
 import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
+import { invalidateCatalogCache } from "@/lib/revalidate-storefront";
 import { verifyAdmin } from "@/lib/verify-admin";
 
 function slugifyName(name: string): string {
@@ -25,6 +29,14 @@ async function makeUniqueCategorySlug(name: string): Promise<string> {
     return `cat-${Date.now()}`;
 }
 
+function mapCategoryRow<T extends { translations?: unknown }>(category: T) {
+    const { translations, ...rest } = category;
+    return {
+        ...rest,
+        name: translationsToLocalized(translations, "name"),
+    };
+}
+
 export async function GET(request: Request) {
     const auth = await verifyAdmin(request);
     if (!auth.ok) {
@@ -34,10 +46,10 @@ export async function GET(request: Request) {
     try {
         const categories = await prisma.category.findMany({
             orderBy: { position: "asc" },
+            include: { translations: true },
         });
-        return NextResponse.json(categories);
+        return NextResponse.json(categories.map(mapCategoryRow));
     } catch {
-        // Error logged in production monitoring
         return NextResponse.json({ error: "Failed to fetch categories" }, { status: 500 });
     }
 }
@@ -54,13 +66,25 @@ export async function POST(request: Request) {
     const name = parsed.data.name;
     const slug = await makeUniqueCategorySlug(localizedSlugSource(name));
 
+    const nameData = name as Record<string, string>;
+    const translationsData = ["hy", "ru", "en"].map((loc) => ({
+        locale: loc,
+        name: nameData[loc] || "",
+    }));
+
     try {
         const category = await prisma.category.create({
-            data: { name, slug },
+            data: {
+                slug,
+                translations: {
+                    create: translationsData,
+                },
+            },
+            include: { translations: true },
         });
-        return NextResponse.json(category, { status: 201 });
+        invalidateCatalogCache();
+        return NextResponse.json(mapCategoryRow(category), { status: 201 });
     } catch {
-        // Error logged in production monitoring
         return NextResponse.json({ error: "Failed to create category" }, { status: 500 });
     }
 }

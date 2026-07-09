@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import bcrypt from "bcryptjs";
 import type { NextAuthOptions } from "next-auth";
 import { getServerSession } from "next-auth";
@@ -6,6 +8,10 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { normalizeEmail } from "@/lib/normalize-email";
 import { EMAIL_NOT_VERIFIED_ERROR } from "@/lib/otp-auth";
 import { prisma } from "@/lib/prisma";
+import {
+    isUserSessionRevoked,
+    revokeUserSessionToken,
+} from "@/lib/user-session";
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -23,6 +29,7 @@ const sessionCookieOptions = {
 /**
  * NextAuth: JWT-сессии, вход по email + пароль.
  * emailVerified обязателен - без OTP-подтверждения вход блокируется.
+ * jti + Redis denylist позволяют отозвать сессию при logout.
  */
 export const authOptions: NextAuthOptions = {
     session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 /* 30 дней */ },
@@ -94,11 +101,38 @@ export const authOptions: NextAuthOptions = {
                 token.name = u.name ?? null;
                 token.email = u.email ?? null;
                 token.picture = u.image ?? null;
+                token.jti = randomUUID();
             }
+
+            const jti = typeof token.jti === "string" ? token.jti : "";
+            if (jti && (await isUserSessionRevoked(jti))) {
+                // Invalidate JWT payload so session.user.id becomes null.
+                return {
+                    ...token,
+                    uid: undefined,
+                    jti: undefined,
+                    name: null,
+                    email: null,
+                    picture: null,
+                    exp: 0,
+                };
+            }
+
             return token;
         },
         async session({ session, token }) {
-            if (token && session.user) {
+            if (!token?.uid) {
+                session.user = {
+                    ...session.user,
+                    id: null,
+                    name: null,
+                    email: null,
+                    image: null,
+                };
+                return session;
+            }
+
+            if (session.user) {
                 session.user.id = typeof token.uid === "number" ? token.uid : null;
                 session.user.name =
                     (token.name as string | null) ?? session.user.name ?? null;
@@ -108,6 +142,15 @@ export const authOptions: NextAuthOptions = {
                     (token.picture as string | null) ?? session.user.image ?? null;
             }
             return session;
+        },
+    },
+    events: {
+        async signOut(message) {
+            const token = "token" in message ? message.token : null;
+            const jti = typeof token?.jti === "string" ? token.jti : "";
+            if (!jti) return;
+            const exp = typeof token?.exp === "number" ? token.exp : undefined;
+            await revokeUserSessionToken(jti, exp);
         },
     },
     pages: {

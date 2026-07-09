@@ -166,13 +166,15 @@ export function CartLineItem({
                     }}
                 >
                     {safeImage ? (
-                        <Image
-                            src={safeImage}
-                            alt={item.name}
-                            fill
-                            sizes={`${IMAGE_SIZE}px`}
-                            style={{ objectFit: "cover" }}
-                        />
+                        <div style={{ position: "absolute", inset: 0 }}>
+                            <Image
+                                src={safeImage}
+                                alt={item.name}
+                                fill
+                                sizes={`${IMAGE_SIZE}px`}
+                                style={{ objectFit: "cover" }}
+                            />
+                        </div>
                     ) : (
                         <ProductCoverPlaceholder />
                     )}

@@ -1,62 +1,66 @@
 "use client";
 
-import CloseIcon from "@mui/icons-material/Close";
-import HighlightOffOutlinedIcon from "@mui/icons-material/HighlightOffOutlined";
-import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
-import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Divider from "@mui/material/Divider";
-import IconButton from "@mui/material/IconButton";
-import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
-import { alpha, useTheme } from "@mui/material/styles";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import { alpha, useTheme } from "@mui/material/styles";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import CountUp from "react-countup";
+import { useShallow } from "zustand/react/shallow";
 
 import {
     CartLineItem,
     useCartLineValidation,
     useCartStore,
 } from "@/features/cart";
-import { Link, usePathname } from "@/i18n/server";
-import { isStoreOpen, OPENING_HOURS } from "@/lib/site-config";
+import { usePathname } from "@/i18n/server";
+import { isStoreOpen } from "@/lib/site-config";
 import { ApiError, validatePromo } from "@/shared/api";
 import { SauceStrip, UpsellCarousel } from "@/widgets/upsell";
 
-import { AppButton } from "./AppButton";
+import { CartDrawerFooter } from "./cart-drawer-footer";
+import { CartDrawerHeader } from "./cart-drawer-header";
+import { CartDrawerPromo } from "./cart-drawer-promo";
 import { EmptyCart } from "./empty-cart";
-import { MinOrderProgress } from "./min-order-progress";
-import { tokens } from "./theme";
 
 const DRAWER_WIDTH = 420;
 const MotionBox = motion.create(Box);
 
-// ─── Formatters ───────────────────────────────────────────────────────────────
-
-const fmt = new Intl.NumberFormat("ru-RU");
-
-// ─── Component ────────────────────────────────────────────────────────────────
-
+/** Thin shell — no items/validation work while closed (INP on add-to-cart). */
 export function CartDrawer() {
+    const isCartOpen = useCartStore((s) => s.isCartOpen);
+    if (!isCartOpen) return null;
+    return <CartDrawerOpen />;
+}
+
+function CartDrawerOpen() {
     const t = useTranslations("cart");
-    const tCommon = useTranslations("common");
     const pathname = usePathname();
     const isCheckoutPage = pathname?.startsWith("/checkout") ?? false;
-    const isCartOpen = useCartStore((s) => s.isCartOpen);
-    const closeCart = useCartStore((s) => s.closeCart);
-    const items = useCartStore((s) => s.items);
-    const removeItem = useCartStore((s) => s.removeItem);
-    const setItemQty = useCartStore((s) => s.setItemQuantity);
-    const clearCart = useCartStore((s) => s.clear);
-    const appliedPromoCode = useCartStore((s) => s.appliedPromoCode);
-    const setAppliedPromoCode = useCartStore((s) => s.setAppliedPromoCode);
-    const syncPricesWithServer = useCartStore((s) => s.syncPricesWithServer);
+    const {
+        closeCart,
+        items,
+        removeItem,
+        setItemQty,
+        clearCart,
+        appliedPromoCode,
+        setAppliedPromoCode,
+        syncPricesWithServer,
+    } = useCartStore(
+        useShallow((s) => ({
+            closeCart: s.closeCart,
+            items: s.items,
+            removeItem: s.removeItem,
+            setItemQty: s.setItemQuantity,
+            clearCart: s.clear,
+            appliedPromoCode: s.appliedPromoCode,
+            setAppliedPromoCode: s.setAppliedPromoCode,
+            syncPricesWithServer: s.syncPricesWithServer,
+        })),
+    );
 
     const {
         cartLineIssues,
@@ -67,13 +71,13 @@ export function CartDrawer() {
     } = useCartLineValidation();
 
     const [promoInput, setPromoInput] = useState("");
-    // Двухшаговое подтверждение очистки: первый клик «взводит», второй - чистит.
     const [clearArmed, setClearArmed] = useState(false);
     useEffect(() => {
         if (!clearArmed) return;
         const id = window.setTimeout(() => setClearArmed(false), 3500);
         return () => window.clearTimeout(id);
     }, [clearArmed]);
+
     const handleClearClick = () => {
         if (!clearArmed) {
             setClearArmed(true);
@@ -82,13 +86,13 @@ export function CartDrawer() {
         clearCart();
         setClearArmed(false);
     };
+
     const [promoError, setPromoError] = useState("");
     const [promoDiscount, setPromoDiscount] = useState(0);
     const [promoApplying, setPromoApplying] = useState(false);
 
     const hasItems = items.length > 0;
 
-    // Часы работы: пересчёт раз в минуту, стартуем «открыто» (SSR-безопасно).
     const [storeClosed, setStoreClosed] = useState(false);
     useEffect(() => {
         const update = () => setStoreClosed(!isStoreOpen());
@@ -104,6 +108,7 @@ export function CartDrawer() {
     const total = Math.max(0, subtotal - promoDiscount);
     const count = items.reduce((s, i) => s + i.quantity, 0);
     const canProceedToCheckout = hasItems && !hasCartLineProblems;
+    const isCartOpen = true;
 
     useEffect(() => {
         if (appliedPromoCode) setPromoInput(appliedPromoCode);
@@ -120,7 +125,11 @@ export function CartDrawer() {
                 const res = await validatePromo({
                     code: appliedPromoCode,
                     cartAmount: subtotal,
-                    deliveryAmount: 0,
+                    items: items.map((i) => ({
+                        productId: i.productId,
+                        quantity: i.quantity,
+                        price: i.calculatedItemPrice,
+                    })),
                 });
                 if (!cancelled) {
                     setPromoDiscount(res.discountAmount);
@@ -142,7 +151,7 @@ export function CartDrawer() {
         return () => {
             cancelled = true;
         };
-    }, [appliedPromoCode, hasItems, subtotal, setAppliedPromoCode, t]);
+    }, [appliedPromoCode, hasItems, subtotal, setAppliedPromoCode, t, items]);
 
     const applyPromo = async () => {
         setPromoError("");
@@ -214,8 +223,7 @@ export function CartDrawer() {
 
     return (
         <AnimatePresence>
-            {isCartOpen ? (
-                <>
+            <>
                     <MotionBox
                         key="cart-drawer-backdrop"
                         role="presentation"
@@ -227,7 +235,6 @@ export function CartDrawer() {
                         sx={{
                             position: "fixed",
                             inset: 0,
-                            // Поверх mobile bottom-nav (1200) и sticky-плашки корзины (1250)
                             zIndex: theme.zIndex.modal + 9,
                             bgcolor: (t) => alpha(t.palette.common.black, 0.35),
                             backdropFilter: "blur(6px)",
@@ -263,553 +270,187 @@ export function CartDrawer() {
                             zIndex: theme.zIndex.modal + 10,
                         }}
                     >
-            <LayoutGroup id="cart-drawer">
-                <Box
-                    sx={{
-                        height: "100%",
-                        display: "flex",
-                        flexDirection: "column",
-                        overflow: "hidden",
-                        minHeight: 0,
-                    }}
-                >
-                        {/* ── Header ── */}
-                        <Box
-                            sx={{
-                                px: { xs: 2.5, sm: 3 },
-                                py: { xs: 2, sm: 2.5 },
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                borderBottom: "1px solid",
-                                borderColor: "divider",
-                                flexShrink: 0,
-                                bgcolor: "background.paper",
-                            }}
-                        >
-                            <Stack
-                                direction="row"
-                                spacing={1.5}
-                                alignItems="center"
-                                sx={{ flex: 1, minWidth: 0 }}
-                            >
-                                <ShoppingBagOutlinedIcon
-                                    sx={{ color: tokens.brand, fontSize: 22 }}
-                                />
-                                <Typography
-                                    id="cart-drawer-title"
-                                    component="h2"
-                                    variant="h6"
-                                    fontWeight={700}
-                                >
-                                    {t("pageTitle")}
-                                </Typography>
-                                {count > 0 && (
-                                    <motion.div
-                                        layout
-                                        key="cart-badge"
-                                        initial={{ scale: 0.85 }}
-                                        animate={{ scale: 1 }}
-                                        transition={{
-                                            type: "spring",
-                                            stiffness: 520,
-                                            damping: 28,
-                                        }}
-                                        style={{ display: "inline-flex" }}
-                                    >
-                                        <Box
-                                            sx={{
-                                                px: 1,
-                                                py: 0.25,
-                                                borderRadius: 999,
-                                                bgcolor: tokens.brandDim,
-                                                border: `1px solid ${tokens.brand}44`,
-                                            }}
-                                        >
-                                            <AnimatePresence mode="popLayout" initial={false}>
-                                                <motion.div
-                                                    key={count}
-                                                    initial={{ opacity: 0, y: -6 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    exit={{ opacity: 0, y: 6 }}
-                                                    transition={{ duration: 0.18 }}
-                                                    style={{ display: "flex" }}
-                                                >
-                                                    <Typography
-                                                        variant="caption"
-                                                        fontWeight={700}
-                                                        sx={{
-                                                            color: tokens.brand,
-                                                            fontVariantNumeric:
-                                                                "tabular-nums",
-                                                        }}
-                                                    >
-                                                        {count}
-                                                    </Typography>
-                                                </motion.div>
-                                            </AnimatePresence>
-                                        </Box>
-                                    </motion.div>
-                                )}
-                            </Stack>
-                            <IconButton
-                                onClick={closeCart}
-                                size="small"
-                                aria-label={t("aria.close")}
+                        <LayoutGroup id="cart-drawer">
+                            <Box
                                 sx={{
-                                    color: "text.secondary",
-                                    bgcolor: "background.paper",
-                                    border: "1px solid",
-                                    borderColor: "divider",
-                                    "&:hover": {
-                                        bgcolor: "action.hover",
-                                        color: "text.primary",
-                                        borderColor: "divider",
-                                    },
+                                    height: "100%",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    overflow: "hidden",
+                                    minHeight: 0,
                                 }}
                             >
-                                <CloseIcon fontSize="small" aria-hidden focusable="false" />
-                            </IconButton>
-                        </Box>
+                                <CartDrawerHeader count={count} onClose={closeCart} />
 
-                        {/* ── Empty state ── */}
-                        {items.length === 0 && (
-                            <EmptyCart onNavigate={closeCart} />
-                        )}
+                                {items.length === 0 && (
+                                    <EmptyCart onNavigate={closeCart} />
+                                )}
 
-                        {/* ── Item list ── */}
-                        {items.length > 0 && (
-                            <>
-                                <Box
-                                    sx={{
-                                        flex: 1,
-                                        minHeight: 0,
-                                        overflowY: "auto",
-                                        overscrollBehaviorY: "contain",
-                                        WebkitOverflowScrolling: "touch",
-                                        px: { xs: 2.5, sm: 3 },
-                                        py: 2,
-                                    }}
-                                >
-                                    {hasCartLineProblems && (
-                                        <Alert severity="error" sx={{ mb: 2 }}>
-                                            <Stack spacing={1}>
-                                                <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                                    {hasPriceMismatchIssues
-                                                        ? t("validation.orderPriceAlert")
-                                                        : t("lineProblems.pageAlert")}
-                                                </Typography>
-                                                {hasPriceMismatchIssues && (
-                                                    <Button
-                                                        color="inherit"
-                                                        size="small"
-                                                        onClick={() => syncPricesWithServer(serverItems)}
-                                                        sx={{
-                                                            alignSelf: { xs: "stretch", sm: "flex-start" },
-                                                            bgcolor: "action.hover",
-                                                            "&:hover": { bgcolor: "action.focus" },
-                                                        }}
-                                                    >
-                                                        {t("validation.syncPrices")}
-                                                    </Button>
-                                                )}
-                                            </Stack>
-                                        </Alert>
-                                    )}
-                                    <Stack spacing={0} divider={null}>
-                                        {items.map((item, index) => (
-                                            <motion.div
-                                                key={item.cartItemId}
-                                                layout
-                                                initial={{ opacity: 0, scale: 0.9 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                transition={{ duration: 0.15 }}
-                                            >
-                                                <CartLineItem
-                                                    item={item}
-                                                    lineIssue={
-                                                        cartLineIssues[item.cartItemId]
-                                                    }
-                                                    showUnavailableBadge={problematicCartItemIds.includes(
-                                                        item.cartItemId,
-                                                    )}
-                                                    variant="drawer"
-                                                    showDivider={index < items.length - 1}
-                                                    onIncrease={() =>
-                                                        setItemQty(
-                                                            item.cartItemId,
-                                                            item.quantity + 1,
-                                                        )
-                                                    }
-                                                    onDecrease={() =>
-                                                        setItemQty(
-                                                            item.cartItemId,
-                                                            item.quantity - 1,
-                                                        )
-                                                    }
-                                                    onRemove={() =>
-                                                        removeItem(item.cartItemId)
-                                                    }
-                                                />
-                                            </motion.div>
-                                        ))}
-                                    </Stack>
-
-                                    <Box sx={{ mt: 2.5 }}>
-                                        <SauceStrip cartItems={items} />
-                                    </Box>
-
-                                    <Box sx={{ mt: 2 }}>
-                                        <Typography
-                                            variant="overline"
-                                            color="text.secondary"
+                                {items.length > 0 && (
+                                    <>
+                                        <Box
                                             sx={{
-                                                display: "block",
-                                                mb: 1.25,
-                                                letterSpacing: "0.08em",
+                                                flex: 1,
+                                                minHeight: 0,
+                                                overflowY: "auto",
+                                                overscrollBehaviorY: "contain",
+                                                WebkitOverflowScrolling: "touch",
+                                                px: { xs: 2.5, sm: 3 },
+                                                py: 2,
                                             }}
                                         >
-                                            {t("upsell_title")}
-                                        </Typography>
-                                        <UpsellCarousel
-                                            cartItems={items}
-                                            excludeCategorySlugs={["sauces"]}
-                                        />
-                                    </Box>
-
-                                    {/* ── Promo code ── */}
-                                    <Box sx={{ mt: 2 }}>
-                                        <TextField
-                                            value={promoInput}
-                                            onChange={(e) => {
-                                                setPromoInput(
-                                                    e.target.value.toUpperCase(),
-                                                );
-                                                if (promoError) setPromoError("");
-                                            }}
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter") {
-                                                    void applyPromo();
-                                                }
-                                            }}
-                                            placeholder={t("promo.placeholder")}
-                                            size="small"
-                                            fullWidth
-                                            disabled={!hasItems || promoApplying}
-                                            error={Boolean(promoError)}
-                                            helperText={
-                                                promoError ||
-                                                (appliedPromoCode && !promoError
-                                                    ? t("promo.applied", { code: appliedPromoCode })
-                                                    : undefined)
-                                            }
-                                            FormHelperTextProps={{
-                                                sx: {
-                                                    color:
-                                                        appliedPromoCode && !promoError
-                                                            ? tokens.green
-                                                            : undefined,
-                                                },
-                                            }}
-                                            InputProps={{
-                                                startAdornment: (
-                                                    <InputAdornment position="start">
-                                                        <LocalOfferOutlinedIcon
-                                                            sx={{
-                                                                fontSize: 15,
-                                                                color: tokens.textMuted,
-                                                            }}
-                                                        />
-                                                    </InputAdornment>
-                                                ),
-                                                endAdornment: (
-                                                    <InputAdornment
-                                                        position="end"
-                                                        sx={{ gap: 0.5 }}
-                                                    >
-                                                        {appliedPromoCode ? (
-                                                            <IconButton
+                                            {hasCartLineProblems && (
+                                                <Alert severity="error" sx={{ mb: 2 }}>
+                                                    <Stack spacing={1}>
+                                                        <Typography
+                                                            variant="body2"
+                                                            sx={{ fontWeight: 500 }}
+                                                        >
+                                                            {hasPriceMismatchIssues
+                                                                ? t("validation.orderPriceAlert")
+                                                                : t("lineProblems.pageAlert")}
+                                                        </Typography>
+                                                        {hasPriceMismatchIssues && (
+                                                            <Button
+                                                                color="inherit"
                                                                 size="small"
-                                                                aria-label={t("promo.aria.remove")}
-                                                                onClick={clearPromo}
-                                                                edge="end"
+                                                                onClick={() =>
+                                                                    syncPricesWithServer(serverItems)
+                                                                }
                                                                 sx={{
-                                                                    color: tokens.textSecondary,
+                                                                    alignSelf: {
+                                                                        xs: "stretch",
+                                                                        sm: "flex-start",
+                                                                    },
+                                                                    bgcolor: "action.hover",
+                                                                    "&:hover": {
+                                                                        bgcolor: "action.focus",
+                                                                    },
                                                                 }}
                                                             >
-                                                                <HighlightOffOutlinedIcon fontSize="small" />
-                                                            </IconButton>
-                                                        ) : null}
-                                                        <Button
-                                                            size="small"
-                                                            onClick={() => void applyPromo()}
-                                                            disabled={!hasItems || promoApplying}
-                                                            sx={{
-                                                                minWidth: "auto",
-                                                                px: 1.5,
-                                                                py: 0.5,
-                                                                fontSize: 12,
-                                                            }}
-                                                        >
-                                                            {promoApplying ? tCommon("loadingEllipsis") : t("promo.apply")}
-                                                        </Button>
-                                                    </InputAdornment>
-                                                ),
-                                            }}
-                                        />
-                                    </Box>
-                                </Box>
-
-                                {/* ── Footer: totals + CTA ── */}
-                                <Box
-                                    sx={{
-                                        px: { xs: 2.5, sm: 3 },
-                                        pt: { xs: 1.5, sm: 2 },
-                                        pb: {
-                                            xs: "calc(12px + env(safe-area-inset-bottom))",
-                                            sm: 3,
-                                        },
-                                        borderTop: "1px solid",
-                                        borderColor: "divider",
-                                        flexShrink: 0,
-                                        position: "sticky",
-                                        bottom: 0,
-                                        bgcolor: "background.paper",
-                                        boxShadow: (t) =>
-                                            `0 -4px 12px ${alpha(t.palette.common.black, 0.06)}`,
-                                    }}
-                                >
-                                    {/* Breakdown */}
-                                    <Stack spacing={0.75} sx={{ mb: { xs: 1.25, sm: 2 } }}>
-                                        <Stack
-                                            direction="row"
-                                            justifyContent="space-between"
-                                            sx={{ minWidth: 0 }}
-                                        >
-                                            <Typography
-                                                variant="body2"
-                                                color="text.secondary"
-                                                sx={{ minWidth: 0, flex: 1, pr: 1 }}
-                                            >
-                                                {t("items")}
-                                            </Typography>
-                                            <Typography
-                                                variant="body2"
-                                                sx={{
-                                                    fontVariantNumeric:
-                                                        "tabular-nums",
-                                                    flexShrink: 0,
-                                                    whiteSpace: "nowrap",
-                                                }}
-                                            >
-                                                {fmt.format(subtotal)} ֏
-                                            </Typography>
-                                        </Stack>
-                                        {promoDiscount > 0 && appliedPromoCode && (
+                                                                {t("validation.syncPrices")}
+                                                            </Button>
+                                                        )}
+                                                    </Stack>
+                                                </Alert>
+                                            )}
                                             <Stack
-                                                direction="row"
-                                                justifyContent="space-between"
-                                                sx={{ minWidth: 0 }}
+                                                spacing={0}
+                                                divider={null}
+                                                component={motion.div}
+                                                layout
                                             >
-                                                <Typography
-                                                    variant="body2"
-                                                    sx={{
-                                                        color: tokens.green,
-                                                        minWidth: 0,
-                                                        flex: 1,
-                                                        pr: 1,
-                                                        overflow: "hidden",
-                                                        textOverflow: "ellipsis",
-                                                        whiteSpace: "nowrap",
-                                                    }}
-                                                >
-                                                    {t("promo.discountLine", { code: appliedPromoCode })}
-                                                </Typography>
-                                                <Typography
-                                                    variant="body2"
-                                                    sx={{
-                                                        color: tokens.green,
-                                                        fontVariantNumeric:
-                                                            "tabular-nums",
-                                                        flexShrink: 0,
-                                                        whiteSpace: "nowrap",
-                                                    }}
-                                                    fontWeight={600}
-                                                >
-                                                    −{fmt.format(promoDiscount)} ֏
-                                                </Typography>
+                                                <AnimatePresence initial={false}>
+                                                    {items.map((item, index) => (
+                                                        <motion.div
+                                                            key={item.cartItemId}
+                                                            layout
+                                                            initial={{
+                                                                opacity: 0,
+                                                                scale: 0.95,
+                                                                height: 0,
+                                                            }}
+                                                            animate={{
+                                                                opacity: 1,
+                                                                scale: 1,
+                                                                height: "auto",
+                                                            }}
+                                                            exit={{
+                                                                opacity: 0,
+                                                                scale: 0.95,
+                                                                height: 0,
+                                                            }}
+                                                            transition={{ duration: 0.2 }}
+                                                        >
+                                                            <CartLineItem
+                                                                item={item}
+                                                                lineIssue={
+                                                                    cartLineIssues[item.cartItemId]
+                                                                }
+                                                                showUnavailableBadge={problematicCartItemIds.includes(
+                                                                    item.cartItemId,
+                                                                )}
+                                                                variant="drawer"
+                                                                showDivider={
+                                                                    index < items.length - 1
+                                                                }
+                                                                onIncrease={() =>
+                                                                    setItemQty(
+                                                                        item.cartItemId,
+                                                                        item.quantity + 1,
+                                                                    )
+                                                                }
+                                                                onDecrease={() =>
+                                                                    setItemQty(
+                                                                        item.cartItemId,
+                                                                        item.quantity - 1,
+                                                                    )
+                                                                }
+                                                                onRemove={() =>
+                                                                    removeItem(item.cartItemId)
+                                                                }
+                                                            />
+                                                        </motion.div>
+                                                    ))}
+                                                </AnimatePresence>
                                             </Stack>
-                                        )}
-                                        <Stack
-                                            direction="row"
-                                            justifyContent="space-between"
-                                            sx={{ minWidth: 0 }}
-                                        >
-                                            <Typography
-                                                variant="body2"
-                                                color="text.secondary"
-                                                sx={{ minWidth: 0, flex: 1, pr: 1 }}
-                                            >
-                                                {t("delivery")}
-                                            </Typography>
-                                            <Typography
-                                                variant="body2"
-                                                color="text.secondary"
-                                                fontWeight={500}
-                                                sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
-                                            >
-                                                {t("deliveryAtCheckout")}
-                                            </Typography>
-                                        </Stack>
-                                    </Stack>
 
-                                    <Divider sx={{ mb: { xs: 1.25, sm: 2 } }} />
+                                            <Box sx={{ mt: 2.5 }}>
+                                                <SauceStrip cartItems={items} />
+                                            </Box>
 
-                                    {/* Total */}
-                                    <Stack
-                                        direction="row"
-                                        justifyContent="space-between"
-                                        sx={{ mb: { xs: 1.25, sm: 2 }, minWidth: 0 }}
-                                        component={motion.div}
-                                        layout
-                                        transition={{
-                                            type: "spring",
-                                            stiffness: 420,
-                                            damping: 34,
-                                        }}
-                                    >
-                                        <Typography
-                                            variant="subtitle1"
-                                            fontWeight={700}
-                                            sx={{ minWidth: 0, flex: 1, pr: 1 }}
-                                        >
-                                            {t("total")}
-                                        </Typography>
-                                        <motion.div
-                                            key={total}
-                                            layout
-                                            initial={{ scale: 0.94, opacity: 0.75 }}
-                                            animate={{ scale: 1, opacity: 1 }}
-                                            transition={{ duration: 0.2 }}
-                                            style={{ flexShrink: 0 }}
-                                        >
-                                            <Typography
-                                                variant="subtitle1"
-                                                fontWeight={800}
-                                                sx={{
-                                                    color: tokens.brand,
-                                                    fontSize: "1.1rem",
-                                                    fontVariantNumeric:
-                                                        "tabular-nums",
+                                            <Box sx={{ mt: 2 }}>
+                                                <Typography
+                                                    variant="overline"
+                                                    color="text.secondary"
+                                                    sx={{
+                                                        display: "block",
+                                                        mb: 1.25,
+                                                        letterSpacing: "0.08em",
+                                                    }}
+                                                >
+                                                    {t("upsell_title")}
+                                                </Typography>
+                                                <UpsellCarousel
+                                                    cartItems={items}
+                                                    excludeCategorySlugs={["sauces"]}
+                                                />
+                                            </Box>
+
+                                            <CartDrawerPromo
+                                                promoInput={promoInput}
+                                                promoError={promoError}
+                                                promoApplying={promoApplying}
+                                                appliedPromoCode={appliedPromoCode}
+                                                hasItems={hasItems}
+                                                onPromoInputChange={(value) => {
+                                                    setPromoInput(value);
+                                                    if (promoError) setPromoError("");
                                                 }}
-                                            >
-                                                <CountUp
-                                                    end={total}
-                                                    duration={0.45}
-                                                    separator=" "
-                                                    decimals={0}
-                                                />{" "}
-                                                ֏
-                                            </Typography>
-                                        </motion.div>
-                                    </Stack>
+                                                onApply={() => void applyPromo()}
+                                                onClear={clearPromo}
+                                            />
+                                        </Box>
 
-                                    {hasCartLineProblems && (
-                                        <Typography
-                                            variant="caption"
-                                            sx={{
-                                                display: "block",
-                                                mb: 1,
-                                                color: tokens.red,
-                                                textAlign: "center",
-                                                lineHeight: 1.45,
-                                            }}
-                                        >
-                                            {t("lineProblems.removeBeforeCheckout")}
-                                        </Typography>
-                                    )}
-
-                                    {storeClosed && (
-                                        <Typography
-                                            variant="caption"
-                                            sx={{
-                                                display: "block",
-                                                mb: 1,
-                                                textAlign: "center",
-                                                lineHeight: 1.45,
-                                                color: "#B45309",
-                                            }}
-                                        >
-                                            {t("closedNotice", {
-                                                opens: OPENING_HOURS.opens,
-                                            })}
-                                        </Typography>
-                                    )}
-
-                                    <MinOrderProgress total={total} />
-
-                                    {/* CTA */}
-                                    {isCheckoutPage ? (
-                                        <AppButton
-                                            component={Link}
-                                            href="/checkout"
-                                            onClick={closeCart}
-                                            variant="outlined"
-                                            fullWidth
-                                            size="small"
-                                            sx={{
-                                                fontWeight: 600,
-                                                fontSize: 13,
-                                                minHeight: 40,
-                                            }}
-                                        >
-                                            {t("returnToCheckout")}
-                                        </AppButton>
-                                    ) : (
-                                        <AppButton
-                                            component={Link}
-                                            href="/checkout"
-                                            onClick={closeCart}
-                                            variant="contained"
-                                            fullWidth
-                                            size="large"
-                                            disabled={!canProceedToCheckout}
-                                            sx={{
-                                                fontWeight: 700,
-                                                fontSize: { xs: "1rem" },
-                                                minHeight: 48,
-                                            }}
-                                        >
-                                            {t("checkout")} · {fmt.format(total)} ֏
-                                        </AppButton>
-                                    )}
-
-                                    {/* Clear */}
-                                    <AppButton
-                                        onClick={handleClearClick}
-                                        variant="text"
-                                        fullWidth
-                                        size="small"
-                                        sx={{
-                                            mt: 1,
-                                            color: clearArmed
-                                                ? tokens.red
-                                                : tokens.textMuted,
-                                            fontWeight: clearArmed ? 700 : 400,
-                                            fontSize: 12,
-                                            "&:hover": { color: tokens.red },
-                                        }}
-                                    >
-                                        {clearArmed ? t("clearConfirm") : t("clear")}
-                                    </AppButton>
-                                </Box>
-                            </>
-                        )}
-                </Box>
-            </LayoutGroup>
+                                        <CartDrawerFooter
+                                            subtotal={subtotal}
+                                            total={total}
+                                            promoDiscount={promoDiscount}
+                                            appliedPromoCode={appliedPromoCode}
+                                            storeClosed={storeClosed}
+                                            hasCartLineProblems={hasCartLineProblems}
+                                            canProceedToCheckout={canProceedToCheckout}
+                                            isCheckoutPage={isCheckoutPage}
+                                            clearArmed={clearArmed}
+                                            onClose={closeCart}
+                                            onClearClick={handleClearClick}
+                                        />
+                                    </>
+                                )}
+                            </Box>
+                        </LayoutGroup>
                     </MotionBox>
                 </>
-            ) : null}
         </AnimatePresence>
     );
 }

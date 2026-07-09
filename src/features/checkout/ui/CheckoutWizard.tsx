@@ -14,6 +14,7 @@ import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 import { FormProvider } from "react-hook-form";
+import { useShallow } from "zustand/react/shallow";
 
 import { useCartLineValidation, useCartStore } from "@/features/cart";
 import { DELIVERY_ETA } from "@/lib/site-config";
@@ -39,11 +40,21 @@ export function CheckoutWizard() {
     const keyboardInset = useVisualViewportBottomInset();
     const keyboardOpen = keyboardInset > 0;
 
-    const items = useCartStore((s) => s.items);
-    const clearCart = useCartStore((s) => s.clear);
-    const hasPriceMismatch = useCartStore((s) => s.hasPriceMismatch);
-    const isPlacingOrder = useCartStore((s) => s.isPlacingOrder);
-    const syncPricesWithServer = useCartStore((s) => s.syncPricesWithServer);
+    const {
+        items,
+        clearCart,
+        hasPriceMismatch,
+        isPlacingOrder,
+        syncPricesWithServer,
+    } = useCartStore(
+        useShallow((s) => ({
+            items: s.items,
+            clearCart: s.clear,
+            hasPriceMismatch: s.hasPriceMismatch,
+            isPlacingOrder: s.isPlacingOrder,
+            syncPricesWithServer: s.syncPricesWithServer,
+        })),
+    );
 
     const hasItems = items.length > 0;
 

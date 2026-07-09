@@ -3,13 +3,13 @@
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { motion } from "framer-motion";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 
 import { Link } from "@/i18n/server";
 import type { StorefrontCategory } from "@/lib/i18n-utils";
+import { menuCategoryPath } from "@/lib/menu-paths";
 import { tokens } from "@/shared/ui/theme";
 
 export type CategoryPillsMode = "link" | "interactive";
@@ -29,8 +29,7 @@ export type CategoryPillsListProps = {
 };
 
 function hrefForSlug(slug: string) {
-    if (slug === "all") return "/menu";
-    return `/menu?category=${encodeURIComponent(slug)}`;
+    return menuCategoryPath(slug);
 }
 
 function isAllSlug(slug?: string) {
@@ -218,28 +217,17 @@ export function CategoryPillsList({
                                 borderColor: isActive
                                     ? tokens.brand
                                     : tokens.border,
-                                bgcolor: "transparent",
+                                bgcolor: isActive
+                                    ? tokens.brandDim
+                                    : "transparent",
                                 position: "relative",
                                 cursor: "pointer",
                                 flexShrink: 0,
                                 transition:
-                                    "border-color 0.2s, transform 0.15s",
+                                    "border-color 0.2s, background-color 0.2s, transform 0.15s",
                                 "&:active": { transform: "scale(0.96)" },
                             }}
                         >
-                            {isActive && (
-                                <motion.div
-                                    layoutId="active-pill"
-                                    style={{
-                                        position: "absolute",
-                                        inset: 0,
-                                        backgroundColor: tokens.brandDim,
-                                        borderRadius: 999,
-                                        zIndex: -1,
-                                    }}
-                                    transition={{ type: "spring", stiffness: 350, damping: 25 }}
-                                />
-                            )}
                             <Box
                                 sx={{
                                     position: "relative",
@@ -255,13 +243,15 @@ export function CategoryPillsList({
                                 }}
                             >
                                 {pill.image ? (
-                                    <Image
-                                        src={pill.image}
-                                        alt=""
-                                        fill
-                                        sizes="30px"
-                                        style={{ objectFit: "cover" }}
-                                    />
+                                    <div style={{ position: "absolute", inset: 0 }}>
+                                        <Image
+                                            src={pill.image}
+                                            alt=""
+                                            fill
+                                            sizes="30px"
+                                            style={{ objectFit: "cover" }}
+                                        />
+                                    </div>
                                 ) : (
                                     <Box
                                         component="span"
@@ -328,13 +318,15 @@ export function CategoryPillsList({
                             }}
                         >
                             {pill.image ? (
-                                <Image
-                                    src={pill.image}
-                                    alt={pill.name}
-                                    fill
-                                    sizes="(max-width: 600px) 108px, 124px"
-                                    style={{ objectFit: "cover" }}
-                                />
+                                <div style={{ position: "absolute", inset: 0 }}>
+                                    <Image
+                                        src={pill.image}
+                                        alt={pill.name}
+                                        fill
+                                        sizes="(max-width: 600px) 108px, 124px"
+                                        style={{ objectFit: "cover" }}
+                                    />
+                                </div>
                             ) : (
                                 <Box
                                     component="span"

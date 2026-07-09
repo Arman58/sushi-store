@@ -12,7 +12,7 @@ const OG_LOCALE: Record<AppLocale, string> = {
 
 type LocalizedMetadataInput = {
     locale: string;
-    /** Path without locale prefix, e.g. "/", "/menu", "/menu?category=sushi" */
+    /** Path without locale prefix, e.g. "/", "/menu", "/menu/c/sushi" */
     href: string;
     title: string;
     description: string;

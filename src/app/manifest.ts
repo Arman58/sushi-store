@@ -23,6 +23,13 @@ export default function manifest(): MetadataRoute.Manifest {
                 src: "/pwa/icon-512x512.png",
                 sizes: "512x512",
                 type: "image/png",
+                purpose: "any",
+            },
+            {
+                src: "/pwa/icon-512x512.png",
+                sizes: "512x512",
+                type: "image/png",
+                purpose: "maskable",
             },
             {
                 src: "/pwa/apple-touch-icon-180x180.png",
@@ -30,11 +37,12 @@ export default function manifest(): MetadataRoute.Manifest {
                 type: "image/png",
             },
         ],
+        // Locale-agnostic paths: next-intl `as-needed` redirects to the user's locale.
         shortcuts: [
             {
                 name: "Меню",
                 short_name: "Меню",
-                url: "/ru/menu",
+                url: "/menu",
                 icons: [
                     {
                         src: "/pwa/icon-192x192.png",
@@ -46,7 +54,7 @@ export default function manifest(): MetadataRoute.Manifest {
             {
                 name: "Мои заказы",
                 short_name: "Заказы",
-                url: "/ru/profile",
+                url: "/profile",
                 icons: [
                     {
                         src: "/pwa/icon-192x192.png",
@@ -58,7 +66,7 @@ export default function manifest(): MetadataRoute.Manifest {
             {
                 name: "Контакты",
                 short_name: "Контакты",
-                url: "/ru/contacts",
+                url: "/contacts",
                 icons: [
                     {
                         src: "/pwa/icon-192x192.png",

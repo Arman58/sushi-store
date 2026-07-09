@@ -10,23 +10,84 @@ import type { AddToCartPayload, CartItem } from "./types";
 const lastAddByLineAt = new Map<string, number>();
 const ADD_LINE_THROTTLE_MS = 150;
 
+function buildQtyByProductId(items: CartItem[]): Record<number, number> {
+    const map: Record<number, number> = {};
+    for (const item of items) {
+        map[item.productId] = (map[item.productId] ?? 0) + item.quantity;
+    }
+    return map;
+}
+
+function withQty(items: CartItem[]) {
+    const qtyByProductId: Record<number, number> = {};
+    let cartTotalCount = 0;
+    let cartTotalPrice = 0;
+    for (const item of items) {
+        qtyByProductId[item.productId] =
+            (qtyByProductId[item.productId] ?? 0) + item.quantity;
+        cartTotalCount += item.quantity;
+        cartTotalPrice += item.calculatedItemPrice * item.quantity;
+    }
+    return { items, qtyByProductId, cartTotalCount, cartTotalPrice };
+}
+
+/** Defer persist writes so localStorage I/O is not on the click stack (INP). */
+function createDeferredLocalStorage(): Storage {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let pendingKey: string | null = null;
+    let pendingValue: string | null = null;
+
+    const flush = () => {
+        timer = null;
+        if (pendingKey != null && pendingValue != null) {
+            try {
+                localStorage.setItem(pendingKey, pendingValue);
+            } catch {
+                /* private mode */
+            }
+            pendingKey = null;
+            pendingValue = null;
+        }
+    };
+
+    return {
+        get length() {
+            return localStorage.length;
+        },
+        clear: () => localStorage.clear(),
+        getItem: (key) => localStorage.getItem(key),
+        key: (index) => localStorage.key(index),
+        removeItem: (key) => {
+            if (pendingKey === key) {
+                pendingKey = null;
+                pendingValue = null;
+            }
+            localStorage.removeItem(key);
+        },
+        setItem: (key, value) => {
+            pendingKey = key;
+            pendingValue = value;
+            if (timer != null) clearTimeout(timer);
+            timer = setTimeout(flush, 0);
+        },
+    };
+}
+
 type CartState = {
-    // ── Data ────────────────────────────────────────────────────────
     items: CartItem[];
-    /** Нормализованный промокод; скидка пересчитывается через /api/validate-promo при изменении корзины */
+    /** O(1) quantity lookup for product cards (derived, not persisted). */
+    qtyByProductId: Record<number, number>;
+    /** Precomputed totals so header/nav/menu don't reduce(items) on every add. */
+    cartTotalCount: number;
+    cartTotalPrice: number;
     appliedPromoCode: string | null;
     hasPriceMismatch: boolean;
     lastAddedTitle: string | null;
     lastAddedAt: number | null;
-
-    // ── UI state (not persisted) ────────────────────────────────────
     isCartOpen: boolean;
-    /** Защита от повторного сабмита заказа (не персистится). */
     isPlacingOrder: boolean;
     setPlacingOrder: (value: boolean) => void;
-    /** Monotonic trigger; header toasts re-render when this changes. */
     addToast: number;
-    /** Сообщение глобального тоста (авторизация, профиль и т.д.). */
     appToastMessage: string | null;
     appToastSeverity: "success" | "error" | null;
     openCart: () => void;
@@ -34,13 +95,10 @@ type CartState = {
     toggleCart: () => void;
     setAddToast: (id: number) => void;
     showAppToast: (message: string, severity?: "success" | "error") => void;
-
-    // ── Actions ─────────────────────────────────────────────────────
     addItem: (payload: AddToCartPayload) => void;
     removeItem: (cartItemId: string) => void;
     clear: () => void;
     setItemQuantity: (cartItemId: string, quantity: number) => void;
-    /** Уменьшает qty у первой строки с этим productId (для «−» на карточке при нескольких вариантах). */
     decrementFirstLineForProduct: (productId: number) => void;
     setItems: (items: CartItem[]) => void;
     markPriceMismatch: () => void;
@@ -50,21 +108,21 @@ type CartState = {
         serverItems: Array<{
             cartItemId: string;
             serverUnitPrice?: number;
-        }>
+        }>,
     ) => void;
 };
 
 export const useCartStore = create<CartState>()(
     persist(
         (set) => ({
-            // ── Initial data state ──────────────────────────────────
             items: [],
+            qtyByProductId: {},
+            cartTotalCount: 0,
+            cartTotalPrice: 0,
             appliedPromoCode: null,
             hasPriceMismatch: false,
             lastAddedTitle: null,
             lastAddedAt: null,
-
-            // ── Initial UI state ────────────────────────────────────
             isCartOpen: false,
             isPlacingOrder: false,
             setPlacingOrder: (value) => set({ isPlacingOrder: value }),
@@ -91,7 +149,6 @@ export const useCartStore = create<CartState>()(
             closeCart: () => set({ isCartOpen: false }),
             toggleCart: () => set((s) => ({ isCartOpen: !s.isCartOpen })),
 
-            // ── Actions ─────────────────────────────────────────────
             addItem: (payload) => {
                 const cartItemId = buildCartItemId(
                     payload.productId,
@@ -107,19 +164,16 @@ export const useCartStore = create<CartState>()(
                     const existing = state.items.find(
                         (item) => item.cartItemId === cartItemId,
                     );
-
                     const toastId = Date.now();
 
                     if (existing) {
+                        const items = state.items.map((item) =>
+                            item.cartItemId === cartItemId
+                                ? { ...item, quantity: item.quantity + 1 }
+                                : item,
+                        );
                         return {
-                            items: state.items.map((item) =>
-                                item.cartItemId === cartItemId
-                                    ? {
-                                          ...item,
-                                          quantity: item.quantity + 1,
-                                      }
-                                    : item,
-                            ),
+                            ...withQty(items),
                             lastAddedTitle: payload.name,
                             lastAddedAt: toastId,
                             hasPriceMismatch: false,
@@ -129,21 +183,22 @@ export const useCartStore = create<CartState>()(
                         };
                     }
 
+                    const items = [
+                        ...state.items,
+                        {
+                            cartItemId,
+                            productId: payload.productId,
+                            name: payload.name,
+                            basePrice: payload.basePrice,
+                            calculatedItemPrice: payload.calculatedItemPrice,
+                            selectedModifiers: payload.selectedModifiers,
+                            quantity: 1,
+                            image: payload.image,
+                        } satisfies CartItem,
+                    ];
+
                     return {
-                        items: [
-                            ...state.items,
-                            {
-                                cartItemId,
-                                productId: payload.productId,
-                                name: payload.name,
-                                basePrice: payload.basePrice,
-                                calculatedItemPrice:
-                                    payload.calculatedItemPrice,
-                                selectedModifiers: payload.selectedModifiers,
-                                quantity: 1,
-                                image: payload.image,
-                            } satisfies CartItem,
-                        ],
+                        ...withQty(items),
                         hasPriceMismatch: false,
                         lastAddedTitle: payload.name,
                         lastAddedAt: toastId,
@@ -155,15 +210,20 @@ export const useCartStore = create<CartState>()(
             },
 
             removeItem: (cartItemId) =>
-                set((state) => ({
-                    items: state.items.filter(
-                        (item) => item.cartItemId !== cartItemId,
+                set((state) =>
+                    withQty(
+                        state.items.filter(
+                            (item) => item.cartItemId !== cartItemId,
+                        ),
                     ),
-                })),
+                ),
 
             clear: () =>
                 set({
                     items: [],
+                    qtyByProductId: {},
+                    cartTotalCount: 0,
+                    cartTotalPrice: 0,
                     appliedPromoCode: null,
                     hasPriceMismatch: false,
                 }),
@@ -176,23 +236,24 @@ export const useCartStore = create<CartState>()(
 
                     if (quantity <= 0) {
                         lastAddByLineAt.delete(cartItemId);
-                        return {
-                            items: state.items.filter(
+                        return withQty(
+                            state.items.filter(
                                 (item) => item.cartItemId !== cartItemId,
                             ),
-                        };
+                        );
                     }
 
                     const isIncrease =
                         existing != null && quantity > existing.quantity;
                     const toastId = isIncrease ? Date.now() : state.addToast;
+                    const items = state.items.map((item) =>
+                        item.cartItemId === cartItemId
+                            ? { ...item, quantity }
+                            : item,
+                    );
 
                     return {
-                        items: state.items.map((item) =>
-                            item.cartItemId === cartItemId
-                                ? { ...item, quantity }
-                                : item,
-                        ),
+                        ...withQty(items),
                         ...(isIncrease && existing
                             ? {
                                   lastAddedTitle: existing.name,
@@ -214,56 +275,60 @@ export const useCartStore = create<CartState>()(
                     const item = state.items[idx];
                     if (item.quantity > 1) {
                         const items = [...state.items];
-                        items[idx] = {
-                            ...item,
-                            quantity: item.quantity - 1,
-                        };
-                        return { items };
+                        items[idx] = { ...item, quantity: item.quantity - 1 };
+                        return withQty(items);
                     }
-                    return {
-                        items: state.items.filter((_, i) => i !== idx),
-                    };
+                    return withQty(state.items.filter((_, i) => i !== idx));
                 }),
 
-            setItems: (items) => set({ items, hasPriceMismatch: false }),
+            setItems: (items) =>
+                set({ ...withQty(items), hasPriceMismatch: false }),
 
             markPriceMismatch: () => set({ hasPriceMismatch: true }),
-
             resetPriceMismatch: () => set({ hasPriceMismatch: false }),
-
             setAppliedPromoCode: (code) => set({ appliedPromoCode: code }),
 
-            syncPricesWithServer: (serverItems) => set((state) => {
-                let updated = false;
-                const newItems = state.items.map((item) => {
-                    const serverMatch = serverItems.find(s => s.cartItemId === item.cartItemId);
-                    if (serverMatch?.serverUnitPrice != null && serverMatch.serverUnitPrice !== item.calculatedItemPrice) {
-                        updated = true;
-                        // Modifiers are stored as part of the line. If the server says the total line price has changed,
-                        // we must update the calculatedItemPrice and basePrice to reflect this.
-                        return {
-                            ...item,
-                            calculatedItemPrice: serverMatch.serverUnitPrice,
-                            basePrice: serverMatch.serverUnitPrice - item.selectedModifiers.reduce((sum, m) => sum + m.priceDelta, 0),
-                        };
-                    }
-                    return item;
-                });
+            syncPricesWithServer: (serverItems) =>
+                set((state) => {
+                    let updated = false;
+                    const newItems = state.items.map((item) => {
+                        const serverMatch = serverItems.find(
+                            (s) => s.cartItemId === item.cartItemId,
+                        );
+                        if (
+                            serverMatch?.serverUnitPrice != null &&
+                            serverMatch.serverUnitPrice !==
+                                item.calculatedItemPrice
+                        ) {
+                            updated = true;
+                            return {
+                                ...item,
+                                calculatedItemPrice: serverMatch.serverUnitPrice,
+                                basePrice:
+                                    serverMatch.serverUnitPrice -
+                                    item.selectedModifiers.reduce(
+                                        (sum, m) => sum + m.priceDelta,
+                                        0,
+                                    ),
+                            };
+                        }
+                        return item;
+                    });
 
-                if (!updated) return state;
+                    if (!updated) return state;
 
-                return {
-                    items: newItems,
-                    hasPriceMismatch: false,
-                    addToast: Date.now(),
-                    appToastMessage: "Цены в корзине обновлены",
-                    appToastSeverity: "success",
-                };
-            }),
+                    return {
+                        ...withQty(newItems),
+                        hasPriceMismatch: false,
+                        addToast: Date.now(),
+                        appToastMessage: "Цены в корзине обновлены",
+                        appToastSeverity: "success" as const,
+                    };
+                }),
         }),
         {
             name: "sushi-cart-v2",
-            storage: createJSONStorage(() => localStorage),
+            storage: createJSONStorage(() => createDeferredLocalStorage()),
             version: 5,
             migrate: (persistedState, fromVersion) => {
                 const state = persistedState as {
@@ -357,12 +422,20 @@ export const useCartStore = create<CartState>()(
                 }
                 return state;
             },
-            // Only persist data - never persist UI state like isCartOpen
             partialize: (state) => ({
                 items: state.items,
                 hasPriceMismatch: state.hasPriceMismatch,
                 appliedPromoCode: state.appliedPromoCode,
             }),
+            merge: (persisted, current) => {
+                const p = (persisted ?? {}) as Partial<CartState>;
+                const items = p.items ?? current.items;
+                return {
+                    ...current,
+                    ...p,
+                    ...withQty(items),
+                };
+            },
         },
     ),
 );

@@ -26,8 +26,10 @@ export async function GET(request: Request) {
                 modifierGroups: {
                     orderBy: [{ position: "asc" }, { id: "asc" }],
                     include: {
+                        translations: true,
                         modifiers: {
                             orderBy: [{ position: "asc" }, { id: "asc" }],
+                            include: { translations: true },
                         },
                     },
                 },

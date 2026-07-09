@@ -30,7 +30,7 @@ const NonNegativeInt = z.number().int().nonnegative();
 const orderItemSchema = z
     .object({
         productId: PositiveInt,
-        name: z.string().min(1, "form.item.invalidName"),
+        name: z.string(),
         price: PositiveInt,
         quantity: PositiveInt,
         selectedModifierIds: z.array(PositiveInt).optional(),

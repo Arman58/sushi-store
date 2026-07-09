@@ -88,6 +88,7 @@ export function HeaderEta() {
                     lineHeight: 1.2,
                     fontSize: 11.5,
                     fontVariantNumeric: "tabular-nums",
+                    minWidth: 72,
                 }}
             >
                 {value}

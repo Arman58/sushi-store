@@ -157,6 +157,7 @@ export function ContactSection({
                         placeholder={tCheckout("phoneTemplate")}
                         autoComplete="tel"
                         inputProps={{
+                            type: "tel",
                             inputMode: "tel",
                             enterKeyHint: "next",
                             autoComplete: "tel",

@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { translationsToLocalized } from "@/lib/admin-localized";
 import { validateBannerHref } from "@/lib/banner-href";
 import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
+import { invalidateBannersCache } from "@/lib/revalidate-storefront";
 import { verifyAdmin } from "@/lib/verify-admin";
 
 const bannerPatchSchema = z
@@ -19,9 +21,20 @@ const bannerPatchSchema = z
     })
     .refine((d) => Object.keys(d).length > 0, "Nothing to update");
 
+const LOCALES = ["hy", "ru", "en"] as const;
+
 function parseId(idParam: string): number | null {
     const id = Number.parseInt(idParam, 10);
     return Number.isInteger(id) && id > 0 ? id : null;
+}
+
+function mapBannerRow<T extends { translations?: unknown }>(banner: T) {
+    const { translations, ...rest } = banner;
+    return {
+        ...rest,
+        title: translationsToLocalized(translations, "title"),
+        ctaText: translationsToLocalized(translations, "ctaText"),
+    };
 }
 
 export async function PATCH(
@@ -40,7 +53,6 @@ export async function PATCH(
     const parsed = await parseJsonBody(request, bannerPatchSchema);
     if (!parsed.ok) return parsed.response;
 
-    // Ссылку валидируем только если её прислали в патче.
     let normalizedHref: string | null | undefined;
     if (parsed.data.href !== undefined) {
         const href = validateBannerHref(parsed.data.href);
@@ -54,44 +66,71 @@ export async function PATCH(
     }
 
     try {
-        const banner = await prisma.banner.update({
-            where: { id },
-            data: {
-                ...(parsed.data.image !== undefined
-                    ? { image: parsed.data.image }
-                    : {}),
-                ...(parsed.data.title !== undefined
-                    ? { title: parsed.data.title }
-                    : {}),
-                ...(parsed.data.ctaText !== undefined
-                    ? { ctaText: parsed.data.ctaText }
-                    : {}),
-                ...(normalizedHref !== undefined
-                    ? { href: normalizedHref }
-                    : {}),
-                ...(parsed.data.isActive !== undefined
-                    ? { isActive: parsed.data.isActive }
-                    : {}),
-                ...(parsed.data.position !== undefined
-                    ? { position: parsed.data.position }
-                    : {}),
-                ...(parsed.data.startsAt !== undefined
-                    ? {
-                          startsAt: parsed.data.startsAt
-                              ? new Date(parsed.data.startsAt)
-                              : null,
-                      }
-                    : {}),
-                ...(parsed.data.endsAt !== undefined
-                    ? {
-                          endsAt: parsed.data.endsAt
-                              ? new Date(parsed.data.endsAt)
-                              : null,
-                      }
-                    : {}),
-            },
+        const banner = await prisma.$transaction(async (tx) => {
+            if (parsed.data.title !== undefined || parsed.data.ctaText !== undefined) {
+                const titleData = (parsed.data.title ?? {}) as Record<string, string>;
+                const ctaData = (parsed.data.ctaText ?? {}) as Record<string, string>;
+                const existing = await tx.bannerTranslation.findMany({
+                    where: { bannerId: id },
+                });
+                const byLocale = new Map(existing.map((t) => [t.locale, t]));
+
+                await Promise.all(
+                    LOCALES.map((locale) => {
+                        const prev = byLocale.get(locale);
+                        const title =
+                            parsed.data.title !== undefined
+                                ? titleData[locale] || ""
+                                : prev?.title || "";
+                        const ctaText =
+                            parsed.data.ctaText !== undefined
+                                ? ctaData[locale] || ""
+                                : prev?.ctaText || "";
+                        return tx.bannerTranslation.upsert({
+                            where: { bannerId_locale: { bannerId: id, locale } },
+                            create: { bannerId: id, locale, title, ctaText },
+                            update: { title, ctaText },
+                        });
+                    }),
+                );
+            }
+
+            return tx.banner.update({
+                where: { id },
+                data: {
+                    ...(parsed.data.image !== undefined
+                        ? { image: parsed.data.image }
+                        : {}),
+                    ...(normalizedHref !== undefined
+                        ? { href: normalizedHref }
+                        : {}),
+                    ...(parsed.data.isActive !== undefined
+                        ? { isActive: parsed.data.isActive }
+                        : {}),
+                    ...(parsed.data.position !== undefined
+                        ? { position: parsed.data.position }
+                        : {}),
+                    ...(parsed.data.startsAt !== undefined
+                        ? {
+                              startsAt: parsed.data.startsAt
+                                  ? new Date(parsed.data.startsAt)
+                                  : null,
+                          }
+                        : {}),
+                    ...(parsed.data.endsAt !== undefined
+                        ? {
+                              endsAt: parsed.data.endsAt
+                                  ? new Date(parsed.data.endsAt)
+                                  : null,
+                          }
+                        : {}),
+                },
+                include: { translations: true },
+            });
         });
-        return NextResponse.json(banner);
+
+        invalidateBannersCache();
+        return NextResponse.json(mapBannerRow(banner));
     } catch (error) {
         console.error("[ADMIN BANNERS] update failed:", error);
         return NextResponse.json(
@@ -122,6 +161,7 @@ export async function DELETE(
 
     try {
         await prisma.banner.delete({ where: { id } });
+        invalidateBannersCache();
         return NextResponse.json({ ok: true });
     } catch {
         return NextResponse.json(

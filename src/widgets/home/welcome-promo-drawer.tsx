@@ -12,34 +12,56 @@ import { useCartStore } from "@/features/cart";
 import { triggerHaptic } from "@/shared/lib/haptic";
 import { AppButton } from "@/shared/ui";
 
+const SEEN_KEY = "hasSeenWelcomePromo";
+/** After first paint / LCP window — avoid CLS from scroll-lock at 2s. */
+const OPEN_DELAY_MS = 8_000;
+
 export function WelcomePromoDrawer() {
     const t = useTranslations();
     const [open, setOpen] = useState(false);
     const setAppliedPromoCode = useCartStore((state) => state.setAppliedPromoCode);
 
     useEffect(() => {
-        const hasSeen = localStorage.getItem("hasSeenWelcomePromo");
-        if (!hasSeen) {
-            // Show after 2 seconds
-            const timer = setTimeout(() => {
-                setOpen(true);
-                localStorage.setItem("hasSeenWelcomePromo", "true");
-            }, 2000);
-            return () => clearTimeout(timer);
+        try {
+            const seen = localStorage.getItem(SEEN_KEY);
+            if (seen === "1" || seen === "true") return;
+        } catch {
+            return;
         }
+
+        const timer = window.setTimeout(() => {
+            try {
+                localStorage.setItem(SEEN_KEY, "1");
+            } catch {
+                /* ignore */
+            }
+            setOpen(true);
+        }, OPEN_DELAY_MS);
+
+        return () => window.clearTimeout(timer);
     }, []);
+
+    const handleClose = () => {
+        if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+        }
+        setOpen(false);
+    };
 
     const handleApply = () => {
         triggerHaptic("success");
         setAppliedPromoCode("WELCOME10");
-        setOpen(false);
+        handleClose();
     };
 
     return (
         <Drawer
             anchor="bottom"
             open={open}
-            onClose={() => setOpen(false)}
+            onClose={handleClose}
+            disableRestoreFocus
+            // Scroll-lock adds body padding for scrollbar → huge CLS on open.
+            disableScrollLock
             PaperProps={{
                 sx: {
                     borderTopLeftRadius: 24,

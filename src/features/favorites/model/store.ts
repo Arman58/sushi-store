@@ -24,11 +24,14 @@ function readStoredIds(): number[] {
 }
 
 function writeStoredIds(ids: number[]) {
-    try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
-    } catch {
-        /* приватный режим / квота - избранное живёт в памяти сессии */
-    }
+    // Defer I/O off the heart-click stack (INP).
+    queueMicrotask(() => {
+        try {
+            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+        } catch {
+            /* приватный режим / квота - избранное живёт в памяти сессии */
+        }
+    });
 }
 
 type FavoritesState = {

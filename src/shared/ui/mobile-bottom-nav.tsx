@@ -14,7 +14,8 @@ import Typography from "@mui/material/Typography";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, startTransition } from "react";
+import { useShallow } from "zustand/react/shallow";
 
 import { useCartStore } from "@/features/cart";
 import { useFavorites } from "@/features/favorites";
@@ -30,9 +31,14 @@ export function MobileBottomNav() {
     const t = useTranslations("nav");
     const tAuth = useTranslations("auth");
     const pathname  = usePathname();
-    const openCart  = useCartStore((s) => s.openCart);
-    const items     = useCartStore((s) => s.items);
-    const addToast  = useCartStore((s) => s.addToast);
+    const { openCart, cartTotalCount, cartTotalPrice, addToast } = useCartStore(
+        useShallow((s) => ({
+            openCart: s.openCart,
+            cartTotalCount: s.cartTotalCount,
+            cartTotalPrice: s.cartTotalPrice,
+            addToast: s.addToast,
+        })),
+    );
 
     const [cartPulse, setCartPulse] = useState(0);
     const lastAddToastRef = useRef(0);
@@ -44,11 +50,8 @@ export function MobileBottomNav() {
         triggerHaptic("success");
     }, [addToast]);
 
-    const totalItems = items.reduce((s, i) => s + i.quantity, 0);
-    const cartTotal = items.reduce(
-        (s, i) => s + i.calculatedItemPrice * i.quantity,
-        0,
-    );
+    const totalItems = cartTotalCount;
+    const cartTotal = cartTotalPrice;
 
     const { status } = useSession();
     const { ids: favoriteIds } = useFavorites();
@@ -90,9 +93,9 @@ export function MobileBottomNav() {
                     position: "absolute",
                     inset: 0,
                     // rgba от CSS-переменной - корректно адаптируется к dark
-                    bgcolor: "rgba(var(--ew-surface-rgb), 0.85)",
-                    backdropFilter: "blur(12px)",
-                    WebkitBackdropFilter: "blur(12px)",
+                    bgcolor: "rgba(var(--ew-surface-rgb), 0.75)",
+                    backdropFilter: "saturate(180%) blur(20px)",
+                    WebkitBackdropFilter: "saturate(180%) blur(20px)",
                 }}
             />
 
@@ -249,7 +252,7 @@ export function MobileBottomNav() {
 
                 {/* Cart - opens drawer */}
                 <ButtonBase
-                    onClick={openCart}
+                    onClick={() => startTransition(() => openCart())}
                     sx={{
                         flex: 1,
                         flexDirection: "column",

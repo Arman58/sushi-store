@@ -45,6 +45,15 @@ export const validatePromoBodySchema = z.object({
         .finite()
         .optional()
         .transform((v) => (v == null ? 0 : Math.max(0, Math.round(v)))),
+    items: z
+        .array(
+            z.object({
+                productId: positiveIntSchema,
+                quantity: positiveIntSchema,
+                price: nonNegativeIntSchema,
+            })
+        )
+        .optional(),
 });
 
 export const orderStatusPostBodySchema = z.object({
@@ -204,3 +213,27 @@ export const adminProductPatchSchema = z
         upsellIds: z.array(positiveIntSchema).max(12).optional(),
     })
     .refine((data) => Object.keys(data).length > 0, "Nothing to update");
+
+// ─── Cart sync ────────────────────────────────────────────────────────────────
+
+const cartModifierSnapshotSchema = z.object({
+    id: positiveIntSchema,
+    name: z.string().max(200),
+    priceDelta: z.number().int(),
+});
+
+const cartSyncItemSchema = z.object({
+    cartItemId: z.string().min(1).max(200),
+    productId: positiveIntSchema,
+    name: z.string().min(1).max(200),
+    basePrice: nonNegativeIntSchema,
+    quantity: z.number().int().positive().max(100),
+    selectedModifiers: z.array(cartModifierSnapshotSchema).max(30),
+    calculatedItemPrice: nonNegativeIntSchema,
+    image: z.string().max(2000).nullable().optional(),
+});
+
+export const cartSyncBodySchema = z.object({
+    items: z.array(cartSyncItemSchema).max(50),
+    appliedPromoCode: z.string().trim().max(64).nullable().optional(),
+});
