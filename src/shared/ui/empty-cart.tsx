@@ -54,8 +54,12 @@ export function EmptyCart({
         >
             <Box
                 component={motion.div}
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                animate={{ y: [0, -8, 0] }}
+                transition={{
+                    duration: 2,
+                    repeat: 2,
+                    ease: "easeInOut",
+                }}
                 sx={{
                     width: 120,
                     height: 120,
@@ -66,6 +70,9 @@ export function EmptyCart({
                     bgcolor: tokens.brandDim,
                     border: `1px solid ${alpha(tokens.brand, 0.22)}`,
                     boxShadow: `0 10px 32px rgba(var(--ew-text-rgb), 0.07)`,
+                    "@media (prefers-reduced-motion: reduce)": {
+                        "&": { transform: "none !important" },
+                    },
                 }}
             >
                 <TakeoutDiningOutlinedIcon

@@ -38,72 +38,62 @@ export function HeroSection({ deliveryStat, openingHoursStat }: HeroSectionProps
         borderRadius: { xs: 0, sm: "16px" },
         overflow: "hidden",
         minHeight: { xs: 320, sm: 400, md: 460 },
-        display: "flex",
+        display: "grid",
+        gridTemplateColumns: { xs: "1fr", md: "minmax(0, 1.05fr) minmax(0, 0.95fr)" },
         bgcolor: tokens.surfaceHi,
       }}
     >
-      {/* Одно LCP-изображение вместо двух priority-копий (mobile + desktop). */}
+      {/* Mobile: full-bleed image behind text. Desktop: right column only. */}
       <Box
         sx={{
-          position: "absolute",
-          inset: 0,
+          position: { xs: "absolute", md: "relative" },
+          inset: { xs: 0, md: "auto" },
+          gridColumn: { md: "2" },
+          gridRow: { md: "1" },
+          minHeight: { md: "100%" },
           overflow: "hidden",
         }}
       >
-        <Box
-          sx={{
-            position: "absolute",
-            top: 0,
-            right: 0,
-            bottom: 0,
-            width: { xs: "100%", md: "52%" },
-          }}
-        >
-          <Image
-            loader={cloudinaryImageLoader}
-            src={HERO_IMAGE}
-            alt="Sushi sets"
-            fill
-            sizes="(max-width: 900px) 100vw, 52vw"
-            style={{ objectFit: "cover" }}
-            priority
-            fetchPriority="high"
-          />
-        </Box>
+        <Image
+          loader={cloudinaryImageLoader}
+          src={HERO_IMAGE}
+          alt="Sushi sets"
+          fill
+          sizes="(max-width: 900px) 100vw, 48vw"
+          style={{ objectFit: "cover" }}
+          // eager + fetchPriority вместо priority: кастомный loader + preload
+          // даёт «preloaded but not used» в Chrome
+          loading="eager"
+          fetchPriority="high"
+        />
+        {/* Mobile dark scrim only */}
         <Box
           sx={{
             position: "absolute",
             inset: 0,
             display: { xs: "block", md: "none" },
             background:
-              "linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)",
-          }}
-        />
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            display: { xs: "none", md: "block" },
-            background:
-              "linear-gradient(to right, var(--ew-surface-hi) 0%, transparent 35%)",
+              "linear-gradient(to right, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.35) 55%, transparent 100%)",
           }}
         />
       </Box>
 
-      {/* Text content */}
+      {/* Text column — solid surface on desktop, no bleed into photo */}
       <Box
         sx={{
           position: "relative",
-          zIndex: 3,
-          px: { xs: 3, sm: 5, md: 8 },
-          py: { xs: 4, sm: 8, md: 10 },
-          maxWidth: { xs: "100%", md: "55%" },
+          zIndex: 2,
+          gridColumn: { md: "1" },
+          gridRow: { md: "1" },
+          px: { xs: 3, sm: 5, md: 6, lg: 8 },
+          py: { xs: 4, sm: 8, md: 8 },
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
+          minWidth: 0,
+          bgcolor: { xs: "transparent", md: tokens.surfaceHi },
         }}
       >
-        {/* Light-green badge */}
         <Box
           sx={{
             display: "inline-flex",
@@ -133,49 +123,47 @@ export function HeroSection({ deliveryStat, openingHoursStat }: HeroSectionProps
           </Typography>
         </Box>
 
-        {/* Heading */}
         <Typography
           component="h1"
           sx={{
             fontWeight: 900,
-            lineHeight: 1.05,
-            letterSpacing: { xs: -1.2, md: -2 },
-            fontSize: { xs: "2rem", sm: "2.6rem", md: "3.1rem" },
+            lineHeight: 1.08,
+            letterSpacing: { xs: -1.2, md: -1.6 },
+            fontSize: { xs: "2rem", sm: "2.5rem", md: "2.75rem", lg: "3rem" },
             color: { xs: "#FFFFFF", md: tokens.textPrimary },
             mb: 1,
+            overflowWrap: "anywhere",
           }}
         >
           {t("titleLine1")} {t("titleLine2")}
         </Typography>
 
-        {/* Green subheading */}
         <Typography
           sx={{
             fontWeight: 800,
-            fontSize: { xs: "1.1rem", sm: "1.5rem", md: "1.75rem" },
-            lineHeight: 1.25,
-            letterSpacing: { xs: -0.4, md: -0.8 },
+            fontSize: { xs: "1.1rem", sm: "1.4rem", md: "1.5rem" },
+            lineHeight: 1.3,
+            letterSpacing: { xs: -0.4, md: -0.5 },
             color: { xs: tokens.brandHi, md: tokens.brand },
             mb: 2.5,
+            overflowWrap: "anywhere",
           }}
         >
           {t("titleLine3")}
         </Typography>
 
-        {/* Body text */}
         <Typography
           sx={{
             color: { xs: "rgba(255,255,255,0.85)", md: tokens.textSecondary },
             fontSize: { xs: "0.85rem", sm: "0.95rem" },
             lineHeight: 1.6,
             mb: 3.5,
-            maxWidth: 440,
+            maxWidth: 420,
           }}
         >
           {t("subtitle")}
         </Typography>
 
-        {/* CTA Button */}
         <Box sx={{ mb: 4 }}>
           <Button
             component={Link}
@@ -202,7 +190,6 @@ export function HeroSection({ deliveryStat, openingHoursStat }: HeroSectionProps
           </Button>
         </Box>
 
-        {/* Stats row */}
         <Stack
           direction="row"
           sx={{

@@ -20,6 +20,8 @@ export const checkoutFieldProps = {
 
 export const checkoutInputRadiusSx = {
     width: "100%",
+    // При фокусе iOS/Android скроллят к полю — запас под sticky CTA (~120px)
+    scrollMarginBottom: "calc(140px + env(safe-area-inset-bottom))",
     "& .MuiOutlinedInput-root": {
         borderRadius: `${tokens.radiusInput}px`,
         width: "100%",

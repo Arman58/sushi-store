@@ -173,7 +173,7 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
         [tStatus],
     );
 
-    const { data } = useQuery<OrderStatusResponse>({
+    const { data, dataUpdatedAt, isFetching, refetch } = useQuery<OrderStatusResponse>({
         queryKey: ["order", initial.id],
         queryFn: async () => {
             const qs = new URLSearchParams({ id: String(initial.id) });
@@ -204,7 +204,7 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
             } satisfies OrderStatusResponse;
         },
         initialData: initial,
-        staleTime: 0,
+        staleTime: 4_000,
         refetchOnMount: "always",
         refetchOnWindowFocus: true,
         // Скрытая вкладка не поллит (батарея/трафик): о смене статуса
@@ -301,7 +301,7 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
                         direction="row"
                         alignItems="center"
                         spacing={0.75}
-                        sx={{ mt: 1 }}
+                        sx={{ mt: 1, flexWrap: "wrap", rowGap: 0.5 }}
                     >
                         <Box
                             sx={{
@@ -321,11 +321,36 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
                                         boxShadow: `0 0 0 6px ${alpha(theme.palette.primary.main, 0)}`,
                                     },
                                 },
+                                "@media (prefers-reduced-motion: reduce)": {
+                                    animation: "none",
+                                },
                             }}
                         />
                         <Typography variant="caption" color="text.secondary">
                             {tTracker("live")}
+                            {dataUpdatedAt
+                                ? ` · ${tTracker("lastUpdated", {
+                                      time: new Date(dataUpdatedAt).toLocaleTimeString([], {
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                      }),
+                                  })}`
+                                : ""}
                         </Typography>
+                        <Button
+                            size="small"
+                            startIcon={<ReplayIcon sx={{ fontSize: 16 }} />}
+                            onClick={() => void refetch()}
+                            disabled={isFetching}
+                            sx={{
+                                ml: "auto",
+                                textTransform: "none",
+                                fontWeight: 700,
+                                minHeight: 32,
+                            }}
+                        >
+                            {tTracker("refresh")}
+                        </Button>
                     </Stack>
                 )}
             </Box>

@@ -1,16 +1,12 @@
 "use client";
 
-import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import DeleteIcon from "@mui/icons-material/Delete";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
-import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import {
     Alert,
     Box,
     Button,
-    CircularProgress,
     Dialog,
     DialogActions,
     DialogContent,
@@ -40,199 +36,27 @@ import {
     mergeLocalizedTranslations,
     parseLocalizedJson,
 } from "@/lib/i18n-utils";
-import { IMAGE_UPLOAD_ACCEPT } from "@/lib/validate-image-upload";
+import { useTabletDown } from "@/shared/lib/use-mobile-viewport";
 import { PageContainer, SectionTitle } from "@/shared/ui";
 import { LocalizedTextFields } from "@/shared/ui/localized-text-fields";
 import { tokens } from "@/shared/ui/theme";
 
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-
-type CategoryRow = {
-    id: number;
-    slug: string;
-    name: unknown;
-    position: number;
-    isActive: boolean;
-    image: string | null;
-};
-
-// ─── Image cell: preview + upload/replace/delete ─────────────────────────────
-
-function CategoryImageCell({
-    category,
-    onImageChange,
-    disabled,
-}: {
-    category: CategoryRow;
-    onImageChange: (id: number, image: string | null) => Promise<void>;
-    disabled: boolean;
-}) {
-    const t = useTranslations("admin.categories");
-    const tCommon = useTranslations("admin.common");
-    const inputRef = useRef<HTMLInputElement>(null);
-    const [busy, setBusy] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const pickFile = () => inputRef.current?.click();
-
-    const handleFile = async (file: File | null) => {
-        if (!file) return;
-        setError(null);
-
-        if (file.size > MAX_IMAGE_BYTES) {
-            setError(t("fileTooBig"));
-            return;
-        }
-        if (!file.type.startsWith("image/") && file.type !== "") {
-            setError(t("pickImage"));
-            return;
-        }
-
-        setBusy(true);
-        try {
-            const formData = new FormData();
-            formData.append("file", file);
-            const res = await fetch("/api/upload", {
-                method: "POST",
-                body: formData,
-                credentials: "same-origin",
-            });
-            const json = (await res.json()) as { url?: string; error?: string };
-            if (!res.ok || !json.url) {
-                setError(json.error || t("uploadFailed"));
-                return;
-            }
-            await onImageChange(category.id, json.url);
-        } catch {
-            setError(t("uploadFailed"));
-        } finally {
-            setBusy(false);
-            if (inputRef.current) inputRef.current.value = "";
-        }
-    };
-
-    const handleRemove = async () => {
-        setBusy(true);
-        setError(null);
-        try {
-            await onImageChange(category.id, null);
-        } finally {
-            setBusy(false);
-        }
-    };
-
-    return (
-        <Stack direction="row" spacing={1} alignItems="center">
-            <input
-                ref={inputRef}
-                type="file"
-                accept={IMAGE_UPLOAD_ACCEPT}
-                hidden
-                onChange={(e) => void handleFile(e.target.files?.[0] ?? null)}
-            />
-
-            {/* Preview */}
-            <Box
-                onClick={disabled || busy ? undefined : pickFile}
-                role="button"
-                aria-label={t("uploadCategoryPhoto")}
-                sx={{
-                    width: 64,
-                    height: 44,
-                    borderRadius: 1.5,
-                    overflow: "hidden",
-                    border: `1px solid ${tokens.border}`,
-                    bgcolor: tokens.surfaceHi,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: disabled || busy ? "default" : "pointer",
-                    flexShrink: 0,
-                    position: "relative",
-                    "&:hover": {
-                        borderColor: tokens.brand,
-                    },
-                }}
-            >
-                {busy ? (
-                    <CircularProgress size={18} />
-                ) : category.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                        src={category.image}
-                        alt=""
-                        style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                        }}
-                    />
-                ) : (
-                    <ImageOutlinedIcon
-                        sx={{ fontSize: 20, color: tokens.textMuted }}
-                    />
-                )}
-            </Box>
-
-            <Stack direction="row" spacing={0.25}>
-                <Tooltip
-                    title={category.image ? tCommon("replacePhoto") : tCommon("uploadPhoto")}
-                >
-                    <span>
-                        <IconButton
-                            size="small"
-                            onClick={pickFile}
-                            disabled={disabled || busy}
-                            aria-label={
-                                category.image
-                                    ? tCommon("replacePhoto")
-                                    : tCommon("uploadPhoto")
-                            }
-                        >
-                            <AddPhotoAlternateOutlinedIcon
-                                sx={{ fontSize: 18 }}
-                            />
-                        </IconButton>
-                    </span>
-                </Tooltip>
-                {category.image && (
-                    <Tooltip title={tCommon("removePhoto")}>
-                        <span>
-                            <IconButton
-                                size="small"
-                                onClick={() => void handleRemove()}
-                                disabled={disabled || busy}
-                                aria-label={tCommon("removePhoto")}
-                                sx={{ color: "#E74C3C" }}
-                            >
-                                <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-                            </IconButton>
-                        </span>
-                    </Tooltip>
-                )}
-            </Stack>
-
-            {error && (
-                <Typography variant="caption" sx={{ color: "error.main" }}>
-                    {error}
-                </Typography>
-            )}
-        </Stack>
-    );
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
+import {
+    CategoryImageCell,
+    type CategoryRow,
+} from "./category-image-cell";
+import { CategoryRowCard } from "./category-row-card";
 
 export default function AdminCategoriesPage() {
     const t = useTranslations("admin.categories");
     const tCommon = useTranslations("admin.common");
     const lf = useLocalizedFieldFn();
+    const isMobile = useTabletDown();
     const [categories, setCategories] = useState<CategoryRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [pageError, setPageError] = useState<string | null>(null);
     const [savingId, setSavingId] = useState<number | null>(null);
 
-    // Rename dialog
     const [editing, setEditing] = useState<CategoryRow | null>(null);
     const [editName, setEditName] = useState<LocalizedJson>(emptyLocalizedJson());
     const [saveBusy, setSaveBusy] = useState(false);
@@ -252,9 +76,10 @@ export default function AdminCategoriesPage() {
         return true;
     };
 
-    // Delete confirm
     const [deleting, setDeleting] = useState<CategoryRow | null>(null);
     const [deleteBusy, setDeleteBusy] = useState(false);
+    const tRef = useRef(t);
+    tRef.current = t;
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -267,11 +92,11 @@ export default function AdminCategoriesPage() {
             const data = (await res.json()) as CategoryRow[];
             setCategories(data);
         } catch {
-            setPageError(t("loadFailed"));
+            setPageError(tRef.current("loadFailed"));
         } finally {
             setLoading(false);
         }
-    }, [t]);
+    }, []);
 
     useEffect(() => {
         void load();
@@ -375,11 +200,11 @@ export default function AdminCategoriesPage() {
                 {t("subtitle")}
             </Typography>
 
-            {pageError && (
+            {pageError ? (
                 <Alert severity="error" sx={{ mb: 2 }} onClose={() => setPageError(null)}>
                     {pageError}
                 </Alert>
-            )}
+            ) : null}
 
             {loading ? (
                 <Stack spacing={1}>
@@ -409,119 +234,134 @@ export default function AdminCategoriesPage() {
                     </Typography>
                 </Box>
             ) : (
-                <Box sx={{ overflowX: "auto" }}>
-                    <Table size="small" sx={{ minWidth: 640 }}>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell sx={{ fontWeight: 700 }}>{tCommon("photo")}</TableCell>
-                                <TableCell sx={{ fontWeight: 700 }}>
-                                    {tCommon("name")}
-                                </TableCell>
-                                <TableCell sx={{ fontWeight: 700 }}>{tCommon("slug")}</TableCell>
-                                <TableCell sx={{ fontWeight: 700 }} align="center">
-                                    {tCommon("active")}
-                                </TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 700 }}>
-                                    {tCommon("actions")}
-                                </TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {categories.map((category) => (
-                                <TableRow key={category.id} hover>
-                                    <TableCell sx={{ minWidth: 180 }}>
-                                        <CategoryImageCell
-                                            category={category}
-                                            onImageChange={handleImageChange}
-                                            disabled={savingId === category.id}
-                                        />
+                <>
+                    <Box sx={{ display: { xs: "none", md: "block" }, overflowX: "auto" }}>
+                        <Table size="small" sx={{ minWidth: 640 }}>
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell sx={{ fontWeight: 700 }}>
+                                        {tCommon("photo")}
                                     </TableCell>
-                                    <TableCell>
-                                        <Box
-                                            sx={{
-                                                display: "flex",
-                                                flexDirection: "column",
-                                                gap: 0.75,
-                                            }}
-                                        >
-                                            <Typography
-                                                variant="body2"
-                                                fontWeight={600}
-                                            >
-                                                {lf(category.name)}
-                                            </Typography>
-                                            <LocalizedStatusChips
-                                                value={category.name}
-                                            />
-                                        </Box>
+                                    <TableCell sx={{ fontWeight: 700 }}>
+                                        {tCommon("name")}
                                     </TableCell>
-                                    <TableCell>
-                                        <Typography
-                                            variant="caption"
-                                            sx={{ color: tokens.textMuted }}
-                                        >
-                                            {category.slug}
-                                        </Typography>
+                                    <TableCell sx={{ fontWeight: 700 }}>
+                                        {tCommon("slug")}
                                     </TableCell>
-                                    <TableCell align="center">
-                                        <Switch
-                                            size="small"
-                                            checked={category.isActive}
-                                            disabled={savingId === category.id}
-                                            onChange={(e) =>
-                                                void patchCategory(category.id, {
-                                                    isActive: e.target.checked,
-                                                })
-                                            }
-                                            inputProps={{
-                                                "aria-label": t("categoryActiveAria", {
-                                                    name: lf(category.name),
-                                                }),
-                                            }}
-                                        />
+                                    <TableCell sx={{ fontWeight: 700 }} align="center">
+                                        {tCommon("active")}
                                     </TableCell>
-                                    <TableCell align="right">
-                                        <Tooltip title={tCommon("rename")}>
-                                            <IconButton
-                                                size="small"
-                                                onClick={() =>
-                                                    openRename(category)
-                                                }
-                                                aria-label={t("renameCategory")}
-                                            >
-                                                <EditIcon
-                                                    sx={{ fontSize: 18 }}
-                                                />
-                                            </IconButton>
-                                        </Tooltip>
-                                        <Tooltip title={tCommon("delete")}>
-                                            <IconButton
-                                                size="small"
-                                                onClick={() =>
-                                                    setDeleting(category)
-                                                }
-                                                aria-label={t("deleteCategory")}
-                                                sx={{ color: "#E74C3C" }}
-                                            >
-                                                <DeleteIcon
-                                                    sx={{ fontSize: 18 }}
-                                                />
-                                            </IconButton>
-                                        </Tooltip>
+                                    <TableCell align="right" sx={{ fontWeight: 700 }}>
+                                        {tCommon("actions")}
                                     </TableCell>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </Box>
+                            </TableHead>
+                            <TableBody>
+                                {categories.map((category) => (
+                                    <TableRow key={category.id} hover>
+                                        <TableCell sx={{ minWidth: 180 }}>
+                                            <CategoryImageCell
+                                                category={category}
+                                                onImageChange={handleImageChange}
+                                                disabled={savingId === category.id}
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            <Box
+                                                sx={{
+                                                    display: "flex",
+                                                    flexDirection: "column",
+                                                    gap: 0.75,
+                                                }}
+                                            >
+                                                <Typography
+                                                    variant="body2"
+                                                    fontWeight={600}
+                                                >
+                                                    {lf(category.name)}
+                                                </Typography>
+                                                <LocalizedStatusChips
+                                                    value={category.name}
+                                                />
+                                            </Box>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Typography
+                                                variant="caption"
+                                                sx={{ color: tokens.textMuted }}
+                                            >
+                                                {category.slug}
+                                            </Typography>
+                                        </TableCell>
+                                        <TableCell align="center">
+                                            <Switch
+                                                size="small"
+                                                checked={category.isActive}
+                                                disabled={savingId === category.id}
+                                                onChange={(e) =>
+                                                    void patchCategory(category.id, {
+                                                        isActive: e.target.checked,
+                                                    })
+                                                }
+                                                inputProps={{
+                                                    "aria-label": t("categoryActiveAria", {
+                                                        name: lf(category.name),
+                                                    }),
+                                                }}
+                                            />
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            <Tooltip title={tCommon("rename")}>
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => openRename(category)}
+                                                    aria-label={t("renameCategory")}
+                                                >
+                                                    <EditIcon sx={{ fontSize: 18 }} />
+                                                </IconButton>
+                                            </Tooltip>
+                                            <Tooltip title={tCommon("delete")}>
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => setDeleting(category)}
+                                                    aria-label={t("deleteCategory")}
+                                                    sx={{ color: "#E74C3C" }}
+                                                >
+                                                    <DeleteIcon sx={{ fontSize: 18 }} />
+                                                </IconButton>
+                                            </Tooltip>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </Box>
+
+                    <Stack
+                        spacing={1.5}
+                        sx={{ display: { xs: "flex", md: "none" }, pb: 2 }}
+                    >
+                        {categories.map((category) => (
+                            <CategoryRowCard
+                                key={category.id}
+                                category={category}
+                                savingId={savingId}
+                                onImageChange={handleImageChange}
+                                onPatch={patchCategory}
+                                onRename={openRename}
+                                onDelete={setDeleting}
+                            />
+                        ))}
+                    </Stack>
+                </>
             )}
 
-            {/* Rename dialog */}
             <Dialog
                 open={editing !== null}
                 onClose={saveBusy ? undefined : () => setEditing(null)}
                 fullWidth
                 maxWidth="sm"
+                fullScreen={isMobile}
             >
                 <DialogTitle>{t("renameCategory")}</DialogTitle>
                 <DialogContent>
@@ -560,7 +400,6 @@ export default function AdminCategoriesPage() {
                 </DialogActions>
             </Dialog>
 
-            {/* Delete confirm */}
             <Dialog
                 open={deleting !== null}
                 onClose={deleteBusy ? undefined : () => setDeleting(null)}
@@ -571,9 +410,7 @@ export default function AdminCategoriesPage() {
                 <DialogContent>
                     <Typography variant="body2" sx={{ color: tokens.textSecondary }}>
                         {t("deleteBody", {
-                            name: deleting
-                                ? lf(deleting.name)
-                                : "",
+                            name: deleting ? lf(deleting.name) : "",
                         })}
                     </Typography>
                 </DialogContent>

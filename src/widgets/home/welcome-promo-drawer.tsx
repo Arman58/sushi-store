@@ -86,7 +86,7 @@ export function WelcomePromoDrawer() {
                     mx: "auto",
                 }}
             >
-                <Typography variant="h6" fontWeight={800} color="#27AE60" sx={{ letterSpacing: 2 }}>
+                <Typography variant="h6" fontWeight={800} color="primary.main" sx={{ letterSpacing: 2 }}>
                     WELCOME10
                 </Typography>
             </Stack>

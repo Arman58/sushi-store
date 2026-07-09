@@ -14,6 +14,7 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
+    Fab,
     FormControlLabel,
     IconButton,
     InputAdornment,
@@ -27,8 +28,6 @@ import {
     TableRow,
     TextField,
     Typography,
-    useMediaQuery,
-    useTheme,
 } from "@mui/material";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -44,6 +43,8 @@ import {
     mergeLocalizedTranslations,
     parseLocalizedJson,
 } from "@/lib/i18n-utils";
+import { showAppToast } from "@/shared/lib/show-app-toast";
+import { useTabletDown } from "@/shared/lib/use-mobile-viewport";
 import { PageContainer, SectionTitle } from "@/shared/ui";
 import { LocalizedTextFields } from "@/shared/ui/localized-text-fields";
 import { tokens } from "@/shared/ui/theme";
@@ -90,8 +91,7 @@ export default function AdminDeliveryZonesPage() {
     const tCommon = useTranslations("admin.common");
     const lf = useLocalizedFieldFn();
     const tNav = useTranslations("admin.nav");
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+    const isMobile = useTabletDown();
     const [rows, setRows] = useState<ZoneRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -229,7 +229,7 @@ export default function AdminDeliveryZonesPage() {
                 } catch {
                     /* ignore */
                 }
-                alert(msg);
+                showAppToast(msg, "error");
                 return;
             }
             setDialogOpen(false);
@@ -252,7 +252,7 @@ export default function AdminDeliveryZonesPage() {
                 credentials: "same-origin",
             });
             if (!res.ok) {
-                alert(t("deleteFailed"));
+                showAppToast(t("deleteFailed"), "error");
                 return;
             }
             void load();
@@ -279,7 +279,7 @@ export default function AdminDeliveryZonesPage() {
                         r.id === row.id ? { ...r, isActive: row.isActive } : r,
                     ),
                 );
-                alert(t("statusUpdateFailed"));
+                showAppToast(t("statusUpdateFailed"), "error");
             }
         } catch {
             setRows((prev) =>
@@ -287,7 +287,7 @@ export default function AdminDeliveryZonesPage() {
                     r.id === row.id ? { ...r, isActive: row.isActive } : r,
                 ),
             );
-            alert(tCommon("networkError"));
+            showAppToast(tCommon("networkError"), "error");
         } finally {
             setToggleLoadingId(null);
         }
@@ -327,10 +327,25 @@ export default function AdminDeliveryZonesPage() {
                     <Button
                         variant="contained"
                         onClick={openCreate}
-                        sx={{ mb: 2 }}
+                        sx={{ mb: 2, display: { xs: "none", md: "inline-flex" } }}
                     >
                         {t("addZone")}
                     </Button>
+
+                    <Fab
+                        color="primary"
+                        aria-label={t("addZone")}
+                        onClick={openCreate}
+                        sx={{
+                            display: { xs: "flex", md: "none" },
+                            position: "fixed",
+                            right: 16,
+                            bottom: "calc(16px + env(safe-area-inset-bottom))",
+                            zIndex: 1100,
+                        }}
+                    >
+                        <LocalShippingOutlinedIcon />
+                    </Fab>
 
                     <Paper
                         variant="outlined"
@@ -338,6 +353,7 @@ export default function AdminDeliveryZonesPage() {
                             borderRadius: `${tokens.radiusCardLg}px`,
                             overflow: "auto",
                             borderColor: tokens.border,
+                            pb: { xs: 10, md: 0 },
                         }}
                     >
                         <Box sx={{ display: { xs: "none", md: "block" } }}>

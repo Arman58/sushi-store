@@ -15,6 +15,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
+import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useTranslations } from "next-intl";
@@ -31,6 +32,7 @@ import {
 } from "@/lib/saved-address";
 import type { CheckoutFormValues, DeliveryType } from "@/shared/lib/schemas";
 import { AppInput, AppSelect } from "@/shared/ui";
+import { skeletonSurfaceSx } from "@/shared/ui/skeleton-styles";
 import { tokens } from "@/shared/ui/theme";
 
 import { DeliveryZoneSelect } from "../DeliveryZoneSelect";
@@ -297,11 +299,25 @@ export function DeliverySection({
             </Box>
 
             {isDelivery && zonesLoading && (
-                <Stack direction="row" spacing={1.5} alignItems="center">
-                    <CircularProgress size={22} />
-                    <Typography variant="body2" color="text.secondary">
-                        {t("zonesLoading")}
-                    </Typography>
+                <Stack spacing={1.5} aria-busy="true" aria-label={t("zonesLoading")}>
+                    <Skeleton
+                        variant="rounded"
+                        animation="wave"
+                        height={48}
+                        sx={{ borderRadius: 2, ...skeletonSurfaceSx }}
+                    />
+                    <Skeleton
+                        variant="rounded"
+                        animation="wave"
+                        height={56}
+                        sx={{ borderRadius: 2, ...skeletonSurfaceSx }}
+                    />
+                    <Skeleton
+                        variant="rounded"
+                        animation="wave"
+                        height={96}
+                        sx={{ borderRadius: 2, ...skeletonSurfaceSx }}
+                    />
                 </Stack>
             )}
 
@@ -475,6 +491,12 @@ export function DeliverySection({
                         {...register("address", {
                             onChange: () => setSelectedAddressId(""),
                         })}
+                        autoComplete="street-address"
+                        name="address"
+                        inputProps={{
+                            enterKeyHint: "next",
+                            autoComplete: "street-address",
+                        }}
                         required
                         error={showCheckoutFieldError(
                             errors,
@@ -517,6 +539,12 @@ export function DeliverySection({
                             {...register("apartment", {
                                 onChange: () => setSelectedAddressId(""),
                             })}
+                            autoComplete="address-line2"
+                            name="apartment"
+                            inputProps={{
+                                enterKeyHint: "next",
+                                autoComplete: "address-line2",
+                            }}
                             // label не поднимается при setValue из сохранённого
                             // адреса (uncontrolled input) - форсируем shrink
                             InputLabelProps={{
@@ -546,6 +574,8 @@ export function DeliverySection({
                                     {...checkoutFieldProps}
                                     sx={checkoutInputRadiusSx}
                                     {...register("saveAddressLabel")}
+                                    autoComplete="off"
+                                    name="saveAddressLabel"
                                 />
                             ) : null}
                         </Stack>

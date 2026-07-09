@@ -26,7 +26,13 @@ import { showAppToast } from "@/shared/lib/show-app-toast";
 import { useSchemaMessages } from "@/shared/lib/use-schema-messages";
 
 import { DRAFT_STORAGE_KEY, ORDER_ID_KEY } from "./constants";
-import { checkoutBasicsIncomplete, loadDraft } from "./helpers";
+import {
+    checkoutBasicsIncomplete,
+    formatPhone,
+    isCompleteCheckoutPhone,
+    loadDraft,
+    resolveInitialCheckoutPhone,
+} from "./helpers";
 import type { CheckoutSubmitContext } from "./types";
 
 type SessionUser = {
@@ -41,12 +47,15 @@ function phoneForOrderPayload(phone: string, delivery: DeliveryType): string {
     return delivery === "pickup" ? "" : phone.trim();
 }
 
+function phoneFieldFilled(phone: string): boolean {
+    return isCompleteCheckoutPhone(phone);
+}
+
 type UseCheckoutFormParams = {
     sessionUser: SessionUser;
-    hasItems: boolean;
 };
 
-export function useCheckoutForm({ sessionUser, hasItems }: UseCheckoutFormParams) {
+export function useCheckoutForm({ sessionUser }: UseCheckoutFormParams) {
     const t = useTranslations("checkout.form");
     const tPayment = useTranslations("checkout.payment");
     const tProfile = useTranslations("profile");
@@ -67,7 +76,6 @@ export function useCheckoutForm({ sessionUser, hasItems }: UseCheckoutFormParams
     const [missingItemError, setMissingItemError] = useState<string | null>(null);
     const [apiError, setApiError] = useState(false);
     const [isSubmittingLocal, setIsSubmittingLocal] = useState(false);
-    const [formFieldFocused, setFormFieldFocused] = useState(false);
     const checkoutFormRef = useRef<HTMLFormElement>(null);
 
     const draft = useMemo(() => loadDraft(), []);
@@ -79,7 +87,7 @@ export function useCheckoutForm({ sessionUser, hasItems }: UseCheckoutFormParams
         defaultValues: {
             name: draft?.name ?? "",
             email: draft?.email ?? "",
-            phone: draft?.phone ?? "",
+            phone: resolveInitialCheckoutPhone(draft?.phone),
             address: draft?.address ?? "",
             apartment: draft?.apartment ?? "",
             comment: draft?.comment ?? "",
@@ -114,39 +122,6 @@ export function useCheckoutForm({ sessionUser, hasItems }: UseCheckoutFormParams
     }, []);
 
     useEffect(() => {
-        const formEl = checkoutFormRef.current;
-        if (!formEl || !hasItems) return;
-
-        const isFormControl = (el: Element | null) =>
-            el instanceof HTMLElement &&
-            el.matches(
-                'input, textarea, select, [role="combobox"], [contenteditable="true"]',
-            );
-
-        const onFocusIn = (e: FocusEvent) => {
-            if (isFormControl(e.target as Element)) {
-                setFormFieldFocused(true);
-            }
-        };
-
-        const onFocusOut = () => {
-            window.requestAnimationFrame(() => {
-                const active = document.activeElement;
-                if (!isFormControl(active) || !formEl.contains(active)) {
-                    setFormFieldFocused(false);
-                }
-            });
-        };
-
-        formEl.addEventListener("focusin", onFocusIn);
-        formEl.addEventListener("focusout", onFocusOut);
-        return () => {
-            formEl.removeEventListener("focusin", onFocusIn);
-            formEl.removeEventListener("focusout", onFocusOut);
-        };
-    }, [hasItems]);
-
-    useEffect(() => {
         if (!sessionUser) return;
         const sessionName = (sessionUser.name ?? "").trim();
         if (sessionName.length > 0 && !getValues("name")) {
@@ -157,6 +132,34 @@ export function useCheckoutForm({ sessionUser, hasItems }: UseCheckoutFormParams
             setValue("email", sessionEmail, { shouldValidate: false });
         }
     }, [sessionUser, setValue, getValues]);
+
+    // Телефон из профиля аккаунта — автозаполнение на следующих заказах.
+    useEffect(() => {
+        if (!sessionUser?.id) return;
+        if (phoneFieldFilled(getValues("phone"))) return;
+
+        let cancelled = false;
+        void (async () => {
+            try {
+                const res = await fetch("/api/profile/phone");
+                if (!res.ok || cancelled) return;
+                const data = (await res.json()) as { phone?: string | null };
+                const stored = typeof data.phone === "string" ? data.phone.trim() : "";
+                if (!stored || cancelled) return;
+                if (phoneFieldFilled(getValues("phone"))) return;
+                setValue("phone", formatPhone(stored), {
+                    shouldValidate: false,
+                    shouldDirty: false,
+                });
+            } catch {
+                // ignore — draft / manual entry still work
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [sessionUser?.id, setValue, getValues]);
 
     useEffect(() => {
         const subscription = watch((value) => {
@@ -377,7 +380,6 @@ export function useCheckoutForm({ sessionUser, hasItems }: UseCheckoutFormParams
         missingItemError,
         apiError,
         checkoutFormRef,
-        formFieldFocused,
         checkoutIncomplete,
         isBusySubmit,
         onInvalid,

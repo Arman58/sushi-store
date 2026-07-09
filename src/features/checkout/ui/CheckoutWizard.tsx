@@ -17,6 +17,7 @@ import { FormProvider } from "react-hook-form";
 
 import { useCartLineValidation, useCartStore } from "@/features/cart";
 import { DELIVERY_ETA } from "@/lib/site-config";
+import { useVisualViewportBottomInset } from "@/shared/lib/use-visual-viewport-bottom-inset";
 import { PageContainer, SectionTitle } from "@/shared/ui";
 
 import { CHECKOUT_MOBILE_SCROLL_PAD } from "../model/constants";
@@ -35,6 +36,8 @@ export function CheckoutWizard() {
     const tCommon = useTranslations("common");
     const { data: session } = useSession();
     const sessionUser = session?.user ?? null;
+    const keyboardInset = useVisualViewportBottomInset();
+    const keyboardOpen = keyboardInset > 0;
 
     const items = useCartStore((s) => s.items);
     const clearCart = useCartStore((s) => s.clear);
@@ -51,7 +54,7 @@ export function CheckoutWizard() {
         hasPriceMismatchIssues,
         validSubtotal: cartSubtotal,
         serverItems,
-    } = useCartLineValidation(items);
+    } = useCartLineValidation();
 
     const {
         methods,
@@ -61,7 +64,6 @@ export function CheckoutWizard() {
         setValue,
         clearErrors,
         checkoutFormRef,
-        formFieldFocused,
         apiError,
         isSubmitting: checkoutIsSubmitting,
         isBusySubmit,
@@ -71,7 +73,7 @@ export function CheckoutWizard() {
         items: checkoutItems,
         errorMessage,
         missingItemError,
-    } = useCheckoutForm({ sessionUser, hasItems });
+    } = useCheckoutForm({ sessionUser });
     const delivery = useDeliveryCalc({
         watch,
         setValue,
@@ -271,9 +273,9 @@ export function CheckoutWizard() {
                                     size="small"
                                     onClick={() => syncPricesWithServer(serverItems)}
                                     sx={{
-                                        alignSelf: { xs: 'stretch', sm: 'flex-start' },
-                                        backgroundColor: 'rgba(0, 0, 0, 0.05)',
-                                        '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.1)' }
+                                        alignSelf: { xs: "stretch", sm: "flex-start" },
+                                        bgcolor: "action.hover",
+                                        "&:hover": { bgcolor: "action.focus" },
                                     }}
                                 >
                                     {tCart("validation.syncPrices")}
@@ -315,7 +317,25 @@ export function CheckoutWizard() {
                             />
 
                             {apiError && (
-                                <Alert severity="error" sx={{ mb: 3 }}>
+                                <Alert
+                                    severity="error"
+                                    sx={{ mb: 3 }}
+                                    action={
+                                        <Button
+                                            color="inherit"
+                                            size="small"
+                                            onClick={() =>
+                                                void handleSubmit(
+                                                    (data) =>
+                                                        submitOrder(data, submitContext),
+                                                    onInvalid,
+                                                )()
+                                            }
+                                        >
+                                            {tCommon("retry")}
+                                        </Button>
+                                    }
+                                >
                                     {t("apiError")}
                                 </Alert>
                             )}
@@ -406,6 +426,10 @@ export function CheckoutWizard() {
                                         showDeliveryPendingHint={
                                             delivery.showDeliveryPendingHint
                                         }
+                                        deliveryLineLoading={
+                                            delivery.isDelivery &&
+                                            delivery.zonesLoading
+                                        }
                                     />
                                 </Grid>
                             </Grid>
@@ -413,10 +437,7 @@ export function CheckoutWizard() {
 
                         <Box
                             sx={{
-                                display: {
-                                    xs: formFieldFocused ? "none" : "flex",
-                                    md: "none",
-                                },
+                                display: { xs: "flex", md: "none" },
                                 flexDirection: "column",
                                 position: "fixed",
                                 left: 0,
@@ -424,12 +445,27 @@ export function CheckoutWizard() {
                                 bottom: 0,
                                 // Ниже бургер-меню (1200) и шторки корзины - CTA не «просвечивает» сквозь оверлеи
                                 zIndex: 1050,
-                                p: 2,
-                                pb: "calc(16px + env(safe-area-inset-bottom))",
+                                px: 2,
+                                pt: keyboardOpen ? 1.25 : 2,
+                                pb: keyboardOpen
+                                    ? 1.25
+                                    : "calc(16px + env(safe-area-inset-bottom))",
+                                // Как у маркетплейсов: бар остаётся видимым и едет над клавиатурой
+                                transform:
+                                    keyboardInset > 0
+                                        ? `translate3d(0, -${keyboardInset}px, 0)`
+                                        : "none",
+                                transition: "transform 0.18s ease-out",
                                 bgcolor: "background.paper",
                                 borderTop: 1,
                                 borderColor: "divider",
                                 boxShadow: 3,
+                                // Не перекрывать поле при фокусе — iOS сам скроллит к caret
+                                "@supports (padding: max(0px))": {
+                                    pb: keyboardOpen
+                                        ? 1.25
+                                        : "max(16px, env(safe-area-inset-bottom))",
+                                },
                             }}
                         >
                             <Button
@@ -442,7 +478,7 @@ export function CheckoutWizard() {
                                 disabled={hardSubmitDisabled}
                                 sx={{
                                     ...submitButtonSx,
-                                    py: 1.35,
+                                    py: keyboardOpen ? 1.15 : 1.35,
                                     borderRadius: 2,
                                     boxShadow:
                                         softMuted && !isBusySubmit
@@ -452,7 +488,8 @@ export function CheckoutWizard() {
                             >
                                 {submitButtonLabel}
                             </Button>
-                            <CheckoutConsentCaption />
+                            {/* Оферта прячется при клавиатуре — экономим высоту как на WB/Ozon */}
+                            {!keyboardOpen ? <CheckoutConsentCaption /> : null}
                         </Box>
                     </FormProvider>
                 )}

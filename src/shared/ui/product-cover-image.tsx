@@ -104,8 +104,8 @@ export function ProductCoverImage({
                     height: "100%",
                 }}
                 {...(priority
-                    ? { priority: true, fetchPriority: "high" as const }
-                    : { loading: "lazy" })}
+                    ? { loading: "eager" as const, fetchPriority: "high" as const }
+                    : { loading: "lazy" as const })}
                 onLoad={() => setLoaded(true)}
                 onError={() => setFailed(true)}
             />

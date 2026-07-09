@@ -4,6 +4,8 @@ import CircularProgress from "@mui/material/CircularProgress";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { useTranslations } from "next-intl";
 
+import { tokens } from "@/shared/ui/theme";
+
 type AITranslateButtonProps = {
     onClick: () => void | Promise<void>;
     loading: boolean;
@@ -38,17 +40,17 @@ export function AITranslateButton({
                 fontWeight: 600,
                 borderRadius: 2.5,
                 textTransform: "none",
-                borderColor: "rgba(39, 174, 96, 0.45)",
-                color: "#27AE60",
+                borderColor: tokens.brandGlow,
+                color: "primary.main",
                 fontSize: "0.825rem",
                 px: 1.75,
                 py: 0.5,
                 transition: "all 0.2s ease-in-out",
                 "&:hover": {
-                    borderColor: "#27AE60",
-                    bgcolor: "rgba(39, 174, 96, 0.05)",
+                    borderColor: tokens.brand,
+                    bgcolor: tokens.brandDim,
                     transform: "translateY(-1px)",
-                    boxShadow: "0 2px 8px rgba(39, 174, 96, 0.12)",
+                    boxShadow: `0 2px 8px ${tokens.brandGlow}`,
                 },
                 "&:active": {
                     transform: "translateY(0)",

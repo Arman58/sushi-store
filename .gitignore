@@ -65,3 +65,16 @@ public/swe-worker*
 
 # local sqlite dev database
 prisma/dev.db
+
+# Cursor IDE — локальные логи агента и debug-сессий
+.cursor/
+
+# IDE / OS
+.idea/
+*.swp
+*~
+Thumbs.db
+
+# Turbo (если появится monorepo/cache)
+.turbo/
+

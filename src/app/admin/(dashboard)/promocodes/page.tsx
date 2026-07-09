@@ -16,6 +16,7 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
+    Fab,
     FormControlLabel,
     IconButton,
     MenuItem,
@@ -28,13 +29,13 @@ import {
     TableRow,
     TextField,
     Typography,
-    useMediaQuery,
-    useTheme,
 } from "@mui/material";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { showAppToast } from "@/shared/lib/show-app-toast";
+import { useTabletDown } from "@/shared/lib/use-mobile-viewport";
 import { PageContainer, SectionTitle } from "@/shared/ui";
 
 type DiscountTypeLite = "PERCENTAGE" | "FIXED";
@@ -73,8 +74,7 @@ export default function AdminPromoCodesPage() {
     const t = useTranslations("admin.promocodes");
     const tCommon = useTranslations("admin.common");
     const tNav = useTranslations("admin.nav");
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+    const isMobile = useTabletDown();
     const [rows, setRows] = useState<PromoRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -200,7 +200,7 @@ export default function AdminPromoCodesPage() {
                 } catch {
                     /* ignore */
                 }
-                alert(msg);
+                showAppToast(msg, "error");
                 return;
             }
             setDialogOpen(false);
@@ -223,7 +223,7 @@ export default function AdminPromoCodesPage() {
                 credentials: "same-origin",
             });
             if (!res.ok) {
-                alert(t("deleteFailed"));
+                showAppToast(t("deleteFailed"), "error");
                 return;
             }
             void load();
@@ -266,12 +266,27 @@ export default function AdminPromoCodesPage() {
                 <Button
                     variant="contained"
                     onClick={openCreate}
-                    sx={{ mb: 2, textTransform: "none" }}
+                    sx={{ mb: 2, textTransform: "none", display: { xs: "none", md: "inline-flex" } }}
                 >
                     {t("addPromocode")}
                 </Button>
 
-                <Paper variant="outlined" sx={{ overflow: "auto" }}>
+                <Fab
+                    color="primary"
+                    aria-label={t("addPromocode")}
+                    onClick={openCreate}
+                    sx={{
+                        display: { xs: "flex", md: "none" },
+                        position: "fixed",
+                        right: 16,
+                        bottom: "calc(16px + env(safe-area-inset-bottom))",
+                        zIndex: 1100,
+                    }}
+                >
+                    <LocalOfferOutlinedIcon />
+                </Fab>
+
+                <Paper variant="outlined" sx={{ overflow: "auto", pb: { xs: 10, md: 0 } }}>
                     <Box sx={{ display: { xs: "none", md: "block" } }}>
                     <Table size="small">
                         <TableHead>

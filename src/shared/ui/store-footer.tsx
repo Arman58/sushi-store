@@ -94,6 +94,7 @@ export function StoreFooter() {
                                     key={href}
                                     component={Link}
                                     href={href}
+                                    prefetch={false}
                                     variant="body2"
                                     sx={footerLinkSx}
                                 >

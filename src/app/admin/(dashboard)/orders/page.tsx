@@ -329,7 +329,20 @@ export default async function AdminOrdersPage({
                                 >
                                     {t("totalOrders", { count: totalCount })}
                                 </Typography>
-                                <Stack direction="row" spacing={1} flexWrap="wrap">
+                                <Stack
+                                    direction="row"
+                                    spacing={1}
+                                    flexWrap="nowrap"
+                                    sx={{
+                                        overflowX: "auto",
+                                        WebkitOverflowScrolling: "touch",
+                                        scrollbarWidth: "none",
+                                        "&::-webkit-scrollbar": { display: "none" },
+                                        pb: 0.5,
+                                        mx: { xs: -0.5, md: 0 },
+                                        px: { xs: 0.5, md: 0 },
+                                    }}
+                                >
                                     <Chip
                                         label={t("shownCount", { count: filteredCount })}
                                         size="small"
@@ -524,7 +537,18 @@ export default async function AdminOrdersPage({
                                 justifyContent: "space-between",
                             }}
                         >
-                            <Stack direction="row" spacing={1} flexWrap="wrap">
+                            <Stack
+                                direction="row"
+                                spacing={1}
+                                flexWrap="nowrap"
+                                sx={{
+                                    overflowX: "auto",
+                                    WebkitOverflowScrolling: "touch",
+                                    scrollbarWidth: "none",
+                                    "&::-webkit-scrollbar": { display: "none" },
+                                    pb: 0.5,
+                                }}
+                            >
                                 <Typography
                                     variant="caption"
                                     color="text.secondary"
@@ -532,6 +556,7 @@ export default async function AdminOrdersPage({
                                         textTransform: "uppercase",
                                         letterSpacing: 0.6,
                                         mt: 0.5,
+                                        flexShrink: 0,
                                     }}
                                 >
                                     {tCommon("delivery")}
@@ -562,8 +587,15 @@ export default async function AdminOrdersPage({
                             <Stack
                                 direction="row"
                                 spacing={1}
-                                flexWrap="wrap"
+                                flexWrap="nowrap"
                                 justifyContent={{ xs: "flex-start", sm: "flex-end" }}
+                                sx={{
+                                    overflowX: "auto",
+                                    WebkitOverflowScrolling: "touch",
+                                    scrollbarWidth: "none",
+                                    "&::-webkit-scrollbar": { display: "none" },
+                                    pb: 0.5,
+                                }}
                             >
                                 <Typography
                                     variant="caption"
@@ -572,6 +604,7 @@ export default async function AdminOrdersPage({
                                         textTransform: "uppercase",
                                         letterSpacing: 0.6,
                                         mt: 0.5,
+                                        flexShrink: 0,
                                     }}
                                 >
                                     {t("paymentLabel")}
@@ -602,8 +635,15 @@ export default async function AdminOrdersPage({
                             <Stack
                                 direction="row"
                                 spacing={1}
-                                flexWrap="wrap"
+                                flexWrap="nowrap"
                                 justifyContent={{ xs: "flex-start", sm: "flex-end" }}
+                                sx={{
+                                    overflowX: "auto",
+                                    WebkitOverflowScrolling: "touch",
+                                    scrollbarWidth: "none",
+                                    "&::-webkit-scrollbar": { display: "none" },
+                                    pb: 0.5,
+                                }}
                             >
                                 <Typography
                                     variant="caption"
@@ -612,6 +652,7 @@ export default async function AdminOrdersPage({
                                         textTransform: "uppercase",
                                         letterSpacing: 0.6,
                                         mt: 0.5,
+                                        flexShrink: 0,
                                     }}
                                 >
                                     {t("statusLabel")}

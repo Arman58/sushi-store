@@ -2,6 +2,7 @@
     "common": {
         "loading": "Загрузка",
         "loadingEllipsis": "…",
+        "retry": "Повторить",
         "networkError": "Сеть недоступна. Попробуйте ещё раз.",
         "generic_server_error": "На сервере произошла ошибка. Попробуйте позже.",
         "brandName": "East West",
@@ -22,7 +23,8 @@
             "mobileNavMenu": "Меню навигации",
             "toggleTheme": "Переключить тему",
             "openCart": "Открыть корзину",
-            "cartOnCheckout": "Корзина (на странице оформления)"
+            "cartOnCheckout": "Корзина (на странице оформления)",
+            "skipToContent": "К основному содержимому"
         },
         "toast": {
             "added": "Добавлено в корзину",
@@ -472,6 +474,8 @@
             "deliveryType": "Способ получения",
             "payment": "Оплата",
             "live": "Обновляется автоматически",
+            "refresh": "Обновить",
+            "lastUpdated": "Обновлено {time}",
             "changeFrom": "Сдача с",
             "changeDue": "Привезём сдачу",
             "scheduledFor": "Ко времени"

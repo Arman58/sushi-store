@@ -10,6 +10,7 @@ import { useTranslations } from "next-intl";
 import { Controller, useFormContext } from "react-hook-form";
 
 import {
+    CHECKOUT_PHONE_PREFIX,
     formatPhone,
     showCheckoutFieldError,
 } from "@/features/checkout/model/helpers";
@@ -56,6 +57,9 @@ export function ContactSection({
                 {...checkoutFieldProps}
                 sx={checkoutInputRadiusSx}
                 {...register("name")}
+                autoComplete="name"
+                name="name"
+                inputProps={{ enterKeyHint: "next", autoCapitalize: "words" }}
                 error={showCheckoutFieldError(
                     errors,
                     touchedFields,
@@ -93,6 +97,8 @@ export function ContactSection({
                     {...checkoutFieldProps}
                     sx={checkoutInputRadiusSx}
                     {...register("email")}
+                    autoComplete="email"
+                    name="email"
                     error={showCheckoutFieldError(
                         errors,
                         touchedFields,
@@ -128,14 +134,33 @@ export function ContactSection({
                         label={t("phone")}
                         {...checkoutFieldProps}
                         sx={checkoutInputRadiusSx}
+                        name={field.name}
                         value={field.value}
                         onChange={(e) =>
-                            field.onChange(formatPhone(e.target.value))
+                            field.onChange(
+                                formatPhone(e.target.value, field.value ?? ""),
+                            )
                         }
+                        onKeyDown={(e) => {
+                            const current = field.value ?? "";
+                            // Не даём стереть код страны — поле всегда минимум +374
+                            if (
+                                (e.key === "Backspace" || e.key === "Delete") &&
+                                current === CHECKOUT_PHONE_PREFIX
+                            ) {
+                                e.preventDefault();
+                            }
+                        }}
                         onBlur={field.onBlur}
+                        inputRef={field.ref}
                         required={isDelivery}
                         placeholder={tCheckout("phoneTemplate")}
-                        inputProps={{ inputMode: "tel" }}
+                        autoComplete="tel"
+                        inputProps={{
+                            inputMode: "tel",
+                            enterKeyHint: "next",
+                            autoComplete: "tel",
+                        }}
                         error={showCheckoutFieldError(
                             errors,
                             touchedFields,

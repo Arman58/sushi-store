@@ -35,7 +35,37 @@ let mockProducts: MockProduct[] = [];
     deliveryZone: {},
     $disconnect: async () => {},
     product: {
-        findMany: async () => mockProducts,
+        findMany: async () =>
+            mockProducts.map((product) => {
+                const { modifierGroups: _modifierGroups, ...base } = product;
+                void _modifierGroups;
+                return base;
+            }),
+    },
+    modifierGroup: {
+        groupBy: async () =>
+            mockProducts
+                .filter((product) => product.modifierGroups.length > 0)
+                .map((product) => ({ productId: product.id })),
+        findMany: async () => {
+            const rows: Array<{
+                id: number;
+                productId: number;
+                name: unknown;
+                required: boolean;
+                maxChoices: number;
+                modifiers: Array<{ id: number; name: unknown; priceDelta: number }>;
+            }> = [];
+            for (const product of mockProducts) {
+                for (const group of product.modifierGroups) {
+                    rows.push({
+                        productId: product.id,
+                        ...group,
+                    });
+                }
+            }
+            return rows;
+        },
     },
 };
 

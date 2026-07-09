@@ -2,6 +2,7 @@
     "common": {
         "loading": "Սպասեք...",
         "loadingEllipsis": "…",
+        "retry": "Կրկին",
         "networkError": "Ցանցը հասանելի չէ։ Կրկին փորձեք։",
         "generic_server_error": "Սերվերում սխալ է տեղի ունեցել։ Փորձեք ավելի ուշ։",
         "brandName": "East West",
@@ -22,7 +23,8 @@
             "mobileNavMenu": "Նավիգացիայի մենյու",
             "toggleTheme": "Փոխել թեման",
             "openCart": "Բացել զամբյուղը",
-            "cartOnCheckout": "Զամբյուղ (ձևակերպման էջում)"
+            "cartOnCheckout": "Զամբյուղ (ձևակերպման էջում)",
+            "skipToContent": "Անցնել հիմնական բովանդակությանը"
         },
         "toast": {
             "added": "Ավելացվեց զամբյուղում",
@@ -472,6 +474,8 @@
             "deliveryType": "Ստացման եղանակ",
             "payment": "Վճարում",
             "live": "Թարմացվում է ինքնաշխատ",
+            "refresh": "Թարմացնել",
+            "lastUpdated": "Թարմացվել է {time}",
             "changeFrom": "Մանր՝",
             "changeDue": "Կբերենք մանր",
             "scheduledFor": "Նշված ժամին"

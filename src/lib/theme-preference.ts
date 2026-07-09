@@ -62,12 +62,13 @@ export function readThemeFromDocument(): ThemeMode {
 
 /** MUI ThemeProvider storage — single source of truth for `ew_theme`. */
 export const ewThemeStorageManager = ({
-    key: _key,
+    key,
     storageWindow,
 }: {
     key: string;
     storageWindow?: Window | null;
 }) => {
+    void key;
     const win = storageWindow ?? (typeof window !== "undefined" ? window : null);
 
     return {

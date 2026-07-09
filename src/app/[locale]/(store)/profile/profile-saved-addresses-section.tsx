@@ -328,6 +328,8 @@ export function ProfileSavedAddressesSection() {
                             onChange={(e) =>
                                 setForm((prev) => ({ ...prev, label: e.target.value }))
                             }
+                            autoComplete="off"
+                            name="addressLabel"
                             fullWidth
                         />
                         <AppInput
@@ -336,6 +338,8 @@ export function ProfileSavedAddressesSection() {
                             onChange={(e) =>
                                 setForm((prev) => ({ ...prev, street: e.target.value }))
                             }
+                            autoComplete="street-address"
+                            name="street"
                             fullWidth
                             required
                         />
@@ -348,6 +352,8 @@ export function ProfileSavedAddressesSection() {
                                     apartment: e.target.value,
                                 }))
                             }
+                            autoComplete="address-line2"
+                            name="apartment"
                             fullWidth
                         />
                         <AppInput
@@ -356,6 +362,8 @@ export function ProfileSavedAddressesSection() {
                             onChange={(e) =>
                                 setForm((prev) => ({ ...prev, comment: e.target.value }))
                             }
+                            autoComplete="off"
+                            name="addressComment"
                             fullWidth
                             multiline
                             minRows={2}

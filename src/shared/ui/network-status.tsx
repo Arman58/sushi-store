@@ -89,12 +89,10 @@ export function NetworkStatus() {
             }
             ContentProps={{
                 sx: {
-                    bgcolor: isOffline
-                        ? "rgba(211, 47, 47, 0.95)"
-                        : "rgba(46, 125, 50, 0.95)",
-                    color: "#fff",
+                    bgcolor: isOffline ? "error.dark" : "success.dark",
+                    color: "common.white",
                     borderRadius: 3,
-                    boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+                    boxShadow: "0 8px 32px rgba(var(--ew-text-rgb), 0.18)",
                     backdropFilter: "blur(8px)",
                     justifyContent: "center",
                     minWidth: "auto",

@@ -113,7 +113,7 @@ export function LocalizedTextFields({
                         mx: 0,
                         mt: 0.75,
                         fontWeight: isSourceLocale ? 600 : 400,
-                        color: isSourceLocale ? "#27AE60" : "text.secondary",
+                        color: isSourceLocale ? "primary.main" : "text.secondary",
                     },
                 }}
                 slotProps={{

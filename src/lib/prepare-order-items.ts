@@ -4,8 +4,126 @@ import type { OrderItemPayload } from "@/app/api/order/_schema";
 import type { InvalidCartPayloadReason } from "@/lib/backend-i18n";
 import { getLocalizedField } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
-import { resolveOrderLinePrice } from "@/lib/resolve-order-line-price";
+import {
+    type ProductForOrderPricing,
+    resolveOrderLinePrice,
+} from "@/lib/resolve-order-line-price";
 import { type ApiErrorCode } from "@/shared/lib/api-error";
+
+const PRODUCT_BASE_SELECT = {
+    id: true,
+    name: true,
+    price: true,
+    isActive: true,
+    isAvailable: true,
+    minQty: true,
+    maxQty: true,
+} as const;
+
+const MODIFIER_GROUP_SELECT = Prisma.validator<Prisma.ModifierGroupSelect>()({
+    id: true,
+    productId: true,
+    name: true,
+    required: true,
+    maxChoices: true,
+    modifiers: {
+        orderBy: [{ position: "asc" }, { id: "asc" }],
+        select: { id: true, name: true, priceDelta: true },
+    },
+});
+
+type ModifierGroupRow = Prisma.ModifierGroupGetPayload<{
+    select: typeof MODIFIER_GROUP_SELECT;
+}>;
+
+type ProductBaseRow = {
+    id: number;
+    name: unknown;
+    price: number;
+    isActive: boolean;
+    isAvailable: boolean;
+    minQty: number;
+    maxQty: number | null;
+};
+
+type CheckoutProductRow = ProductBaseRow & {
+    modifierGroups: ProductForOrderPricing["modifierGroups"];
+};
+
+/**
+ * Базовые поля товара + группы модификаторов только для productId,
+ * у которых группы реально есть (дешёвый groupBy вместо nested join).
+ */
+async function fetchCheckoutProducts(
+    productIds: number[],
+): Promise<Map<number, CheckoutProductRow>> {
+    if (productIds.length === 0) return new Map();
+
+    const [baseProducts, groupedProductIds] = await Promise.all([
+        prisma.product.findMany({
+            where: { id: { in: productIds } },
+            select: PRODUCT_BASE_SELECT,
+        }),
+        prisma.modifierGroup.groupBy({
+            by: ["productId"],
+            where: { productId: { in: productIds } },
+        }),
+    ]);
+
+    const idsWithGroups = groupedProductIds.map((row) => row.productId);
+    const modifierGroups: ModifierGroupRow[] =
+        idsWithGroups.length > 0
+            ? await prisma.modifierGroup.findMany({
+                  where: { productId: { in: idsWithGroups } },
+                  orderBy: [{ position: "asc" }, { id: "asc" }],
+                  select: MODIFIER_GROUP_SELECT,
+              })
+            : [];
+
+    const groupsByProduct = new Map<number, ModifierGroupRow[]>();
+    for (const group of modifierGroups) {
+        const list = groupsByProduct.get(group.productId) ?? [];
+        list.push(group);
+        groupsByProduct.set(group.productId, list);
+    }
+
+    return new Map(
+        baseProducts.map((product) => [
+            product.id,
+            {
+                ...product,
+                modifierGroups: (groupsByProduct.get(product.id) ?? []).map(
+                    (group) => {
+                        const { productId, ...rest } = group;
+                        void productId;
+                        return rest;
+                    },
+                ),
+            },
+        ]),
+    );
+}
+
+function toPricingProduct(product: CheckoutProductRow): ProductForOrderPricing {
+    return {
+        id: product.id,
+        price: product.price,
+        modifierGroups: product.modifierGroups,
+    };
+}
+
+function validateLineQuantity(
+    line: CartLineInput,
+    product: ProductBaseRow,
+): CartLineValidation | null {
+    if (
+        line.quantity < (product.minQty ?? 1) ||
+        (product.maxQty != null && line.quantity > product.maxQty)
+    ) {
+        return { cartItemId: line.cartItemId, ok: false, reason: "inactive" };
+    }
+    return null;
+}
 
 /**
  * Внутренний формат item-а после серверного пересчёта: цена и snapshot
@@ -41,33 +159,7 @@ export async function prepareOrderItems(
 ): Promise<PrepareItemsResult> {
     const uniqueIds = Array.from(new Set(items.map((item) => item.productId)));
 
-    const products = await prisma.product.findMany({
-        where: { id: { in: uniqueIds } },
-        select: {
-            id: true,
-            name: true,
-            price: true,
-            isActive: true,
-            isAvailable: true,
-            minQty: true,
-            maxQty: true,
-            modifierGroups: {
-                orderBy: [{ position: "asc" }, { id: "asc" }],
-                select: {
-                    id: true,
-                    name: true,
-                    required: true,
-                    maxChoices: true,
-                    modifiers: {
-                        orderBy: [{ position: "asc" }, { id: "asc" }],
-                        select: { id: true, name: true, priceDelta: true },
-                    },
-                },
-            },
-        },
-    });
-
-    const productMap = new Map(products.map((p) => [p.id, p]));
+    const productMap = await fetchCheckoutProducts(uniqueIds);
 
     const validatedItems: VerifiedOrderItem[] = [];
 
@@ -94,7 +186,6 @@ export async function prepareOrderItems(
             };
         }
 
-        // Лимиты количества на заказ (min/max задаются в админке)
         if (
             item.quantity < (product.minQty ?? 1) ||
             (product.maxQty != null && item.quantity > product.maxQty)
@@ -108,11 +199,7 @@ export async function prepareOrderItems(
         }
 
         const priced = resolveOrderLinePrice(
-            {
-                id: product.id,
-                price: product.price,
-                modifierGroups: product.modifierGroups,
-            },
+            toPricingProduct(product),
             item.selectedModifierIds,
             locale,
         );
@@ -178,34 +265,7 @@ export async function validateCartLinesForCheckout(
     if (lines.length === 0) return [];
 
     const uniqueIds = Array.from(new Set(lines.map((l) => l.productId)));
-
-    const products = await prisma.product.findMany({
-        where: { id: { in: uniqueIds } },
-        select: {
-            id: true,
-            name: true,
-            price: true,
-            isActive: true,
-            isAvailable: true,
-            minQty: true,
-            maxQty: true,
-            modifierGroups: {
-                orderBy: [{ position: "asc" }, { id: "asc" }],
-                select: {
-                    id: true,
-                    name: true,
-                    required: true,
-                    maxChoices: true,
-                    modifiers: {
-                        orderBy: [{ position: "asc" }, { id: "asc" }],
-                        select: { id: true, name: true, priceDelta: true },
-                    },
-                },
-            },
-        },
-    });
-
-    const productMap = new Map(products.map((p) => [p.id, p]));
+    const productMap = await fetchCheckoutProducts(uniqueIds);
 
     return lines.map((line): CartLineValidation => {
         const product = productMap.get(line.productId);
@@ -218,12 +278,11 @@ export async function validateCartLinesForCheckout(
             return { cartItemId: line.cartItemId, ok: false, reason: "inactive" };
         }
 
+        const quantityIssue = validateLineQuantity(line, product);
+        if (quantityIssue) return quantityIssue;
+
         const priced = resolveOrderLinePrice(
-            {
-                id: product.id,
-                price: product.price,
-                modifierGroups: product.modifierGroups,
-            },
+            toPricingProduct(product),
             line.selectedModifierIds ?? [],
             locale,
         );

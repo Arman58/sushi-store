@@ -89,7 +89,7 @@ export default async function ProfileLayout({
                         position: "relative",
                         overflow: "hidden",
                         background: "linear-gradient(135deg, var(--ew-surface) 0%, rgba(39, 174, 96, 0.02) 100%)",
-                        boxShadow: "0 4px 20px rgba(0, 0, 0, 0.02)",
+                        boxShadow: "0 4px 20px rgba(var(--ew-text-rgb), 0.04)",
                         "&::before": {
                             content: '""',
                             position: "absolute",
@@ -98,7 +98,7 @@ export default async function ProfileLayout({
                             width: 200,
                             height: 200,
                             borderRadius: "50%",
-                            background: "radial-gradient(circle, rgba(39, 174, 96, 0.08) 0%, rgba(39, 174, 96, 0) 70%)",
+                            background: `radial-gradient(circle, ${tokens.brandDim} 0%, transparent 70%)`,
                             pointerEvents: "none",
                         }
                     }}
@@ -115,7 +115,7 @@ export default async function ProfileLayout({
                                     bgcolor: tokens.brand,
                                     fontSize: "1.5rem",
                                     border: "3px solid var(--ew-surface)",
-                                    boxShadow: "0 0 0 2px #27AE60",
+                                    boxShadow: `0 0 0 2px ${tokens.brand}`,
                                 }}
                             >
                                 {displayName.charAt(0).toUpperCase()}
@@ -143,9 +143,9 @@ export default async function ProfileLayout({
                             size="small"
                             variant="outlined"
                             sx={{
-                                border: "1px solid rgba(39, 174, 96, 0.2)",
-                                color: "#27AE60",
-                                bgcolor: "rgba(39, 174, 96, 0.04)",
+                                border: `1px solid ${tokens.brandGlow}`,
+                                color: "primary.main",
+                                bgcolor: tokens.brandDim,
                                 fontWeight: 600,
                                 borderRadius: 2,
                                 mt: { xs: 1, sm: 0 },

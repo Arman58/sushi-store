@@ -111,8 +111,8 @@ export default async function ProfileOrdersPage() {
                             transition: "all 0.2s ease-in-out",
                             "&:hover": {
                                 transform: "translateY(-2px)",
-                                boxShadow: "0 6px 20px rgba(0, 0, 0, 0.03)",
-                                borderColor: "rgba(39, 174, 96, 0.2)",
+                                boxShadow: "0 6px 20px rgba(var(--ew-text-rgb), 0.06)",
+                                borderColor: tokens.brandGlow,
                             }
                         }}
                     >
@@ -142,7 +142,7 @@ export default async function ProfileOrdersPage() {
                                         px: 0.5,
                                     }}
                                 />
-                                <Typography variant="h6" fontWeight={800} color="#27AE60">
+                                <Typography variant="h6" fontWeight={800} color="primary.main">
                                     {numberFormatter.format(order.totalPrice)} ֏
                                 </Typography>
                             </Stack>
@@ -180,7 +180,7 @@ export default async function ProfileOrdersPage() {
                                             <Typography
                                                 variant="caption"
                                                 color="text.secondary"
-                                                sx={{ display: "block", mt: 0.25, pl: 1, borderLeft: "2px solid #27AE60" }}
+                                                sx={{ display: "block", mt: 0.25, pl: 1, borderLeft: `2px solid ${tokens.brand}` }}
                                             >
                                                 {mods.join(", ")}
                                             </Typography>

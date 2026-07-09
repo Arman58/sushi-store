@@ -9,11 +9,11 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 import { buildLocalizedMetadata } from "@/lib/seo/metadata";
+import { HomeCategoryPillsSection } from "@/widgets/home/home-category-pills-section";
 import {
     RecentlyViewedSection,
     WelcomePromoDrawer,
 } from "@/widgets/home/home-client-islands";
-import { HomeCategoryPillsSection } from "@/widgets/home/home-category-pills-section";
 import { HomeHeroSection } from "@/widgets/home/home-hero-section";
 import { HomeNewArrivalsSection } from "@/widgets/home/home-new-arrivals-section";
 import { FeaturesBlock } from "@/widgets/home/lazy-home-widgets";

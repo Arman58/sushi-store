@@ -15,13 +15,10 @@ import {
     Divider,
     IconButton,
     MenuItem,
-    Select,
     Stack,
     TableCell,
     TableRow,
     Typography,
-    useMediaQuery,
-    useTheme,
 } from "@mui/material";
 import type { SelectChangeEvent } from "@mui/material/Select";
 import { useRouter } from "next/navigation";
@@ -39,6 +36,8 @@ import {
     computeEstimatedDeliveryAt,
     ETA_PRESET_MINUTES,
 } from "@/lib/order-status";
+import { useTabletDown } from "@/shared/lib/use-mobile-viewport";
+import { AppSelect } from "@/shared/ui";
 
 const CELL_SX = { px: 2, py: 1.5 };
 
@@ -55,12 +54,11 @@ import {
 export { OrderPaymentChip, OrderStatusChip } from "./order-row-helpers";
 
 export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProps) {
-    const theme = useTheme();
     const locale = useLocale();
     const t = useTranslations("admin.orders");
     const tCommon = useTranslations("admin.common");
     const tOrder = useTranslations("order");
-    const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+    const isMobile = useTabletDown();
     const [open, setOpen] = useState(false);
     const [localStatus, setLocalStatus] = useState(order.status);
     const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -244,20 +242,21 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
     const telHref = order.phone.replace(/[^\d+]/g, "") ? `tel:${order.phone.replace(/[^\d+]/g, "")}` : undefined;
 
     const statusSelect = (
-        <Select
+        <AppSelect
             value={localStatus}
             size={isMobile ? "medium" : "small"}
             fullWidth
             disabled={updatingStatus}
             onChange={onSelectStatus}
             onClick={(e) => e.stopPropagation()}
+            sx={{ maxWidth: "100%" }}
         >
             <MenuItem value="NEW">{translateStatus("NEW")}</MenuItem>
             <MenuItem value="COOKING">{translateStatus("COOKING")}</MenuItem>
             <MenuItem value="DELIVERING">{translateStatus("DELIVERING")}</MenuItem>
             <MenuItem value="DONE">{translateStatus("DONE")}</MenuItem>
             <MenuItem value="CANCELLED">{translateStatus("CANCELLED")}</MenuItem>
-        </Select>
+        </AppSelect>
     );
 
     return (
@@ -514,12 +513,12 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                             >
                                 {t("orderStatusHeading")}
                             </Typography>
-                            <Select
+                            <AppSelect
                                 value={localStatus}
                                 size={isMobile ? "medium" : "small"}
                                 fullWidth
                                 disabled={updatingStatus}
-                                sx={{ mt: 0.75 }}
+                                sx={{ mt: 0.75, maxWidth: "100%" }}
                                 onChange={onSelectStatus}
                             >
                                 <MenuItem value="NEW">{translateStatus("NEW")}</MenuItem>
@@ -527,7 +526,7 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                                 <MenuItem value="DELIVERING">{translateStatus("DELIVERING")}</MenuItem>
                                 <MenuItem value="DONE">{translateStatus("DONE")}</MenuItem>
                                 <MenuItem value="CANCELLED">{translateStatus("CANCELLED")}</MenuItem>
-                            </Select>
+                            </AppSelect>
                             {statusError && (
                                 <Typography
                                     variant="caption"

@@ -64,7 +64,7 @@ export function CartDrawer() {
         hasPriceMismatchIssues,
         problematicCartItemIds,
         serverItems,
-    } = useCartLineValidation(items);
+    } = useCartLineValidation();
 
     const [promoInput, setPromoInput] = useState("");
     // Двухшаговое подтверждение очистки: первый клик «взводит», второй - чистит.
@@ -405,9 +405,9 @@ export function CartDrawer() {
                                                         size="small"
                                                         onClick={() => syncPricesWithServer(serverItems)}
                                                         sx={{
-                                                            alignSelf: { xs: 'stretch', sm: 'flex-start' },
-                                                            backgroundColor: 'rgba(0, 0, 0, 0.05)',
-                                                            '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.1)' }
+                                                            alignSelf: { xs: "stretch", sm: "flex-start" },
+                                                            bgcolor: "action.hover",
+                                                            "&:hover": { bgcolor: "action.focus" },
                                                         }}
                                                     >
                                                         {t("validation.syncPrices")}

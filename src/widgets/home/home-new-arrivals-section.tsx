@@ -1,6 +1,6 @@
 import Container from "@mui/material/Container";
-import dynamic from "next/dynamic";
 import { unstable_cache } from "next/cache";
+import dynamic from "next/dynamic";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import {
@@ -55,7 +55,6 @@ export async function HomeNewArrivalsSection() {
         >
             <PopularSection
                 products={newItems}
-                prioritizeFirstImage
                 title={t("newArrivals")}
                 badge="new"
                 seeAllHref="/menu"

@@ -45,7 +45,7 @@ export default function CartPage() {
         problematicCartItemIds,
         validSubtotal: subtotal,
         serverItems,
-    } = useCartLineValidation(items);
+    } = useCartLineValidation();
 
     const canProceedToCheckout = hasItems && !hasCartLineProblems;
 
@@ -167,7 +167,7 @@ export default function CartPage() {
                                 sx={{
                                     borderRadius: 3,
                                     border: "1px solid",
-                                    borderColor: alpha("#0f172a", 0.06),
+                                    borderColor: "divider",
                                     bgcolor: "background.paper",
                                     px: { xs: 1.5, sm: 2 },
                                     overflow: "hidden",
@@ -251,12 +251,14 @@ export default function CartPage() {
                             sx={{
                                 p: { xs: 2, md: 3 },
                                 borderRadius: 3,
-                                border: "1px solid rgba(15,23,42,0.08)",
+                                border: "1px solid",
+                                borderColor: "divider",
                                 bgcolor: "background.paper",
                                 minWidth: { xs: "100%", md: 280 },
                                 position: { md: "sticky" },
                                 top: { md: 80 },
-                                boxShadow: "0 12px 28px rgba(15,23,42,0.05)",
+                                boxShadow: (theme) =>
+                                    `0 12px 28px ${alpha(theme.palette.common.black, theme.palette.mode === "dark" ? 0.28 : 0.05)}`,
                             }}
                         >
                             <Typography component="h2" variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
@@ -272,15 +274,28 @@ export default function CartPage() {
                                             : `${(5000 - subtotal).toLocaleString("ru-RU")} ֏`}
                                     </Typography>
                                 </Stack>
-                                <Box sx={{ width: "100%", bgcolor: "rgba(0,0,0,0.04)", borderRadius: 4, height: 6, overflow: "hidden" }}>
-                                    <motion.div
+                                <Box
+                                    sx={{
+                                        width: "100%",
+                                        bgcolor: (theme) =>
+                                            alpha(theme.palette.text.primary, 0.06),
+                                        borderRadius: 4,
+                                        height: 6,
+                                        overflow: "hidden",
+                                    }}
+                                >
+                                    <Box
+                                        component={motion.div}
                                         initial={{ width: 0 }}
                                         animate={{ width: `${Math.min(100, (subtotal / 5000) * 100)}%` }}
                                         transition={{ duration: 0.5, ease: "easeOut" }}
-                                        style={{
+                                        sx={{
                                             height: "100%",
-                                            background: subtotal >= 5000 ? "#27AE60" : "linear-gradient(90deg, #F59E0B, #FCD34D)",
                                             borderRadius: 4,
+                                            bgcolor:
+                                                subtotal >= 5000
+                                                    ? "success.main"
+                                                    : "warning.main",
                                         }}
                                     />
                                 </Box>

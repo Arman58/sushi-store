@@ -2,21 +2,20 @@
 
 import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
 import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
-import FormHelperText from "@mui/material/FormHelperText";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { useFormContext } from "react-hook-form";
 
 import type { CheckoutFormValues } from "@/shared/lib/schemas";
+import { AppSelect } from "@/shared/ui";
 
 import { buildScheduleSlots } from "../../model/schedule-slots";
 import { PaymentCard } from "../PaymentCard";
-import { checkoutSectionPaperSx } from "../styles";
+import { checkoutInputRadiusSx, checkoutSectionPaperSx } from "../styles";
 
 /** «Когда доставить?» - как можно скорее или предзаказ ко времени. */
 export function ScheduleSection() {
@@ -96,45 +95,37 @@ export function ScheduleSection() {
             </Stack>
 
             {scheduleMode === "scheduled" && (
-                <div>
-                    <TextField
-                        select
-                        fullWidth
-                        size="small"
-                        label={t("slotLabel")}
-                        value={scheduledFor ?? ""}
-                        error={Boolean(errorMsg)}
-                        onChange={(e) => {
-                            setValue(
-                                "scheduledFor",
-                                e.target.value || null,
-                                { shouldValidate: true },
-                            );
-                        }}
-                        SelectProps={{
-                            MenuProps: {
-                                PaperProps: { sx: { maxHeight: 320 } },
-                            },
-                        }}
-                    >
-                        {slots.length === 0 ? (
-                            <MenuItem value="" disabled>
-                                {t("noSlots")}
+                <AppSelect
+                    size="small"
+                    label={t("slotLabel")}
+                    value={scheduledFor ?? ""}
+                    error={Boolean(errorMsg)}
+                    helperText={errorMsg ?? t("hint")}
+                    sx={checkoutInputRadiusSx}
+                    MenuProps={{
+                        PaperProps: { sx: { maxHeight: 320 } },
+                    }}
+                    onChange={(e) => {
+                        const raw = String(e.target.value ?? "");
+                        setValue("scheduledFor", raw || null, {
+                            shouldValidate: true,
+                        });
+                    }}
+                >
+                    {slots.length === 0 ? (
+                        <MenuItem value="" disabled>
+                            {t("noSlots")}
+                        </MenuItem>
+                    ) : (
+                        slots.map((slot) => (
+                            <MenuItem key={slot.value} value={slot.value}>
+                                {t(slot.day === "today" ? "today" : "tomorrow", {
+                                    time: slot.time,
+                                })}
                             </MenuItem>
-                        ) : (
-                            slots.map((slot) => (
-                                <MenuItem key={slot.value} value={slot.value}>
-                                    {t(slot.day === "today" ? "today" : "tomorrow", {
-                                        time: slot.time,
-                                    })}
-                                </MenuItem>
-                            ))
-                        )}
-                    </TextField>
-                    <FormHelperText error={Boolean(errorMsg)}>
-                        {errorMsg ?? t("hint")}
-                    </FormHelperText>
-                </div>
+                        ))
+                    )}
+                </AppSelect>
             )}
         </Paper>
     );

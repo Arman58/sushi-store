@@ -163,6 +163,8 @@ export function PaymentSection({
                                 type="number"
                                 label={t("changeAmountLabel")}
                                 value={changeAmount ?? ""}
+                                autoComplete="off"
+                                name="changeAmount"
                                 onChange={(e) => {
                                     const raw = e.target.value;
                                     const n = Math.trunc(Number(raw));
@@ -238,6 +240,8 @@ export function PaymentSection({
                 minRows={2}
                 sx={checkoutInputRadiusSx}
                 {...register("comment")}
+                autoComplete="off"
+                name="comment"
                 // setValue из сохранённого адреса не поднимает label - форсируем
                 InputLabelProps={{
                     shrink: watch("comment") ? true : undefined,
