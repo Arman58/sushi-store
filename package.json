@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma migrate deploy && prisma generate && next build && serwist build serwist.config.mjs",
+    "build": "npx prisma migrate resolve --rolled-back 20260709220000_cart_created_at; prisma migrate deploy && prisma generate && next build && serwist build serwist.config.mjs",
     "build:local": "dotenv -e .env.local -- prisma migrate deploy && dotenv -e .env.local -- prisma generate && next build && serwist build serwist.config.mjs",
     "postinstall": "prisma generate",
     "start": "next start",
