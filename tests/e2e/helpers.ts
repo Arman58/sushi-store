@@ -36,11 +36,11 @@ export async function addFirstProductToCart(page: Page) {
     await page.goto("/ru");
     await page.waitForLoadState("networkidle");
 
-    let addButton = page.getByRole("button", { name: /^Добавить / }).first();
+    let addButton = page.getByRole("button", { name: /^Добавить (?!в избранное)/ }).first();
     if (!(await addButton.isVisible({ timeout: 8_000 }).catch(() => false))) {
         await page.goto("/ru/menu");
         await page.waitForLoadState("networkidle");
-        addButton = page.getByRole("button", { name: /^Добавить / }).first();
+        addButton = page.getByRole("button", { name: /^Добавить (?!в избранное)/ }).first();
     }
 
     await addButton.click();
