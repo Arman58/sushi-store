@@ -30,17 +30,6 @@ import {
 export type { ProductBadge, ProductCardProps } from "./product-card-shared";
 export { ProductCardSkeleton } from "./product-card-skeleton";
 
-const linkSx = {
-    display: "block",
-    textDecoration: "none",
-    color: "inherit",
-    outline: "none",
-    "&:focus-visible": {
-        boxShadow: (theme: { palette: { primary: { main: string } } }) =>
-            `inset 0 0 0 2px ${theme.palette.primary.main}`,
-    },
-} as const;
-
 export const ProductCard = memo(function ProductCard({
     name,
     description,
@@ -146,8 +135,6 @@ export const ProductCard = memo(function ProductCard({
 
     const media = (
         <ProductCardMedia
-            href={hasProductLink ? productLink : null}
-            ariaLabel={hasProductLink ? productLinkAriaLabel : undefined}
             imageUrl={imageUrl}
             imageAlt={imageAlt}
             imagePriority={imagePriority}
@@ -192,9 +179,11 @@ export const ProductCard = memo(function ProductCard({
                     role={!hasProductLink && onOpenDetails ? "button" : undefined}
                     tabIndex={!hasProductLink && onOpenDetails ? 0 : undefined}
                     aria-label={
-                        !hasProductLink && onOpenDetails
-                            ? t("aria.openDetails", { name })
-                            : undefined
+                        hasProductLink
+                            ? productLinkAriaLabel
+                            : onOpenDetails
+                              ? t("aria.openDetails", { name })
+                              : undefined
                     }
                     onClick={
                         !hasProductLink && onOpenDetails

@@ -17,6 +17,7 @@ export function LayoutToastSnackbar() {
         setAddToast,
         lastAddedTitle,
         appToastMessage,
+        appToastMessageKey,
         appToastSeverity,
     } = useCartStore(
         useShallow((state) => ({
@@ -24,17 +25,20 @@ export function LayoutToastSnackbar() {
             setAddToast: state.setAddToast,
             lastAddedTitle: state.lastAddedTitle,
             appToastMessage: state.appToastMessage,
+            appToastMessageKey: state.appToastMessageKey,
             appToastSeverity: state.appToastSeverity,
         })),
     );
 
-    const isAppToast = Boolean(appToastMessage);
+    const isAppToast = Boolean(appToastMessage || appToastMessageKey);
     const isErrorToast = appToastSeverity === "error";
-    const snackbarMessage = isAppToast
-        ? appToastMessage
-        : lastAddedTitle
-          ? tCommon("toast.addedNamed", { name: lastAddedTitle })
-          : tCommon("toast.added");
+    const snackbarMessage = appToastMessageKey
+        ? tCommon(appToastMessageKey)
+        : appToastMessage
+          ? appToastMessage
+          : lastAddedTitle
+            ? tCommon("toast.addedNamed", { name: lastAddedTitle })
+            : tCommon("toast.added");
     const snackbarDuration = isAppToast ? 3500 : 1500;
 
     return (

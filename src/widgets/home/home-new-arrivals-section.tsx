@@ -3,11 +3,11 @@ import { unstable_cache } from "next/cache";
 import dynamic from "next/dynamic";
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { CACHE_TAGS } from "@/lib/cache-tags";
 import {
     homeProductCardInclude,
     mapProductToPopular,
 } from "@/lib/home-product-include";
-import { CACHE_TAGS } from "@/lib/cache-tags";
 import { prisma } from "@/lib/prisma";
 
 const PopularSection = dynamic(

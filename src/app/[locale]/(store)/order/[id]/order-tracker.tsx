@@ -280,7 +280,7 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
         return () => {
             sse.close();
         };
-    }, [initial.id, phone, queryClient]);
+    }, [initial.id, initial.status, phone, queryClient]);
 
     const order = data ?? initial;
     const status = order.status;

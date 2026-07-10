@@ -20,7 +20,8 @@ import { useRouter } from "@/i18n/server";
 import { EMAIL_NOT_VERIFIED_ERROR } from "@/lib/otp-auth";
 import { OTP_CODE_LENGTH, OTP_TTL_SECONDS } from "@/lib/otp-store";
 import { showAppToast } from "@/shared/lib/show-app-toast";
-import { AppButton, AppInput } from "@/shared/ui";
+import { AppButton } from "@/shared/ui/AppButton";
+import { AppInput } from "@/shared/ui/AppInput";
 import { tokens } from "@/shared/ui/theme";
 
 import { OtpCodeInput, OtpResendTimer } from "./otp-code-input";

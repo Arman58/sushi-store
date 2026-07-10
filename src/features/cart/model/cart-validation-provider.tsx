@@ -25,6 +25,12 @@ type ValidateResponse = {
         ok: boolean;
         reason?: CartLineIssueReason;
         serverUnitPrice?: number;
+        serverBasePrice?: number;
+        serverModifiers?: Array<{
+            id: number;
+            name: string;
+            priceDelta: number;
+        }>;
     }>;
 };
 

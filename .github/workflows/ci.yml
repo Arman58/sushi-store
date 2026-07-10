@@ -62,3 +62,41 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  # Production release: миграции применяются ДО деплоя кода.
+  # Авто-деплой main в Vercel отключён (vercel.json → git.deploymentEnabled),
+  # сборку запускает Deploy Hook после успешного migrate deploy.
+  # Требуемые секреты репозитория:
+  #   DATABASE_URL        - прод-база (для prisma migrate deploy)
+  #   VERCEL_DEPLOY_HOOK  - URL из Vercel → Settings → Git → Deploy Hooks (ветка main)
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [quality, e2e]
+    runs-on: ubuntu-latest
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Check secrets are configured
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$DATABASE_URL" ] || [ -z "$VERCEL_DEPLOY_HOOK" ]; then
+            echo "::error::Добавьте секреты DATABASE_URL и VERCEL_DEPLOY_HOOK (Settings → Secrets and variables → Actions), иначе прод не задеплоится."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply database migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx prisma migrate deploy
+      - name: Trigger Vercel production deploy
+        env:
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: curl -fsS -X POST "$VERCEL_DEPLOY_HOOK" > /dev/null && echo "Deploy hook triggered"

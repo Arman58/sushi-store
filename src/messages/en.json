@@ -29,7 +29,8 @@
         "toast": {
             "added": "Added to cart",
             "addedNamed": "{name} added to cart",
-            "sessionExpired": "Session expired, please sign in again"
+            "sessionExpired": "Session expired, please sign in again",
+            "pricesUpdated": "Cart prices updated"
         },
         "eta": {
             "arrivalLabel": "Arriving by",

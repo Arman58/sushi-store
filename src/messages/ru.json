@@ -29,7 +29,8 @@
         "toast": {
             "added": "Добавлено в корзину",
             "addedNamed": "{name} добавлен в корзину",
-            "sessionExpired": "Сессия истекла, войдите заново"
+            "sessionExpired": "Сессия истекла, войдите заново",
+            "pricesUpdated": "Цены в корзине обновлены"
         },
         "eta": {
             "arrivalLabel": "Привезём к",

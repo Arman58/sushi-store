@@ -125,7 +125,7 @@ export default function CartPage() {
         return () => {
             cancelled = true;
         };
-    }, [appliedPromoCode, hasItems, subtotal, setAppliedPromoCode, t]);
+    }, [appliedPromoCode, hasItems, items, subtotal, setAppliedPromoCode, t]);
 
     const totalPrice = Math.max(0, subtotal - promoDiscount);
 

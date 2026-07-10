@@ -75,12 +75,12 @@ export function localizeEntity<
     locale: string,
     fields: readonly K[],
 ): LocalizedFields<T, K> {
-    const out = { ...entity } as any;
+    const out: Record<string, unknown> = { ...entity };
     for (const field of fields) {
         // Мы предполагаем, что translations содержит все нужные поля (name, description, и т.д.)
         out[field] = getLocalizedField(entity.translations, locale, field);
     }
-    return out;
+    return out as LocalizedFields<T, K>;
 }
 
 export function localizeEntities<
@@ -152,7 +152,11 @@ export function localizeProduct<T extends ProductWithCategory>(
     const category = product.category
         ? { ...product.category, name: getLocalizedField(product.category.translations, locale, "name") }
         : product.category;
-    return { ...product, ...localized, category } as any;
+    return { ...product, ...localized, category } as T & {
+        name: string;
+        description: string | null;
+        composition: string | null;
+    };
 }
 
 export function localizeProducts<T extends ProductWithCategory>(

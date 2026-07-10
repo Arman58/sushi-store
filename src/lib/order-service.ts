@@ -38,7 +38,23 @@ export type UpdateOrderStatusErrorCode =
     | "INVALID_ORDER_ID"
     | "INVALID_STATUS"
     | "NOT_FOUND"
-    | "CANCELLED_LOCKED";
+    | "CANCELLED_LOCKED"
+    | "INVALID_TRANSITION";
+
+/**
+ * Конечный автомат статусов. Инварианты:
+ * - CANCELLED терминален (существующая проверка CANCELLED_LOCKED);
+ * - из DONE нельзя в CANCELLED (заказ доставлен, деньги получены),
+ *   но можно откатить mistap ✅ обратно в COOKING/DELIVERING;
+ * - соседние правки NEW/COOKING/DELIVERING разрешены (реальность кухни).
+ */
+const ALLOWED_STATUS_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
+    NEW: ["COOKING", "DELIVERING", "DONE", "CANCELLED"],
+    COOKING: ["NEW", "DELIVERING", "DONE", "CANCELLED"],
+    DELIVERING: ["COOKING", "DONE", "CANCELLED"],
+    DONE: ["COOKING", "DELIVERING"],
+    CANCELLED: [],
+};
 
 export class UpdateOrderStatusError extends Error {
     readonly code: UpdateOrderStatusErrorCode;
@@ -86,8 +102,20 @@ export async function updateOrderStatus(
         throw new UpdateOrderStatusError("Order not found", "NOT_FOUND");
     }
 
-    if (existing.status === "CANCELLED" && newStatus !== "CANCELLED") {
+    // Идемпотентность: повторная установка того же статуса - no-op.
+    if (existing.status === newStatus) {
+        return existing;
+    }
+
+    if (existing.status === "CANCELLED") {
         throw new UpdateOrderStatusError("Order is cancelled", "CANCELLED_LOCKED");
+    }
+
+    if (!ALLOWED_STATUS_TRANSITIONS[existing.status].includes(newStatus)) {
+        throw new UpdateOrderStatusError(
+            `Transition ${existing.status} → ${newStatus} is not allowed`,
+            "INVALID_TRANSITION",
+        );
     }
 
     const updated = await prisma.order.update({

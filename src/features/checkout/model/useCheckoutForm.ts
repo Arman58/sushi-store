@@ -77,6 +77,11 @@ export function useCheckoutForm({ sessionUser }: UseCheckoutFormParams) {
     const [apiError, setApiError] = useState(false);
     const [isSubmittingLocal, setIsSubmittingLocal] = useState(false);
     const checkoutFormRef = useRef<HTMLFormElement>(null);
+    /**
+     * Ключ идемпотентности попытки оформления: живёт через ретраи (сервер
+     * дедуплицирует double-tap/повтор сети), сбрасывается после успеха.
+     */
+    const idempotencyKeyRef = useRef<string | null>(null);
 
     const draft = useMemo(() => loadDraft(), []);
 
@@ -256,6 +261,11 @@ export function useCheckoutForm({ sessionUser }: UseCheckoutFormParams) {
         setApiError(false);
         resetPriceMismatch();
 
+        idempotencyKeyRef.current ??=
+            typeof crypto !== "undefined" && "randomUUID" in crypto
+                ? crypto.randomUUID()
+                : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
         try {
             const result = await placeOrder({
                 name: data.name.trim(),
@@ -281,9 +291,10 @@ export function useCheckoutForm({ sessionUser }: UseCheckoutFormParams) {
                     data.delivery === "delivery" ? data.deliveryZoneId : undefined,
                 locale,
                 hp: data.hp,
-            });
+            }, idempotencyKeyRef.current ?? undefined);
 
             if (result?.ok && result.order?.id && result.order.accessToken) {
+                idempotencyKeyRef.current = null;
                 if (
                     sessionUser &&
                     data.saveAddress &&

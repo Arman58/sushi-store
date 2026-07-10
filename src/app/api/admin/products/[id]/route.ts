@@ -5,7 +5,7 @@ import {
     type AdminModifierGroupInput,
     parseAdminModifierGroupsPayload,
 } from "@/lib/admin-product-modifiers";
-import { asLocalizedRecord, isLocalizedJson } from "@/lib/i18n-utils";
+import { asLocalizedRecord, isLocalizedJson, type LocalizedJson } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
 import { invalidateCatalogCache } from "@/lib/revalidate-storefront";
 import { verifyAdmin } from "@/lib/verify-admin";
@@ -40,9 +40,9 @@ function parseProductId(
 async function parsePutBodyToPrismaUpdate(
     raw: Record<string, unknown>,
     productId: number,
-): Promise<{ data: Prisma.ProductUpdateInput; translationsPayload: Record<string, any> } | { response: NextResponse }> {
+): Promise<{ data: Prisma.ProductUpdateInput; translationsPayload: Record<string, LocalizedJson> } | { response: NextResponse }> {
     const data: Prisma.ProductUpdateInput = {};
-    const translationsPayload: Record<string, any> = {};
+    const translationsPayload: Record<string, LocalizedJson> = {};
     const has = (key: string) => Object.prototype.hasOwnProperty.call(raw, key);
 
     if (has("name")) {
@@ -308,7 +308,11 @@ async function handleProductJsonPartialUpdate(request: Request, params: Promise<
             if (Object.keys(parsed.translationsPayload).length > 0) {
                 const locales = ["hy", "ru", "en"];
                 for (const loc of locales) {
-                    const updateData: any = {};
+                    const updateData: {
+                        name?: string;
+                        description?: string | null;
+                        composition?: string | null;
+                    } = {};
                     if ("name" in parsed.translationsPayload) {
                         updateData.name = parsed.translationsPayload.name[loc] || "";
                     }
@@ -693,7 +697,21 @@ export async function DELETE(
         await prisma.product.delete({ where: { id: idResult.id } });
         invalidateCatalogCache();
         return NextResponse.json({ ok: true });
-    } catch {
+    } catch (error) {
+        // P2003 (FK Restrict): товар лежит в серверных корзинах покупателей.
+        // Вместо жёсткого удаления - soft delete: validate-cart пометит строки
+        // как "inactive", клиент покажет штатное состояние «товар недоступен».
+        if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === "P2003"
+        ) {
+            await prisma.product.update({
+                where: { id: idResult.id },
+                data: { isActive: false, isAvailable: false },
+            });
+            invalidateCatalogCache();
+            return NextResponse.json({ ok: true, softDeleted: true });
+        }
         // Error logged in production monitoring
         return NextResponse.json({ error: "Failed to delete product" }, { status: 500 });
     }

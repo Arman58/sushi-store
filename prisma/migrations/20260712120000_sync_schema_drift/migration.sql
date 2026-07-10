@@ -1,0 +1,3 @@
+ALTER TABLE "Cart" ALTER COLUMN "updatedAt" DROP DEFAULT;
+CREATE INDEX IF NOT EXISTS "Order_phone_idx" ON "Order"("phone");
+ALTER TABLE "PromoCode" ADD COLUMN IF NOT EXISTS "actions" JSONB, ADD COLUMN IF NOT EXISTS "conditions" JSONB;

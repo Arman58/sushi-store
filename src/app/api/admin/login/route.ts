@@ -40,7 +40,12 @@ export async function POST(request: Request) {
         });
     }
 
-    const response = NextResponse.redirect(new URL("/admin/orders", request.url));
+    // 303: браузер выполнит GET /admin/orders. Дефолтный 307 переотправил бы
+    // POST (с креденшлами в теле) на page-роут.
+    const response = NextResponse.redirect(
+        new URL("/admin/orders", request.url),
+        303,
+    );
     response.cookies.set("admin_auth", token, getAdminAuthCookieSettings());
 
     return response;

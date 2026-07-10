@@ -15,7 +15,8 @@ import {
     subscribeToPush,
     syncPushSubscriptionWithBackend,
 } from "@/lib/push-client";
-import { AppButton } from "@/shared/ui";
+
+import { AppButton } from "./AppButton";
 
 const IS_DEV = process.env.NODE_ENV === "development";
 

@@ -8,8 +8,8 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
+import type { ReactNode } from "react";
 
 import { Link } from "@/i18n/server";
 import { tokens } from "@/shared/ui/theme";

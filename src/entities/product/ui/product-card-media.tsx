@@ -7,7 +7,6 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import { motion } from "framer-motion";
 
-import { Link } from "@/i18n/server";
 import { ProductCoverImage } from "@/shared/ui/product-cover-image";
 import { tokens } from "@/shared/ui/theme";
 
@@ -24,21 +23,7 @@ const mediaSx = {
     borderTopRightRadius: `${tokens.radiusCardLg}px`,
 } as const;
 
-const linkSx = {
-    display: "block",
-    textDecoration: "none",
-    color: "inherit",
-    outline: "none",
-    "&:focus-visible": {
-        boxShadow: (theme: { palette: { primary: { main: string } } }) =>
-            `inset 0 0 0 2px ${theme.palette.primary.main}`,
-    },
-} as const;
-
 type ProductCardMediaProps = {
-    /** Ссылка на страницу товара; без неё - просто картинка. */
-    href?: string | null;
-    ariaLabel?: string;
     imageUrl: string | null;
     imageAlt: string;
     imagePriority: boolean;
@@ -52,8 +37,6 @@ type ProductCardMediaProps = {
 
 /** Медиа-зона карточки: фото + бейджи (слева сверху) + избранное (справа). */
 export function ProductCardMedia({
-    href,
-    ariaLabel,
     imageUrl,
     imageAlt,
     imagePriority,
