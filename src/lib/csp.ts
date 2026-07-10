@@ -31,7 +31,8 @@ export function buildCspHeaderValue(nonce: string): string {
         "style-src 'self' 'unsafe-inline' https://vercel.live",
         "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://placehold.co https://vercel.live https://vercel.com",
         "font-src 'self' data: https://vercel.live https://assets.vercel.com",
-        "connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io https://vercel.live wss://ws-us3.pusher.com https://va.vercel-scripts.com",
+        // Defense in depth if SW or client code fetch()s CDN assets.
+        "connect-src 'self' https://res.cloudinary.com https://images.unsplash.com https://*.sentry.io https://*.ingest.sentry.io https://vercel.live wss://ws-us3.pusher.com https://va.vercel-scripts.com",
         "frame-src 'self' https://vercel.live",
         "worker-src 'self' blob:",
         "frame-ancestors 'none'",

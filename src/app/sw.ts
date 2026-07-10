@@ -20,16 +20,6 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope;
 
-const THIRTY_DAYS_SECONDS = 30 * 24 * 60 * 60;
-
-const imageExpirationPlugins = [
-    new ExpirationPlugin({
-        maxEntries: 100,
-        maxAgeSeconds: THIRTY_DAYS_SECONDS,
-        maxAgeFrom: "last-used",
-    }),
-];
-
 function isMenuPath(pathname: string): boolean {
     return pathname === "/menu" || /^\/(hy|en|ru)\/menu(\/?|$)/.test(pathname);
 }
@@ -85,20 +75,6 @@ const productionRuntimeCaching: RuntimeCaching[] = [
                     maxAgeFrom: "last-used",
                 }),
             ],
-        }),
-    },
-    {
-        matcher: /^https:\/\/res\.cloudinary\.com\/.*/i,
-        handler: new CacheFirst({
-            cacheName: "cloudinary-images",
-            plugins: imageExpirationPlugins,
-        }),
-    },
-    {
-        matcher: /^https:\/\/images\.unsplash\.com\/.*/i,
-        handler: new CacheFirst({
-            cacheName: "unsplash-images",
-            plugins: imageExpirationPlugins,
         }),
     },
     {
@@ -193,7 +169,10 @@ const productionRuntimeCaching: RuntimeCaching[] = [
         }),
     },
     {
-        matcher: /.*/i,
+        // Cross-origin images (Cloudinary, Unsplash) bypass SW: browser loads them
+        // under img-src. SW fetch() would require connect-src on every deploy.
+        matcher: ({ sameOrigin, request }) =>
+            !(request.destination === "image" && !sameOrigin),
         method: "GET",
         handler: new NetworkOnly(),
     },
