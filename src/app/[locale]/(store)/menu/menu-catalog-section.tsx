@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { unstable_cache } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { cache } from "react";
@@ -89,7 +90,9 @@ const getMenuDataCached = unstable_cache(
         const maxPrice = priceStats._max.price ?? minPrice;
 
         return { categories, products, minPrice, maxPrice, error: false as const };
-    } catch {
+    } catch (err) {
+        console.error("[menu-catalog] failed to load menu data", err);
+        Sentry.captureException(err);
         return {
             categories: [],
             products: [],

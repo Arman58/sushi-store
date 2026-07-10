@@ -33,11 +33,11 @@ test.describe("Регистрация и логин", () => {
             page.getByRole("heading", { name: "Подтвердите email" }),
         ).toBeVisible({ timeout: 15_000 });
 
-        await expect(page.getByRole("textbox", { name: "Digit 1" })).toBeVisible();
-        await expect(page.getByRole("textbox", { name: "Digit 2" })).toBeVisible();
-        await expect(page.getByRole("textbox", { name: "Digit 3" })).toBeVisible();
-        await expect(page.getByRole("textbox", { name: "Digit 4" })).toBeVisible();
-        await expect(page.getByRole("textbox", { name: "Digit 5" })).toBeVisible();
-        await expect(page.getByRole("textbox", { name: "Digit 6" })).toBeVisible();
+        await expect(page.getByRole("textbox", { name: "Цифра 1" })).toBeVisible();
+        await expect(page.getByRole("textbox", { name: "Цифра 2" })).toBeVisible();
+        await expect(page.getByRole("textbox", { name: "Цифра 3" })).toBeVisible();
+        await expect(page.getByRole("textbox", { name: "Цифра 4" })).toBeVisible();
+        await expect(page.getByRole("textbox", { name: "Цифра 5" })).toBeVisible();
+        await expect(page.getByRole("textbox", { name: "Цифра 6" })).toBeVisible();
     });
 });

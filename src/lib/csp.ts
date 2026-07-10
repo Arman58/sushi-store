@@ -12,8 +12,10 @@ export function createCspNonce(): string {
  * - Production: enforce-ready (caller sets header name).
  * - Dev: allows 'unsafe-eval' for Turbopack/HMR.
  *
- * Emotion/MUI: style-src-elem uses nonce; style-src-attr stays unsafe-inline
- * for dynamic inline style attributes (positioning, CSS vars).
+ * Styles: 'unsafe-inline' without nonce on style-src-elem. A nonce in the
+ * same directive disables 'unsafe-inline' (CSP spec), which blocks Vercel Live
+ * and other third-party <style> tags. XSS mitigation stays on script-src nonce.
+ * style-src-attr stays unsafe-inline for dynamic style attributes.
  */
 export function buildCspHeaderValue(nonce: string): string {
     const scriptSrc = isProd
@@ -23,10 +25,10 @@ export function buildCspHeaderValue(nonce: string): string {
     return [
         "default-src 'self'",
         scriptSrc,
-        `style-src-elem 'self' 'nonce-${nonce}' https://vercel.live`,
+        "style-src-elem 'self' 'unsafe-inline' https://vercel.live",
         "style-src-attr 'unsafe-inline'",
         // Fallback for older browsers that ignore style-src-elem/attr.
-        `style-src 'self' 'nonce-${nonce}' 'unsafe-inline' https://vercel.live`,
+        "style-src 'self' 'unsafe-inline' https://vercel.live",
         "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://placehold.co https://vercel.live https://vercel.com",
         "font-src 'self' data: https://vercel.live https://assets.vercel.com",
         "connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io https://vercel.live wss://ws-us3.pusher.com https://va.vercel-scripts.com",
