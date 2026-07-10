@@ -63,19 +63,16 @@ function PromoSlideCard({
                 bgcolor: tokens.textPrimary,
             }}
         >
-            {/* Plain div: Next/Image fill requires positioned parent before Emotion CSS loads. */}
-            <div style={{ position: "absolute", inset: 0 }}>
-                <Image
-                    src={slide.imageUrl}
-                    alt={imageAlt}
-                    fill
-                    sizes="(max-width: 600px) 100vw, 960px"
-                    style={{ objectFit: "cover" }}
-                    {...(priority
-                        ? { loading: "eager" as const }
-                        : { loading: "lazy" as const })}
-                />
-            </div>
+            <Image
+                src={slide.imageUrl}
+                alt={imageAlt}
+                fill
+                sizes="(max-width: 600px) 100vw, 960px"
+                style={{ objectFit: "cover" }}
+                {...(priority
+                    ? { loading: "eager" as const }
+                    : { loading: "lazy" as const })}
+            />
 
             <Box
                 sx={{
