@@ -21,15 +21,21 @@ type BucketConfig = {
     requests: number;
     window: `${number} s` | `${number} m` | `${number} h`;
     prefix: string;
+    /**
+     * Auth-класс: при недоступном Redis запрос ОТКЛОНЯЕТСЯ (fail-closed).
+     * Иначе сбой Upstash открывает брутфорс логина/OTP. Для revenue-путей
+     * (order, search и т.д.) остаётся fail-open, чтобы не терять заказы.
+     */
+    failClosed?: boolean;
 };
 
 export const RATE_LIMIT_BUCKETS: Record<RateLimitBucket, BucketConfig> = {
     order: { requests: 5, window: "60 s", prefix: "rl:order" },
-    adminLogin: { requests: 5, window: "15 m", prefix: "rl:admin-login" },
+    adminLogin: { requests: 5, window: "15 m", prefix: "rl:admin-login", failClosed: true },
     adminApi: { requests: 100, window: "60 s", prefix: "rl:admin-api" },
-    register: { requests: 5, window: "15 m", prefix: "rl:register" },
-    verifyOtp: { requests: 10, window: "15 m", prefix: "rl:verify-otp" },
-    resendOtp: { requests: 5, window: "15 m", prefix: "rl:resend-otp" },
+    register: { requests: 5, window: "15 m", prefix: "rl:register", failClosed: true },
+    verifyOtp: { requests: 10, window: "15 m", prefix: "rl:verify-otp", failClosed: true },
+    resendOtp: { requests: 5, window: "15 m", prefix: "rl:resend-otp", failClosed: true },
     validateCart: { requests: 20, window: "60 s", prefix: "rl:validate-cart" },
     validatePromo: { requests: 10, window: "60 s", prefix: "rl:validate-promo" },
     orderStatus: { requests: 10, window: "60 s", prefix: "rl:order-status" },
@@ -78,12 +84,51 @@ export function isUpstashRateLimitConfigured(): boolean {
     return redis !== null;
 }
 
-export function getClientIp(request: Request): string {
-    const xff = request.headers.get("x-forwarded-for");
-    if (xff) return xff.split(",")[0].trim();
+/**
+ * In-memory fallback для failClosed-бакетов, когда Upstash недоступен.
+ * Пер-инстанс (serverless: нестрого), но радикально лучше, чем fail-open
+ * для брутфорса логина. Fixed window по конфигу бакета.
+ */
+const memoryHits = new Map<string, { count: number; resetAt: number }>();
 
+function parseWindowMs(window: BucketConfig["window"]): number {
+    const [num, unit] = window.split(" ");
+    const n = Number(num);
+    if (unit === "s") return n * 1000;
+    if (unit === "m") return n * 60_000;
+    return n * 3_600_000;
+}
+
+function checkMemoryLimit(bucket: RateLimitBucket, ip: string): boolean {
+    const cfg = RATE_LIMIT_BUCKETS[bucket];
+    const key = `${cfg.prefix}:${ip}`;
+    const now = Date.now();
+    const entry = memoryHits.get(key);
+
+    if (!entry || now >= entry.resetAt) {
+        // Попутная уборка, чтобы Map не рос бесконечно.
+        if (memoryHits.size > 10_000) {
+            for (const [k, v] of memoryHits) {
+                if (now >= v.resetAt) memoryHits.delete(k);
+            }
+        }
+        memoryHits.set(key, { count: 1, resetAt: now + parseWindowMs(cfg.window) });
+        return true;
+    }
+
+    entry.count += 1;
+    return entry.count <= cfg.requests;
+}
+
+export function getClientIp(request: Request): string {
+    // x-real-ip выставляется платформой (Vercel/nginx) и не подделывается
+    // клиентом, в отличие от левого значения x-forwarded-for, которое за
+    // сторонним прокси позволяет бесконечно менять identity лимитера.
     const realIp = request.headers.get("x-real-ip");
     if (realIp) return realIp.trim();
+
+    const xff = request.headers.get("x-forwarded-for");
+    if (xff) return xff.split(",")[0].trim();
 
     const requestIp = (request as Request & { ip?: string }).ip;
     if (requestIp) return requestIp;
@@ -97,16 +142,25 @@ export type RateLimitOutcome =
 
 /**
  * Проверяет и учитывает попытку (sliding window).
- * Production без Upstash → fail-open (чтобы не терять заказы).
- * Development без Upstash → fail-open.
+ * Без Upstash / при сбое Upstash:
+ * - failClosed-бакеты (login/OTP/register) → in-memory fallback-лимитер,
+ *   чтобы сбой Redis не открывал брутфорс;
+ * - остальные (revenue-пути) → fail-open, чтобы не терять заказы.
  */
 export async function checkRateLimit(
     request: Request,
     bucket: RateLimitBucket,
 ): Promise<RateLimitOutcome> {
     const limiter = limiters[bucket];
+    const failClosed = RATE_LIMIT_BUCKETS[bucket].failClosed === true;
 
     if (!limiter) {
+        if (failClosed) {
+            const ok = checkMemoryLimit(bucket, getClientIp(request));
+            return ok
+                ? { allowed: true }
+                : { allowed: false, reason: "limited" };
+        }
         if (isProduction) {
             console.error(
                 `[rate-limit] Upstash Redis is not configured; failing open in production to prevent revenue loss (bucket=${bucket})`,
@@ -123,6 +177,16 @@ export async function checkRateLimit(
         }
         return { allowed: true };
     } catch (error) {
+        if (failClosed) {
+            console.error(
+                `[rate-limit] Upstash request failed; using in-memory fallback for auth bucket (bucket=${bucket})`,
+                error,
+            );
+            const ok = checkMemoryLimit(bucket, getClientIp(request));
+            return ok
+                ? { allowed: true }
+                : { allowed: false, reason: "unavailable" };
+        }
         if (isProduction) {
             console.error(
                 `[rate-limit] Upstash request failed; failing open in production to prevent revenue loss (bucket=${bucket})`,

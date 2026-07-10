@@ -1,5 +1,3 @@
-import { timingSafeStringEqual } from "@/lib/timing-safe-equal";
-
 import {
     DEFAULT_FETCH_TIMEOUT_MS,
     fetchWithTimeout,
@@ -14,6 +12,7 @@ import {
     ETA_PRESET_MINUTES,
     formatEstimatedDeliveryTime,
 } from "@/lib/order-status";
+import { timingSafeStringEqual } from "@/lib/timing-safe-equal";
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;

@@ -5,11 +5,11 @@ import { menuCategoryPath } from "@/lib/menu-paths";
 import { prisma } from "@/lib/prisma";
 import { SITE_URL } from "@/lib/site-config";
 
+// /profile намеренно отсутствует: приватная страница (robots.ts её запрещает).
 const STATIC_PATHS = [
     "",
     "/menu",
     "/contacts",
-    "/profile",
     "/offer",
     "/privacy",
 ] as const;

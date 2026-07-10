@@ -71,7 +71,20 @@ export async function createOrder(
         0,
     );
 
-    const verifiedItemsResult = await prepareOrderItems(items, locale);
+    // Независимые чтения параллельно: -2 последовательных round-trip к БД
+    // на каждом заказе. Валидация ниже - в прежнем порядке.
+    const [verifiedItemsResult, zoneRow, promoRow] = await Promise.all([
+        prepareOrderItems(items, locale),
+        delivery === "delivery" && deliveryZoneId
+            ? prisma.deliveryZone.findFirst({
+                  where: { id: deliveryZoneId, isActive: true },
+                  include: { translations: true },
+              })
+            : Promise.resolve(null),
+        promoCodeRaw
+            ? prisma.promoCode.findUnique({ where: { code: promoCodeRaw } })
+            : Promise.resolve(null),
+    ]);
 
     if (!verifiedItemsResult.ok) {
         throw new OrderServiceError(
@@ -99,10 +112,7 @@ export async function createOrder(
             throw new OrderServiceError(API_ERROR_CODES.INVALID_CART_PAYLOAD, 400, undefined, "form.zone.selectRequired");
         }
 
-        const zone = await prisma.deliveryZone.findFirst({
-            where: { id: zoneId, isActive: true },
-            include: { translations: true },
-        });
+        const zone = zoneRow;
 
         if (!zone) {
             throw new OrderServiceError(API_ERROR_CODES.INVALID_CART_PAYLOAD, 400, undefined, "form.zone.unavailable");
@@ -123,9 +133,6 @@ export async function createOrder(
     let promoDbId: number | null = null;
 
     if (promoCodeRaw) {
-        const promoRow = await prisma.promoCode.findUnique({
-            where: { code: promoCodeRaw },
-        });
         const rejection = getPromoRejectionCode(promoRow, {
             cartSubtotal: verifiedTotal,
             grandTotalBeforeDiscount: grandBeforePay,
@@ -161,6 +168,12 @@ export async function createOrder(
         throw new OrderServiceError(API_ERROR_CODES.DISCOUNT_MISMATCH, 409);
     }
 
+    // До транзакции: не тратим блокировку строки промокода на заведомо
+    // невалидный запрос (раньше проверялось после инкремента timesUsed).
+    if (payableTotal !== totalPrice) {
+        throw new OrderServiceError("TOTAL_MISMATCH", 409);
+    }
+
     let createdOrderId!: number;
     let createdAccessToken!: string;
     const payableForNotify = payableTotal;
@@ -181,10 +194,6 @@ export async function createOrder(
             if (bumped.length === 0) {
                 throw new OrderServiceError("PROMO_UNAVAILABLE", 409);
             }
-        }
-
-        if (payableTotal !== totalPrice) {
-            throw new OrderServiceError("TOTAL_MISMATCH", 409);
         }
 
         const phoneForDb =

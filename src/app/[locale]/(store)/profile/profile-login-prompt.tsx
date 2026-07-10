@@ -33,10 +33,11 @@ export function ProfileLoginPrompt({ reason }: ProfileLoginPromptProps) {
 
         // Fresh login while this prompt is still mounted: refresh RSC so the
         // server layout swaps to the real profile (do NOT signOut).
+        // Закрытие диалога - производным значением на рендере (dialogOpen),
+        // а не setState в эффекте (react-hooks/set-state-in-effect).
         if (reason === "no_session" && status === "authenticated") {
             if (refreshedAfterAuth.current) return;
             refreshedAfterAuth.current = true;
-            setLoginOpen(false);
             router.refresh();
             return;
         }
@@ -54,6 +55,11 @@ export function ProfileLoginPrompt({ reason }: ProfileLoginPromptProps) {
         }
         setLoginOpen(false);
     };
+
+    // Аутентифицированному пользователю диалог не показываем - React сам
+    // закроет его на этом же рендере, эффект выше только обновляет RSC.
+    const dialogOpen =
+        loginOpen && !(reason === "no_session" && status === "authenticated");
 
     return (
         <PageContainer>
@@ -80,7 +86,7 @@ export function ProfileLoginPrompt({ reason }: ProfileLoginPromptProps) {
                     {tAuth("login")}
                 </Button>
             </Stack>
-            <LoginDialog open={loginOpen} onClose={closeLogin} />
+            <LoginDialog open={dialogOpen} onClose={closeLogin} />
         </PageContainer>
     );
 }

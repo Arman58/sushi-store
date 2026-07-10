@@ -249,6 +249,13 @@ export type CartLineValidation = {
     ok: boolean;
     reason?: CartLineValidationReason;
     serverUnitPrice?: number;
+    /**
+     * Актуальная база и дельты модификаторов из БД. Клиент применяет их
+     * напрямую, НЕ выводя basePrice вычитанием устаревших локальных дельт
+     * (иначе смена цены модификатора тихо портила basePrice в сторе).
+     */
+    serverBasePrice?: number;
+    serverModifiers?: Array<{ id: number; name: string; priceDelta: number }>;
 };
 
 export type CartLineInput = {
@@ -305,6 +312,8 @@ export async function validateCartLinesForCheckout(
                 ok: false,
                 reason: "price_mismatch",
                 serverUnitPrice: priced.unitPrice,
+                serverBasePrice: product.price,
+                serverModifiers: priced.snapshot,
             };
         }
 

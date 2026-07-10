@@ -10,14 +10,6 @@ import type { AddToCartPayload, CartItem } from "./types";
 const lastAddByLineAt = new Map<string, number>();
 const ADD_LINE_THROTTLE_MS = 150;
 
-function buildQtyByProductId(items: CartItem[]): Record<number, number> {
-    const map: Record<number, number> = {};
-    for (const item of items) {
-        map[item.productId] = (map[item.productId] ?? 0) + item.quantity;
-    }
-    return map;
-}
-
 function withQty(items: CartItem[]) {
     const qtyByProductId: Record<number, number> = {};
     let cartTotalCount = 0;
@@ -89,6 +81,11 @@ type CartState = {
     setPlacingOrder: (value: boolean) => void;
     addToast: number;
     appToastMessage: string | null;
+    /**
+     * i18n-ключ (namespace "common") вместо готовой строки — стор не знает
+     * локаль, переводит LayoutToastSnackbar. Приоритетнее appToastMessage.
+     */
+    appToastMessageKey: string | null;
     appToastSeverity: "success" | "error" | null;
     openCart: () => void;
     closeCart: () => void;
@@ -108,6 +105,12 @@ type CartState = {
         serverItems: Array<{
             cartItemId: string;
             serverUnitPrice?: number;
+            serverBasePrice?: number;
+            serverModifiers?: Array<{
+                id: number;
+                name: string;
+                priceDelta: number;
+            }>;
         }>,
     ) => void;
 };
@@ -128,6 +131,7 @@ export const useCartStore = create<CartState>()(
             setPlacingOrder: (value) => set({ isPlacingOrder: value }),
             addToast: 0,
             appToastMessage: null,
+            appToastMessageKey: null,
             appToastSeverity: null,
             setAddToast: (id) =>
                 set(
@@ -135,6 +139,7 @@ export const useCartStore = create<CartState>()(
                         ? {
                               addToast: 0,
                               appToastMessage: null,
+                              appToastMessageKey: null,
                               appToastSeverity: null,
                           }
                         : { addToast: id },
@@ -142,6 +147,7 @@ export const useCartStore = create<CartState>()(
             showAppToast: (message, severity = "success") =>
                 set({
                     appToastMessage: message,
+                    appToastMessageKey: null,
                     appToastSeverity: severity,
                     addToast: Date.now(),
                 }),
@@ -179,6 +185,7 @@ export const useCartStore = create<CartState>()(
                             hasPriceMismatch: false,
                             addToast: toastId,
                             appToastMessage: null,
+                            appToastMessageKey: null,
                             appToastSeverity: null,
                         };
                     }
@@ -204,6 +211,7 @@ export const useCartStore = create<CartState>()(
                         lastAddedAt: toastId,
                         addToast: toastId,
                         appToastMessage: null,
+                        appToastMessageKey: null,
                         appToastSeverity: null,
                     };
                 });
@@ -260,6 +268,7 @@ export const useCartStore = create<CartState>()(
                                   lastAddedAt: toastId,
                                   addToast: toastId,
                                   appToastMessage: null,
+                                  appToastMessageKey: null,
                                   appToastSeverity: null,
                               }
                             : {}),
@@ -268,6 +277,15 @@ export const useCartStore = create<CartState>()(
 
             decrementFirstLineForProduct: (productId) =>
                 set((state) => {
+                    // Несколько вариантов товара (разные модификаторы):
+                    // с карточки не видно, какую строку уменьшаем, - открываем
+                    // корзину, пусть пользователь выберет (паттерн Uber Eats).
+                    const linesForProduct = state.items.filter(
+                        (i) => i.productId === productId,
+                    );
+                    if (linesForProduct.length > 1) {
+                        return { isCartOpen: true };
+                    }
                     const idx = state.items.findIndex(
                         (i) => i.productId === productId,
                     );
@@ -301,15 +319,37 @@ export const useCartStore = create<CartState>()(
                                 item.calculatedItemPrice
                         ) {
                             updated = true;
+                            // Актуальные дельты модификаторов из БД: локальные
+                            // могли устареть (сменилась цена опции).
+                            const selectedModifiers = serverMatch.serverModifiers
+                                ? item.selectedModifiers.map((m) => {
+                                      const fresh =
+                                          serverMatch.serverModifiers?.find(
+                                              (sm) => sm.id === m.id,
+                                          );
+                                      return fresh
+                                          ? {
+                                                ...m,
+                                                name: fresh.name || m.name,
+                                                priceDelta: fresh.priceDelta,
+                                            }
+                                          : m;
+                                  })
+                                : item.selectedModifiers;
+                            // basePrice берём с сервера; вычитание локальных
+                            // дельт - только fallback для старого ответа API.
+                            const basePrice =
+                                serverMatch.serverBasePrice ??
+                                serverMatch.serverUnitPrice -
+                                    selectedModifiers.reduce(
+                                        (sum, m) => sum + m.priceDelta,
+                                        0,
+                                    );
                             return {
                                 ...item,
                                 calculatedItemPrice: serverMatch.serverUnitPrice,
-                                basePrice:
-                                    serverMatch.serverUnitPrice -
-                                    item.selectedModifiers.reduce(
-                                        (sum, m) => sum + m.priceDelta,
-                                        0,
-                                    ),
+                                basePrice,
+                                selectedModifiers,
                             };
                         }
                         return item;
@@ -321,7 +361,8 @@ export const useCartStore = create<CartState>()(
                         ...withQty(newItems),
                         hasPriceMismatch: false,
                         addToast: Date.now(),
-                        appToastMessage: "Цены в корзине обновлены",
+                        appToastMessage: null,
+                        appToastMessageKey: "toast.pricesUpdated",
                         appToastSeverity: "success" as const,
                     };
                 }),

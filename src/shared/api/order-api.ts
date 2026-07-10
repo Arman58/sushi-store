@@ -80,8 +80,18 @@ export type OrderStatusResponse = {
 
 // ─── API calls ─────────────────────────────────────────────────────────────────
 
-export function placeOrder(payload: PlaceOrderRequest): Promise<PlaceOrderResponse> {
-    return apiPost<PlaceOrderRequest, PlaceOrderResponse>("/api/order", payload);
+export function placeOrder(
+    payload: PlaceOrderRequest,
+    /** UUID попытки оформления - сервер дедуплицирует ретраи (double-tap, сеть). */
+    idempotencyKey?: string,
+): Promise<PlaceOrderResponse> {
+    return apiPost<PlaceOrderRequest, PlaceOrderResponse>(
+        "/api/order",
+        payload,
+        idempotencyKey
+            ? { headers: { "Idempotency-Key": idempotencyKey } }
+            : undefined,
+    );
 }
 
 export function fetchOrderStatus(

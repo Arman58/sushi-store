@@ -1,7 +1,7 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 
 import { deliveryZonesData } from "./ensure-delivery-zones";
-import { L, LToJson } from "./localized-seed";
+import { L } from "./localized-seed";
 import { getProductI18n } from "./product-translations";
 
 const prisma = new PrismaClient();

@@ -131,10 +131,11 @@ export async function apiGet<T>(url: string): Promise<T> {
 export async function apiPost<TBody, TResponse>(
     url: string,
     body: TBody,
+    options?: { headers?: Record<string, string> },
 ): Promise<TResponse> {
     const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...options?.headers },
         body: JSON.stringify(body),
     });
     return parseResponse<TResponse>(res);

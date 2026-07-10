@@ -11,7 +11,7 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { Suspense, startTransition, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, Suspense, useEffect, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { LoginButton } from "@/features/auth";

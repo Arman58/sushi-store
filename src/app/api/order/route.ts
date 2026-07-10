@@ -18,8 +18,42 @@ import {
     rateLimitExceededJsonResponse,
 } from "@/lib/rate-limit";
 import { notifyKitchenTelegram } from "@/lib/telegram-kitchen-notify";
+import { getUpstashRedis } from "@/lib/upstash-redis";
 import { createOrder, OrderServiceError } from "@/server/services/order.service";
-import { API_ERROR_CODES, type ApiErrorCode } from "@/shared/lib/api-error";
+import { type ApiErrorCode } from "@/shared/lib/api-error";
+
+/**
+ * Идемпотентность создания заказа (защита от дублей при double-tap /
+ * ретраях сети). Клиент шлёт заголовок Idempotency-Key (uuid на попытку
+ * оформления). Без Redis - best-effort no-op.
+ */
+const IDEM_PREFIX = "order:idem:";
+const IDEM_PENDING_TTL_SEC = 300;
+const IDEM_RESULT_TTL_SEC = 24 * 60 * 60;
+
+type IdempotencyStored = { id: number; accessToken: string };
+
+function parseStoredIdempotency(value: unknown): IdempotencyStored | null {
+    const obj =
+        typeof value === "string"
+            ? (() => {
+                  try {
+                      return JSON.parse(value) as unknown;
+                  } catch {
+                      return null;
+                  }
+              })()
+            : value;
+    if (
+        obj != null &&
+        typeof obj === "object" &&
+        typeof (obj as IdempotencyStored).id === "number" &&
+        typeof (obj as IdempotencyStored).accessToken === "string"
+    ) {
+        return obj as IdempotencyStored;
+    }
+    return null;
+}
 
 import {
     firstZodMessage,
@@ -81,8 +115,55 @@ export async function POST(request: Request) {
     const payload: OrderPayload = parsed.data;
     const locale = resolveOrderRequestLocale(request, payload.locale);
 
+    const redis = getUpstashRedis();
+    const idemHeader = request.headers.get("idempotency-key")?.trim() ?? "";
+    const idemKey =
+        redis && idemHeader && idemHeader.length <= 128
+            ? `${IDEM_PREFIX}${idemHeader}`
+            : null;
+
+    if (idemKey && redis) {
+        try {
+            const acquired = await redis.set(idemKey, "pending", {
+                nx: true,
+                ex: IDEM_PENDING_TTL_SEC,
+            });
+            if (acquired === null) {
+                const existing = await redis.get(idemKey);
+                const stored = parseStoredIdempotency(existing);
+                if (stored) {
+                    // Дубликат уже созданного заказа - возвращаем его же.
+                    return NextResponse.json(
+                        { ok: true, order: stored, duplicate: true },
+                        { status: 200 },
+                    );
+                }
+                // Первый запрос ещё в полёте.
+                return NextResponse.json(
+                    { error: "Duplicate request" },
+                    { status: 409 },
+                );
+            }
+        } catch {
+            // Redis недоступен - идемпотентность best-effort, заказ важнее.
+        }
+    }
+
     try {
         const result = await createOrder(payload, sessionUserId, locale);
+
+        if (idemKey && redis) {
+            void redis
+                .set(
+                    idemKey,
+                    JSON.stringify({
+                        id: result.createdOrderId,
+                        accessToken: result.createdAccessToken,
+                    }),
+                    { ex: IDEM_RESULT_TTL_SEC },
+                )
+                .catch(() => {});
+        }
 
         if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
             void notifyKitchenTelegram({
@@ -124,6 +205,11 @@ export async function POST(request: Request) {
 
         return response;
     } catch (error: unknown) {
+        // Заказ не создан - освобождаем pending, чтобы ретрай с тем же
+        // ключом не упирался в 409 до истечения TTL.
+        if (idemKey && redis) {
+            void redis.del(idemKey).catch(() => {});
+        }
         if (error instanceof OrderServiceError) {
             if (error.code === "INVALID_CART_PAYLOAD") {
                 if (error.invalidReason?.startsWith("promo.")) {

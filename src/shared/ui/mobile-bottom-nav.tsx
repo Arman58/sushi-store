@@ -14,7 +14,7 @@ import Typography from "@mui/material/Typography";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState, startTransition } from "react";
+import { startTransition,useEffect, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { useCartStore } from "@/features/cart";

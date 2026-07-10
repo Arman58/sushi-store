@@ -43,6 +43,9 @@ model Product {
   reviews        Review[]
   translations   ProductTranslation[]
   cartLines      CartLine[]
+
+  /** Страницы категорий: выборка активных товаров категории. */
+  @@index([categoryId, isActive])
 }
 
 /** Отзыв покупателя. Один отзыв на товар от пользователя (upsert-семантика в API). */
@@ -282,7 +285,12 @@ model CartLine {
   /** Клиентский ключ строки: productId + набор модификаторов */
   cartItemId          String
   productId           Int
-  product             Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /**
+   * Restrict вместо Cascade: удаление товара не должно молча выкидывать его
+   * из серверных корзин (localStorage-копия остаётся → конфликт синка).
+   * Админский DELETE при наличии ссылок делает soft delete (isActive=false).
+   */
+  product             Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
   name                String
   basePrice           Int
   quantity            Int
@@ -335,6 +343,9 @@ model OrderItem {
   quantity  Int
   /** Снимок выбранных модификаторов на момент заказа: [{ id, name, priceDelta }] */
   selectedModifiers Json @default("[]")
+
+  /** Postgres не индексирует FK автоматически; include order.items без этого - seq scan. */
+  @@index([orderId])
 }
 
 model CategoryTranslation {
