@@ -33,7 +33,7 @@ test.describe("Фильтры меню", () => {
         await pizzaPill.click();
         await page.waitForURL(/\/menu\/c\/pizza/, { timeout: 10_000 });
         expect(categoryFromUrl(page)).toBe("pizza");
-        await expect(pizzaPill).toHaveClass(/MuiChip-filled/);
+        await expect(pizzaPill).toHaveAttribute("aria-pressed", "true");
 
         const pillsRow = page.locator(".MuiStack-root").filter({
             has: page.getByRole("button", { name: /пицца/i }),
@@ -47,8 +47,8 @@ test.describe("Фильтры меню", () => {
             { timeout: 10_000 },
         );
         expect(categoryFromUrl(page)).toBeNull();
-        await expect(allPill).toHaveClass(/MuiChip-filled/);
-        await expect(pizzaPill).not.toHaveClass(/MuiChip-filled/);
+        await expect(allPill).toHaveAttribute("aria-pressed", "true");
+        await expect(pizzaPill).toHaveAttribute("aria-pressed", "false");
     });
 
     test("Filter Drawer меняет ценовой диапазон в URL", async ({ page }) => {
@@ -56,8 +56,9 @@ test.describe("Фильтры меню", () => {
 
         await page.getByRole("button", { name: /фильтры/i }).click();
 
-        const drawer = page.locator(".MuiDrawer-paper");
+        const drawer = page.locator(".MuiDrawer-paper").filter({ hasText: /фильтры/i });
         await expect(
+
             drawer.getByRole("heading", { name: /фильтры/i }),
         ).toBeVisible({ timeout: 10_000 });
 

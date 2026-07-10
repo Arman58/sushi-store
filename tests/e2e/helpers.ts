@@ -49,7 +49,7 @@ export async function addFirstProductToCart(page: Page) {
     const headerCart = page.locator("header").getByRole("button", {
         name: "Открыть корзину",
     });
-    await expect(headerCart).toContainText("֏", { timeout: 15_000 });
+    await expect(headerCart).toContainText(/[1-9]/, { timeout: 15_000 });
 }
 
 export async function openCartDrawer(page: Page) {
