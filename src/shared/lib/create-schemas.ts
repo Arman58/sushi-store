@@ -135,7 +135,6 @@ export function createOrderStatusSchema(messages: SchemaMessages) {
                 },
                 messages.orderIdInvalid,
             ),
-        phone: createPhoneSchema(messages),
     });
 }
 

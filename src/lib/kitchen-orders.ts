@@ -14,6 +14,9 @@ export type KitchenOrderDto = {
     id: number;
     createdAt: string;
     customerName: string;
+    phone: string;
+    address: string | null;
+    deliveryZoneName: string | null;
     status: OrderStatus;
     deliveryType: DeliveryType;
     paymentMethod: PaymentMethod;
@@ -43,6 +46,9 @@ function mapOrder(
         id: number;
         createdAt: Date;
         name: string;
+        phone: string;
+        address: string | null;
+        deliveryZoneName: string | null;
         status: OrderStatus;
         delivery: DeliveryType;
         payment: PaymentMethod;
@@ -62,6 +68,11 @@ function mapOrder(
         id: order.id,
         createdAt: order.createdAt.toISOString(),
         customerName: order.name,
+        phone: order.phone,
+        address: order.address?.trim() ? order.address.trim() : null,
+        deliveryZoneName: order.deliveryZoneName?.trim()
+            ? order.deliveryZoneName.trim()
+            : null,
         status: order.status,
         deliveryType: order.delivery,
         paymentMethod: order.payment,

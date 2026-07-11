@@ -48,7 +48,6 @@ export async function GET(request: Request) {
 
     const url = new URL(request.url);
     const idParam = url.searchParams.get("id");
-    const phoneParam = url.searchParams.get("phone");
 
     const id = Number(idParam);
     if (!id || Number.isNaN(id)) {
@@ -57,8 +56,6 @@ export async function GET(request: Request) {
             { status: 400 }
         );
     }
-
-    const phone = phoneParam ?? undefined;
 
     // Первоначальная проверка прав доступа
     const initialOrder = await prisma.order.findUnique({
@@ -73,11 +70,11 @@ export async function GET(request: Request) {
         );
     }
 
-    const allowed = await canAccessOrderStatus(initialOrder, phone);
+    const allowed = await canAccessOrderStatus(initialOrder);
     if (!allowed) {
         return NextResponse.json(
             { error: "Order not found", code: API_ERROR_CODES.ORDER_NOT_FOUND },
-            { status: phone?.trim() ? 404 : 403 }
+            { status: 403 }
         );
     }
 

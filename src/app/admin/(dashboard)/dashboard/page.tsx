@@ -55,6 +55,7 @@ const AXIS_TICK_STYLE = {
 } as const;
 
 const STATUS_CHART_COLORS: Record<string, string> = {
+    PENDING_APPROVAL: "#78909c",
     NEW: "#0288d1",
     COOKING: "#ed6c02",
     DELIVERING: "#9c27b0",
@@ -201,6 +202,7 @@ export default function AdminDashboardPage() {
     const analytics = useMemo(() => {
         const base = data ?? buildEmptyAdminAnalyticsResponse(periodDays);
         const statusLabels = {
+            PENDING_APPROVAL: tOrder("pendingApproval"),
             NEW: tOrder("new"),
             COOKING: tOrder("cooking"),
             DELIVERING: tOrder("delivering"),

@@ -1,6 +1,7 @@
 import type { OrderStatus } from "@prisma/client";
 
 export const ORDER_STATUS_KEYS: Record<OrderStatus, string> = {
+    PENDING_APPROVAL: "pendingApproval",
     NEW: "new",
     COOKING: "cooking",
     DELIVERING: "delivering",

@@ -176,7 +176,9 @@ export const ProductCard = memo(function ProductCard({
                     {...(hasProductLink
                         ? { component: Link, href: productLink! }
                         : { component: "div" })}
-                    role={!hasProductLink && onOpenDetails ? "button" : undefined}
+                    role={
+                        !hasProductLink && onOpenDetails ? "button" : undefined
+                    }
                     tabIndex={!hasProductLink && onOpenDetails ? 0 : undefined}
                     aria-label={
                         hasProductLink
@@ -201,7 +203,9 @@ export const ProductCard = memo(function ProductCard({
                         display: "flex",
                         flexDirection: "column",
                         cursor:
-                            hasProductLink || onOpenDetails ? "pointer" : undefined,
+                            hasProductLink || onOpenDetails
+                                ? "pointer"
+                                : undefined,
                         outline: "none",
                         textDecoration: "none",
                         color: "inherit",
@@ -290,7 +294,14 @@ export const ProductCard = memo(function ProductCard({
                             direction="row"
                             alignItems="center"
                             spacing={0.5}
-                            sx={{ mt: 0.75 }}
+                            // Узкие карточки: «5 (1)» и ETA не переносятся на
+                            // новую строку — лишнее обрезается многоточием.
+                            sx={{
+                                mt: 0.75,
+                                minWidth: 0,
+                                overflow: "hidden",
+                                flexWrap: "nowrap",
+                            }}
                         >
                             {hasRating && (
                                 <>
@@ -308,6 +319,8 @@ export const ProductCard = memo(function ProductCard({
                                             fontSize: "0.75rem",
                                             color: tokens.textSecondary,
                                             lineHeight: 1,
+                                            whiteSpace: "nowrap",
+                                            flexShrink: 0,
                                         }}
                                     >
                                         {ratingAvg}
@@ -318,6 +331,8 @@ export const ProductCard = memo(function ProductCard({
                                             color: tokens.textMuted,
                                             fontSize: "0.75rem",
                                             lineHeight: 1,
+                                            whiteSpace: "nowrap",
+                                            flexShrink: 0,
                                         }}
                                     >
                                         ({ratingCount})
@@ -338,6 +353,10 @@ export const ProductCard = memo(function ProductCard({
                                     color: tokens.textMuted,
                                     fontSize: "0.75rem",
                                     lineHeight: 1,
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    minWidth: 0,
                                 }}
                             >
                                 {t("deliveryTime", {

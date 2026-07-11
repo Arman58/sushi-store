@@ -7,7 +7,7 @@ import Skeleton from "@mui/material/Skeleton";
 import { skeletonSurfaceSx } from "@/shared/ui/skeleton-styles";
 import { tokens } from "@/shared/ui/theme";
 
-import { STEPPER_SIZE } from "./product-card-shared";
+import { STEPPER_SIZE, STEPPER_SIZE_XS } from "./product-card-shared";
 
 export function ProductCardSkeleton() {
     return (
@@ -76,14 +76,22 @@ export function ProductCardSkeleton() {
                         variant="text"
                         animation="wave"
                         width="38%"
-                        sx={{ borderRadius: 1, flex: 1, minWidth: 0, ...skeletonSurfaceSx }}
+                        sx={{
+                            borderRadius: 1,
+                            flex: 1,
+                            minWidth: 0,
+                            ...skeletonSurfaceSx,
+                        }}
                     />
                     <Skeleton
                         variant="circular"
                         animation="wave"
-                        width={STEPPER_SIZE}
-                        height={STEPPER_SIZE}
-                        sx={{ flexShrink: 0, ...skeletonSurfaceSx }}
+                        sx={{
+                            flexShrink: 0,
+                            width: { xs: STEPPER_SIZE_XS, sm: STEPPER_SIZE },
+                            height: { xs: STEPPER_SIZE_XS, sm: STEPPER_SIZE },
+                            ...skeletonSurfaceSx,
+                        }}
                     />
                 </Box>
             </Card>

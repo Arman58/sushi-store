@@ -127,6 +127,11 @@ export async function createOrder(
         zoneNameSnapshot = getLocalizedField(zone.translations, locale, "name");
     }
 
+    const initialStatus =
+        delivery === "delivery" && zoneRow?.requiresManagerApproval
+            ? ("PENDING_APPROVAL" as const)
+            : ("NEW" as const);
+
     const grandBeforePay = verifiedTotal + deliveryFee;
 
     let discountAmt = 0;
@@ -227,7 +232,7 @@ export async function createOrder(
                 comment: comment || null,
                 payment: payment === "cash" ? PaymentMethod.CASH : PaymentMethod.CARD,
                 delivery: delivery === "delivery" ? DeliveryType.DELIVERY : DeliveryType.PICKUP,
-                status: "NEW",
+                status: initialStatus,
                 subtotalBeforeDiscount: verifiedTotal,
                 discountAmount: discountAmt,
                 totalPrice: payableTotal,
@@ -253,6 +258,20 @@ export async function createOrder(
         });
         createdOrderId = created.id;
         createdAccessToken = created.accessToken;
+
+        if (sessionUserId) {
+            const cart = await tx.cart.findUnique({
+                where: { userId: sessionUserId },
+                select: { id: true },
+            });
+            if (cart) {
+                await tx.cartLine.deleteMany({ where: { cartId: cart.id } });
+                await tx.cart.update({
+                    where: { id: cart.id },
+                    data: { appliedPromoCode: null },
+                });
+            }
+        }
     });
 
     return {

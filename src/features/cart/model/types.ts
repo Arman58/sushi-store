@@ -24,4 +24,6 @@ export type AddToCartPayload = {
     selectedModifiers: CartModifierSnapshot[];
     calculatedItemPrice: number;
     image?: string | null;
+    /** Начальное кол-во за один set() (minQty), без второго setItemQuantity. */
+    initialQuantity?: number;
 };

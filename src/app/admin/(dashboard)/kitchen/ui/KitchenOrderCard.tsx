@@ -178,6 +178,34 @@ export function KitchenOrderCard({
 
             <Divider sx={{ my: 1.5, borderColor: "divider" }} />
 
+            <Stack spacing={0.5} sx={{ mb: 1 }}>
+                <Typography sx={{ fontSize: 15, fontWeight: 700, color: "text.primary" }}>
+                    {order.customerName}
+                </Typography>
+                {order.phone && order.phone !== "-" ? (
+                    <Typography
+                        component="a"
+                        href={`tel:${order.phone.replace(/[^\d+]/g, "")}`}
+                        sx={{
+                            fontSize: 14,
+                            fontWeight: 600,
+                            color: "primary.main",
+                            textDecoration: "none",
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {order.phone}
+                    </Typography>
+                ) : null}
+                {order.deliveryType === "DELIVERY" && order.address ? (
+                    <Typography sx={{ fontSize: 13, color: "text.secondary", lineHeight: 1.4 }}>
+                        {order.deliveryZoneName
+                            ? `${order.deliveryZoneName}: ${order.address}`
+                            : order.address}
+                    </Typography>
+                ) : null}
+            </Stack>
+
             <Stack spacing={1.25}>
                 {order.items.map((item) => (
                     <Box key={item.id}>

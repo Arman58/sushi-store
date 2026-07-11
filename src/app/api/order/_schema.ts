@@ -30,10 +30,10 @@ const NonNegativeInt = z.number().int().nonnegative();
 const orderItemSchema = z
     .object({
         productId: PositiveInt,
-        name: z.string(),
+        name: z.string().max(200),
         price: PositiveInt,
-        quantity: PositiveInt,
-        selectedModifierIds: z.array(PositiveInt).optional(),
+        quantity: PositiveInt.max(100),
+        selectedModifierIds: z.array(PositiveInt).max(20).optional(),
     })
     .transform((item) => ({
         productId: item.productId,
@@ -75,7 +75,7 @@ export const orderPayloadSchema = z
         name: z
             .string()
             .transform((v) => v.trim())
-            .pipe(z.string().min(2, "form.name.tooShort")),
+            .pipe(z.string().min(2, "form.name.tooShort").max(100)),
         phone: z
             .string()
             .optional()
@@ -84,11 +84,15 @@ export const orderPayloadSchema = z
         address: z
             .string()
             .optional()
-            .transform((v) => (typeof v === "string" ? v.trim() : "")),
+            .default("")
+            .transform((v) => (typeof v === "string" ? v.trim() : ""))
+            .pipe(z.string().max(500)),
         comment: z
             .string()
             .optional()
-            .transform((v) => (typeof v === "string" ? v.trim() : "")),
+            .default("")
+            .transform((v) => (typeof v === "string" ? v.trim() : ""))
+            .pipe(z.string().max(1000)),
         payment: z.enum(["cash", "card"], {
             errorMap: () => ({ message: "form.payment.invalid" }),
         }),
@@ -101,7 +105,8 @@ export const orderPayloadSchema = z
         }),
         items: z
             .array(orderItemSchema)
-            .min(1, "form.cart.empty"),
+            .min(1, "form.cart.empty")
+            .max(50, "form.cart.tooManyItems"),
         /**
          * Сумма к оплате: subtotalBeforeDiscount − discountAmount + deliveryPrice
          * (доставка и скидка пересчитываются на сервере).

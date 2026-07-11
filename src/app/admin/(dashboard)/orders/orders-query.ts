@@ -59,7 +59,9 @@ export async function getOrders(
     }
 
     if (statusFilter === "new") {
-        where.status = OrderStatus.NEW;
+        where.status = {
+            in: [OrderStatus.PENDING_APPROVAL, OrderStatus.NEW],
+        };
     } else if (statusFilter === "in_progress") {
         where.status = { in: [OrderStatus.COOKING, OrderStatus.DELIVERING] };
     } else if (statusFilter === "done") {

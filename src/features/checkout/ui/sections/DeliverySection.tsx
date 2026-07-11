@@ -526,9 +526,7 @@ export function DeliverySection({
                                 </InputAdornment>
                             ),
                         }}
-                        InputLabelProps={{
-                            shrink: watch("address") ? true : undefined,
-                        }}
+                        InputLabelProps={{ shrink: true }}
                     />
 
                     {isAuthenticated ? (
@@ -545,13 +543,7 @@ export function DeliverySection({
                                 enterKeyHint: "next",
                                 autoComplete: "address-line2",
                             }}
-                            // label не поднимается при setValue из сохранённого
-                            // адреса (uncontrolled input) - форсируем shrink
-                            InputLabelProps={{
-                                shrink: watch("apartment")
-                                    ? true
-                                    : undefined,
-                            }}
+                            InputLabelProps={{ shrink: true }}
                         />
                     ) : null}
 

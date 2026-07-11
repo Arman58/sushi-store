@@ -3,8 +3,8 @@ import { Suspense } from "react";
 
 import { type DeliveryStat, fetchHeroPageData } from "@/lib/hero-data";
 import { getOpeningHoursState } from "@/lib/site-config";
-import { HeroMedia } from "@/widgets/hero/hero-media";
-import { HeroSection } from "@/widgets/hero/hero-section";
+import { HeroMediaStatic } from "@/widgets/hero/hero-media-static";
+import { HeroSectionStatic } from "@/widgets/hero/hero-section-static";
 
 function formatDeliveryStatLabel(
     stat: DeliveryStat,
@@ -56,9 +56,17 @@ async function HoursStatText() {
  * Hero shell with LCP image in the initial HTML (not gated on Prisma).
  * Stats stream in with sized fallbacks so layout does not jump (CLS).
  */
-export function HomeHeroSection() {
+export async function HomeHeroSection() {
+    const t = await getTranslations("hero");
+
     return (
-        <HeroSection
+        <HeroSectionStatic
+            fastDeliveryLabel={t("stats.fastDelivery")}
+            titleLine1={t("titleLine1")}
+            titleLine2={t("titleLine2")}
+            titleLine3={t("titleLine3")}
+            subtitle={t("subtitle")}
+            orderNowLabel={t("orderNow")}
             deliveryStat={
                 <Suspense fallback={<HeroStatFallback minWidth={160} />}>
                     <DeliveryStatText />
@@ -69,7 +77,7 @@ export function HomeHeroSection() {
                     <HoursStatText />
                 </Suspense>
             }
-            media={<HeroMedia />}
+            media={<HeroMediaStatic />}
         />
     );
 }

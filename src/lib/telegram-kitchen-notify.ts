@@ -74,8 +74,13 @@ export async function notifyKitchenTelegram(payload: KitchenTelegramPayload): Pr
     lines.push(`<b>📞 Телефон:</b> <code>${escapeHtml(phone)}</code>`);
 
     if (delivery === "delivery") {
+        if (zoneNameSnapshot) {
+            lines.push(
+                `<b>🗺 Зона:</b> ${escapeHtml(zoneNameSnapshot)}`,
+            );
+        }
         lines.push(
-            `<b>📍 Доставка:</b> ${escapeHtml(address || "адрес не указан")}`,
+            `<b>📍 Адрес:</b> ${escapeHtml(address || "адрес не указан")}`,
         );
     } else {
         lines.push("<b>📍</b> <i>Самовывоз</i>");
@@ -132,11 +137,13 @@ export async function notifyKitchenTelegram(payload: KitchenTelegramPayload): Pr
         );
     }
 
-    if (delivery === "delivery" && deliveryFee > 0 && zoneNameSnapshot) {
+    if (delivery === "delivery" && zoneNameSnapshot) {
         lines.push("");
-        lines.push(
-            `<b>🚚 Доставка (${escapeHtml(zoneNameSnapshot)}):</b> <b>${deliveryFee.toLocaleString("ru-RU")} ֏</b>`,
-        );
+        const feeLabel =
+            deliveryFee > 0
+                ? `<b>${deliveryFee.toLocaleString("ru-RU")} ֏</b>`
+                : "<i>бесплатно</i>";
+        lines.push(`<b>🚚 Доставка:</b> ${feeLabel}`);
     }
 
     if (promoCodeRaw && payableForNotify < grandBeforePay) {

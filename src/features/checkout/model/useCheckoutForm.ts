@@ -7,6 +7,7 @@ import {
     type FieldErrors,
     type Resolver,
     useForm,
+    useWatch,
 } from "react-hook-form";
 
 import { toOrderPayloadItems, useCartStore } from "@/features/cart";
@@ -28,6 +29,7 @@ import { useSchemaMessages } from "@/shared/lib/use-schema-messages";
 import { DRAFT_STORAGE_KEY, ORDER_ID_KEY } from "./constants";
 import {
     checkoutBasicsIncomplete,
+    formatOrderDeliveryAddress,
     formatPhone,
     isCompleteCheckoutPhone,
     loadDraft,
@@ -166,27 +168,42 @@ export function useCheckoutForm({ sessionUser }: UseCheckoutFormParams) {
         };
     }, [sessionUser?.id, setValue, getValues]);
 
+    const DRAFT_SAVE_DEBOUNCE_MS = 500;
+
     useEffect(() => {
+        let timer: ReturnType<typeof setTimeout> | null = null;
         const subscription = watch((value) => {
             if (typeof window === "undefined") return;
-            try {
-                localStorage.setItem(
-                    DRAFT_STORAGE_KEY,
-                    JSON.stringify({ ...value, ts: Date.now() }),
-                );
-            } catch {
-                // ignore storage errors
-            }
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(() => {
+                try {
+                    localStorage.setItem(
+                        DRAFT_STORAGE_KEY,
+                        JSON.stringify({ ...value, ts: Date.now() }),
+                    );
+                } catch {
+                    // ignore storage errors
+                }
+            }, DRAFT_SAVE_DEBOUNCE_MS);
         });
-        return () => subscription.unsubscribe();
+        return () => {
+            subscription.unsubscribe();
+            if (timer) clearTimeout(timer);
+        };
     }, [watch]);
 
-    const nameW = watch("name");
-    const phoneW = watch("phone");
-    const addressW = watch("address");
-    const delivery = watch("delivery");
-    const deliveryZoneId = watch("deliveryZoneId");
-    const payment = watch("payment");
+    const [nameW, phoneW, addressW, delivery, deliveryZoneId, payment] =
+        useWatch({
+            control,
+            name: [
+                "name",
+                "phone",
+                "address",
+                "delivery",
+                "deliveryZoneId",
+                "payment",
+            ],
+        });
 
     const checkoutIncomplete = useMemo(
         () =>
@@ -270,7 +287,13 @@ export function useCheckoutForm({ sessionUser }: UseCheckoutFormParams) {
             const result = await placeOrder({
                 name: data.name.trim(),
                 phone: phoneForOrderPayload(data.phone, data.delivery),
-                address: data.delivery === "delivery" ? data.address.trim() : "",
+                address:
+                    data.delivery === "delivery"
+                        ? formatOrderDeliveryAddress(
+                              data.address,
+                              data.apartment,
+                          )
+                        : "",
                 comment: data.comment.trim(),
                 payment: data.payment,
                 changeFrom:

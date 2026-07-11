@@ -70,6 +70,7 @@ export default async function AdminOrdersPage({
         deliveryPickup: tCommon("pickup"),
         status: {
             NEW: tOrder("status.new"),
+            PENDING_APPROVAL: tOrder("status.pendingApproval"),
             COOKING: tOrder("status.cooking"),
             DELIVERING: tOrder("status.delivering"),
             DONE: tOrder("status.done"),

@@ -48,6 +48,7 @@ export function useDeliveryCalc({
     const [promoError, setPromoError] = useState<string | null>(null);
     const [promoDiscount, setPromoDiscount] = useState(0);
     const [promoApplying, setPromoApplying] = useState(false);
+    const promoSyncGenRef = useRef(0);
 
     const delivery = watch("delivery");
     const deliveryZoneId = watch("deliveryZoneId");
@@ -175,29 +176,33 @@ export function useDeliveryCalc({
     );
 
     useEffect(() => {
-        let cancelled = false;
-
-        async function syncPromo() {
-            if (!appliedPromoCode) {
-                if (!cancelled) {
-                    setPromoDiscount(0);
-                    setPromoError(null);
+        const gen = ++promoSyncGenRef.current;
+        const timer = window.setTimeout(() => {
+            void (async () => {
+                if (!appliedPromoCode) {
+                    if (promoSyncGenRef.current === gen) {
+                        setPromoDiscount(0);
+                        setPromoError(null);
+                    }
+                    return;
                 }
-                return;
-            }
-            try {
-                const res = await validatePromo({
-                    code: appliedPromoCode,
-                    cartAmount: cartSubtotal,
-                    deliveryAmount: deliveryFee,
-                    items: cartItems.map(i => ({ productId: i.productId, quantity: i.quantity, price: i.calculatedItemPrice }))
-                });
-                if (!cancelled) {
-                    setPromoDiscount(res.discountAmount);
-                    setPromoError(null);
-                }
-            } catch (e) {
-                if (!cancelled) {
+                try {
+                    const res = await validatePromo({
+                        code: appliedPromoCode,
+                        cartAmount: cartSubtotal,
+                        deliveryAmount: deliveryFee,
+                        items: cartItems.map((i) => ({
+                            productId: i.productId,
+                            quantity: i.quantity,
+                            price: i.calculatedItemPrice,
+                        })),
+                    });
+                    if (promoSyncGenRef.current === gen) {
+                        setPromoDiscount(res.discountAmount);
+                        setPromoError(null);
+                    }
+                } catch (e) {
+                    if (promoSyncGenRef.current !== gen) return;
                     setPromoDiscount(0);
                     setAppliedPromoCode(null);
                     if (e instanceof ApiError) {
@@ -206,13 +211,11 @@ export function useDeliveryCalc({
                         setPromoError(t("promoCheckFailed"));
                     }
                 }
-            }
-        }
-
-        void syncPromo();
+            })();
+        }, 400);
 
         return () => {
-            cancelled = true;
+            window.clearTimeout(timer);
         };
     }, [appliedPromoCode, cartSubtotal, deliveryFee, setAppliedPromoCode, t, cartItems]);
 

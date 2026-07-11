@@ -22,6 +22,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyAdmin } from "@/lib/verify-admin";
 
 const ACTIVE_STATUSES: OrderStatus[] = [
+    OrderStatus.PENDING_APPROVAL,
     OrderStatus.NEW,
     OrderStatus.COOKING,
     OrderStatus.DELIVERING,
@@ -98,6 +99,7 @@ export async function GET(request: Request) {
         const untitledProduct = tDash("untitledProduct");
 
         const statusLabels: Record<OrderStatus, string> = {
+            PENDING_APPROVAL: tOrder("pendingApproval"),
             NEW: tOrder("new"),
             COOKING: tOrder("cooking"),
             DELIVERING: tOrder("delivering"),

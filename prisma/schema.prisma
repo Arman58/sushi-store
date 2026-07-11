@@ -150,6 +150,7 @@ enum DeliveryType {
 }
 
 enum OrderStatus {
+  PENDING_APPROVAL // Ожидает подтверждения менеджером (серая зона)
   NEW        // Заказ принят
   COOKING    // Готовится
   DELIVERING // В пути

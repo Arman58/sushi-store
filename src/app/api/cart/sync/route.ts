@@ -116,6 +116,7 @@ export async function POST(req: Request) {
                   });
         const existingIds = new Set(existingProducts.map((p) => p.id));
         const safeItems = items.filter((i) => existingIds.has(i.productId));
+        const droppedCount = items.length - safeItems.length;
 
         await prisma.$transaction(async (tx) => {
             const cart = await tx.cart.upsert({
@@ -149,7 +150,7 @@ export async function POST(req: Request) {
             });
         });
 
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true, droppedCount });
     } catch (error) {
         console.error("[CartSync POST Error]", error);
         return NextResponse.json(

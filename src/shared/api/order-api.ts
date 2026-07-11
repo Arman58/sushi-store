@@ -3,7 +3,7 @@
  * All server communication goes through apiPost - never raw fetch in pages.
  */
 
-import { apiPost } from "./client";
+import { ApiError, apiPost } from "./client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -46,9 +46,16 @@ export type PlaceOrderRequest = {
 export type PlaceOrderResponse = {
     ok: true;
     order: { id: number; accessToken: string };
+    duplicate?: boolean;
 };
 
-export type OrderStatus = "NEW" | "COOKING" | "DELIVERING" | "DONE" | "CANCELLED";
+export type OrderStatus =
+    | "PENDING_APPROVAL"
+    | "NEW"
+    | "COOKING"
+    | "DELIVERING"
+    | "DONE"
+    | "CANCELLED";
 
 export type OrderStatusResponse = {
     id: number;
@@ -78,28 +85,51 @@ export type OrderStatusResponse = {
     }[];
 };
 
+const IDEM_POLL_INTERVAL_MS = 2_000;
+const IDEM_MAX_ATTEMPTS = 20;
+
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // ─── API calls ─────────────────────────────────────────────────────────────────
 
-export function placeOrder(
+export async function placeOrder(
     payload: PlaceOrderRequest,
     /** UUID попытки оформления - сервер дедуплицирует ретраи (double-tap, сеть). */
     idempotencyKey?: string,
 ): Promise<PlaceOrderResponse> {
-    return apiPost<PlaceOrderRequest, PlaceOrderResponse>(
-        "/api/order",
-        payload,
-        idempotencyKey
-            ? { headers: { "Idempotency-Key": idempotencyKey } }
-            : undefined,
-    );
+    const headers = idempotencyKey
+        ? { "Idempotency-Key": idempotencyKey }
+        : undefined;
+
+    for (let attempt = 0; attempt < IDEM_MAX_ATTEMPTS; attempt++) {
+        try {
+            return await apiPost<PlaceOrderRequest, PlaceOrderResponse>(
+                "/api/order",
+                payload,
+                { headers },
+            );
+        } catch (error) {
+            const isDuplicateInFlight =
+                error instanceof ApiError &&
+                error.status === 409 &&
+                idempotencyKey &&
+                attempt < IDEM_MAX_ATTEMPTS - 1;
+
+            if (isDuplicateInFlight) {
+                await sleep(IDEM_POLL_INTERVAL_MS);
+                continue;
+            }
+            throw error;
+        }
+    }
+
+    throw new ApiError(409, "Duplicate request");
 }
 
-export function fetchOrderStatus(
-    id: number,
-    phone: string,
-): Promise<OrderStatusResponse> {
-    return apiPost<{ id: number; phone: string }, OrderStatusResponse>(
-        "/api/order-status",
-        { id, phone },
-    );
+export function fetchOrderStatus(id: number): Promise<OrderStatusResponse> {
+    return apiPost<{ id: number }, OrderStatusResponse>("/api/order-status", {
+        id,
+    });
 }

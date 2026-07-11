@@ -115,6 +115,7 @@ export async function GET(request: Request) {
     } as const;
 
     const statusLabels = {
+        PENDING_APPROVAL: tOrder("status.pendingApproval"),
         NEW: tOrder("status.new"),
         COOKING: tOrder("status.cooking"),
         DELIVERING: tOrder("status.delivering"),

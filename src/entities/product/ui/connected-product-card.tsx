@@ -66,25 +66,21 @@ export const ConnectedProductCard = memo(function ConnectedProductCard({
             onOpenModifiers(product);
             return;
         }
-        startTransition(() => {
-            const minQty = product.minQty ?? 1;
-            addItem({
-                productId: product.id,
-                name: product.name,
-                basePrice: product.price,
-                selectedModifiers: [],
-                calculatedItemPrice: product.price,
-                image:
-                    getProductCoverUrl({
-                        images: product.images,
-                        mainImage: product.mainImage,
-                    }) ?? undefined,
-            });
-            if (minQty > 1 && quantity === 0) {
-                setItemQuantity(buildCartItemId(product.id, []), minQty);
-            }
+        const minQty = product.minQty ?? 1;
+        addItem({
+            productId: product.id,
+            name: product.name,
+            basePrice: product.price,
+            selectedModifiers: [],
+            calculatedItemPrice: product.price,
+            initialQuantity: minQty > 1 ? minQty : undefined,
+            image:
+                getProductCoverUrl({
+                    images: product.images,
+                    mainImage: product.mainImage,
+                }) ?? undefined,
         });
-    }, [addItem, hasModifiers, onOpenModifiers, product, quantity, setItemQuantity]);
+    }, [addItem, hasModifiers, onOpenModifiers, product]);
 
     const maxQty = product.maxQty ?? null;
     const maxReached = maxQty !== null && quantity >= maxQty;

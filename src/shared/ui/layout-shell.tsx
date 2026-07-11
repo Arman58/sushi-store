@@ -32,7 +32,14 @@ const PullToRefresh = dynamic(
     () => import("./pull-to-refresh").then((m) => m.PullToRefresh),
     { ssr: false },
 );
-import { SearchOverlay } from "./search-overlay";
+
+// Поиск открывают в меньшинстве сессий — не грузим MUI Dialog + иконки +
+// framer-motion в первый бандл каждой страницы. Чанк прогревается в idle
+// (вместе с cart-drawer), сам компонент монтируется при первом открытии.
+const searchOverlayImport = () =>
+    import("./search-overlay").then((m) => m.SearchOverlay);
+
+const SearchOverlay = dynamic(searchOverlayImport, { ssr: false });
 
 type LayoutShellProps = { children: ReactNode };
 
@@ -43,13 +50,23 @@ export function LayoutShell({ children }: LayoutShellProps) {
         typeof pathname === "string" && pathname.startsWith("/admin");
 
     const [searchOpen, setSearchOpen] = useState(false);
+    // Монтируем оверлей только после первого открытия (и дальше держим —
+    // сохраняет состояние недавних запросов).
+    const [searchMounted, setSearchMounted] = useState(false);
 
-    // Warm cart-drawer chunk so first open is not blocked by dynamic import (INP).
+    const openSearch = () => {
+        setSearchMounted(true);
+        setSearchOpen(true);
+    };
+
+    // Warm cart-drawer + search chunks so first open is not blocked by dynamic import (INP).
     useEffect(() => {
         if (isAdminRoute) return;
         let cancelled = false;
         const preload = () => {
-            if (!cancelled) void cartDrawerImport();
+            if (cancelled) return;
+            void cartDrawerImport();
+            void searchOverlayImport();
         };
         let idleId: number | undefined;
         let timeoutId: number | undefined;
@@ -93,7 +110,7 @@ export function LayoutShell({ children }: LayoutShellProps) {
                 {tCommon("aria.skipToContent")}
             </Box>
 
-            <StoreHeader onOpenSearch={() => setSearchOpen(true)} />
+            <StoreHeader onOpenSearch={openSearch} />
             <LayoutToastSnackbar />
 
             <Box
@@ -122,10 +139,12 @@ export function LayoutShell({ children }: LayoutShellProps) {
             <PullToRefresh />
             <CartDrawer />
             <NetworkStatus />
-            <SearchOverlay
-                open={searchOpen}
-                onClose={() => setSearchOpen(false)}
-            />
+            {searchMounted && (
+                <SearchOverlay
+                    open={searchOpen}
+                    onClose={() => setSearchOpen(false)}
+                />
+            )}
             {!pathname.startsWith("/checkout") && <MobileBottomNav />}
         </Box>
     );

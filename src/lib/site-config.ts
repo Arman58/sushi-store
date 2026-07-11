@@ -165,4 +165,4 @@ export const SITE_LOGO_PATH = "/east-west-logo.png";
  */
 export const HERO_IMAGE_URL =
     process.env.NEXT_PUBLIC_HERO_IMAGE_URL?.trim() ||
-    "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=800&q=80";
+    "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=1200&q=75";

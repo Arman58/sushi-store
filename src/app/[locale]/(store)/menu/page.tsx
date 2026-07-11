@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Suspense } from "react";
 
 import { redirect } from "@/i18n/server";
 import { menuCategoryPath } from "@/lib/menu-paths";
@@ -9,9 +8,7 @@ import { PageContainer } from "@/shared/ui";
 import { PromoBannersSection } from "@/widgets/home/promo-banners-section";
 
 import { MenuCatalogSection } from "./menu-catalog-section";
-import { MenuCatalogSkeleton } from "./menu-catalog-skeleton";
 import { MenuHeroSection } from "./menu-hero-section";
-import { MenuHeroSkeleton } from "./menu-hero-skeleton";
 
 export const revalidate = 60;
 
@@ -44,17 +41,11 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
 
     return (
         <PageContainer>
-            <Suspense fallback={<MenuHeroSkeleton />}>
-                <MenuHeroSection />
-            </Suspense>
+            <MenuHeroSection />
 
-            <Suspense fallback={null}>
-                <PromoBannersSection nested />
-            </Suspense>
+            <PromoBannersSection nested />
 
-            <Suspense fallback={<MenuCatalogSkeleton />}>
-                <MenuCatalogSection />
-            </Suspense>
+            <MenuCatalogSection />
         </PageContainer>
     );
 }
