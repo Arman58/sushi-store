@@ -5,8 +5,6 @@ import { getFormValidationMessage } from "@/lib/backend-i18n";
 import { getLocalizedField, resolveRequestLocale } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
 
-import { ensureDeliveryZones } from "../../../../prisma/ensure-delivery-zones";
-
 const TABLE_MISSING_HINT =
     "В базе нет таблицы зон доставки. Выполните: npx prisma migrate deploy";
 
@@ -15,11 +13,6 @@ export async function GET(request: Request) {
     const locale = resolveRequestLocale(request);
 
     try {
-        const totalZones = await prisma.deliveryZone.count();
-        if (totalZones === 0) {
-            await ensureDeliveryZones(prisma);
-        }
-
         const zonesRaw = await prisma.deliveryZone.findMany({
             where: { isActive: true },
             orderBy: [{ position: "asc" }, { id: "asc" }],

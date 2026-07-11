@@ -23,10 +23,11 @@ export function MenuStickyCartBar() {
     const totalPrice = useCartStore((s) => s.cartTotalPrice);
     const isCartHidden = useScrollHide(150);
 
-    if (totalCount <= 0 || isCartHidden) return null;
+    const visible = totalCount > 0 && !isCartHidden;
 
     return (
         <Box
+            aria-hidden={!visible}
             sx={{
                 display: { xs: "flex", md: "none" },
                 position: "fixed",
@@ -41,10 +42,16 @@ export function MenuStickyCartBar() {
                 pb: { xs: 1, sm: "calc(16px + env(safe-area-inset-bottom))" },
                 pt: { xs: 0.5, sm: 1.5 },
                 pointerEvents: "none",
+                visibility: visible ? "visible" : "hidden",
+                opacity: visible ? 1 : 0,
+                transform: visible ? "translateY(0)" : "translateY(12px)",
+                transition: "opacity 0.2s ease, transform 0.2s ease, visibility 0.2s",
                 bgcolor: { sm: "background.paper" },
-                boxShadow: {
-                    sm: `0 -2px 10px ${alpha(theme.palette.common.black, 0.06)}`,
-                },
+                boxShadow: visible
+                    ? {
+                          sm: `0 -2px 10px ${alpha(theme.palette.common.black, 0.06)}`,
+                      }
+                    : "none",
             }}
         >
             <Button
@@ -52,7 +59,7 @@ export function MenuStickyCartBar() {
                 component={Link}
                 href="/checkout"
                 sx={{
-                    pointerEvents: "auto",
+                    pointerEvents: visible ? "auto" : "none",
                     height: 48,
                     borderRadius: `${tokens.radiusCardLg}px`,
                     bgcolor: "background.paper",

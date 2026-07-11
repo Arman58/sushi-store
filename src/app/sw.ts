@@ -71,7 +71,7 @@ const productionRuntimeCaching: RuntimeCaching[] = [
             plugins: [
                 new ExpirationPlugin({
                     maxEntries: 16,
-                    maxAgeSeconds: 24 * 60 * 60,
+                    maxAgeSeconds: 5 * 60,
                     maxAgeFrom: "last-used",
                 }),
             ],

@@ -251,6 +251,9 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
             onClick={(e) => e.stopPropagation()}
             sx={{ maxWidth: "100%" }}
         >
+            <MenuItem value="PENDING_APPROVAL">
+                {translateStatus("PENDING_APPROVAL")}
+            </MenuItem>
             <MenuItem value="NEW">{translateStatus("NEW")}</MenuItem>
             <MenuItem value="COOKING">{translateStatus("COOKING")}</MenuItem>
             <MenuItem value="DELIVERING">{translateStatus("DELIVERING")}</MenuItem>
@@ -521,7 +524,10 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
                                 sx={{ mt: 0.75, maxWidth: "100%" }}
                                 onChange={onSelectStatus}
                             >
-                                <MenuItem value="NEW">{translateStatus("NEW")}</MenuItem>
+                                <MenuItem value="PENDING_APPROVAL">
+                {translateStatus("PENDING_APPROVAL")}
+            </MenuItem>
+            <MenuItem value="NEW">{translateStatus("NEW")}</MenuItem>
                                 <MenuItem value="COOKING">{translateStatus("COOKING")}</MenuItem>
                                 <MenuItem value="DELIVERING">{translateStatus("DELIVERING")}</MenuItem>
                                 <MenuItem value="DONE">{translateStatus("DONE")}</MenuItem>

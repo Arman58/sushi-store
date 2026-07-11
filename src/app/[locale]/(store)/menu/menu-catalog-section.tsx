@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/nextjs";
 import { unstable_cache } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { cache } from "react";
+import { preload } from "react-dom";
 
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import {
@@ -9,6 +10,7 @@ import {
     toStorefrontProducts,
 } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
+import { buildLcpImageUrl } from "@/shared/lib/lcp-image-url";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { MenuSection } from "@/widgets/menu-section";
 
@@ -115,6 +117,16 @@ export async function MenuCatalogSection() {
     }
 
     const { categories, products, minPrice, maxPrice } = menuData;
+
+    for (const product of products.slice(0, 2)) {
+        const cover = getProductCoverUrl(product);
+        if (cover) {
+            preload(buildLcpImageUrl(cover, 400), {
+                as: "image",
+                fetchPriority: "high",
+            });
+        }
+    }
 
     return (
         <MenuSection

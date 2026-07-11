@@ -80,7 +80,7 @@ export function ProductCoverImage({
 
     return (
         <div style={{ position: "absolute", inset: 0 }}>
-            {!loaded && (
+            {!loaded && !priority && (
                 <Skeleton
                     variant="rectangular"
                     animation="wave"

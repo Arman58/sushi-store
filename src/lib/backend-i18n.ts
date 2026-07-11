@@ -441,6 +441,11 @@ export const PUSH_ORDER_STATUS_MESSAGES: Partial<
 };
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, BackendMessageTemplate> = {
+    PENDING_APPROVAL: {
+        hy: "Սպասում է հաստատման",
+        ru: "Ожидает подтверждения",
+        en: "Awaiting approval",
+    },
     NEW: {
         hy: "Պատվերը ընդունված է",
         ru: "Заказ принят",

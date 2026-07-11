@@ -7,8 +7,9 @@ build
 dist
 out
 coverage
+# Проект на npm: package-lock.json ДОЛЖЕН быть в git (воспроизводимый прод-билд).
+# Игнорируем только чужие лок-файлы, чтобы не смешивать менеджеры.
 pnpm-lock.yaml
-package-lock.json
 yarn.lock
 
 /.pnp
@@ -45,6 +46,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...но шаблон переменных — в репозиторий
+!.env.example
 
 # vercel
 .vercel

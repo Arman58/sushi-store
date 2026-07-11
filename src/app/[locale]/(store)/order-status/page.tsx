@@ -74,14 +74,14 @@ export default function OrderStatusPage() {
         formState: { errors, isSubmitting },
     } = useForm<OrderStatusFormValues>({
         resolver: zodResolver(orderStatusSchema),
-        defaultValues: { id: "", phone: "" },
+        defaultValues: { id: "" },
     });
 
     const onSubmit = async (values: OrderStatusFormValues) => {
         setErrorMessage(null);
         setOrder(null);
         try {
-            const data = await fetchOrderStatus(Number(values.id), values.phone);
+            const data = await fetchOrderStatus(Number(values.id));
             setOrder(data);
         } catch (error) {
             if (error instanceof ApiError) {
@@ -97,7 +97,7 @@ export default function OrderStatusPage() {
     };
 
     const activeStepIndex =
-        order?.status === "CANCELLED"
+        order?.status === "CANCELLED" || order?.status === "PENDING_APPROVAL"
             ? -1
             : steps.findIndex((step) => step.key === order?.status);
 
@@ -203,29 +203,6 @@ export default function OrderStatusPage() {
                                     min: 1,
                                     inputMode: "numeric",
                                     autoComplete: "off",
-                                }}
-                                FormHelperTextProps={{
-                                    sx: { minHeight: "1.25em" },
-                                }}
-                            />
-                        )}
-                    />
-                    <Controller
-                        control={control}
-                        name="phone"
-                        render={({ field }) => (
-                            <AppInput
-                                {...field}
-                                label={t("phone")}
-                                error={Boolean(errors.phone)}
-                                helperText={errors.phone?.message ?? "\u00A0"}
-                                fullWidth
-                                autoComplete="tel"
-                                name="phone"
-                                inputProps={{
-                                    inputMode: "tel",
-                                    autoComplete: "tel",
-                                    enterKeyHint: "go",
                                 }}
                                 FormHelperTextProps={{
                                     sx: { minHeight: "1.25em" },

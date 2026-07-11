@@ -40,23 +40,26 @@ export type BadgeEntry = {
     color: string;
 };
 
-export const BADGE_STYLE: Record<ProductBadge, { bg: string; color: string }> = {
-    hit:      { bg: "#2D3436", color: "#FFFFFF" },
-    new:      { bg: "#27AE60", color: "#FFFFFF" },
-    spicy:    { bg: "#E67E22", color: "#FFFFFF" },
-    discount: { bg: "#E74C3C", color: "#FFFFFF" },
-};
+export const BADGE_STYLE: Record<ProductBadge, { bg: string; color: string }> =
+    {
+        hit: { bg: "#2D3436", color: "#FFFFFF" },
+        new: { bg: "#27AE60", color: "#FFFFFF" },
+        spicy: { bg: "#E67E22", color: "#FFFFFF" },
+        discount: { bg: "#E74C3C", color: "#FFFFFF" },
+    };
 
 export const STEPPER_SIZE = 40;
+/** Узкие карточки (2 колонки на 320-360px): компактный степпер, иначе не влезает цена. */
+export const STEPPER_SIZE_XS = 34;
 
 export const stepperButtonSx = {
     flexShrink: 0,
     p: 0,
-    width: STEPPER_SIZE,
-    height: STEPPER_SIZE,
-    minWidth: STEPPER_SIZE,
-    minHeight: STEPPER_SIZE,
-    maxWidth: STEPPER_SIZE,
-    maxHeight: STEPPER_SIZE,
+    width: { xs: STEPPER_SIZE_XS, sm: STEPPER_SIZE },
+    height: { xs: STEPPER_SIZE_XS, sm: STEPPER_SIZE },
+    minWidth: { xs: STEPPER_SIZE_XS, sm: STEPPER_SIZE },
+    minHeight: { xs: STEPPER_SIZE_XS, sm: STEPPER_SIZE },
+    maxWidth: { xs: STEPPER_SIZE_XS, sm: STEPPER_SIZE },
+    maxHeight: { xs: STEPPER_SIZE_XS, sm: STEPPER_SIZE },
     borderRadius: "50%",
 } as const;

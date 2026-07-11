@@ -8,6 +8,7 @@ export const ORDER_STATUS_UI: Record<
     OrderStatus,
     { label: string; color: OrderStatusColor }
 > = {
+    PENDING_APPROVAL: { label: "Ожидает подтверждения", color: "warning" },
     NEW: { label: "Заказ принят", color: "info" },
     COOKING: { label: "Готовится", color: "warning" },
     DELIVERING: { label: "В пути", color: "secondary" },
@@ -42,6 +43,8 @@ export function isOrderStatus(value: string): value is OrderStatus {
 
 export function trackingActiveStep(status: OrderStatus): number {
     switch (status) {
+        case "PENDING_APPROVAL":
+            return 0;
         case "NEW":
             return 0;
         case "COOKING":

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { buildScheduleSlots } from "@/features/checkout/model/schedule-slots";
+import { STORE_TIMEZONE } from "@/lib/order-status";
 import {
     isValidScheduleSlot,
     SCHEDULE_MIN_LEAD_MINUTES,
@@ -11,6 +12,18 @@ const HOUR = 3_600_000;
 
 /** Полдень по Еревану (UTC+4) - кухня открыта. */
 const yerevanNoon = new Date("2026-07-04T12:00:00+04:00");
+
+function yerevanTimeLabel(iso: string): string {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: STORE_TIMEZONE,
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+    }).formatToParts(new Date(iso));
+    const hour = parts.find((p) => p.type === "hour")?.value ?? "00";
+    const minute = parts.find((p) => p.type === "minute")?.value ?? "00";
+    return `${hour}:${minute}`;
+}
 
 describe("isValidScheduleSlot", () => {
     it("слот раньше минимального запаса отклоняется", () => {
@@ -61,13 +74,10 @@ describe("buildScheduleSlots", () => {
         assert.ok(slots.some((s) => s.day === "tomorrow"));
     });
 
-    it("метка времени соответствует ISO-значению", () => {
+    it("метка времени соответствует Asia/Yerevan", () => {
         const slots = buildScheduleSlots();
         const s = slots[0];
-        const d = new Date(s.value);
-        const hh = String(d.getHours()).padStart(2, "0");
-        const mm = String(d.getMinutes()).padStart(2, "0");
-        assert.equal(s.time, `${hh}:${mm}`);
+        assert.equal(s.time, yerevanTimeLabel(s.value));
     });
 });
 

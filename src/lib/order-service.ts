@@ -49,6 +49,7 @@ export type UpdateOrderStatusErrorCode =
  * - соседние правки NEW/COOKING/DELIVERING разрешены (реальность кухни).
  */
 const ALLOWED_STATUS_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
+    PENDING_APPROVAL: ["NEW", "CANCELLED"],
     NEW: ["COOKING", "DELIVERING", "DONE", "CANCELLED"],
     COOKING: ["NEW", "DELIVERING", "DONE", "CANCELLED"],
     DELIVERING: ["COOKING", "DONE", "CANCELLED"],
@@ -95,7 +96,7 @@ export async function updateOrderStatus(
 
     const existing = await prisma.order.findUnique({
         where: { id: orderId },
-        select: { id: true, status: true },
+        select: { id: true, status: true, promoCodeId: true },
     });
 
     if (!existing) {
@@ -123,6 +124,15 @@ export async function updateOrderStatus(
         data: { status: newStatus },
         select: { id: true, status: true },
     });
+
+    // existing.status !== "CANCELLED" гарантирован guard-ом выше (CANCELLED_LOCKED),
+    // TS уже сузил тип — повторная проверка была бы ошибкой компиляции.
+    if (newStatus === "CANCELLED" && existing.promoCodeId != null) {
+        await prisma.promoCode.update({
+            where: { id: existing.promoCodeId },
+            data: { timesUsed: { decrement: 1 } },
+        });
+    }
 
     if (updated.status !== existing.status) {
         const { notifyOrderStatusPush } = await import("@/lib/push-notifications");

@@ -134,6 +134,18 @@ export function loadDraft(): Partial<CheckoutFormValues> | null {
     }
 }
 
+/** Адрес доставки для Order.address: улица + квартира одной строкой. */
+export function formatOrderDeliveryAddress(
+    street: string,
+    apartment?: string,
+): string {
+    const s = street.trim();
+    const apt = apartment?.trim();
+    if (!s) return "";
+    if (!apt) return s;
+    return `${s}, кв. ${apt}`;
+}
+
 export function isAbortError(e: unknown): boolean {
     return (
         (e instanceof DOMException && e.name === "AbortError") ||

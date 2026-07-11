@@ -58,7 +58,7 @@ export const validatePromoBodySchema = z.object({
 
 export const orderStatusPostBodySchema = z.object({
     id: positiveIntSchema,
-    phone: z.string().min(8),
+    phone: z.string().optional(),
 });
 
 export const orderStatusGetQuerySchema = z.object({

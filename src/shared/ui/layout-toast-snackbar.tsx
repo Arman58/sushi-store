@@ -2,6 +2,7 @@
 
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import Box from "@mui/material/Box";
 import Snackbar from "@mui/material/Snackbar";
 import { alpha } from "@mui/material/styles";
@@ -32,6 +33,7 @@ export function LayoutToastSnackbar() {
 
     const isAppToast = Boolean(appToastMessage || appToastMessageKey);
     const isErrorToast = appToastSeverity === "error";
+    const isWarningToast = appToastSeverity === "warning";
     const snackbarMessage = appToastMessageKey
         ? tCommon(appToastMessageKey)
         : appToastMessage
@@ -62,13 +64,17 @@ export function LayoutToastSnackbar() {
                 sx: (theme) => ({
                     bgcolor: isErrorToast
                         ? alpha(theme.palette.error.main, 0.08)
-                        : "background.paper",
+                        : isWarningToast
+                          ? alpha(theme.palette.warning.main, 0.08)
+                          : "background.paper",
                     color: "text.primary",
                     borderRadius: 3,
                     border: "1px solid",
                     borderColor: isErrorToast
                         ? alpha(theme.palette.error.main, 0.35)
-                        : alpha(theme.palette.divider, 0.9),
+                        : isWarningToast
+                          ? alpha(theme.palette.warning.main, 0.35)
+                          : alpha(theme.palette.divider, 0.9),
                     boxShadow: `0 8px 24px ${alpha(theme.palette.common.black, 0.15)}`,
                     p: 1.5,
                     display: "flex",
@@ -89,6 +95,12 @@ export function LayoutToastSnackbar() {
                             aria-hidden
                             focusable="false"
                             sx={{ color: "error.main", fontSize: 20 }}
+                        />
+                    ) : isWarningToast ? (
+                        <WarningAmberRoundedIcon
+                            aria-hidden
+                            focusable="false"
+                            sx={{ color: "warning.main", fontSize: 20 }}
                         />
                     ) : (
                         <CheckCircleOutlineIcon

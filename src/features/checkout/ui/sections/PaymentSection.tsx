@@ -243,9 +243,7 @@ export function PaymentSection({
                 autoComplete="off"
                 name="comment"
                 // setValue из сохранённого адреса не поднимает label - форсируем
-                InputLabelProps={{
-                    shrink: watch("comment") ? true : undefined,
-                }}
+                InputLabelProps={{ shrink: true }}
                 InputProps={{
                     startAdornment: (
                         <InputAdornment position="start">

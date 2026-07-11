@@ -23,6 +23,24 @@ function withQty(items: CartItem[]) {
     return { items, qtyByProductId, cartTotalCount, cartTotalPrice };
 }
 
+/** Toast/snackbar off the click stack — INP ends after qty paint, not snackbar work. */
+function scheduleCartAddedToast(
+    setState: (partial: Partial<CartState>) => void,
+    title: string,
+) {
+    const toastId = Date.now();
+    requestAnimationFrame(() => {
+        setState({
+            lastAddedTitle: title,
+            lastAddedAt: toastId,
+            addToast: toastId,
+            appToastMessage: null,
+            appToastMessageKey: null,
+            appToastSeverity: null,
+        });
+    });
+}
+
 /** Defer persist writes so localStorage I/O is not on the click stack (INP). */
 function createDeferredLocalStorage(): Storage {
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -86,12 +104,15 @@ type CartState = {
      * локаль, переводит LayoutToastSnackbar. Приоритетнее appToastMessage.
      */
     appToastMessageKey: string | null;
-    appToastSeverity: "success" | "error" | null;
+    appToastSeverity: "success" | "error" | "warning" | null;
     openCart: () => void;
     closeCart: () => void;
     toggleCart: () => void;
     setAddToast: (id: number) => void;
-    showAppToast: (message: string, severity?: "success" | "error") => void;
+    showAppToast: (
+        message: string,
+        severity?: "success" | "error" | "warning",
+    ) => void;
     addItem: (payload: AddToCartPayload) => void;
     removeItem: (cartItemId: string) => void;
     clear: () => void;
@@ -170,7 +191,7 @@ export const useCartStore = create<CartState>()(
                     const existing = state.items.find(
                         (item) => item.cartItemId === cartItemId,
                     );
-                    const toastId = Date.now();
+                    const addQty = Math.max(1, payload.initialQuantity ?? 1);
 
                     if (existing) {
                         const items = state.items.map((item) =>
@@ -178,15 +199,10 @@ export const useCartStore = create<CartState>()(
                                 ? { ...item, quantity: item.quantity + 1 }
                                 : item,
                         );
+                        scheduleCartAddedToast(set, payload.name);
                         return {
                             ...withQty(items),
-                            lastAddedTitle: payload.name,
-                            lastAddedAt: toastId,
                             hasPriceMismatch: false,
-                            addToast: toastId,
-                            appToastMessage: null,
-                            appToastMessageKey: null,
-                            appToastSeverity: null,
                         };
                     }
 
@@ -199,20 +215,15 @@ export const useCartStore = create<CartState>()(
                             basePrice: payload.basePrice,
                             calculatedItemPrice: payload.calculatedItemPrice,
                             selectedModifiers: payload.selectedModifiers,
-                            quantity: 1,
+                            quantity: addQty,
                             image: payload.image,
                         } satisfies CartItem,
                     ];
 
+                    scheduleCartAddedToast(set, payload.name);
                     return {
                         ...withQty(items),
                         hasPriceMismatch: false,
-                        lastAddedTitle: payload.name,
-                        lastAddedAt: toastId,
-                        addToast: toastId,
-                        appToastMessage: null,
-                        appToastMessageKey: null,
-                        appToastSeverity: null,
                     };
                 });
             },
@@ -253,26 +264,17 @@ export const useCartStore = create<CartState>()(
 
                     const isIncrease =
                         existing != null && quantity > existing.quantity;
-                    const toastId = isIncrease ? Date.now() : state.addToast;
                     const items = state.items.map((item) =>
                         item.cartItemId === cartItemId
                             ? { ...item, quantity }
                             : item,
                     );
 
-                    return {
-                        ...withQty(items),
-                        ...(isIncrease && existing
-                            ? {
-                                  lastAddedTitle: existing.name,
-                                  lastAddedAt: toastId,
-                                  addToast: toastId,
-                                  appToastMessage: null,
-                                  appToastMessageKey: null,
-                                  appToastSeverity: null,
-                              }
-                            : {}),
-                    };
+                    if (isIncrease && existing) {
+                        scheduleCartAddedToast(set, existing.name);
+                    }
+
+                    return withQty(items);
                 }),
 
             decrementFirstLineForProduct: (productId) =>
@@ -357,13 +359,17 @@ export const useCartStore = create<CartState>()(
 
                     if (!updated) return state;
 
+                    requestAnimationFrame(() => {
+                        set({
+                            addToast: Date.now(),
+                            appToastMessage: null,
+                            appToastMessageKey: "toast.pricesUpdated",
+                            appToastSeverity: "success",
+                        });
+                    });
                     return {
                         ...withQty(newItems),
                         hasPriceMismatch: false,
-                        addToast: Date.now(),
-                        appToastMessage: null,
-                        appToastMessageKey: "toast.pricesUpdated",
-                        appToastSeverity: "success" as const,
                     };
                 }),
         }),

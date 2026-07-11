@@ -65,6 +65,7 @@ export function CheckoutWizard() {
         hasPriceMismatchIssues,
         validSubtotal: cartSubtotal,
         serverItems,
+        validationUnavailable,
     } = useCartLineValidation();
 
     const {
@@ -98,7 +99,8 @@ export function CheckoutWizard() {
         isBusySubmit ||
         isPlacingOrder ||
         delivery.deliveryBlocked ||
-        hasCartLineProblems;
+        hasCartLineProblems ||
+        validationUnavailable;
 
     const softMuted = checkoutIncomplete && !hardSubmitDisabled;
 
@@ -249,6 +251,12 @@ export function CheckoutWizard() {
                                 t("missingItem.fallback")}
                         </strong>
                         {t("missingItem.suffix")}
+                    </Alert>
+                )}
+
+                {validationUnavailable && (
+                    <Alert severity="error" sx={{ mb: 3 }}>
+                        {tCart("validation_unavailable")}
                     </Alert>
                 )}
 

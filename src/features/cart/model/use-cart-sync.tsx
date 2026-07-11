@@ -4,12 +4,29 @@ import { useSession } from "next-auth/react";
 import { type ReactNode, useEffect, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
 
+import { type AppLocale, routing } from "@/i18n/routing";
+import { showAppToast } from "@/shared/lib/show-app-toast";
+
 import { useCartStore } from "./store";
 import type { CartItem } from "./types";
 
+function resolveClientLocale(): AppLocale {
+    if (typeof window === "undefined") return routing.defaultLocale;
+    const match = window.location.pathname.match(/^\/(hy|en|ru)(?=\/|$)/);
+    return (match?.[1] as AppLocale | undefined) ?? routing.defaultLocale;
+}
+
+async function getCartSyncDroppedMessage(): Promise<string> {
+    const locale = resolveClientLocale();
+    const messages = (await import(`@/messages/${locale}.json`)).default as {
+        cart: { sync_dropped: string };
+    };
+    return messages.cart.sync_dropped;
+}
+
 /**
  * Хук для синхронизации локальной корзины с сервером при наличии авторизации.
- * - При монтировании (и наличии сессии) загружает серверную корзину и мержит с локальной.
+ * - При монтировании (и наличии сессии) загружает серверную корзину.
  * - При изменении локальной корзины (debounced) отправляет её на сервер.
  */
 export function useCartSync() {
@@ -55,7 +72,22 @@ export function useCartSync() {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ items, appliedPromoCode }),
-                }).catch((err) => console.error("[CartSync] Save failed:", err));
+                })
+                    .then(async (res) => {
+                        if (!res.ok) return;
+                        const data = (await res.json()) as {
+                            droppedCount?: number;
+                        };
+                        if (
+                            typeof data.droppedCount === "number" &&
+                            data.droppedCount > 0
+                        ) {
+                            void getCartSyncDroppedMessage().then((message) => {
+                                showAppToast(message, "warning");
+                            });
+                        }
+                    })
+                    .catch((err) => console.error("[CartSync] Save failed:", err));
             }, 1000);
         }
         return () => {

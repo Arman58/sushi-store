@@ -84,7 +84,7 @@ export async function GET(request: Request) {
         return orderNotFoundResponse(400);
     }
 
-    const { id, phone } = queryParsed.data;
+    const { id } = queryParsed.data;
 
     try {
         const order = await prisma.order.findUnique({
@@ -96,9 +96,9 @@ export async function GET(request: Request) {
             return orderNotFoundResponse(404);
         }
 
-        const allowed = await canAccessOrderStatus(order, phone);
+        const allowed = await canAccessOrderStatus(order);
         if (!allowed) {
-            return orderNotFoundResponse(phone?.trim() ? 404 : 403);
+            return orderNotFoundResponse(403);
         }
 
         return NextResponse.json(buildOrderStatusPayload(order), {
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
         return orderNotFoundResponse(400);
     }
 
-    const { id, phone } = parsed.data;
+    const { id } = parsed.data;
 
     try {
         const order = await prisma.order.findUnique({
@@ -130,7 +130,7 @@ export async function POST(request: Request) {
             return orderNotFoundResponse(404);
         }
 
-        const allowed = await canAccessOrderStatus(order, phone);
+        const allowed = await canAccessOrderStatus(order);
         if (!allowed) {
             return orderNotFoundResponse(404);
         }

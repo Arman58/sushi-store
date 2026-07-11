@@ -67,11 +67,14 @@ export function ProductCardFooter({
             sx={{
                 display: "flex",
                 flexDirection: "row",
-                flexWrap: "nowrap",
+                // 320-360px (2 колонки): степпер переносится на вторую строку,
+                // цена всегда остаётся видимой — не жмём деньги в ноль.
+                flexWrap: "wrap",
                 justifyContent: "space-between",
                 alignItems: "center",
                 mt: "auto",
-                gap: 1,
+                columnGap: 1,
+                rowGap: 0.75,
                 minWidth: 0,
                 flexShrink: 0,
                 width: "100%",
@@ -84,7 +87,14 @@ export function ProductCardFooter({
                 direction="row"
                 alignItems="baseline"
                 spacing={0.75}
-                sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}
+                // flexShrink: 0 — цена не сжимается; при нехватке места
+                // вниз переносится степпер (flexWrap на родителе).
+                sx={{
+                    flexShrink: 0,
+                    minWidth: 0,
+                    maxWidth: "100%",
+                    overflow: "hidden",
+                }}
             >
                 <Typography
                     component="span"
@@ -120,90 +130,102 @@ export function ProductCardFooter({
                 )}
             </Stack>
 
-            {hasInCart ? (
-                <Stack
-                    direction="row"
-                    alignItems="center"
-                    spacing={0.25}
-                    sx={{ flexShrink: 0 }}
-                >
+            <Box
+                sx={{
+                    flexShrink: 0,
+                    // Прижимаем вправо и в однострочном, и в перенесённом состоянии.
+                    ml: "auto",
+                    display: "flex",
+                    justifyContent: "flex-end",
+                }}
+            >
+                {hasInCart ? (
+                    <Stack
+                        direction="row"
+                        alignItems="center"
+                        spacing={0.25}
+                        sx={{ flexShrink: 0 }}
+                    >
+                        <IconButton
+                            size="small"
+                            onClick={handleDecrease}
+                            aria-label={t("aria.decrease", { name })}
+                            sx={{
+                                ...stepperButtonSx,
+                                bgcolor: "action.hover",
+                                color: "text.secondary",
+                                "&:hover": { bgcolor: "action.selected" },
+                                "&:active": { transform: "scale(0.92)" },
+                            }}
+                        >
+                            <RemoveIcon sx={{ fontSize: 20 }} />
+                        </IconButton>
+
+                        <Typography
+                            component="span"
+                            sx={{
+                                fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                                fontWeight: 700,
+                                minWidth: { xs: 16, sm: 20 },
+                                textAlign: "center",
+                                color: "text.primary",
+                                lineHeight: 1,
+                                fontVariantNumeric: "tabular-nums",
+                                flexShrink: 0,
+                                display: "inline-block",
+                            }}
+                        >
+                            {quantity}
+                        </Typography>
+
+                        <IconButton
+                            size="small"
+                            disabled={maxQtyReached}
+                            onClick={handleIncrease}
+                            aria-label={t("aria.increase", { name })}
+                            sx={{
+                                ...stepperButtonSx,
+                                bgcolor: "action.hover",
+                                color: "text.secondary",
+                                "&:hover": { bgcolor: "action.selected" },
+                                "&:active": { transform: "scale(0.92)" },
+                            }}
+                        >
+                            <AddIcon sx={{ fontSize: 20 }} />
+                        </IconButton>
+                    </Stack>
+                ) : (
                     <IconButton
                         size="small"
-                        onClick={handleDecrease}
-                        aria-label={t("aria.decrease", { name })}
+                        onClick={handleAdd}
+                        disabled={!isAvailable}
+                        aria-label={
+                            isAvailable
+                                ? t("aria.add", { name })
+                                : t("badge.soldOut")
+                        }
                         sx={{
                             ...stepperButtonSx,
-                            bgcolor: "action.hover",
-                            color: "text.secondary",
-                            "&:hover": { bgcolor: "action.selected" },
-                            "&:active": { transform: "scale(0.92)" },
-                        }}
-                    >
-                        <RemoveIcon sx={{ fontSize: 20 }} />
-                    </IconButton>
-
-                    <Typography
-                        component="span"
-                        sx={{
-                            fontSize: { xs: "0.8rem", sm: "0.875rem" },
-                            fontWeight: 700,
-                            minWidth: 20,
-                            textAlign: "center",
-                            color: "text.primary",
-                            lineHeight: 1,
-                            fontVariantNumeric: "tabular-nums",
                             flexShrink: 0,
-                            display: "inline-block",
-                        }}
-                    >
-                        {quantity}
-                    </Typography>
-
-                    <IconButton
-                        size="small"
-                        disabled={maxQtyReached}
-                        onClick={handleIncrease}
-                        aria-label={t("aria.increase", { name })}
-                        sx={{
-                            ...stepperButtonSx,
-                            bgcolor: "action.hover",
-                            color: "text.secondary",
-                            "&:hover": { bgcolor: "action.selected" },
+                            bgcolor: tokens.surface,
+                            border: `1.5px solid ${isAvailable ? tokens.brand : tokens.borderHi}`,
+                            color: isAvailable
+                                ? tokens.brand
+                                : tokens.textMuted,
+                            transition:
+                                "background-color 0.18s ease, color 0.18s ease, transform 0.12s ease",
+                            "&:hover": {
+                                bgcolor: tokens.brand,
+                                color: "primary.contrastText",
+                                boxShadow: `0 2px 8px ${alpha(tokens.brand, 0.35)}`,
+                            },
                             "&:active": { transform: "scale(0.92)" },
                         }}
                     >
-                        <AddIcon sx={{ fontSize: 20 }} />
+                        <AddIcon sx={{ fontSize: 22, color: "inherit" }} />
                     </IconButton>
-                </Stack>
-            ) : (
-                <IconButton
-                    size="small"
-                    onClick={handleAdd}
-                    disabled={!isAvailable}
-                    aria-label={
-                        isAvailable
-                            ? t("aria.add", { name })
-                            : t("badge.soldOut")
-                    }
-                    sx={{
-                        ...stepperButtonSx,
-                        flexShrink: 0,
-                        bgcolor: tokens.surface,
-                        border: `1.5px solid ${isAvailable ? tokens.brand : tokens.borderHi}`,
-                        color: isAvailable ? tokens.brand : tokens.textMuted,
-                        transition:
-                            "background-color 0.18s ease, color 0.18s ease, transform 0.12s ease",
-                        "&:hover": {
-                            bgcolor: tokens.brand,
-                            color: "primary.contrastText",
-                            boxShadow: `0 2px 8px ${alpha(tokens.brand, 0.35)}`,
-                        },
-                        "&:active": { transform: "scale(0.92)" },
-                    }}
-                >
-                    <AddIcon sx={{ fontSize: 22, color: "inherit" }} />
-                </IconButton>
-            )}
+                )}
+            </Box>
         </Box>
     );
 }

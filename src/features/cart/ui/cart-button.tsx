@@ -13,9 +13,7 @@ import { useCartStore } from "../model/store";
 export function CartButton() {
     const t = useTranslations("common");
     const tNav = useTranslations("nav");
-    const itemCount = useCartStore((state) =>
-        state.items.reduce((sum, item) => sum + item.quantity, 0),
-    );
+    const itemCount = useCartStore((state) => state.cartTotalCount);
 
     return (
         <Tooltip title={t("aria.openCart")}>
