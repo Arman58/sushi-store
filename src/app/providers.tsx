@@ -3,6 +3,7 @@
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MotionConfig } from "framer-motion";
 import { SessionProvider } from "next-auth/react";
 import { type ReactNode, useEffect, useState } from "react";
 
@@ -63,7 +64,12 @@ export function AppProviders({
                                     disableTransitionOnChange
                                 >
                                     <CssBaseline />
-                                    {children}
+                                    {/* prefers-reduced-motion: глобально гасит
+                                        анимации framer-motion во всех 20+ местах
+                                        разом (a11y, вестибулярные расстройства). */}
+                                    <MotionConfig reducedMotion="user">
+                                        {children}
+                                    </MotionConfig>
                                 </ThemeProvider>
                             </ThemePreferenceProvider>
                         </CartValidationProvider>

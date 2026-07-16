@@ -176,6 +176,9 @@ export async function notifyKitchenTelegram(payload: KitchenTelegramPayload): Pr
     );
 
     if (!telegramResponse.ok) {
-        void telegramResponse.text().catch(() => "");
+        const errorBody = await telegramResponse.text().catch(() => "");
+        console.error(
+            `[telegram] sendMessage failed for order #${orderId}: ${telegramResponse.status} ${errorBody}`,
+        );
     }
 }

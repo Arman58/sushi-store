@@ -136,12 +136,14 @@ async function telegramApi<T>(
         }
 
         if (!json.ok) {
-            // Error logged in production monitoring
+            console.error(
+                `[telegram] ${method} failed: ${json.description ?? "unknown error"}`,
+            );
         }
 
         return json;
-    } catch {
-        // Error logged in production monitoring
+    } catch (error) {
+        console.error(`[telegram] ${method} request failed:`, error);
         return { ok: false, description: "Telegram request failed" };
     }
 }
