@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 import {
@@ -166,23 +166,29 @@ export async function POST(request: Request) {
         }
 
         if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
-            void notifyKitchenTelegram({
-                orderId: result.createdOrderId,
-                name: payload.name,
-                phone: payload.phone,
-                address: payload.address ?? undefined,
-                comment: payload.comment ?? undefined,
-                payment: payload.payment,
-                changeFrom: payload.payment === "cash" && payload.changeFrom != null ? payload.changeFrom : null,
-                scheduledFor: payload.scheduledFor ? new Date(payload.scheduledFor) : null,
-                delivery: payload.delivery,
-                verifiedItems: result.verifiedItems,
-                deliveryFee: result.deliveryFee,
-                zoneNameSnapshot: result.zoneNameSnapshot,
-                promoCodeRaw: payload.promoCode ?? undefined,
-                payableForNotify: result.payableForNotify,
-                grandBeforePay: result.grandBeforePay,
-            }).catch(() => {});
+            // after(): гарантирует, что serverless-функция (Vercel) не будет
+            // заморожена до завершения отправки уведомления после ответа.
+            after(() =>
+                notifyKitchenTelegram({
+                    orderId: result.createdOrderId,
+                    name: payload.name,
+                    phone: payload.phone,
+                    address: payload.address ?? undefined,
+                    comment: payload.comment ?? undefined,
+                    payment: payload.payment,
+                    changeFrom: payload.payment === "cash" && payload.changeFrom != null ? payload.changeFrom : null,
+                    scheduledFor: payload.scheduledFor ? new Date(payload.scheduledFor) : null,
+                    delivery: payload.delivery,
+                    verifiedItems: result.verifiedItems,
+                    deliveryFee: result.deliveryFee,
+                    zoneNameSnapshot: result.zoneNameSnapshot,
+                    promoCodeRaw: payload.promoCode ?? undefined,
+                    payableForNotify: result.payableForNotify,
+                    grandBeforePay: result.grandBeforePay,
+                }).catch((error) => {
+                    console.error("[order] kitchen telegram notify failed:", error);
+                }),
+            );
         }
 
         const response = NextResponse.json(

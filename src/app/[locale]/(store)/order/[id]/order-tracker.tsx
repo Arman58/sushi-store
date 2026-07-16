@@ -36,7 +36,12 @@ import { tokens } from "@/shared/ui/theme";
 
 import { RateOrderItems } from "./rate-order-items";
 
-const POLL_INTERVAL_MS = 5_000;
+/**
+ * Статус заказа меняется раз в 10-20 минут; мгновенные обновления приходят
+ * web-push-ом (invalidateQueries ниже). 12с поллинга — страховка для тех,
+ * кто не дал разрешение на пуши. В фоновой вкладке поллинг выключен.
+ */
+const POLL_INTERVAL_MS = 12_000;
 const TERMINAL_STATUSES = new Set<OrderStatus>(["DONE", "CANCELLED"]);
 
 const STEP_KEYS = ["NEW", "COOKING", "DELIVERING", "DONE"] as const satisfies readonly OrderStatus[];
@@ -207,7 +212,6 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
         staleTime: 4_000,
         refetchOnMount: "always",
         refetchOnWindowFocus: true,
-        // SSE is primary; poll as fallback when the stream is unavailable.
         refetchIntervalInBackground: false,
         refetchInterval: (query) => {
             const status = query.state.data?.status ?? initial.status;
@@ -237,50 +241,6 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
         return () =>
             navigator.serviceWorker.removeEventListener("message", onMessage);
     }, [queryClient, initial.id]);
-
-    // Server-Sent Events (SSE) для мгновенного обновления без поллинга
-    useEffect(() => {
-        const status = queryClient.getQueryData<OrderStatusResponse>(["order", initial.id])?.status || initial.status;
-        if (TERMINAL_STATUSES.has(status)) return;
-
-        const qs = new URLSearchParams({ id: String(initial.id) });
-        if (phone.trim()) {
-            qs.set("phone", phone);
-        }
-
-        const sse = new EventSource(`/api/order-status/stream?${qs.toString()}`);
-
-        sse.onmessage = (event) => {
-            try {
-                const updatedOrder = JSON.parse(event.data);
-                // Преобразуем даты из строк
-                if (updatedOrder.createdAt) {
-                    updatedOrder.createdAt = new Date(updatedOrder.createdAt).toISOString();
-                }
-                if (updatedOrder.estimatedDeliveryAt) {
-                    updatedOrder.estimatedDeliveryAt = new Date(updatedOrder.estimatedDeliveryAt).toISOString();
-                }
-                
-                queryClient.setQueryData(["order", initial.id], updatedOrder);
-
-                if (TERMINAL_STATUSES.has(updatedOrder.status)) {
-                    sse.close();
-                }
-            } catch (err) {
-                console.error("Failed to parse SSE data", err);
-            }
-        };
-
-        sse.onerror = () => {
-            // Браузер сам переподключится через несколько секунд,
-            // но мы можем инвалидировать текущие данные, чтобы useQuery сделал обычный fetch.
-            void queryClient.invalidateQueries({ queryKey: ["order", initial.id] });
-        };
-
-        return () => {
-            sse.close();
-        };
-    }, [initial.id, initial.status, phone, queryClient]);
 
     const order = data ?? initial;
     const status = order.status;
