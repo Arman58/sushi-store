@@ -76,7 +76,7 @@ export const deliveryZonesData: DeliveryZoneSeed[] = [
             "Other cities (confirm by phone)",
         ),
         deliveryPrice: 0,
-        minOrderAmount: 9000,
+        minOrderAmount: 0,
         description: L(
             "Доставка в другие города уточняется по звонку. Оставьте адрес и телефон, мы свяжемся с вами!",
             "Այլ քաղաքներ առաքումը ճշտվում է զանգով։ Թողեք հասցեն և հեռախոսը, մենք կկապվենք ձեզ հետ։",

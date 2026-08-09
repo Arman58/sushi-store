@@ -85,4 +85,25 @@ describe("createCheckoutSchema - сдача (регрессия)", () => {
             assert.ok(!r.success, String(bad));
         }
     });
+
+    it("доставка требует указания deliveryZoneId", () => {
+        const withoutZone = { ...validBase, deliveryZoneId: undefined };
+        const r = schema.safeParse(withoutZone);
+        assert.ok(!r.success);
+        const issue = r.error.issues.find(
+            (i) => i.path.join(".") === "deliveryZoneId",
+        );
+        assert.equal(issue?.message, "zoneRequired");
+    });
+
+    it("самовывоз не требует deliveryZoneId и адреса", () => {
+        const pickup = {
+            ...validBase,
+            delivery: "pickup" as const,
+            deliveryZoneId: undefined,
+            address: "",
+        };
+        const r = schema.safeParse(pickup);
+        assert.ok(r.success);
+    });
 });

@@ -16,6 +16,7 @@ import { useTranslations } from "next-intl";
 import { startTransition, useEffect, useState } from "react";
 
 import { Link, useRouter } from "@/i18n/server";
+import { useCloseMenuOnExternalScroll } from "@/shared/ui/select-menu";
 import { tokens } from "@/shared/ui/theme";
 
 const loginDialogImport = () =>
@@ -36,6 +37,8 @@ export function LoginButton() {
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+
+    useCloseMenuOnExternalScroll(Boolean(menuAnchor), () => setMenuAnchor(null));
 
     useEffect(() => {
         let cancelled = false;

@@ -172,7 +172,10 @@ export function useDeliveryCalc({
     const grossBeforeDiscount = cartSubtotal + deliveryFee;
     const grandTotal = Math.max(0, grossBeforeDiscount - promoDiscount);
     const belowMin = Boolean(
-        isDelivery && selectedZone && cartSubtotal < selectedZone.minOrderAmount,
+        isDelivery &&
+            selectedZone &&
+            !selectedZone.requiresManagerApproval &&
+            cartSubtotal < selectedZone.minOrderAmount,
     );
 
     useEffect(() => {
@@ -230,6 +233,7 @@ export function useDeliveryCalc({
         const belowMinBlocked =
             isDelivery &&
             selectedZone &&
+            !selectedZone.requiresManagerApproval &&
             cartSubtotal < selectedZone.minOrderAmount;
         if (belowMinBlocked) {
             setPromoError(t("promoMinOrderFirst"));

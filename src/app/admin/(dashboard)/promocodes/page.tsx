@@ -36,7 +36,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { showAppToast } from "@/shared/lib/show-app-toast";
 import { useTabletDown } from "@/shared/lib/use-mobile-viewport";
-import { PageContainer, SectionTitle } from "@/shared/ui";
+import { mergeAppSelectMenuProps, PageContainer, SectionTitle } from "@/shared/ui";
 
 type DiscountTypeLite = "PERCENTAGE" | "FIXED";
 
@@ -465,6 +465,11 @@ export default function AdminPromoCodesPage() {
                                     discountType: e.target.value as DiscountTypeLite,
                                 }))
                             }
+                            slotProps={{
+                                select: {
+                                    MenuProps: mergeAppSelectMenuProps(),
+                                },
+                            }}
                             fullWidth
                         >
                             <MenuItem value="PERCENTAGE">{t("discountPercent")}</MenuItem>

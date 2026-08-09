@@ -649,6 +649,34 @@ const theme = createTheme({
             },
         },
 
+        MuiMenu: {
+            defaultProps: {
+                disableScrollLock: false,
+            },
+            styleOverrides: {
+                paper: {
+                    maxWidth: 380,
+                    maxHeight: 320,
+                    overscrollBehavior: "contain",
+                },
+            },
+        },
+
+        MuiSelect: {
+            defaultProps: {
+                MenuProps: {
+                    disableScrollLock: false,
+                    PaperProps: {
+                        sx: {
+                            maxWidth: 380,
+                            maxHeight: 320,
+                            overscrollBehavior: "contain",
+                        },
+                    },
+                },
+            },
+        },
+
         MuiCheckbox: {
             styleOverrides: {
                 root: {
