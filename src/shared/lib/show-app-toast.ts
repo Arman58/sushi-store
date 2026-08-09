@@ -1,4 +1,4 @@
-import { useCartStore } from "@/features/cart";
+import { useCartStore } from "@/features/cart/model/store";
 
 /** Глобальный тост в шапке (LayoutShell Snackbar). */
 export function showAppToast(

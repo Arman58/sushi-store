@@ -13,6 +13,7 @@ import { useLocale } from "next-intl";
 import { useState, useTransition } from "react";
 
 import { usePathname, useRouter } from "@/i18n/server";
+import { useCloseMenuOnExternalScroll } from "@/shared/ui/select-menu";
 import { tokens } from "@/shared/ui/theme";
 
 const languages = [
@@ -29,6 +30,8 @@ export default function LanguageSwitcher() {
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [isPending, startTransition] = useTransition();
     const open = Boolean(anchorEl);
+
+    useCloseMenuOnExternalScroll(open, () => setAnchorEl(null));
 
     const handleChange = (newLocale: string) => {
         setAnchorEl(null);

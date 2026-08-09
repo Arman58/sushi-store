@@ -16,6 +16,8 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useSyncExternalStore, useTransition } from "react";
 
+import { useCloseMenuOnExternalScroll } from "@/shared/ui/select-menu";
+
 /**
  * Контролы шапки админки: тема (light/dark) и язык UI.
  */
@@ -98,6 +100,8 @@ function AdminLangSwitcher() {
     const [, startTransition] = useTransition();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
+
+    useCloseMenuOnExternalScroll(open, () => setAnchorEl(null));
 
     // Локаль из cookie. Сервер отдаёт дефолт, клиент реконсилит после гидратации.
     const locale = useSyncExternalStore(

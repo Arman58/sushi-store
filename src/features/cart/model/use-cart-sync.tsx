@@ -5,7 +5,6 @@ import { type ReactNode, useEffect, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { type AppLocale, routing } from "@/i18n/routing";
-import { showAppToast } from "@/shared/lib/show-app-toast";
 
 import { useCartStore } from "./store";
 import type { CartItem } from "./types";
@@ -83,7 +82,9 @@ export function useCartSync() {
                             data.droppedCount > 0
                         ) {
                             void getCartSyncDroppedMessage().then((message) => {
-                                showAppToast(message, "warning");
+                                useCartStore
+                                    .getState()
+                                    .showAppToast(message, "warning");
                             });
                         }
                     })

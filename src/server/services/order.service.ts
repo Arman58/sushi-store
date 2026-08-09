@@ -118,7 +118,7 @@ export async function createOrder(
             throw new OrderServiceError(API_ERROR_CODES.INVALID_CART_PAYLOAD, 400, undefined, "form.zone.unavailable");
         }
 
-        if (verifiedTotal < zone.minOrderAmount) {
+        if (!zone.requiresManagerApproval && verifiedTotal < zone.minOrderAmount) {
             throw new OrderServiceError(API_ERROR_CODES.INVALID_CART_PAYLOAD, 400, { amount: String(zone.minOrderAmount) }, "form.zone.belowMin");
         }
 

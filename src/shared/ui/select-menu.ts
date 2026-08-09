@@ -17,6 +17,7 @@ import { useEffect } from "react";
 export const defaultAppSelectMenuPaperSx: SxProps<Theme> = {
     maxWidth: 350,
     maxHeight: 280,
+    overscrollBehavior: "contain",
     "& .MuiMenuItem-root": {
         whiteSpace: "normal",
         overflowWrap: "break-word",
@@ -53,9 +54,10 @@ export function mergeAppSelectMenuProps(
 
 function isScrollInsideSelectMenu(target: EventTarget | null): boolean {
     if (!(target instanceof Element)) return false;
+    if (target.closest(".MuiBackdrop-root")) return false;
     return Boolean(
         target.closest(
-            ".MuiMenu-paper, .MuiPopover-paper, .MuiModal-root, [role='listbox']",
+            ".MuiMenu-paper, .MuiPopover-paper, [role='listbox'], .MuiAutocomplete-paper, .MuiMenu-list",
         ),
     );
 }
@@ -76,13 +78,28 @@ export function useCloseMenuOnExternalScroll(
             onClose();
         };
 
+        const onWheel = (event: WheelEvent) => {
+            if (isScrollInsideSelectMenu(event.target)) return;
+            onClose();
+        };
+
+        const onTouchMove = (event: TouchEvent) => {
+            if (isScrollInsideSelectMenu(event.target)) return;
+            onClose();
+        };
+
         document.addEventListener("scroll", onScroll, {
             capture: true,
             passive: true,
         });
+        window.addEventListener("wheel", onWheel, { passive: true });
+        window.addEventListener("touchmove", onTouchMove, { passive: true });
         window.addEventListener("resize", onClose, { passive: true });
+
         return () => {
             document.removeEventListener("scroll", onScroll, { capture: true });
+            window.removeEventListener("wheel", onWheel);
+            window.removeEventListener("touchmove", onTouchMove);
             window.removeEventListener("resize", onClose);
         };
     }, [open, onClose]);

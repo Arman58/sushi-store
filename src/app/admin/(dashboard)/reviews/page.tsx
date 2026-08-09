@@ -25,7 +25,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 
 import { useLocalizedFieldFn } from "@/features/admin/hooks/use-admin-content-locale";
-import { PageContainer, SectionTitle } from "@/shared/ui";
+import { mergeAppSelectMenuProps, PageContainer, SectionTitle } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
 
 type AdminReview = {
@@ -119,6 +119,11 @@ export default function AdminReviewsPage() {
                     onChange={(e) => {
                         setRating(e.target.value);
                         setPage(1);
+                    }}
+                    slotProps={{
+                        select: {
+                            MenuProps: mergeAppSelectMenuProps(),
+                        },
                     }}
                     sx={{ minWidth: 130 }}
                 >

@@ -13,6 +13,7 @@ import {
 import { useTranslations } from "next-intl";
 
 import { getLocalizedField, type StoreLocale } from "@/lib/i18n-utils";
+import { mergeAppSelectMenuProps } from "@/shared/ui";
 
 // ─── View model ───────────────────────────────────────────────────────────────
 
@@ -226,6 +227,11 @@ export function ProductsToolbar({
                         })
                     }
                     label={tCommon("category")}
+                    slotProps={{
+                        select: {
+                            MenuProps: mergeAppSelectMenuProps(),
+                        },
+                    }}
                     sx={{ minWidth: 160 }}
                 >
                     <MenuItem value="all">{t("allCategories")}</MenuItem>
@@ -249,6 +255,11 @@ export function ProductsToolbar({
                         })
                     }
                     label={tCommon("status")}
+                    slotProps={{
+                        select: {
+                            MenuProps: mergeAppSelectMenuProps(),
+                        },
+                    }}
                     sx={{ minWidth: 140 }}
                 >
                     <MenuItem value="all">{tCommon("all")}</MenuItem>
