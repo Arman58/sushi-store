@@ -14,6 +14,7 @@ import type { ReactNode } from "react";
 import { Link } from "@/i18n/server";
 import { buildLocalizedMetadata } from "@/lib/seo/metadata";
 import { CONTACT_PHONE, CONTACT_PHONE_DISPLAY } from "@/lib/site-config";
+import { MessengerSupportButtons } from "@/shared/ui";
 import { PageContainer } from "@/shared/ui/page-container";
 import { tokens } from "@/shared/ui/theme";
 
@@ -191,6 +192,10 @@ export default async function ContactsPage() {
                         </Stack>
 
                         <ContactsCallButton />
+
+                        <Box sx={{ mt: 1.5 }}>
+                            <MessengerSupportButtons />
+                        </Box>
 
                         <Link href="/menu" style={{ textDecoration: "none", display: "block" }}>
                             <Box

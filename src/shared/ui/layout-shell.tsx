@@ -145,7 +145,8 @@ export function LayoutShell({ children }: LayoutShellProps) {
                     onClose={() => setSearchOpen(false)}
                 />
             )}
-            {!pathname.startsWith("/checkout") && <MobileBottomNav />}
+            {!pathname.startsWith("/checkout") &&
+                !pathname.startsWith("/cart") && <MobileBottomNav />}
         </Box>
     );
 }

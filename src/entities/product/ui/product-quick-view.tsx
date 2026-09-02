@@ -93,8 +93,12 @@ export function ProductQuickView({ open, onClose, product, onAdd }: Props) {
                         position: "absolute",
                         top: 6,
                         right: 8,
-                        bgcolor: "rgba(255,255,255,0.9)",
+                        bgcolor: "background.paper",
+                        color: "text.secondary",
+                        boxShadow: 1,
                         zIndex: 1,
+                        "&:hover": { bgcolor: "action.hover", color: "text.primary" },
+                        "&:active": { transform: "scale(0.92)" },
                     }}
                 >
                     <CloseIcon sx={{ fontSize: 20 }} />

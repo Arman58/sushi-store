@@ -53,10 +53,47 @@ export function StoreFooter() {
                     justifyContent="space-between"
                 >
                     <Box>
-                        <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 1 }}>
-                            {SITE_NAME}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 320 }}>
+                        <Box sx={{ mb: 1.5, display: "inline-block" }}>
+                            {/* Dark mode logo: white */}
+                            <Box
+                                component="img"
+                                src="/brand-logo-horizontal-white.png"
+                                alt={SITE_NAME}
+                                sx={{
+                                    height: { xs: 32, sm: 38 },
+                                    width: "auto",
+                                    display: "none",
+                                    '[data-theme="dark"] &': {
+                                        display: "block",
+                                    },
+                                    "@media (prefers-color-scheme: dark)": {
+                                        ':root:not([data-theme="light"]) &': {
+                                            display: "block",
+                                        },
+                                    },
+                                }}
+                            />
+                            {/* Light mode logo: black */}
+                            <Box
+                                component="img"
+                                src="/brand-logo-horizontal.png"
+                                alt={SITE_NAME}
+                                sx={{
+                                    height: { xs: 32, sm: 38 },
+                                    width: "auto",
+                                    display: "block",
+                                    '[data-theme="dark"] &': {
+                                        display: "none",
+                                    },
+                                    "@media (prefers-color-scheme: dark)": {
+                                        ':root:not([data-theme="light"]) &': {
+                                            display: "none",
+                                        },
+                                    },
+                                }}
+                            />
+                        </Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 320, lineHeight: 1.6 }}>
                             {t("tagline")}
                         </Typography>
                     </Box>

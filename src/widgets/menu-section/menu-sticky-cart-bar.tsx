@@ -62,15 +62,15 @@ export function MenuStickyCartBar() {
                     pointerEvents: visible ? "auto" : "none",
                     height: 48,
                     borderRadius: `${tokens.radiusCardLg}px`,
-                    bgcolor: "background.paper",
-                    color: "text.primary",
+                    bgcolor: tokens.brand,
+                    color: "#FFFFFF",
                     justifyContent: "space-between",
-                    px: 2,
+                    px: 2.25,
                     textTransform: "none",
-                    border: "1px solid",
-                    borderColor: "divider",
-                    boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.12)}`,
-                    "&:hover": { bgcolor: "action.hover" },
+                    boxShadow: `0 6px 24px ${alpha(tokens.brand, 0.42)}`,
+                    "&:hover": { bgcolor: tokens.brandHi },
+                    "&:active": { transform: "scale(0.98)" },
+                    transition: "all 0.18s ease",
                 }}
             >
                 <Box
@@ -86,8 +86,9 @@ export function MenuStickyCartBar() {
                 >
                     <Typography
                         sx={{
-                            fontWeight: 600,
-                            fontSize: "0.9rem",
+                            fontWeight: 700,
+                            fontSize: "0.95rem",
+                            color: "#FFFFFF",
                             whiteSpace: "nowrap",
                             overflow: "hidden",
                             textOverflow: "ellipsis",
@@ -100,8 +101,8 @@ export function MenuStickyCartBar() {
                         component="span"
                         sx={{
                             fontWeight: 800,
-                            fontSize: "1rem",
-                            color: "primary.main",
+                            fontSize: "1.05rem",
+                            color: "#FFFFFF",
                             fontVariantNumeric: "tabular-nums",
                             whiteSpace: "nowrap",
                             flexShrink: 0,
@@ -113,10 +114,11 @@ export function MenuStickyCartBar() {
                 </Box>
                 <Typography
                     sx={{
-                        color: "primary.main",
+                        color: "#FFFFFF",
                         fontWeight: 800,
                         fontSize: "1.2rem",
                         flexShrink: 0,
+                        ml: 1,
                     }}
                 >
                     →
