@@ -236,6 +236,20 @@ export type StorefrontProduct = {
     description: string | null;
     composition: string | null;
     price: number;
+    originalPrice?: number | null;
+    bundleItems?: {
+        id: number;
+        productId: number;
+        quantity: number;
+        position: number;
+        product?: {
+            id: number;
+            price: number;
+            name: string;
+            mainImage?: string | null;
+            images?: unknown;
+        };
+    }[];
     weight: number | null;
     images: unknown;
     mainImage: string | null;
@@ -276,6 +290,33 @@ export function toStorefrontProduct(
         description: getLocalizedField(product.translations, locale, "description") || null,
         composition: getLocalizedField(product.translations, locale, "composition") || null,
         price: Number(product.price),
+        originalPrice:
+            typeof product.originalPrice === "number" && Number.isFinite(product.originalPrice)
+                ? product.originalPrice
+                : null,
+        bundleItems: Array.isArray(product.bundleItems)
+            ? (product.bundleItems as Record<string, unknown>[]).map((b) => {
+                  const innerProduct = b.product as Record<string, unknown> | undefined;
+                  return {
+                      id: Number(b.id),
+                      productId: Number(b.productId),
+                      quantity: Number(b.quantity) || 1,
+                      position: Number(b.position) || 0,
+                      product: innerProduct
+                          ? {
+                                id: Number(innerProduct.id),
+                                price: Number(innerProduct.price),
+                                name: getLocalizedField(innerProduct.translations, locale, "name"),
+                                mainImage:
+                                    typeof innerProduct.mainImage === "string"
+                                        ? innerProduct.mainImage
+                                        : null,
+                                images: innerProduct.images,
+                            }
+                          : undefined,
+                  };
+              })
+            : undefined,
         weight:
             typeof product.weight === "number" && Number.isFinite(product.weight)
                 ? product.weight

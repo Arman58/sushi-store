@@ -116,6 +116,14 @@ export const ProductCard = memo(function ProductCard({
         }
     }
 
+    if (hasDiscount && !badgeEntries.some((b) => b.key === "discount")) {
+        badgeEntries.push({
+            key: "discount",
+            label: `-${discountPercent}%`,
+            ...BADGE_STYLE.discount,
+        });
+    }
+
     const handleAdd = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (!isAvailable) return;

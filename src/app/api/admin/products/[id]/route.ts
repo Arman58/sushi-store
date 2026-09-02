@@ -86,6 +86,16 @@ async function parsePutBodyToPrismaUpdate(
         }
         data.price = Math.round(v);
     }
+    if (has("originalPrice")) {
+        const v = raw.originalPrice;
+        if (v === null) {
+            data.originalPrice = null;
+        } else if (typeof v === "number" && Number.isFinite(v) && v >= 0) {
+            data.originalPrice = Math.round(v);
+        } else {
+            return { response: NextResponse.json({ error: "Invalid originalPrice" }, { status: 400 }) };
+        }
+    }
     if (has("weight")) {
         const v = raw.weight;
         if (v === null) {
@@ -176,37 +186,6 @@ function urlListFromJson(images: unknown): string[] {
     );
 }
 
-function reconcileMainImageForUpdate(
-    existing: { mainImage: string | null; images: unknown },
-    update: Prisma.ProductUpdateInput,
-    nextImages: string[],
-): { ok: true; mainImage: string | null } | { ok: false; response: NextResponse } {
-    let main: string | null;
-    if (update.mainImage !== undefined) {
-        if (update.mainImage === null) {
-            main = null;
-        } else {
-            const m = String(update.mainImage).trim();
-            main = m === "" ? null : m;
-            if (main !== null && !nextImages.includes(main)) {
-                return {
-                    ok: false,
-                    response: NextResponse.json(
-                        { error: "mainImage must be one of product images" },
-                        { status: 400 },
-                    ),
-                };
-            }
-        }
-    } else {
-        main = existing.mainImage;
-    }
-    if (main !== null && !nextImages.includes(main)) {
-        main = null;
-    }
-    return { ok: true, mainImage: main };
-}
-
 async function handleProductJsonPartialUpdate(request: Request, params: Promise<{ id: string }>) {
     const auth = await verifyAdmin(request);
     if (!auth.ok) {
@@ -261,19 +240,50 @@ async function handleProductJsonPartialUpdate(request: Request, params: Promise<
             .slice(0, 12);
     }
 
+    // Состав сета / комбо: полная замена списка позиций
+    let bundleItemsReplacement:
+        | { productId: number; quantity: number }[]
+        | undefined;
+    if (Object.prototype.hasOwnProperty.call(rawBody, "bundleItems")) {
+        const v = rawBody.bundleItems;
+        if (
+            !Array.isArray(v) ||
+            v.some(
+                (x) =>
+                    !x ||
+                    typeof x !== "object" ||
+                    typeof (x as { productId?: unknown }).productId !== "number" ||
+                    !Number.isInteger((x as { productId: number }).productId) ||
+                    (x as { productId: number }).productId < 1 ||
+                    typeof (x as { quantity?: unknown }).quantity !== "number" ||
+                    !Number.isInteger((x as { quantity: number }).quantity) ||
+                    (x as { quantity: number }).quantity < 1,
+            )
+        ) {
+            return NextResponse.json(
+                { error: "Invalid bundleItems" },
+                { status: 400 },
+            );
+        }
+        bundleItemsReplacement = (
+            v as { productId: number; quantity: number }[]
+        ).filter((x) => x.productId !== idResult.id);
+    }
+
     const rest: Record<string, unknown> = { ...rawBody };
     delete rest.modifierGroups;
     delete rest.upsellIds;
+    delete rest.bundleItems;
 
     const parsed = await parsePutBodyToPrismaUpdate(rest, idResult.id);
     if ("response" in parsed) return parsed.response;
-
 
     if (
         Object.keys(parsed.data).length === 0 &&
         Object.keys(parsed.translationsPayload).length === 0 &&
         replacementGroups === undefined &&
-        upsellReplacement === undefined
+        upsellReplacement === undefined &&
+        bundleItemsReplacement === undefined
     ) {
         return NextResponse.json({ error: "No fields to update" }, { status: 400 });
     }
@@ -288,25 +298,28 @@ async function handleProductJsonPartialUpdate(request: Request, params: Promise<
             ? urlListFromJson(parsed.data.images)
             : urlListFromJson(existing.images);
 
-    const finalData: Prisma.ProductUpdateInput = { ...parsed.data };
-
-    if (parsed.data.images !== undefined || parsed.data.mainImage !== undefined) {
-        const reconciled = reconcileMainImageForUpdate(existing, parsed.data, nextImages);
-        if (!reconciled.ok) return reconciled.response;
-        finalData.mainImage = reconciled.mainImage;
+    let nextMainImage: string | null = existing.mainImage;
+    if (parsed.data.mainImage !== undefined) {
+        nextMainImage = parsed.data.mainImage as string | null;
+    }
+    if (nextMainImage !== null && !nextImages.includes(nextMainImage)) {
+        return NextResponse.json(
+            { error: "mainImage must be one of product images" },
+            { status: 400 },
+        );
     }
 
     try {
         const product = await prisma.$transaction(async (tx) => {
-            if (Object.keys(finalData).length > 0) {
+            if (Object.keys(parsed.data).length > 0) {
                 await tx.product.update({
                     where: { id: idResult.id },
-                    data: finalData,
+                    data: parsed.data,
                 });
             }
 
             if (Object.keys(parsed.translationsPayload).length > 0) {
-                const locales = ["hy", "ru", "en"];
+                const locales = ["hy", "ru", "en"] as const;
                 for (const loc of locales) {
                     const updateData: {
                         name?: string;
@@ -366,10 +379,35 @@ async function handleProductJsonPartialUpdate(request: Request, params: Promise<
                 }
             }
 
+            if (bundleItemsReplacement !== undefined) {
+                await tx.bundleItem.deleteMany({
+                    where: { bundleId: idResult.id },
+                });
+                if (bundleItemsReplacement.length > 0) {
+                    await tx.bundleItem.createMany({
+                        data: bundleItemsReplacement.map((item, i) => ({
+                            bundleId: idResult.id,
+                            productId: item.productId,
+                            quantity: item.quantity,
+                            position: i,
+                        })),
+                    });
+                }
+            }
+
             return tx.product.findUniqueOrThrow({
                 where: { id: idResult.id },
                 include: {
                     category: true,
+                    bundleItems: {
+                        orderBy: { position: "asc" },
+                        select: {
+                            id: true,
+                            productId: true,
+                            quantity: true,
+                            position: true,
+                        },
+                    },
                     upsells: {
                         orderBy: { position: "asc" },
                         select: { suggestedId: true },
@@ -598,6 +636,20 @@ const productDetailInclude = {
         orderBy: { position: "asc" as const },
         select: { suggestedId: true },
     },
+    bundleItems: {
+        orderBy: { position: "asc" as const },
+        include: {
+            product: {
+                select: {
+                    id: true,
+                    price: true,
+                    mainImage: true,
+                    images: true,
+                    translations: true,
+                },
+            },
+        },
+    },
     modifierGroups: {
         orderBy: [{ position: "asc" as const }, { id: "asc" as const }],
         include: {
@@ -617,7 +669,7 @@ function emptyLocalized() {
 function mapProductDetailForAdmin(
     product: Prisma.ProductGetPayload<{ include: typeof productDetailInclude }>,
 ) {
-    const { translations, category, modifierGroups, ...rest } = product;
+    const { translations, category, modifierGroups, bundleItems, ...rest } = product;
     return {
         ...rest,
         name: asLocalizedRecord(translations, "name") ?? emptyLocalized(),
@@ -629,6 +681,24 @@ function mapProductDetailForAdmin(
                   name: asLocalizedRecord(category.translations, "name") ?? emptyLocalized(),
               }
             : null,
+        bundleItems: (bundleItems ?? []).map((b) => ({
+            id: b.id,
+            bundleId: b.bundleId,
+            productId: b.productId,
+            quantity: b.quantity,
+            position: b.position,
+            product: b.product
+                ? {
+                      id: b.product.id,
+                      price: b.product.price,
+                      name:
+                          asLocalizedRecord(b.product.translations, "name") ??
+                          emptyLocalized(),
+                      mainImage: b.product.mainImage,
+                      images: b.product.images,
+                  }
+                : undefined,
+        })),
         modifierGroups: modifierGroups.map((g) => ({
             id: g.id,
             required: g.required,

@@ -38,10 +38,23 @@ function mapProductListRow(
             translations: true;
             category: { include: { translations: true } };
             upsells: { select: { suggestedId: true } };
+            bundleItems: {
+                include: {
+                    product: {
+                        select: {
+                            id: true;
+                            price: true;
+                            mainImage: true;
+                            images: true;
+                            translations: true;
+                        };
+                    };
+                };
+            };
         };
     }>,
 ) {
-    const { translations, category, ...rest } = product;
+    const { translations, category, bundleItems, ...rest } = product;
     return {
         ...rest,
         name: asLocalizedRecord(translations, "name") ?? emptyLocalized(),
@@ -53,6 +66,24 @@ function mapProductListRow(
                   name: asLocalizedRecord(category.translations, "name") ?? emptyLocalized(),
               }
             : null,
+        bundleItems: (bundleItems ?? []).map((b) => ({
+            id: b.id,
+            bundleId: b.bundleId,
+            productId: b.productId,
+            quantity: b.quantity,
+            position: b.position,
+            product: b.product
+                ? {
+                      id: b.product.id,
+                      price: b.product.price,
+                      name:
+                          asLocalizedRecord(b.product.translations, "name") ??
+                          emptyLocalized(),
+                      mainImage: b.product.mainImage,
+                      images: b.product.images,
+                  }
+                : undefined,
+        })),
     };
 }
 
@@ -71,6 +102,20 @@ export async function GET(request: Request) {
                 upsells: {
                     orderBy: { position: "asc" },
                     select: { suggestedId: true },
+                },
+                bundleItems: {
+                    orderBy: { position: "asc" },
+                    include: {
+                        product: {
+                            select: {
+                                id: true,
+                                price: true,
+                                mainImage: true,
+                                images: true,
+                                translations: true,
+                            },
+                        },
+                    },
                 },
             },
             orderBy: { id: "asc" },
@@ -193,6 +238,7 @@ export async function POST(request: Request) {
             data: {
                 slug,
                 price,
+                originalPrice: b.originalPrice ?? null,
                 categoryId: b.categoryId,
                 images,
                 mainImage,
@@ -202,6 +248,17 @@ export async function POST(request: Request) {
                 translations: {
                     create: translationsData,
                 },
+                ...(b.bundleItems && b.bundleItems.length > 0
+                    ? {
+                          bundleItems: {
+                              create: b.bundleItems.map((item, i) => ({
+                                  productId: item.productId,
+                                  quantity: item.quantity,
+                                  position: i,
+                              })),
+                          },
+                      }
+                    : {}),
                 ...(b.upsellIds && b.upsellIds.length > 0
                     ? {
                           upsells: {

@@ -1,6 +1,6 @@
-import type { Prisma, PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
 
-import { L, type LocalizedText,LToJson } from "./localized-seed";
+import { L, type LocalizedText } from "./localized-seed";
 
 type DeliveryZoneSeed = {
     name: LocalizedText;
@@ -95,11 +95,13 @@ export const DEFAULT_DELIVERY_ZONES = deliveryZonesData;
 
 const ZONE_POSITIONS = deliveryZonesData.map((z) => z.position);
 
-function descriptionToJson(
-    description: LocalizedText | "",
-): Prisma.InputJsonValue {
-    if (description === "" || !description) return {};
-    return LToJson(description);
+function TZone(nameObj: LocalizedText, descObj: LocalizedText | "") {
+    const descJson = typeof descObj === "string" ? { hy: "", ru: "", en: "" } : descObj;
+    return ["hy", "ru", "en"].map((loc) => ({
+        locale: loc,
+        name: nameObj[loc as keyof typeof nameObj] || "",
+        description: descJson[loc as keyof typeof descJson] || "",
+    }));
 }
 
 /**
@@ -119,26 +121,52 @@ export async function ensureDeliveryZones(client: PrismaClient): Promise<number>
             select: { id: true },
         });
 
-        const data = {
-            name: LToJson(z.name),
+        const baseData = {
             deliveryPrice: z.deliveryPrice,
             minOrderAmount: z.minOrderAmount,
-            description: descriptionToJson(z.description),
             requiresManagerApproval: z.requiresManagerApproval,
             isActive: true,
             position: z.position,
         };
 
         if (!existing) {
-            await client.deliveryZone.create({ data });
+            await client.deliveryZone.create({
+                data: {
+                    ...baseData,
+                    translations: {
+                        create: TZone(z.name, z.description),
+                    },
+                },
+            });
             created += 1;
             continue;
         }
 
         await client.deliveryZone.update({
             where: { id: existing.id },
-            data,
+            data: baseData,
         });
+
+        for (const tr of TZone(z.name, z.description)) {
+            await client.deliveryZoneTranslation.upsert({
+                where: {
+                    deliveryZoneId_locale: {
+                        deliveryZoneId: existing.id,
+                        locale: tr.locale,
+                    },
+                },
+                create: {
+                    deliveryZoneId: existing.id,
+                    locale: tr.locale,
+                    name: tr.name,
+                    description: tr.description,
+                },
+                update: {
+                    name: tr.name,
+                    description: tr.description,
+                },
+            });
+        }
     }
 
     return created;

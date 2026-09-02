@@ -269,4 +269,40 @@ self.addEventListener("notificationclick", (event: NotificationEvent) => {
     );
 });
 
+let abandonedCartTimer: ReturnType<typeof setTimeout> | null = null;
+
+self.addEventListener("message", (event: ExtendableMessageEvent) => {
+    const data = event.data;
+    if (!data || typeof data !== "object") return;
+
+    if (data.type === "SCHEDULE_ABANDONED_CART") {
+        if (abandonedCartTimer) clearTimeout(abandonedCartTimer);
+        const delayMs =
+            typeof data.delayMs === "number" ? data.delayMs : 30 * 60 * 1000;
+        abandonedCartTimer = setTimeout(async () => {
+            abandonedCartTimer = null;
+            try {
+                await self.registration.showNotification(
+                    data.title || "East West Delivery 🍣",
+                    {
+                        body:
+                            data.body ||
+                            "Вы оставили вкусные блюда в корзине! Оформите заказ, пока кухня свободна.",
+                        icon: "/pwa/icon-192x192.png",
+                        badge: "/pwa/icon-192x192.png",
+                        data: { url: data.url || "/cart" },
+                    },
+                );
+            } catch (err) {
+                console.error("[sw] Failed to show abandoned cart notification:", err);
+            }
+        }, delayMs);
+    } else if (data.type === "CANCEL_ABANDONED_CART") {
+        if (abandonedCartTimer) {
+            clearTimeout(abandonedCartTimer);
+            abandonedCartTimer = null;
+        }
+    }
+});
+
 serwist.addEventListeners();

@@ -9,7 +9,6 @@ import ButtonBase from "@mui/material/ButtonBase";
 import Container from "@mui/material/Container";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { startTransition, Suspense, useEffect, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
@@ -18,7 +17,6 @@ import { LoginButton } from "@/features/auth";
 import { useCartStore } from "@/features/cart";
 import { useFavorites } from "@/features/favorites";
 import { Link, usePathname } from "@/i18n/server";
-import { SITE_LOGO_PATH } from "@/lib/site-config";
 
 import { HeaderEta } from "./header-eta";
 import { HeaderSearchBar } from "./header-search-bar";
@@ -302,40 +300,50 @@ export function StoreHeader({ onOpenSearch }: StoreHeaderProps) {
                                 overflow: "hidden",
                             }}
                         >
+                            {/* Dark mode logo: white */}
                             <Box
+                                component="img"
+                                src="/brand-logo-horizontal-white.png"
+                                alt={tCommon("brandName")}
                                 sx={{
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius: 1.5,
-                                    overflow: "hidden",
-                                    bgcolor: "background.paper",
-                                    border: "1px solid",
-                                    borderColor: "divider",
+                                    height: { xs: 34, sm: 42 },
+                                    width: "auto",
+                                    maxHeight: { xs: 38, sm: 46 },
+                                    objectFit: "contain",
+                                    display: "none",
+                                    '[data-theme="dark"] &': {
+                                        display: "block",
+                                    },
+                                    "@media (prefers-color-scheme: dark)": {
+                                        ':root:not([data-theme="light"]) &': {
+                                            display: "block",
+                                        },
+                                    },
                                     flexShrink: 0,
                                 }}
-                            >
-                                <Image
-                                    src={SITE_LOGO_PATH}
-                                    alt={tCommon("logoAlt")}
-                                    width={36}
-                                    height={36}
-                                    style={{ objectFit: "cover" }}
-                                />
-                            </Box>
-                            <Typography
-                                component="span"
+                            />
+                            {/* Light mode logo: black */}
+                            <Box
+                                component="img"
+                                src="/brand-logo-horizontal.png"
+                                alt={tCommon("brandName")}
                                 sx={{
-                                    fontWeight: 800,
-                                    fontSize: { xs: "0.95rem", sm: "1.05rem" },
-                                    color: "text.primary",
-                                    letterSpacing: "-0.02em",
-                                    whiteSpace: "nowrap",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
+                                    height: { xs: 34, sm: 42 },
+                                    width: "auto",
+                                    maxHeight: { xs: 38, sm: 46 },
+                                    objectFit: "contain",
+                                    display: "block",
+                                    '[data-theme="dark"] &': {
+                                        display: "none",
+                                    },
+                                    "@media (prefers-color-scheme: dark)": {
+                                        ':root:not([data-theme="light"]) &': {
+                                            display: "none",
+                                        },
+                                    },
+                                    flexShrink: 0,
                                 }}
-                            >
-                                {tCommon("brandName")}
-                            </Typography>
+                            />
                         </Box>
 
                         <Box

@@ -6,6 +6,20 @@ import { getLocalizedField } from "@/lib/i18n-utils";
 export const homeProductInclude = {
     category: { include: { translations: true } },
     translations: true,
+    bundleItems: {
+        orderBy: { position: "asc" as const },
+        include: {
+            product: {
+                select: {
+                    id: true,
+                    price: true,
+                    mainImage: true,
+                    images: true,
+                    translations: true,
+                },
+            },
+        },
+    },
     modifierGroups: {
         orderBy: [{ position: "asc" as const }, { id: "asc" as const }],
         include: {
@@ -22,6 +36,20 @@ export const homeProductInclude = {
 export const homeProductCardInclude = {
     category: { include: { translations: true } },
     translations: true,
+    bundleItems: {
+        orderBy: { position: "asc" as const },
+        include: {
+            product: {
+                select: {
+                    id: true,
+                    price: true,
+                    mainImage: true,
+                    images: true,
+                    translations: true,
+                },
+            },
+        },
+    },
     modifierGroups: {
         select: { id: true },
         take: 1,
@@ -46,6 +74,22 @@ export function mapProductToPopular(
         name: getLocalizedField(p.translations, locale, "name"),
         description: getLocalizedField(p.translations, locale, "description") || null,
         price: p.price,
+        originalPrice: p.originalPrice ?? null,
+        bundleItems: (p.bundleItems ?? []).map((b) => ({
+            id: b.id,
+            productId: b.productId,
+            quantity: b.quantity,
+            position: b.position,
+            product: b.product
+                ? {
+                      id: b.product.id,
+                      price: b.product.price,
+                      name: getLocalizedField(b.product.translations, locale, "name"),
+                      mainImage: b.product.mainImage,
+                      images: b.product.images,
+                  }
+                : undefined,
+        })),
         weight: p.weight,
         images: p.images,
         mainImage: p.mainImage,

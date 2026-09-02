@@ -105,12 +105,14 @@ export default async function OrderPage({ params, searchParams }: PageProps) {
                     display: "flex",
                     alignItems: "flex-start",
                     justifyContent: "center",
-                    py: { xs: 3, md: 6 },
-                    px: 2,
+                    py: { xs: 2.5, md: 6 },
+                    px: { xs: 1.5, sm: 2 },
                     bgcolor: "background.default",
+                    overflowX: "hidden",
+                    width: "100%",
                 }}
             >
-                <Box sx={{ width: "100%", maxWidth: 600 }}>
+                <Box sx={{ width: "100%", maxWidth: 600, minWidth: 0 }}>
                     {session && <PushPermissionPrompt />}
                     <OrderTracker order={orderPayload} phone={order.phone} />
                 </Box>

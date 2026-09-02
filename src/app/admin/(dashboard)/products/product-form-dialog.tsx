@@ -8,6 +8,7 @@ import {
     Avatar,
     Box,
     Button,
+    CircularProgress,
     Dialog,
     DialogActions,
     DialogContent,
@@ -20,9 +21,10 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 
 import {
     useAdminContentLocale,
@@ -39,10 +41,12 @@ import {
     IMAGE_UPLOAD_ACCEPT,
     validateImageUpload,
 } from "@/lib/validate-image-upload";
+import { formatStorePrice } from "@/shared/lib/format-price";
 import { showAppToast } from "@/shared/lib/show-app-toast";
 import { useTabletDown } from "@/shared/lib/use-mobile-viewport";
 import { LocalizedTextFields } from "@/shared/ui/localized-text-fields";
 
+import { type BundleCandidateProduct,ProductBundleSection } from "./product-bundle-section";
 import {
     buildModifierPayload,
     type EditingProduct,
@@ -175,10 +179,8 @@ export function ProductFormDialog(props: {
     const images = useWatch({ control, name: "images" }) ?? [];
     const upsellIdsWatch = useWatch({ control, name: "upsellIds" }) ?? [];
 
-    // Список товаров для выбора кросс-селла «с этим берут»
-    const [allProducts, setAllProducts] = useState<
-        { id: number; name: unknown }[]
-    >([]);
+    // Список товаров для выбора кросс-селла и состава сета
+    const [allProducts, setAllProducts] = useState<BundleCandidateProduct[]>([]);
     useEffect(() => {
         let cancelled = false;
         (async () => {
@@ -192,13 +194,19 @@ export function ProductFormDialog(props: {
                     setAllProducts(
                         data
                             .filter(
-                                (p): p is { id: number; name: unknown } =>
+                                (p): p is BundleCandidateProduct =>
                                     p !== null &&
                                     typeof p === "object" &&
                                     typeof (p as { id: unknown }).id ===
                                         "number",
                             )
-                            .map((p) => ({ id: p.id, name: p.name })),
+                            .map((p) => ({
+                                id: p.id,
+                                name: p.name,
+                                price: typeof p.price === "number" ? p.price : 0,
+                                mainImage: p.mainImage,
+                                images: p.images,
+                            })),
                     );
                 }
             } catch {
@@ -450,9 +458,18 @@ export function ProductFormDialog(props: {
                 ? null
                 : description;
 
+        let originalPrice: number | null = null;
+        if (values.originalPrice && values.originalPrice.trim() !== "") {
+            const op = Number.parseFloat(values.originalPrice.trim());
+            if (!Number.isNaN(op) && Number.isFinite(op) && op > 0) {
+                originalPrice = Math.round(op);
+            }
+        }
+
         const payload: ProductSavePayload = {
             name,
             price: Math.round(price),
+            originalPrice,
             categoryId,
             composition: compositionPayload,
             description: descriptionPayload,
@@ -462,6 +479,7 @@ export function ProductFormDialog(props: {
             minQty,
             maxQty,
             upsellIds: values.upsellIds ?? [],
+            bundleItems: values.bundleItems ?? [],
         };
 
         await onSave(payload);
@@ -506,8 +524,43 @@ export function ProductFormDialog(props: {
                         overflow: "hidden",
                     }}
                 >
-                    <DialogTitle sx={{ flexShrink: 0 }}>
-                        {isEdit ? t("editProduct") : t("newProduct")}
+                    <DialogTitle
+                        sx={{
+                            m: 0,
+                            px: { xs: 2.5, sm: 3 },
+                            py: 2,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            borderBottom: 1,
+                            borderColor: "divider",
+                            bgcolor: "background.paper",
+                            flexShrink: 0,
+                        }}
+                    >
+                        <Box>
+                            <Typography variant="h6" fontWeight={800} sx={{ lineHeight: 1.2 }}>
+                                {isEdit ? t("editProduct") : t("newProduct")}
+                            </Typography>
+                            {isEdit && editingProduct && "id" in editingProduct && (
+                                <Typography variant="caption" color="text.secondary">
+                                    ID: #{(editingProduct as { id: number }).id}
+                                </Typography>
+                            )}
+                        </Box>
+                        <IconButton
+                            aria-label={tCommon("cancel")}
+                            onClick={onClose}
+                            disabled={submitLoading}
+                            size="small"
+                            sx={{
+                                color: "text.secondary",
+                                bgcolor: (theme) => alpha(theme.palette.action.hover, 0.5),
+                                "&:hover": { bgcolor: "action.hover" },
+                            }}
+                        >
+                            <CloseIcon fontSize="small" />
+                        </IconButton>
                     </DialogTitle>
                     <DialogContent sx={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
                         <Stack spacing={2} sx={{ pt: 1 }}>
@@ -517,23 +570,54 @@ export function ProductFormDialog(props: {
                                 onTranslate={handleAITranslate}
                                 translating={isTranslating}
                             />
-                            <TextField
-                                {...register("price")}
-                                required
-                                fullWidth
-                                type="number"
-                                label={tCommon("price")}
-                                disabled={submitLoading}
-                                inputProps={{ min: 0, step: 1 }}
-                                slotProps={{
-                                    input: {
-                                        endAdornment: (
-                                            <InputAdornment position="end">֏</InputAdornment>
-                                        ),
-                                    },
-                                }}
-                                sx={TEXT_FIELD_FOCUS_SX}
-                            />
+                            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                                <Controller
+                                    name="price"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            required
+                                            fullWidth
+                                            type="number"
+                                            label={tCommon("price")}
+                                            disabled={submitLoading}
+                                            inputProps={{ min: 0, step: 1 }}
+                                            slotProps={{
+                                                input: {
+                                                    endAdornment: (
+                                                        <InputAdornment position="end">֏</InputAdornment>
+                                                    ),
+                                                },
+                                            }}
+                                            sx={TEXT_FIELD_FOCUS_SX}
+                                        />
+                                    )}
+                                />
+                                <Controller
+                                    name="originalPrice"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            fullWidth
+                                            type="number"
+                                            label={t("originalPrice")}
+                                            disabled={submitLoading}
+                                            inputProps={{ min: 0, step: 1 }}
+                                            helperText={t("originalPriceHint")}
+                                            slotProps={{
+                                                input: {
+                                                    endAdornment: (
+                                                        <InputAdornment position="end">֏</InputAdornment>
+                                                    ),
+                                                },
+                                            }}
+                                            sx={TEXT_FIELD_FOCUS_SX}
+                                        />
+                                    )}
+                                />
+                            </Stack>
                             <TextField
                                 {...register("weight")}
                                 fullWidth
@@ -563,7 +647,7 @@ export function ProductFormDialog(props: {
                                 helperText={t("maxQtyHint")}
                                 sx={TEXT_FIELD_FOCUS_SX}
                             />
-                            <Autocomplete
+                            <Autocomplete<BundleCandidateProduct, true, false, false>
                                 multiple
                                 size="small"
                                 options={allProducts.filter(
@@ -575,8 +659,9 @@ export function ProductFormDialog(props: {
                                             (editingProduct as { id: number })
                                                 .id,
                                 )}
+                                getOptionKey={(option) => option.id}
                                 getOptionLabel={(option) =>
-                                    lf(option.name)
+                                    `${lf(option.name)} (${formatStorePrice(option.price)} ֏)`
                                 }
                                 isOptionEqualToValue={(o, v) => o.id === v.id}
                                 value={upsellIdsWatch
@@ -586,7 +671,7 @@ export function ProductFormDialog(props: {
                                     .filter(
                                         (
                                             p,
-                                        ): p is { id: number; name: unknown } =>
+                                        ): p is BundleCandidateProduct =>
                                             Boolean(p),
                                     )}
                                 onChange={(_, value) =>
@@ -610,6 +695,7 @@ export function ProductFormDialog(props: {
                                 size="small"
                                 fullWidth
                                 options={categories}
+                                getOptionKey={(option) => option.id}
                                 getOptionLabel={(option) =>
                                     lf(option.name)
                                 }
@@ -707,6 +793,17 @@ export function ProductFormDialog(props: {
                                 </Stack>
                             </AdminLocalizationSection>
 
+                            <ProductBundleSection
+                                control={control}
+                                setValue={setValue}
+                                allProducts={allProducts}
+                                currentProductId={
+                                    isEdit && editingProduct && "id" in editingProduct
+                                        ? (editingProduct as { id: number }).id
+                                        : undefined
+                                }
+                            />
+
                             <ProductModifiersSection
                                 control={control}
                                 disabled={submitLoading}
@@ -786,21 +883,31 @@ export function ProductFormDialog(props: {
                     </DialogContent>
                     <DialogActions
                         sx={{
-                            p: 2,
+                            px: { xs: 2.5, sm: 3 },
+                            py: 2,
                             borderTop: 1,
                             borderColor: "divider",
+                            bgcolor: "background.paper",
                             flexShrink: 0,
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
                             flexDirection: isMobile ? "column-reverse" : "row",
-                            gap: isMobile ? 1 : 0,
-                            "& .MuiButton-root": isMobile
-                                ? { width: "100%", m: 0 }
-                                : undefined,
+                            gap: isMobile ? 1.25 : 2,
                         }}
                     >
                         <Button
+                            type="button"
                             onClick={onClose}
                             disabled={submitLoading}
-                            size={isMobile ? "large" : "medium"}
+                            color="inherit"
+                            sx={{
+                                textTransform: "none",
+                                fontWeight: 700,
+                                borderRadius: 2.5,
+                                px: 2.5,
+                                width: isMobile ? "100%" : "auto",
+                            }}
                         >
                             {tCommon("cancel")}
                         </Button>
@@ -809,7 +916,16 @@ export function ProductFormDialog(props: {
                             variant="contained"
                             color="primary"
                             disabled={submitLoading}
-                            size={isMobile ? "large" : "medium"}
+                            startIcon={submitLoading ? <CircularProgress size={18} color="inherit" /> : null}
+                            sx={{
+                                textTransform: "none",
+                                fontWeight: 800,
+                                borderRadius: 2.5,
+                                px: 3.5,
+                                py: 1.1,
+                                boxShadow: (theme) => `0 4px 14px ${alpha(theme.palette.primary.main, 0.3)}`,
+                                width: isMobile ? "100%" : "auto",
+                            }}
                         >
                             {submitLoading
                                 ? isEdit

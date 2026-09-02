@@ -91,6 +91,31 @@ export function useCartSync() {
                     .catch((err) => console.error("[CartSync] Save failed:", err));
             }, 1000);
         }
+
+        // PWA Abandoned Cart notification trigger
+        if (
+            typeof navigator !== "undefined" &&
+            "serviceWorker" in navigator &&
+            navigator.serviceWorker.controller
+        ) {
+            if (items.length === 0) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: "CANCEL_ABANDONED_CART",
+                });
+            } else if (
+                typeof Notification !== "undefined" &&
+                Notification.permission === "granted"
+            ) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: "SCHEDULE_ABANDONED_CART",
+                    delayMs: 30 * 60 * 1000,
+                    title: "East West Delivery 🍣",
+                    body: "Вы оставили заказ в корзине! Завершите оформление, пока кухня свободна.",
+                    url: "/cart",
+                });
+            }
+        }
+
         return () => {
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
         };

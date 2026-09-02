@@ -44,13 +44,19 @@ export function ProductCoverPlaceholder() {
                     opacity: 0.85,
                 }}
             >
-                <Image
+                <Box
+                    component="img"
                     src={SITE_LOGO_PATH}
                     alt=""
-                    width={40}
-                    height={40}
-                    unoptimized
-                    style={{ objectFit: "cover" }}
+                    sx={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                        filter: (theme) =>
+                            theme.palette.mode === "dark"
+                                ? "brightness(0) invert(1)"
+                                : "none",
+                    }}
                 />
             </Box>
             <RestaurantMenuRoundedIcon

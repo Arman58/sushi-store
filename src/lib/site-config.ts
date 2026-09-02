@@ -39,6 +39,27 @@ export const CONTACT_PHONE =
 export const CONTACT_PHONE_DISPLAY =
     process.env.NEXT_PUBLIC_CONTACT_PHONE_DISPLAY ?? "+374 77 77 48 49";
 
+/** Чистый номер для WhatsApp wa.me без плюса */
+export const WHATSAPP_PHONE =
+    process.env.NEXT_PUBLIC_WHATSAPP_PHONE ?? "37477774849";
+
+/** Telegram-аккаунт или бот поддержки (без @) */
+export const TELEGRAM_SUPPORT_HANDLE =
+    process.env.NEXT_PUBLIC_TELEGRAM_SUPPORT_HANDLE ?? "eastwestnh";
+
+/** Генератор прямой ссылки на WhatsApp с предзаполненным текстом заказа */
+export function buildWhatsAppOrderUrl(orderId?: number | string): string {
+    const text = orderId
+        ? `Здравствуйте! У меня вопрос по заказу #${orderId}`
+        : "Здравствуйте! Хочу уточнить информацию по заказу";
+    return `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(text)}`;
+}
+
+/** Ссылка на поддержку в Telegram */
+export function buildTelegramSupportUrl(): string {
+    return `https://t.me/${TELEGRAM_SUPPORT_HANDLE}`;
+}
+
 /** Структурные поля для JSON-LD; UI-строки адреса - в messages (common.address). */
 export const KITCHEN_ADDRESS = {
     street: "19 Charents St.",
@@ -155,8 +176,11 @@ export const SERVES_CUISINE = [
 
 export const DEFAULT_OG_IMAGE = "/og-image.png";
 
-/** Локальный логотип в public/ - регистр пути должен совпадать с файлом (Linux/Vercel). */
-export const SITE_LOGO_PATH = "/east-west-logo.png";
+/** Локальный логотип-знак (emblem) в public/ */
+export const SITE_LOGO_PATH = "/brand-icon.png";
+export const SITE_LOGO_WHITE_PATH = "/brand-icon-white.png";
+export const SITE_LOGO_FULL_PATH = "/brand-full.png";
+export const SITE_LOGO_FULL_WHITE_PATH = "/brand-full-white.png";
 
 /**
  * Hero background image (M-3).

@@ -18,7 +18,6 @@ import {
 } from "@/lib/seo/json-ld";
 import {
     DEFAULT_OG_IMAGE,
-    SITE_LOGO_PATH,
     SITE_NAME,
     SITE_URL,
 } from "@/lib/site-config";
@@ -96,7 +95,7 @@ export const metadata: Metadata = {
         canonical: "./",
     },
     icons: {
-        icon: SITE_LOGO_PATH,
+        icon: "/favicon.png",
         apple: [
             { url: "/pwa/apple-touch-icon-180x180.png", sizes: "180x180" },
             { url: "/pwa/icon-192x192.png", sizes: "192x192" },
