@@ -24,6 +24,8 @@ model Product {
   slug           String          @unique
   /// Цена в целых AMD (драмах), без минорных единиц. Пример: 3500 = 3500 ֏.
   price          Int
+  /// Старая/базовая цена для скидок и комбо-наборов (в целых AMD). null = без скидки.
+  originalPrice  Int?
   weight         Int?
   images         Json            @default("[]")
   mainImage      String?
@@ -33,6 +35,8 @@ model Product {
   maxQty         Int?
   upsells        ProductUpsell[] @relation("UpsellSource")
   upsellOf       ProductUpsell[] @relation("UpsellSuggested")
+  bundleItems       BundleItem[] @relation("BundleParent")
+  includedInBundles BundleItem[] @relation("BundleChild")
   category       Category?       @relation(fields: [categoryId], references: [id])
   categoryId     Int?
   createdAt      DateTime        @default(now())
@@ -110,6 +114,21 @@ model ProductUpsell {
   position    Int     @default(0)
 
   @@unique([productId, suggestedId])
+  @@index([productId])
+}
+
+/** Позиция в составе сета/комбо: связывает родительский сет с входящим блюдом и количеством */
+model BundleItem {
+  id        Int     @id @default(autoincrement())
+  bundleId  Int
+  bundle    Product @relation("BundleParent", fields: [bundleId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product @relation("BundleChild", fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int     @default(1)
+  position  Int     @default(0)
+
+  @@unique([bundleId, productId])
+  @@index([bundleId])
   @@index([productId])
 }
 

@@ -8,6 +8,7 @@ import {
 export type ProductSavePayload = {
     name: LocalizedJson;
     price: number;
+    originalPrice: number | null;
     categoryId: number;
     composition: LocalizedJson | null;
     description: LocalizedJson | null;
@@ -18,6 +19,8 @@ export type ProductSavePayload = {
     maxQty: number | null;
     /** Кросс-селл «с этим берут» (порядок = приоритет). */
     upsellIds: number[];
+    /** Позиции, входящие в состав сета/комбо */
+    bundleItems: { productId: number; quantity: number }[];
 };
 
 export type ProductRow = {
@@ -26,6 +29,7 @@ export type ProductRow = {
     description: unknown;
     composition: unknown;
     price: number;
+    originalPrice?: number | null;
     weight: number | null;
     images?: unknown;
     mainImage?: string | null;
@@ -35,6 +39,20 @@ export type ProductRow = {
     maxQty?: number | null;
     upsells?: { suggestedId: number }[];
     category: { name: unknown } | null;
+    bundleItems?: {
+        id: number;
+        bundleId: number;
+        productId: number;
+        quantity: number;
+        position: number;
+        product?: {
+            id: number;
+            price: number;
+            name: unknown;
+            mainImage?: string | null;
+            images?: unknown;
+        };
+    }[];
     modifierGroups?: {
         id: number;
         name: unknown;
@@ -55,10 +73,12 @@ export type EditingProduct = null | Record<string, never> | ProductRow;
 export type ProductDialogFormValues = {
     name: LocalizedJson;
     price: string;
+    originalPrice: string;
     weight: string;
     minQty: string;
     maxQty: string;
     upsellIds: number[];
+    bundleItems: { productId: number; quantity: number }[];
     categoryId: string;
     composition: LocalizedJson;
     description: LocalizedJson;
@@ -102,10 +122,12 @@ export function emptyProductDialogForm(): ProductDialogFormValues {
     return {
         name: emptyLocalizedJson(),
         price: "",
+        originalPrice: "",
         weight: "",
         minQty: "1",
         maxQty: "",
         upsellIds: [],
+        bundleItems: [],
         categoryId: "",
         composition: emptyLocalizedJson(),
         description: emptyLocalizedJson(),
@@ -127,10 +149,15 @@ export function productDialogDefaults(
     return {
         name: parseLocalizedJson(p.name),
         price: String(p.price),
+        originalPrice: p.originalPrice != null ? String(p.originalPrice) : "",
         weight: p.weight != null ? String(p.weight) : "",
         minQty: String(p.minQty ?? 1),
         maxQty: p.maxQty != null ? String(p.maxQty) : "",
         upsellIds: (p.upsells ?? []).map((u) => u.suggestedId),
+        bundleItems: (p.bundleItems ?? []).map((b) => ({
+            productId: b.productId,
+            quantity: b.quantity,
+        })),
         categoryId: p.categoryId != null ? String(p.categoryId) : "",
         composition: parseLocalizedJson(p.composition),
         description: parseLocalizedJson(p.description),

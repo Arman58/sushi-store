@@ -16,7 +16,6 @@ import Skeleton from "@mui/material/Skeleton";
 import { alpha } from "@mui/material/styles";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -27,7 +26,6 @@ import {
     resolveAdminNavKey,
 } from "@/app/admin/config/nav-items";
 import { AdminToastHost } from "@/features/admin/ui/admin-toast-host";
-import { SITE_LOGO_PATH } from "@/lib/site-config";
 
 import { AdminHeaderControls } from "./admin-header-controls";
 
@@ -158,35 +156,53 @@ function SidebarBrand() {
                 gap: 1.25,
             }}
         >
+            {/* Dark mode logo: white */}
             <Box
+                component="img"
+                src="/brand-logo-horizontal-white.png"
+                alt="East West"
                 sx={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 1.5,
-                    overflow: "hidden",
-                    position: "relative",
+                    height: 38,
+                    width: "auto",
+                    maxWidth: 155,
+                    objectFit: "contain",
+                    display: "none",
+                    '[data-theme="dark"] &': {
+                        display: "block",
+                    },
+                    "@media (prefers-color-scheme: dark)": {
+                        ':root:not([data-theme="light"]) &': {
+                            display: "block",
+                        },
+                    },
                     flexShrink: 0,
-                    bgcolor: "background.paper",
                 }}
-            >
-                <Image
-                    src={SITE_LOGO_PATH}
-                    alt="East West"
-                    fill
-                    sizes="36px"
-                    loading="eager"
-                    unoptimized
-                    style={{ objectFit: "cover" }}
-                />
-            </Box>
-            <Box>
-                <Typography variant="subtitle2" fontWeight={800} lineHeight={1.1}>
-                    East West
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                    Admin
-                </Typography>
-            </Box>
+            />
+            {/* Light mode logo: black */}
+            <Box
+                component="img"
+                src="/brand-logo-horizontal.png"
+                alt="East West"
+                sx={{
+                    height: 38,
+                    width: "auto",
+                    maxWidth: 155,
+                    objectFit: "contain",
+                    display: "block",
+                    '[data-theme="dark"] &': {
+                        display: "none",
+                    },
+                    "@media (prefers-color-scheme: dark)": {
+                        ':root:not([data-theme="light"]) &': {
+                            display: "none",
+                        },
+                    },
+                    flexShrink: 0,
+                }}
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5, fontWeight: 700 }}>
+                Admin
+            </Typography>
         </Box>
     );
 }

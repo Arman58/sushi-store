@@ -6,6 +6,7 @@ export * from "./cart-toast";
 export * from "./empty-cart";
 export { default as LanguageSwitcher } from "./LanguageSwitcher";
 export * from "./layout-shell";
+export * from "./messenger-support-buttons";
 export * from "./mobile-bottom-nav";
 export * from "./page-container";
 export * from "./pull-to-refresh";

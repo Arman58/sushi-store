@@ -73,6 +73,12 @@ export const adminOrderStatusBodySchema = z.object({
         .refine(isOrderStatus, "Invalid status"),
 });
 
+export const cancelOrderSchema = z.object({
+    orderId: positiveIntSchema,
+    accessToken: z.string().optional(),
+    reason: z.string().max(500).optional(),
+});
+
 export const telegramWebhookBodySchema = z.object({
     callback_query: z
         .object({
@@ -193,12 +199,22 @@ export const adminProductCreateSchema = z.object({
     maxQty: z.number().int().min(1).max(999).nullable().optional(),
     /** Кросс-селл «с этим берут»: id предложений, порядок = приоритет. */
     upsellIds: z.array(positiveIntSchema).max(12).optional(),
+    originalPrice: nonNegativeIntSchema.nullable().optional(),
+    bundleItems: z
+        .array(
+            z.object({
+                productId: positiveIntSchema,
+                quantity: positiveIntSchema,
+            }),
+        )
+        .optional(),
 });
 
 export const adminProductPatchSchema = z
     .object({
         name: localizedRequiredSchema.optional(),
         price: positiveIntSchema.optional(),
+        originalPrice: nonNegativeIntSchema.nullable().optional(),
         categoryId: positiveIntSchema.nullable().optional(),
         description: localizedStringSchema.nullable().optional(),
         composition: localizedStringSchema.nullable().optional(),
@@ -211,6 +227,14 @@ export const adminProductPatchSchema = z
         minQty: z.number().int().min(1).max(999).optional(),
         maxQty: z.number().int().min(1).max(999).nullable().optional(),
         upsellIds: z.array(positiveIntSchema).max(12).optional(),
+        bundleItems: z
+            .array(
+                z.object({
+                    productId: positiveIntSchema,
+                    quantity: positiveIntSchema,
+                }),
+            )
+            .optional(),
     })
     .refine((data) => Object.keys(data).length > 0, "Nothing to update");
 

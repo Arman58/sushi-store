@@ -5,9 +5,17 @@ import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined
 import ReplayIcon from "@mui/icons-material/Replay";
 import RestaurantMenuOutlinedIcon from "@mui/icons-material/RestaurantMenuOutlined";
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
+import SupportAgentIcon from "@mui/icons-material/SupportAgent";
+import TimerOutlinedIcon from "@mui/icons-material/TimerOutlined";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
+import CircularProgress from "@mui/material/CircularProgress";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -29,9 +37,12 @@ import {
     formatEstimatedDeliveryTime,
     trackingActiveStep,
 } from "@/lib/order-status";
+import { formatPhoneForDisplay } from "@/lib/phone";
 import type { OrderStatusResponse } from "@/shared/api/order-api";
 import { storePriceFormatter } from "@/shared/lib/format-price";
+import { triggerHaptic } from "@/shared/lib/haptic";
 import { translateOrderStatus } from "@/shared/lib/order-status-labels";
+import { MessengerSupportButtons } from "@/shared/ui";
 import { tokens } from "@/shared/ui/theme";
 
 import { RateOrderItems } from "./rate-order-items";
@@ -147,6 +158,223 @@ function EtaPanel({
                 )}
             </Paper>
         </Stack>
+    );
+}
+
+const CANCELLATION_WINDOW_SEC = 5 * 60; // 5 minutes
+
+function CancelOrderControl({
+    orderId,
+    createdAt,
+    status,
+    onCancelled,
+}: {
+    orderId: number;
+    createdAt: string | Date;
+    status: OrderStatus;
+    onCancelled: () => void;
+}) {
+    const tTracker = useTranslations("order.tracker");
+    const [timeLeft, setTimeLeft] = useState<number>(() => {
+        const createdMs = new Date(createdAt).getTime();
+        const diffSec = Math.floor(
+            (createdMs + CANCELLATION_WINDOW_SEC * 1000 - Date.now()) / 1000,
+        );
+        return Math.max(0, diffSec);
+    });
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (status !== "NEW" && status !== "PENDING_APPROVAL") return;
+        const interval = setInterval(() => {
+            const createdMs = new Date(createdAt).getTime();
+            const diffSec = Math.floor(
+                (createdMs + CANCELLATION_WINDOW_SEC * 1000 - Date.now()) / 1000,
+            );
+            if (diffSec <= 0) {
+                setTimeLeft(0);
+                clearInterval(interval);
+            } else {
+                setTimeLeft(diffSec);
+            }
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [createdAt, status]);
+
+    if ((status !== "NEW" && status !== "PENDING_APPROVAL") || timeLeft <= 0) {
+        return null;
+    }
+
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    const formattedTimer = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+
+    const handleCancel = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await fetch("/api/order/cancel", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ orderId }),
+            });
+            const data = (await res.json().catch(() => null)) as {
+                error?: string;
+                success?: boolean;
+            } | null;
+            if (!res.ok || !data?.success) {
+                throw new Error(data?.error || "Failed to cancel");
+            }
+            setConfirmOpen(false);
+            onCancelled();
+        } catch {
+            setError(tTracker("cancelFailed"));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <Box
+            sx={{
+                p: { xs: 1.5, sm: 2 },
+                borderRadius: 3,
+                bgcolor: (theme) => alpha(theme.palette.error.main, 0.05),
+                border: "1px solid",
+                borderColor: (theme) => alpha(theme.palette.error.main, 0.25),
+            }}
+        >
+            <Stack
+                direction={{ xs: "column", sm: "row" }}
+                alignItems={{ xs: "stretch", sm: "center" }}
+                justifyContent="space-between"
+                spacing={1.5}
+            >
+                <Stack direction="row" alignItems="center" spacing={1.25} sx={{ minWidth: 0, flex: 1 }}>
+                    <Box
+                        sx={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: "50%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            bgcolor: (theme) => alpha(theme.palette.error.main, 0.12),
+                            color: "error.main",
+                            flexShrink: 0,
+                        }}
+                    >
+                        <TimerOutlinedIcon sx={{ fontSize: 20 }} />
+                    </Box>
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Typography variant="body2" color="error.main" fontWeight={700}>
+                            {tTracker("cancelWindowRemaining", { time: formattedTimer })}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.25 }}>
+                            {tTracker("cancelNotice")}
+                        </Typography>
+                    </Box>
+                </Stack>
+
+                <Button
+                    size="small"
+                    variant="outlined"
+                    color="error"
+                    onClick={() => setConfirmOpen(true)}
+                    sx={{
+                        textTransform: "none",
+                        fontWeight: 700,
+                        borderRadius: 2.5,
+                        px: 2.5,
+                        py: 0.8,
+                        minHeight: 36,
+                        whiteSpace: "nowrap",
+                        width: { xs: "100%", sm: "auto" },
+                        flexShrink: 0,
+                        "&:hover": {
+                            bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
+                        },
+                    }}
+                >
+                    {tTracker("cancelOrder")}
+                </Button>
+            </Stack>
+
+            <Dialog
+                open={confirmOpen}
+                onClose={() => !loading && setConfirmOpen(false)}
+                maxWidth="xs"
+                fullWidth
+                PaperProps={{
+                    sx: {
+                        borderRadius: 3.5,
+                        p: 0.5,
+                    },
+                }}
+            >
+                <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 1 }}>
+                    <Box
+                        sx={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: "50%",
+                            bgcolor: (theme) => alpha(theme.palette.error.main, 0.12),
+                            color: "error.main",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                        }}
+                    >
+                        <TimerOutlinedIcon fontSize="small" />
+                    </Box>
+                    <Typography variant="h6" fontWeight={800}>
+                        {tTracker("cancelConfirmTitle", { id: orderId })}
+                    </Typography>
+                </DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                        {tTracker("cancelConfirmMessage")}
+                    </Typography>
+                    {error && (
+                        <Alert severity="error" sx={{ mt: 1.5, borderRadius: 2 }}>
+                            {error}
+                        </Alert>
+                    )}
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+                    <Button
+                        onClick={() => setConfirmOpen(false)}
+                        disabled={loading}
+                        color="inherit"
+                        sx={{ fontWeight: 700, textTransform: "none", borderRadius: 2, px: 2 }}
+                    >
+                        {tTracker("cancelDismissBtn")}
+                    </Button>
+                    <Button
+                        onClick={handleCancel}
+                        disabled={loading}
+                        variant="contained"
+                        color="error"
+                        sx={{
+                            fontWeight: 800,
+                            textTransform: "none",
+                            borderRadius: 2,
+                            px: 2.5,
+                            boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.error.main, 0.3)}`,
+                        }}
+                    >
+                        {loading ? (
+                            <CircularProgress size={20} color="inherit" />
+                        ) : (
+                            tTracker("cancelConfirmBtn")
+                        )}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </Box>
     );
 }
 
@@ -300,53 +528,58 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
                     <Stack
                         direction="row"
                         alignItems="center"
-                        spacing={0.75}
-                        sx={{ mt: 1, flexWrap: "wrap", rowGap: 0.5 }}
+                        justifyContent="space-between"
+                        spacing={1}
+                        sx={{ mt: 1.5, flexWrap: "wrap", rowGap: 1 }}
                     >
-                        <Box
-                            sx={{
-                                width: 8,
-                                height: 8,
-                                borderRadius: "50%",
-                                bgcolor: "primary.main",
-                                flexShrink: 0,
-                                animation: "ew-live-pulse 1.6s ease-in-out infinite",
-                                "@keyframes ew-live-pulse": {
-                                    "0%, 100%": {
-                                        opacity: 1,
-                                        boxShadow: `0 0 0 0 ${alpha(theme.palette.primary.main, 0.5)}`,
+                        <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0, flexShrink: 1 }}>
+                            <Box
+                                sx={{
+                                    width: 8,
+                                    height: 8,
+                                    borderRadius: "50%",
+                                    bgcolor: "primary.main",
+                                    flexShrink: 0,
+                                    animation: "ew-live-pulse 1.6s ease-in-out infinite",
+                                    "@keyframes ew-live-pulse": {
+                                        "0%, 100%": {
+                                            opacity: 1,
+                                            boxShadow: `0 0 0 0 ${alpha(theme.palette.primary.main, 0.5)}`,
+                                        },
+                                        "70%": {
+                                            opacity: 0.7,
+                                            boxShadow: `0 0 0 6px ${alpha(theme.palette.primary.main, 0)}`,
+                                        },
                                     },
-                                    "70%": {
-                                        opacity: 0.7,
-                                        boxShadow: `0 0 0 6px ${alpha(theme.palette.primary.main, 0)}`,
+                                    "@media (prefers-reduced-motion: reduce)": {
+                                        animation: "none",
                                     },
-                                },
-                                "@media (prefers-reduced-motion: reduce)": {
-                                    animation: "none",
-                                },
-                            }}
-                        />
-                        <Typography variant="caption" color="text.secondary">
-                            {tTracker("live")}
-                            {dataUpdatedAt
-                                ? ` · ${tTracker("lastUpdated", {
-                                      time: new Date(dataUpdatedAt).toLocaleTimeString([], {
-                                          hour: "2-digit",
-                                          minute: "2-digit",
-                                      }),
-                                  })}`
-                                : ""}
-                        </Typography>
+                                }}
+                            />
+                            <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.2 }}>
+                                {tTracker("live")}
+                                {dataUpdatedAt
+                                    ? ` · ${tTracker("lastUpdated", {
+                                          time: new Date(dataUpdatedAt).toLocaleTimeString([], {
+                                              hour: "2-digit",
+                                              minute: "2-digit",
+                                          }),
+                                      })}`
+                                    : ""}
+                            </Typography>
+                        </Stack>
                         <Button
                             size="small"
                             startIcon={<ReplayIcon sx={{ fontSize: 16 }} />}
                             onClick={() => void refetch()}
                             disabled={isFetching}
                             sx={{
-                                ml: "auto",
                                 textTransform: "none",
                                 fontWeight: 700,
-                                minHeight: 32,
+                                minHeight: 30,
+                                py: 0.25,
+                                px: 1,
+                                flexShrink: 0,
                             }}
                         >
                             {tTracker("refresh")}
@@ -372,6 +605,16 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
                         <EtaPanel
                             estimatedDeliveryAt={order.estimatedDeliveryAt}
                             status={status}
+                        />
+
+                        <CancelOrderControl
+                            orderId={order.id}
+                            createdAt={order.createdAt}
+                            status={status}
+                            onCancelled={() => {
+                                triggerHaptic("medium");
+                                void refetch();
+                            }}
                         />
 
                         <Box>
@@ -490,7 +733,7 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
                     </Typography>
                     <Stack spacing={1}>
                         <InfoRow label={tTracker("name")} value={order.name} />
-                        <InfoRow label={tTracker("phone")} value={order.phone} />
+                        <InfoRow label={tTracker("phone")} value={formatPhoneForDisplay(order.phone)} />
                         <InfoRow
                             label={tTracker("address")}
                             value={
@@ -534,6 +777,62 @@ export function OrderTracker({ order: initial, phone }: OrderTrackerProps) {
                                 />
                             )}
                     </Stack>
+                </Paper>
+
+                <Paper
+                    variant="outlined"
+                    sx={{
+                        p: { xs: 2, sm: 2.5 },
+                        borderRadius: 3,
+                        bgcolor: tokens.surfaceHi,
+                        border: "1px solid",
+                        borderColor: "divider",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                    }}
+                >
+                    <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mb: 1 }}>
+                        <Box
+                            sx={{
+                                width: 38,
+                                height: 38,
+                                borderRadius: 2.5,
+                                bgcolor: (t) => alpha(t.palette.primary.main, 0.1),
+                                color: "primary.main",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                            }}
+                        >
+                            <SupportAgentIcon sx={{ fontSize: 22 }} />
+                        </Box>
+                        <Box sx={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+                            <Typography fontWeight={800} sx={{ fontSize: { xs: 15, sm: 16 }, lineHeight: 1.25 }}>
+                                {tTracker("supportTitle")}
+                            </Typography>
+                            <Chip
+                                label={tTracker("supportOnline")}
+                                size="small"
+                                sx={{
+                                    height: 20,
+                                    fontSize: "0.68rem",
+                                    fontWeight: 800,
+                                    bgcolor: (t) => alpha(t.palette.success.main, 0.12),
+                                    color: "success.main",
+                                    border: (t) => `1px solid ${alpha(t.palette.success.main, 0.3)}`,
+                                    flexShrink: 0,
+                                }}
+                            />
+                        </Box>
+                    </Stack>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: { xs: "0.82rem", sm: "0.875rem" }, lineHeight: 1.35 }}>
+                        {tTracker("supportSubtitle")}
+                    </Typography>
+                    <MessengerSupportButtons
+                        orderId={order.id}
+                        showPhone={true}
+                        compact={false}
+                    />
                 </Paper>
 
                 <Button

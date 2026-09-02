@@ -18,6 +18,20 @@ export type ConnectableProduct = {
     description?: string | null;
     composition?: string | null;
     price: number;
+    originalPrice?: number | null;
+    bundleItems?: {
+        id: number;
+        productId: number;
+        quantity: number;
+        position: number;
+        product?: {
+            id: number;
+            price: number;
+            name: string;
+            mainImage?: string | null;
+            images?: unknown;
+        };
+    }[];
     weight?: number | null;
     images?: unknown;
     mainImage?: string | null;
@@ -130,6 +144,7 @@ export const ConnectedProductCard = memo(function ConnectedProductCard({
             categoryName={product.category?.name}
             composition={product.composition ?? product.description ?? undefined}
             price={product.price}
+            originalPrice={product.originalPrice}
             weight={product.weight ?? undefined}
             images={product.images}
             mainImage={product.mainImage}

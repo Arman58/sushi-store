@@ -17,6 +17,7 @@ const IMG = {
 } as const;
 
 type CategorySlug =
+    | "sets"
     | "pizza"
     | "sushi"
     | "shawarma"
@@ -38,25 +39,30 @@ type ProductSeed = {
 
 const CATEGORIES: { slug: CategorySlug; name: ReturnType<typeof L>; position: number }[] =
     [
-        { slug: "pizza", name: L("Пицца", "Պիցցա", "Pizza"), position: 0 },
+        {
+            slug: "sets",
+            name: L("Сеты и комбо", "Սեթեր և կոմբո", "Sets & Combos"),
+            position: 0,
+        },
+        { slug: "pizza", name: L("Пицца", "Պիցցա", "Pizza"), position: 1 },
         {
             slug: "sushi",
             name: L("Суши и роллы", "Սուշի և ռոլներ", "Sushi & Rolls"),
-            position: 1,
+            position: 2,
         },
-        { slug: "shawarma", name: L("Шаурма", "Շաուրմա", "Shawarma"), position: 2 },
-        { slug: "lahmajo", name: L("Лахмаджо", "Լահմաջո", "Lahmajo"), position: 3 },
+        { slug: "shawarma", name: L("Шаурма", "Շաուրմա", "Shawarma"), position: 3 },
+        { slug: "lahmajo", name: L("Лахмаджо", "Լահմաջո", "Lahmajo"), position: 4 },
         {
             slug: "fries",
             name: L("Картофель фри", "Կարտոֆիլ ֆրի", "French Fries"),
-            position: 4,
+            position: 5,
         },
         {
             slug: "strips",
             name: L("Стрипсы", "Սթրիփսներ", "Chicken Strips"),
-            position: 5,
+            position: 6,
         },
-        { slug: "drinks", name: L("Напитки", "Ըմպելիքներ", "Drinks"), position: 6 },
+        { slug: "drinks", name: L("Напитки", "Ըմպելիքներ", "Drinks"), position: 7 },
     ];
 
 const productsData: ProductSeed[] = [
@@ -707,6 +713,7 @@ async function main() {
 
     let pizzaCount = 0;
     let shawarmaCount = 0;
+    const createdProductsBySlug = new Map<string, number>();
 
     for (const p of productsData) {
         const i18n = getProductI18n(p.slug, {
@@ -729,6 +736,8 @@ async function main() {
             },
         });
 
+        createdProductsBySlug.set(p.slug, created.id);
+
         if (p.categorySlug === "pizza") {
             await addPizzaSizeModifier(created.id);
             pizzaCount += 1;
@@ -737,6 +746,116 @@ async function main() {
             await addShawarmaModifiers(created.id);
             shawarmaCount += 1;
         }
+    }
+
+    const bundlesData = [
+        {
+            slug: "set-party",
+            name: L("Party Сет (32 шт.)", "Party Սեթ (32 հատ)", "Party Set (32 pcs)"),
+            description: L(
+                "Большой сет для компании из 3-4 человек: 4 популярных ролла по специальной цене с выгодой.",
+                "Մեծ սեթ 3-4 հոգանոց ընկերության համար՝ 4 հայտնի ռոլ հատուկ գնով:",
+                "Large set for a party of 3-4 people: 4 popular rolls at a special combo price.",
+            ),
+            composition: L(
+                "Филадельфия (8 шт.), Калифорния (8 шт.), Дракон ролл (8 шт.), Эби ролл (8 шт.)",
+                "Ֆիլադելֆիա (8 հատ), Կալիֆորնիա (8 հատ), Դրակոն ռոլ (8 հատ), Էբի ռոլ (8 հատ)",
+                "Philadelphia (8 pcs), California (8 pcs), Dragon roll (8 pcs), Ebi roll (8 pcs)",
+            ),
+            price: 13500,
+            originalPrice: 17200,
+            weight: 1050,
+            image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=800&q=80",
+            items: [
+                { slug: "philadelphia", quantity: 1 },
+                { slug: "california", quantity: 1 },
+                { slug: "dragon-roll", quantity: 1 },
+                { slug: "ebi-roll", quantity: 1 },
+            ],
+        },
+        {
+            slug: "combo-duet-pizza",
+            name: L("Комбо Дуэт Пицца", "Կոմբո Դուետ Պիցցա", "Combo Duet Pizza"),
+            description: L(
+                "Две горячие пиццы 30 см и две освежающие Coca-Cola 0.5л со скидкой 21%.",
+                "Երկու տաք պիցցա 30 սմ և երկու զովացուցիչ Coca-Cola 0.5լ 21% զեղչով:",
+                "Two hot 30 cm pizzas and two refreshing Coca-Cola 0.5l with 21% discount.",
+            ),
+            composition: L(
+                "Пицца Пепперони 30см, Пицца Маргарита 30см, Coca-Cola 0.5л (2 шт.)",
+                "Պիցցա Պեպերոնի 30սմ, Պիցցա Մարգարիտա 30սմ, Coca-Cola 0.5լ (2 հատ)",
+                "Pepperoni Pizza 30cm, Margarita Pizza 30cm, Coca-Cola 0.5l (2 pcs)",
+            ),
+            price: 9500,
+            originalPrice: 12100,
+            weight: 1200,
+            image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=80",
+            items: [
+                { slug: "pepperoni", quantity: 1 },
+                { slug: "margarita", quantity: 1 },
+                { slug: "cola-05", quantity: 2 },
+            ],
+        },
+        {
+            slug: "combo-snack-box",
+            name: L("Снэк-бокс Хит", "Սնեք-բոքս Հիթ", "Snack Box Hit"),
+            description: L(
+                "Хрустящие стрипсы, золотистый картофель фри и напиток — идеальный сытный перекус.",
+                "Խրթխրթան սթրիփսներ, ոսկեզօծ ֆրի և ըմպելիք՝ կատարյալ հագեցնող ուտեստ:",
+                "Crispy strips, golden fries, and a drink — the perfect filling snack.",
+            ),
+            composition: L(
+                "Куриные стрипсы (6 шт.), Картофель фри, Coca-Cola 0.5л",
+                "Հավի սթրիփսներ (6 հատ), Կարտոֆիլ ֆրի, Coca-Cola 0.5լ",
+                "Chicken strips (6 pcs), French fries, Coca-Cola 0.5l",
+            ),
+            price: 4200,
+            originalPrice: 5100,
+            weight: 480,
+            image: "https://images.unsplash.com/photo-1562967914-608f82629710?w=800&q=80",
+            items: [
+                { slug: "chicken-strips-6", quantity: 1 },
+                { slug: "french-fries", quantity: 1 },
+                { slug: "cola-05", quantity: 1 },
+            ],
+        },
+    ];
+
+    for (const b of bundlesData) {
+        await prisma.product.create({
+            data: {
+                translations: TProduct(b.name, b.description, b.composition),
+                slug: b.slug,
+                price: b.price,
+                originalPrice: b.originalPrice,
+                weight: b.weight,
+                images: [b.image],
+                mainImage: b.image,
+                isActive: true,
+                categoryId: categoryIdBySlug["sets"],
+                bundleItems: {
+                    create: b.items
+                        .map((item, idx) => {
+                            const pId = createdProductsBySlug.get(item.slug);
+                            if (!pId) return null;
+                            return {
+                                productId: pId,
+                                quantity: item.quantity,
+                                position: idx,
+                            };
+                        })
+                        .filter(
+                            (
+                                item,
+                            ): item is {
+                                productId: number;
+                                quantity: number;
+                                position: number;
+                            } => Boolean(item),
+                        ),
+                },
+            },
+        });
     }
 
     await prisma.promoCode.create({

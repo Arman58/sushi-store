@@ -182,3 +182,39 @@ export async function notifyKitchenTelegram(payload: KitchenTelegramPayload): Pr
         );
     }
 }
+
+export async function notifyKitchenOrderCancelled(
+    orderId: number,
+    reason?: string,
+): Promise<void> {
+    if (!telegramNotifyEnabled || !TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+
+    const lines = [
+        `❌ <b>Внимание: Заказ №${orderId} ОТМЕНЁН клиентом на сайте!</b>`,
+        "Кухня: приготовление остановлено.",
+    ];
+    if (reason?.trim()) {
+        lines.push(`<i>Причина: ${escapeHtml(reason.trim())}</i>`);
+    }
+
+    const text = lines.join("\n");
+    const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+    try {
+        await fetchWithTimeout(
+            telegramUrl,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    chat_id: TELEGRAM_CHAT_ID,
+                    text,
+                    parse_mode: "HTML",
+                }),
+            },
+            NOTIFICATION_FETCH_TIMEOUT_MS,
+        );
+    } catch (err) {
+        console.error(`[telegram] cancel notification failed for order #${orderId}:`, err);
+    }
+}

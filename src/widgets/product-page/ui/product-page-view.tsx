@@ -3,6 +3,8 @@
 import StarIcon from "@mui/icons-material/Star";
 import Box from "@mui/material/Box";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
+import Chip from "@mui/material/Chip";
+import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import { alpha } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
@@ -264,9 +266,9 @@ export function ProductPageView({ product, locale, breadcrumbs }: Props) {
 
                 <Stack
                     direction="row"
-                    alignItems="baseline"
+                    alignItems="center"
                     spacing={1.5}
-                    sx={{ mb: 2.5, flexWrap: "wrap" }}
+                    sx={{ mb: 2.5, flexWrap: "wrap", rowGap: 1 }}
                 >
                     <Typography
                         component="p"
@@ -275,7 +277,7 @@ export function ProductPageView({ product, locale, breadcrumbs }: Props) {
                         sx={{
                             color: tokens.brand,
                             fontVariantNumeric: "tabular-nums",
-                            fontSize: { xs: "1.35rem", sm: "1.5rem" },
+                            fontSize: { xs: "1.45rem", sm: "1.75rem" },
                             m: 0,
                         }}
                     >
@@ -285,6 +287,52 @@ export function ProductPageView({ product, locale, breadcrumbs }: Props) {
                               })
                             : `${formatStorePrice(product.price)} ֏`}
                     </Typography>
+
+                    {product.originalPrice != null &&
+                        product.originalPrice > product.price && (
+                            <Stack direction="row" alignItems="center" spacing={1} sx={{ flexWrap: "wrap", rowGap: 0.5 }}>
+                                <Typography
+                                    sx={{
+                                        fontWeight: 500,
+                                        fontSize: { xs: "1.05rem", sm: "1.2rem" },
+                                        color: tokens.textMuted,
+                                        textDecoration: "line-through",
+                                        fontVariantNumeric: "tabular-nums",
+                                    }}
+                                >
+                                    {formatStorePrice(product.originalPrice)} ֏
+                                </Typography>
+                                <Chip
+                                    label={`-${Math.round(
+                                        ((product.originalPrice - product.price) /
+                                            product.originalPrice) *
+                                            100,
+                                    )}%`}
+                                    size="small"
+                                    sx={{
+                                        fontWeight: 800,
+                                        fontSize: "0.8rem",
+                                        bgcolor: "#E74C3C",
+                                        color: "#FFFFFF",
+                                    }}
+                                />
+                                <Chip
+                                    label={t("bundle.savings", {
+                                        amount: formatStorePrice(
+                                            product.originalPrice - product.price,
+                                        ),
+                                    })}
+                                    size="small"
+                                    color="success"
+                                    variant="outlined"
+                                    sx={{
+                                        fontWeight: 700,
+                                        fontSize: "0.75rem",
+                                    }}
+                                />
+                            </Stack>
+                        )}
+
                     {product.weight ? (
                         <Typography variant="body2" color="text.secondary">
                             {t("weight", { weight: product.weight })}
@@ -329,6 +377,112 @@ export function ProductPageView({ product, locale, breadcrumbs }: Props) {
                         </Typography>
                     </Box>
                 ) : null}
+
+                {product.bundleItems && product.bundleItems.length > 0 && (
+                    <Box
+                        sx={{
+                            mt: 3,
+                            p: { xs: 2, sm: 2.5 },
+                            borderRadius: 3,
+                            bgcolor: tokens.surfaceHi,
+                            border: `1px solid ${tokens.border}`,
+                        }}
+                    >
+                        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                            <Typography variant="h6" fontWeight={800} sx={{ letterSpacing: -0.2 }}>
+                                {t("bundle.title")}
+                            </Typography>
+                            <Chip
+                                label={t("bundle.itemsCount", { count: product.bundleItems.length })}
+                                size="small"
+                                color="primary"
+                                sx={{ fontWeight: 700 }}
+                            />
+                        </Stack>
+
+                        <Box
+                            sx={{
+                                display: "grid",
+                                gridTemplateColumns: {
+                                    xs: "repeat(1, 1fr)",
+                                    sm: "repeat(2, 1fr)",
+                                },
+                                gap: 1.5,
+                            }}
+                        >
+                            {product.bundleItems.map((item) => {
+                                const innerProd = item.product;
+                                const cover = innerProd
+                                    ? getProductCoverUrl({
+                                          images: innerProd.images,
+                                          mainImage: innerProd.mainImage,
+                                      })
+                                    : null;
+                                return (
+                                    <Paper
+                                        key={item.id}
+                                        variant="outlined"
+                                        sx={{
+                                            p: 1.5,
+                                            borderRadius: 2,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "space-between",
+                                            gap: 1.5,
+                                            bgcolor: tokens.surface,
+                                        }}
+                                    >
+                                        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0 }}>
+                                            {cover && (
+                                                <Box
+                                                    component="img"
+                                                    src={cover}
+                                                    alt=""
+                                                    sx={{
+                                                        width: 48,
+                                                        height: 48,
+                                                        borderRadius: 1.5,
+                                                        objectFit: "cover",
+                                                        flexShrink: 0,
+                                                    }}
+                                                />
+                                            )}
+                                            <Box sx={{ minWidth: 0 }}>
+                                                <Typography
+                                                    variant="body2"
+                                                    fontWeight={700}
+                                                    noWrap
+                                                >
+                                                    {innerProd?.name ?? t("bundle.dishFallback", { id: item.productId })}
+                                                </Typography>
+                                                {innerProd?.price ? (
+                                                    <Typography
+                                                        variant="caption"
+                                                        color="text.secondary"
+                                                    >
+                                                        {t("bundle.perUnit", { price: formatStorePrice(innerProd.price) })}
+                                                    </Typography>
+                                                ) : null}
+                                            </Box>
+                                        </Stack>
+                                        <Chip
+                                            label={`x${item.quantity}`}
+                                            size="small"
+                                            sx={{
+                                                fontWeight: 800,
+                                                fontSize: "0.8rem",
+                                                bgcolor: alpha(tokens.brand, 0.1),
+                                                color: tokens.brand,
+                                                border: `1px solid ${alpha(tokens.brand, 0.25)}`,
+                                                px: 0.5,
+                                            }}
+                                        />
+                                    </Paper>
+                                );
+                            })}
+                        </Box>
+                    </Box>
+                )}
 
                 <Box>
                     <UpsellCarousel
