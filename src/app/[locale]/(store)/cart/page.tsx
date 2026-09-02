@@ -167,6 +167,7 @@ export default function CartPage() {
                         direction={{ xs: "column", md: "row" }}
                         spacing={4}
                         alignItems="flex-start"
+                        sx={{ pb: { xs: "calc(100px + env(safe-area-inset-bottom))", md: 4 } }}
                     >
                         <Box flex={2} sx={{ minWidth: 0 }}>
                             {hasCartLineProblems && (
@@ -507,6 +508,65 @@ export default function CartPage() {
                             </Typography>
                         </Box>
                     </Stack>
+                )}
+
+                {hasItems && (
+                    <Box
+                        sx={{
+                            display: { xs: "block", md: "none" },
+                            position: "fixed",
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            zIndex: 1100,
+                            bgcolor: "background.paper",
+                            borderTop: "1px solid",
+                            borderColor: "divider",
+                            px: 2,
+                            pt: 1.5,
+                            pb: "calc(14px + env(safe-area-inset-bottom))",
+                            boxShadow: (theme) =>
+                                `0 -4px 20px ${alpha(theme.palette.common.black, 0.12)}`,
+                        }}
+                    >
+                        <Stack
+                            direction="row"
+                            justifyContent="space-between"
+                            alignItems="center"
+                            sx={{ mb: 1 }}
+                        >
+                            <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                                {t("summary.total")}
+                            </Typography>
+                            <Typography
+                                variant="h6"
+                                fontWeight={800}
+                                color="primary.main"
+                                sx={{ fontVariantNumeric: "tabular-nums" }}
+                            >
+                                {totalPrice.toLocaleString("ru-RU")} ֏
+                            </Typography>
+                        </Stack>
+                        <AppButton
+                            component={Link}
+                            href="/checkout"
+                            variant="contained"
+                            color="primary"
+                            fullWidth
+                            size="large"
+                            disabled={!canProceedToCheckout}
+                            sx={{
+                                fontWeight: 800,
+                                height: 48,
+                                borderRadius: 2.5,
+                                fontSize: "1rem",
+                                boxShadow: (theme) =>
+                                    `0 4px 14px ${alpha(theme.palette.primary.main, 0.35)}`,
+                            }}
+                        >
+                            {t("checkout")}
+                        </AppButton>
+                    </Box>
                 )}
         </PageContainer>
     );

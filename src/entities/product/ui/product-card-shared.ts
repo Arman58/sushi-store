@@ -55,6 +55,7 @@ export const STEPPER_SIZE_XS = 34;
 export const stepperButtonSx = {
     flexShrink: 0,
     p: 0,
+    position: "relative",
     width: { xs: STEPPER_SIZE_XS, sm: STEPPER_SIZE },
     height: { xs: STEPPER_SIZE_XS, sm: STEPPER_SIZE },
     minWidth: { xs: STEPPER_SIZE_XS, sm: STEPPER_SIZE },
@@ -62,4 +63,12 @@ export const stepperButtonSx = {
     maxWidth: { xs: STEPPER_SIZE_XS, sm: STEPPER_SIZE },
     maxHeight: { xs: STEPPER_SIZE_XS, sm: STEPPER_SIZE },
     borderRadius: "50%",
+    "&::after": {
+        content: '""',
+        position: "absolute",
+        top: -6,
+        bottom: -6,
+        left: -6,
+        right: -6,
+    },
 } as const;
