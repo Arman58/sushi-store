@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { parseAdminModifierGroupsPayload } from "@/lib/admin-product-modifiers";
 import { adminProductCreateSchema } from "@/lib/api-schemas";
+import { ensureBundleSchema } from "@/lib/ensure-bundle-schema";
 import { asLocalizedRecord, localizedSlugSource } from "@/lib/i18n-utils";
 import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
@@ -93,6 +94,8 @@ export async function GET(request: Request) {
         return auth.response;
     }
 
+    await ensureBundleSchema();
+
     try {
         // List payload stays light: modifiers load on GET /api/admin/products/[id] when editing.
         const products = await prisma.product.findMany({
@@ -121,9 +124,32 @@ export async function GET(request: Request) {
             orderBy: { id: "asc" },
         });
         return NextResponse.json(products.map(mapProductListRow));
-    } catch {
-        // Error logged in production monitoring
-        return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });
+    } catch (err) {
+        console.warn("[admin-products] Failed with bundleItems, attempting fallback without bundleItems:", err);
+        try {
+            const productsFallback = await prisma.product.findMany({
+                include: {
+                    translations: true,
+                    category: { include: { translations: true } },
+                    upsells: {
+                        orderBy: { position: "asc" },
+                        select: { suggestedId: true },
+                    },
+                },
+                orderBy: { id: "asc" },
+            });
+            return NextResponse.json(
+                productsFallback.map((p) =>
+                    mapProductListRow({
+                        ...p,
+                        bundleItems: [],
+                    } as unknown as Parameters<typeof mapProductListRow>[0]),
+                ),
+            );
+        } catch (fatalErr) {
+            console.error("[admin-products] Fatal error fetching products:", fatalErr);
+            return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });
+        }
     }
 }
 
