@@ -10,9 +10,11 @@ import { useEffect, useState } from "react";
 
 import { useCartStore } from "@/features/cart";
 import { triggerHaptic } from "@/shared/lib/haptic";
+import {
+    dispatchPwaUiBlock,
+    WELCOME_PROMO_SEEN_KEY,
+} from "@/shared/lib/pwa-install";
 import { AppButton } from "@/shared/ui";
-
-const SEEN_KEY = "hasSeenWelcomePromo";
 /** After first paint / LCP window — avoid CLS from scroll-lock at 2s. */
 const OPEN_DELAY_MS = 8_000;
 
@@ -23,7 +25,7 @@ export function WelcomePromoDrawer() {
 
     useEffect(() => {
         try {
-            const seen = localStorage.getItem(SEEN_KEY);
+            const seen = localStorage.getItem(WELCOME_PROMO_SEEN_KEY);
             if (seen === "1" || seen === "true") return;
         } catch {
             return;
@@ -31,7 +33,7 @@ export function WelcomePromoDrawer() {
 
         const timer = window.setTimeout(() => {
             try {
-                localStorage.setItem(SEEN_KEY, "1");
+                localStorage.setItem(WELCOME_PROMO_SEEN_KEY, "1");
             } catch {
                 /* ignore */
             }
@@ -40,6 +42,11 @@ export function WelcomePromoDrawer() {
 
         return () => window.clearTimeout(timer);
     }, []);
+
+    useEffect(() => {
+        dispatchPwaUiBlock(open);
+        return () => dispatchPwaUiBlock(false);
+    }, [open]);
 
     const handleClose = () => {
         if (document.activeElement instanceof HTMLElement) {

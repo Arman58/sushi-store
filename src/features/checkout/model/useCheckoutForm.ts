@@ -19,6 +19,7 @@ import { ApiError, placeOrder } from "@/shared/api";
 import { API_ERROR_CODES } from "@/shared/lib/api-error";
 import { createCheckoutSchema } from "@/shared/lib/create-schemas";
 import { formatStorePrice } from "@/shared/lib/format-price";
+import { markJustOrdered } from "@/shared/lib/pwa-install";
 import {
     type CheckoutFormValues,
     type DeliveryType,
@@ -344,6 +345,7 @@ export function useCheckoutForm({ sessionUser }: UseCheckoutFormParams) {
                         ORDER_ID_KEY,
                         String(result.order.id),
                     );
+                    markJustOrdered();
                 } catch {
                     /* ignore */
                 }

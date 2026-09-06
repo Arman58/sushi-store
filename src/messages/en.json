@@ -1212,9 +1212,12 @@
         "homeCta": "Back to home"
     },
     "pwa": {
-        "ios_title": "Add East West to Home Screen",
-        "ios_step1": "Tap the 'Share' button at the bottom",
-        "ios_step2": "Select 'Add to Home Screen'",
+        "ios_title": "Install East West on the home screen",
+        "ios_howto": "Tap Share <share></share> → Scroll down → Add to Home Screen <add></add>",
+        "ios_share_menu_item": "Add to Home Screen",
+        "ios_more": "Learn more",
+        "ios_step1": "Tap the Share button at the bottom of the screen",
+        "ios_step2": "Scroll down and choose Add to Home Screen",
         "ios_close": "Got it",
         "offline": "No internet connection",
         "online": "Connection restored",
