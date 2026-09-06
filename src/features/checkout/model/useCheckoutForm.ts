@@ -19,11 +19,11 @@ import { ApiError, placeOrder } from "@/shared/api";
 import { API_ERROR_CODES } from "@/shared/lib/api-error";
 import { createCheckoutSchema } from "@/shared/lib/create-schemas";
 import { formatStorePrice } from "@/shared/lib/format-price";
+import { markJustOrdered } from "@/shared/lib/pwa-install";
 import {
     type CheckoutFormValues,
     type DeliveryType,
 } from "@/shared/lib/schemas";
-import { markJustOrdered } from "@/shared/lib/pwa-install";
 import { showAppToast } from "@/shared/lib/show-app-toast";
 import { useSchemaMessages } from "@/shared/lib/use-schema-messages";
 
