@@ -1,5 +1,11 @@
 import type { MetadataRoute } from "next";
 
+import {
+    PWA_APPLE_TOUCH_ICON,
+    PWA_ICON_192,
+    PWA_ICON_512,
+} from "@/shared/lib/pwa-install";
+
 export default function manifest(): MetadataRoute.Manifest {
     return {
         name: "East West Delivery",
@@ -14,25 +20,25 @@ export default function manifest(): MetadataRoute.Manifest {
         categories: ["food"],
         icons: [
             {
-                src: "/pwa/icon-192x192.png",
+                src: PWA_ICON_192,
                 sizes: "192x192",
                 type: "image/png",
                 purpose: "maskable",
             },
             {
-                src: "/pwa/icon-512x512.png",
+                src: PWA_ICON_512,
                 sizes: "512x512",
                 type: "image/png",
                 purpose: "any",
             },
             {
-                src: "/pwa/icon-512x512.png",
+                src: PWA_ICON_512,
                 sizes: "512x512",
                 type: "image/png",
                 purpose: "maskable",
             },
             {
-                src: "/pwa/apple-touch-icon-180x180.png",
+                src: PWA_APPLE_TOUCH_ICON,
                 sizes: "180x180",
                 type: "image/png",
             },
@@ -45,7 +51,7 @@ export default function manifest(): MetadataRoute.Manifest {
                 url: "/menu",
                 icons: [
                     {
-                        src: "/pwa/icon-192x192.png",
+                        src: PWA_ICON_192,
                         sizes: "192x192",
                         type: "image/png",
                     },
@@ -57,7 +63,7 @@ export default function manifest(): MetadataRoute.Manifest {
                 url: "/profile",
                 icons: [
                     {
-                        src: "/pwa/icon-192x192.png",
+                        src: PWA_ICON_192,
                         sizes: "192x192",
                         type: "image/png",
                     },
@@ -69,7 +75,7 @@ export default function manifest(): MetadataRoute.Manifest {
                 url: "/contacts",
                 icons: [
                     {
-                        src: "/pwa/icon-192x192.png",
+                        src: PWA_ICON_192,
                         sizes: "192x192",
                         type: "image/png",
                     },

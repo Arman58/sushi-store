@@ -4,6 +4,12 @@ export const PWA_JUST_ORDERED_KEY = "east-west-just-ordered";
 export const PWA_UI_BLOCK_EVENT = "ew:pwa-ui-block";
 export const WELCOME_PROMO_SEEN_KEY = "hasSeenWelcomePromo";
 
+/** Bump filenames when replacing icons — iOS caches apple-touch-icon by path. */
+export const PWA_ICON_192 = "/pwa/icon-192x192-v2.png";
+export const PWA_ICON_512 = "/pwa/icon-512x512-v2.png";
+export const PWA_APPLE_TOUCH_ICON = "/pwa/apple-touch-icon-180x180-v2.png";
+export const PWA_APPLE_TOUCH_ICON_ROOT = "/apple-touch-icon.png";
+
 export function markJustOrdered(): void {
     try {
         sessionStorage.setItem(PWA_JUST_ORDERED_KEY, "1");

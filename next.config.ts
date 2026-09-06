@@ -76,6 +76,43 @@ const nextConfig: NextConfig = {
                     },
                 ],
             },
+            // PWA / home-screen icons must not be immutable — iOS caches them by URL.
+            {
+                source: "/pwa/:path*",
+                headers: [
+                    {
+                        key: "Cache-Control",
+                        value: "public, max-age=0, must-revalidate",
+                    },
+                ],
+            },
+            {
+                source: "/apple-touch-icon.png",
+                headers: [
+                    {
+                        key: "Cache-Control",
+                        value: "public, max-age=0, must-revalidate",
+                    },
+                ],
+            },
+            {
+                source: "/apple-touch-icon-precomposed.png",
+                headers: [
+                    {
+                        key: "Cache-Control",
+                        value: "public, max-age=0, must-revalidate",
+                    },
+                ],
+            },
+            {
+                source: "/favicon.png",
+                headers: [
+                    {
+                        key: "Cache-Control",
+                        value: "public, max-age=0, must-revalidate",
+                    },
+                ],
+            },
         ];
     },
 };

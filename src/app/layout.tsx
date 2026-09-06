@@ -22,6 +22,11 @@ import {
     SITE_URL,
 } from "@/lib/site-config";
 import { resolveThemeMode } from "@/lib/theme-preference.server";
+import {
+    PWA_APPLE_TOUCH_ICON,
+    PWA_APPLE_TOUCH_ICON_ROOT,
+    PWA_ICON_192,
+} from "@/shared/lib/pwa-install";
 
 import { interFont } from "./fonts";
 import { AppProviders } from "./providers";
@@ -95,10 +100,11 @@ export const metadata: Metadata = {
         canonical: "./",
     },
     icons: {
-        icon: "/favicon.png",
+        icon: "/favicon.png?v=2",
         apple: [
-            { url: "/pwa/apple-touch-icon-180x180.png", sizes: "180x180" },
-            { url: "/pwa/icon-192x192.png", sizes: "192x192" },
+            { url: PWA_APPLE_TOUCH_ICON_ROOT, sizes: "180x180" },
+            { url: PWA_APPLE_TOUCH_ICON, sizes: "180x180" },
+            { url: PWA_ICON_192, sizes: "192x192" },
         ],
     },
     openGraph: {

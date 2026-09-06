@@ -32,8 +32,8 @@ self.addEventListener("push", (event) => {
         (async () => {
             await self.registration.showNotification(payload.title, {
                 body: payload.body,
-                icon: "/pwa/icon-192x192.png",
-                badge: "/pwa/icon-192x192.png",
+                icon: "/pwa/icon-192x192-v2.png",
+                badge: "/pwa/icon-192x192-v2.png",
                 data: { url: payload.url },
             });
 
