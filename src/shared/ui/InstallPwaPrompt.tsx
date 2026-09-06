@@ -24,6 +24,14 @@ import {
 } from "react";
 
 import { useCartStore } from "@/features/cart";
+import {
+    clearJustOrdered,
+    hasSeenWelcomePromo,
+    isStoreHomePath,
+    peekJustOrdered,
+    PWA_UI_BLOCK_EVENT,
+    todayKey,
+} from "@/shared/lib/pwa-install";
 
 /** Soft dismiss → snooze; after this many soft dismisses → long cooldown. */
 const SOFT_DISMISS_BEFORE_LONG_SNOOZE = 2;
@@ -49,6 +57,8 @@ type InstallStorage = {
     dismissCount: number;
     snoozeUntil: number;
     permanentlyDismissed: boolean;
+    lastVisitDay: string;
+    visitDayCount: number;
 };
 
 type IosInstructionStepProps = {
@@ -74,11 +84,16 @@ function detectStandalone(): boolean {
     );
 }
 
+function emptyVisitFields(): Pick<InstallStorage, "lastVisitDay" | "visitDayCount"> {
+    return { lastVisitDay: "", visitDayCount: 0 };
+}
+
 function readStorage(): InstallStorage {
     const defaults: InstallStorage = {
         dismissCount: 0,
         snoozeUntil: 0,
         permanentlyDismissed: false,
+        ...emptyVisitFields(),
     };
 
     try {
@@ -89,6 +104,8 @@ function readStorage(): InstallStorage {
                 dismissCount: Number(parsed.dismissCount) || 0,
                 snoozeUntil: Number(parsed.snoozeUntil) || 0,
                 permanentlyDismissed: Boolean(parsed.permanentlyDismissed),
+                lastVisitDay: parsed.lastVisitDay ?? "",
+                visitDayCount: Number(parsed.visitDayCount) || 0,
             };
         }
 
@@ -102,6 +119,7 @@ function readStorage(): InstallStorage {
                 dismissCount: 1,
                 snoozeUntil: Date.now() + SHORT_SNOOZE_MS,
                 permanentlyDismissed: false,
+                ...emptyVisitFields(),
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
             localStorage.removeItem(LEGACY_ANDROID_KEY);
@@ -123,12 +141,148 @@ function writeStorage(next: InstallStorage) {
     }
 }
 
-function isBlockedPath(pathname: string): boolean {
-    // Avoid competing with checkout / auth / order tracking focus.
+function isBlockedPath(pathname: string, justOrdered: boolean): boolean {
+    if (pathname.includes("/checkout") || pathname.includes("/admin")) {
+        return true;
+    }
+    // Order tracker is reserved for status — except right after placing an order.
+    if (pathname.includes("/order/")) {
+        return !justOrdered;
+    }
+    return false;
+}
+
+function IosShareGlyph({ size = 18 }: { size?: number }) {
     return (
-        pathname.includes("/checkout") ||
-        pathname.includes("/order/") ||
-        pathname.includes("/admin")
+        <Box
+            component="svg"
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            aria-hidden
+            sx={{ display: "inline", verticalAlign: "middle", color: "#007AFF" }}
+        >
+            <path
+                fill="currentColor"
+                d="M12 2.2c.34 0 .62.28.62.62v11.36a.62.62 0 1 1-1.24 0V2.82c0-.34.28-.62.62-.62Z"
+            />
+            <path
+                fill="currentColor"
+                d="M8.22 6.28a.62.62 0 0 1 .88-.04l2.9 2.62 2.9-2.62a.62.62 0 1 1 .83.92l-3.32 3a.62.62 0 0 1-.83 0l-3.32-3a.62.62 0 0 1-.04-.88Z"
+            />
+            <path
+                fill="currentColor"
+                d="M6.4 10.5c.34 0 .62.28.62.62v6.48c0 .55.45 1 1 1h7.96c.55 0 1-.45 1-1v-6.48a.62.62 0 1 1 1.24 0v6.48A2.24 2.24 0 0 1 15.98 20H8.02A2.24 2.24 0 0 1 5.78 17.6v-6.48c0-.34.28-.62.62-.62Z"
+            />
+        </Box>
+    );
+}
+
+function IosPlusAppGlyph({ size = 18 }: { size?: number }) {
+    return (
+        <Box
+            component="svg"
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            aria-hidden
+            sx={{ display: "inline", verticalAlign: "middle", color: "#007AFF" }}
+        >
+            <path
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                d="M7.2 4.6h9.6A2.6 2.6 0 0 1 19.4 7.2v9.6a2.6 2.6 0 0 1-2.6 2.6H7.2a2.6 2.6 0 0 1-2.6-2.6V7.2A2.6 2.6 0 0 1 7.2 4.6Z"
+            />
+            <path
+                fill="currentColor"
+                d="M12 8.1c.34 0 .62.28.62.62v2.66h2.66a.62.62 0 1 1 0 1.24h-2.66v2.66a.62.62 0 1 1-1.24 0v-2.66H8.72a.62.62 0 1 1 0-1.24h2.66V8.72c0-.34.28-.62.62-.62Z"
+            />
+        </Box>
+    );
+}
+
+function IosShareSheetPreview({ itemLabel }: { itemLabel: string }) {
+    return (
+        <Box sx={{ display: "flex", justifyContent: "center", px: 1 }}>
+            <Box
+                sx={{
+                    width: "100%",
+                    maxWidth: 292,
+                    borderRadius: "22px",
+                    bgcolor: "#E8E8ED",
+                    p: 1.1,
+                    boxShadow: "0 18px 40px rgba(15, 23, 42, 0.12)",
+                }}
+            >
+                <Box
+                    sx={{
+                        opacity: 0.32,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.25,
+                        px: 1.4,
+                        py: 1.05,
+                    }}
+                >
+                    <Box
+                        sx={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: "6px",
+                            border: "2px solid #8E8E93",
+                            flexShrink: 0,
+                        }}
+                    />
+                    <Box sx={{ height: 8, width: 96, bgcolor: "#C7C7CC", borderRadius: 1 }} />
+                </Box>
+                <Box
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.25,
+                        px: 1.4,
+                        py: 1.2,
+                        bgcolor: "#fff",
+                        borderRadius: "14px",
+                    }}
+                >
+                    <IosPlusAppGlyph size={26} />
+                    <Typography
+                        sx={{
+                            fontSize: "0.98rem",
+                            fontWeight: 500,
+                            letterSpacing: -0.2,
+                            color: "#111",
+                            lineHeight: 1.2,
+                        }}
+                    >
+                        {itemLabel}
+                    </Typography>
+                </Box>
+                <Box
+                    sx={{
+                        opacity: 0.24,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.25,
+                        px: 1.4,
+                        py: 1.05,
+                    }}
+                >
+                    <Box
+                        sx={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: "6px",
+                            border: "2px solid #8E8E93",
+                            flexShrink: 0,
+                        }}
+                    />
+                    <Box sx={{ height: 8, width: 72, bgcolor: "#C7C7CC", borderRadius: 1 }} />
+                </Box>
+            </Box>
+        </Box>
     );
 }
 
@@ -176,10 +330,12 @@ export function InstallPwaPrompt() {
     const [platform, setPlatform] = useState<PromptPlatform | null>(null);
     const [bannerOpen, setBannerOpen] = useState(false);
     const [iosGuideOpen, setIosGuideOpen] = useState(false);
+    const [iosDetailsOpen, setIosDetailsOpen] = useState(false);
     const [deferredPrompt, setDeferredPrompt] =
         useState<BeforeInstallPromptEvent | null>(null);
     const [installing, setInstalling] = useState(false);
     const [eligible, setEligible] = useState(false);
+    const [promoBlocking, setPromoBlocking] = useState(false);
 
     const showTimerRef = useRef<number | null>(null);
     const engagementStartedRef = useRef(false);
@@ -197,6 +353,7 @@ export function InstallPwaPrompt() {
                 : SHORT_SNOOZE_MS;
 
         writeStorage({
+            ...prev,
             dismissCount,
             snoozeUntil: Date.now() + snoozeMs,
             permanentlyDismissed: permanent,
@@ -204,6 +361,7 @@ export function InstallPwaPrompt() {
 
         setBannerOpen(false);
         setIosGuideOpen(false);
+        setIosDetailsOpen(false);
         try {
             sessionStorage.setItem(SESSION_SHOWN_KEY, "1");
         } catch {
@@ -234,6 +392,7 @@ export function InstallPwaPrompt() {
 
         const handleAppInstalled = () => {
             writeStorage({
+                ...readStorage(),
                 dismissCount: 0,
                 snoozeUntil: Number.MAX_SAFE_INTEGER,
                 permanentlyDismissed: true,
@@ -251,34 +410,44 @@ export function InstallPwaPrompt() {
         };
     }, []);
 
-    // Engagement: time on site, return visit in session, or cart activity.
+    // Don't compete with the welcome promo sheet.
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+
+        if (!isStoreHomePath(pathname) || hasSeenWelcomePromo()) {
+            setPromoBlocking(false);
+        } else {
+            setPromoBlocking(true);
+        }
+
+        const onBlock = (event: Event) => {
+            setPromoBlocking(Boolean((event as CustomEvent<boolean>).detail));
+        };
+        window.addEventListener(PWA_UI_BLOCK_EVENT, onBlock);
+        return () => window.removeEventListener(PWA_UI_BLOCK_EVENT, onBlock);
+    }, [pathname]);
+
+    // Engagement: dwell time, return calendar day, cart, or a just-placed order.
     useEffect(() => {
         if (typeof window === "undefined" || detectStandalone()) return;
         if (engagementStartedRef.current) return;
         engagementStartedRef.current = true;
 
         const storage = readStorage();
-        if (storage.permanentlyDismissed || storage.snoozeUntil > Date.now()) {
-            return;
+        if (storage.permanentlyDismissed) return;
+
+        const today = todayKey();
+        let visitDays = storage.visitDayCount;
+        if (storage.lastVisitDay !== today) {
+            visitDays = storage.visitDayCount + 1;
+            writeStorage({
+                ...storage,
+                lastVisitDay: today,
+                visitDayCount: visitDays,
+            });
         }
 
-        try {
-            if (sessionStorage.getItem(SESSION_SHOWN_KEY) === "1") return;
-        } catch {
-            /* ignore */
-        }
-
-        const visitKey = "east-west-pwa-visits";
-        let visits = 1;
-        try {
-            visits = Number(sessionStorage.getItem(visitKey) ?? "0") + 1;
-            sessionStorage.setItem(visitKey, String(visits));
-        } catch {
-            /* ignore */
-        }
-
-        // Existing cart (hydrated) or a return visit in this tab → show sooner.
-        if (visits >= 2) {
+        if (peekJustOrdered() || visitDays >= 2) {
             markEngaged();
             return;
         }
@@ -295,22 +464,31 @@ export function InstallPwaPrompt() {
         if (cartCount > 0) markEngaged();
     }, [cartCount, markEngaged]);
 
-    // Show soft banner only when eligible + platform ready + not on blocked paths.
+    // Fresh order is the strongest food-delivery install moment.
+    useEffect(() => {
+        if (peekJustOrdered()) markEngaged();
+    }, [pathname, markEngaged]);
+
+    // Soft banner only when eligible + platform ready + not on a blocked path.
     useEffect(() => {
         if (!eligible || !platform) return;
         if (detectStandalone()) return;
-        if (isBlockedPath(pathname)) {
+
+        const justOrdered = peekJustOrdered();
+        if (isBlockedPath(pathname, justOrdered) || promoBlocking) {
             setBannerOpen(false);
+            setIosGuideOpen(false);
             return;
         }
 
         const storage = readStorage();
-        if (storage.permanentlyDismissed || storage.snoozeUntil > Date.now()) {
-            return;
-        }
+        if (storage.permanentlyDismissed) return;
+        if (!justOrdered && storage.snoozeUntil > Date.now()) return;
 
         try {
-            if (sessionStorage.getItem(SESSION_SHOWN_KEY) === "1") return;
+            if (!justOrdered && sessionStorage.getItem(SESSION_SHOWN_KEY) === "1") {
+                return;
+            }
         } catch {
             /* ignore */
         }
@@ -324,6 +502,7 @@ export function InstallPwaPrompt() {
 
         showTimerRef.current = window.setTimeout(() => {
             setBannerOpen(true);
+            clearJustOrdered();
             try {
                 sessionStorage.setItem(SESSION_SHOWN_KEY, "1");
             } catch {
@@ -337,7 +516,7 @@ export function InstallPwaPrompt() {
                 showTimerRef.current = null;
             }
         };
-    }, [eligible, platform, deferredPrompt, pathname]);
+    }, [eligible, platform, deferredPrompt, pathname, promoBlocking]);
 
     const handleInstall = useCallback(async () => {
         if (platform === "ios") {
@@ -353,6 +532,7 @@ export function InstallPwaPrompt() {
             const choice = await deferredPrompt.userChoice;
             if (choice.outcome === "accepted") {
                 writeStorage({
+                    ...readStorage(),
                     dismissCount: 0,
                     snoozeUntil: Number.MAX_SAFE_INTEGER,
                     permanentlyDismissed: true,
@@ -373,6 +553,7 @@ export function InstallPwaPrompt() {
             document.activeElement.blur();
         }
         setIosGuideOpen(false);
+        setIosDetailsOpen(false);
         snooze(false);
     }, [snooze]);
 
@@ -491,84 +672,114 @@ export function InstallPwaPrompt() {
                 disableSwipeToOpen
                 disableRestoreFocus
                 disableScrollLock
+                sx={{ zIndex: 1400 }}
                 PaperProps={{
                     sx: {
-                        borderTopLeftRadius: 20,
-                        borderTopRightRadius: 20,
-                        px: 2.5,
-                        pt: 1.5,
-                        pb: "calc(24px + env(safe-area-inset-bottom))",
-                        bgcolor: "background.paper",
+                        position: "relative",
+                        borderTopLeftRadius: 28,
+                        borderTopRightRadius: 28,
+                        px: 2.75,
+                        pt: 2.25,
+                        pb: "calc(20px + env(safe-area-inset-bottom))",
+                        bgcolor: "#fff",
                     },
                 }}
             >
-                <Box
+                <IconButton
+                    aria-label={tInstall("dismissAria")}
+                    onClick={closeIosGuide}
                     sx={{
-                        width: 40,
-                        height: 4,
-                        borderRadius: 999,
-                        bgcolor: "divider",
-                        mx: "auto",
-                        mb: 2,
+                        position: "absolute",
+                        top: 10,
+                        right: 10,
+                        color: "#8E8E93",
+                        bgcolor: "#F2F2F7",
+                        width: 32,
+                        height: 32,
+                        "&:hover": { bgcolor: "#E5E5EA" },
                     }}
-                />
+                >
+                    <CloseIcon sx={{ fontSize: 18 }} />
+                </IconButton>
 
-                <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2, pr: 4 }}>
-                    <Box
-                        sx={{
-                            width: 56,
-                            height: 56,
-                            borderRadius: 3,
-                            overflow: "hidden",
-                            flexShrink: 0,
-                        }}
-                    >
-                        <Image
-                            src="/pwa/icon-192x192.png"
-                            alt={tInstall("logoAlt")}
-                            width={56}
-                            height={56}
-                        />
-                    </Box>
-                    <Typography variant="subtitle1" fontWeight={800} sx={{ pt: 0.5 }}>
-                        {tIos("ios_title")}
-                    </Typography>
-                    <IconButton
-                        aria-label={tInstall("dismissAria")}
-                        onClick={closeIosGuide}
-                        sx={{ position: "absolute", top: 12, right: 12 }}
-                    >
-                        <CloseIcon fontSize="small" />
-                    </IconButton>
+                <Box sx={{ mt: 1.25, mb: 2.75 }}>
+                    <IosShareSheetPreview itemLabel={tIos("ios_share_menu_item")} />
                 </Box>
 
-                <Stack spacing={2} sx={{ mt: 2.5 }}>
-                    <IosInstructionStep
-                        step={1}
-                        icon={<IosShareIcon fontSize="small" />}
-                        text={tIos("ios_step1")}
-                    />
-                    <IosInstructionStep
-                        step={2}
-                        icon={<AddCircleOutlineIcon fontSize="small" />}
-                        text={tIos("ios_step2")}
-                    />
-                </Stack>
+                <Typography
+                    sx={{
+                        textAlign: "center",
+                        fontWeight: 800,
+                        fontSize: "1.2rem",
+                        lineHeight: 1.25,
+                        letterSpacing: -0.3,
+                        color: "#111",
+                        px: 1,
+                    }}
+                >
+                    {tIos("ios_title")}
+                </Typography>
+
+                <Typography
+                    component="p"
+                    sx={{
+                        mt: 1.25,
+                        textAlign: "center",
+                        color: "#6C6C70",
+                        fontSize: "0.92rem",
+                        lineHeight: 1.55,
+                        px: 0.5,
+                    }}
+                >
+                    {tIos.rich("ios_howto", {
+                        share: () => <IosShareGlyph size={17} />,
+                        add: () => <IosPlusAppGlyph size={17} />,
+                    })}
+                </Typography>
+
+                <Collapse in={iosDetailsOpen} unmountOnExit>
+                    <Stack spacing={2} sx={{ mt: 2.5 }}>
+                        <IosInstructionStep
+                            step={1}
+                            icon={<IosShareIcon fontSize="small" />}
+                            text={tIos("ios_step1")}
+                        />
+                        <IosInstructionStep
+                            step={2}
+                            icon={<AddCircleOutlineIcon fontSize="small" />}
+                            text={tIos("ios_step2")}
+                        />
+                    </Stack>
+                </Collapse>
 
                 <Button
                     fullWidth
                     variant="contained"
                     size="large"
-                    onClick={closeIosGuide}
+                    onClick={() => {
+                        if (iosDetailsOpen) {
+                            closeIosGuide();
+                            return;
+                        }
+                        setIosDetailsOpen(true);
+                    }}
                     sx={{
-                        mt: 2.5,
-                        borderRadius: 999,
+                        mt: 2.75,
+                        borderRadius: 3,
                         textTransform: "none",
                         fontWeight: 700,
-                        py: 1.25,
+                        fontSize: "1rem",
+                        py: 1.45,
+                        bgcolor: "#EDEDED",
+                        color: "#111",
+                        boxShadow: "none",
+                        "&:hover": {
+                            bgcolor: "#E2E2E2",
+                            boxShadow: "none",
+                        },
                     }}
                 >
-                    {tIos("ios_close")}
+                    {iosDetailsOpen ? tIos("ios_close") : tIos("ios_more")}
                 </Button>
             </SwipeableDrawer>
         </>

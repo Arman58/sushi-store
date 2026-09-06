@@ -23,6 +23,7 @@ import {
     type CheckoutFormValues,
     type DeliveryType,
 } from "@/shared/lib/schemas";
+import { markJustOrdered } from "@/shared/lib/pwa-install";
 import { showAppToast } from "@/shared/lib/show-app-toast";
 import { useSchemaMessages } from "@/shared/lib/use-schema-messages";
 
@@ -344,6 +345,7 @@ export function useCheckoutForm({ sessionUser }: UseCheckoutFormParams) {
                         ORDER_ID_KEY,
                         String(result.order.id),
                     );
+                    markJustOrdered();
                 } catch {
                     /* ignore */
                 }

@@ -217,12 +217,14 @@ export default function AdminProductsPage() {
         const body: Record<string, unknown> = {
             name: payload.name,
             price: payload.price,
+            originalPrice: payload.originalPrice,
             categoryId: payload.categoryId,
             images: payload.images,
             modifierGroups: payload.modifierGroups,
             minQty: payload.minQty,
             maxQty: payload.maxQty,
             upsellIds: payload.upsellIds,
+            bundleItems: payload.bundleItems,
         };
         if (isEdit) {
             body.composition = payload.composition;

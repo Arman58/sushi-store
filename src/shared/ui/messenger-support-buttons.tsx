@@ -53,6 +53,9 @@ type MessengerSupportButtonsProps = {
     compact?: boolean;
 };
 
+/** Temporary: hide WhatsApp/Telegram links. Set to `true` to restore. */
+const SHOW_MESSENGER_BUTTONS = false;
+
 export function MessengerSupportButtons({
     orderId,
     showPhone = false,
@@ -61,8 +64,8 @@ export function MessengerSupportButtons({
     const tTracker = useTranslations("order.tracker");
     const theme = useTheme();
 
-    const waUrl = buildWhatsAppOrderUrl(orderId);
-    const tgUrl = buildTelegramSupportUrl();
+    const waUrl = SHOW_MESSENGER_BUTTONS ? buildWhatsAppOrderUrl(orderId) : "";
+    const tgUrl = SHOW_MESSENGER_BUTTONS ? buildTelegramSupportUrl() : "";
 
     // Защита от разрыва номера на пробелах
     const formattedPhone = CONTACT_PHONE_DISPLAY.replace(/ /g, "\u00A0");
@@ -114,6 +117,7 @@ export function MessengerSupportButtons({
                 </Button>
             )}
 
+            {SHOW_MESSENGER_BUTTONS && (
             <Box
                 sx={{
                     display: "grid",
@@ -262,6 +266,7 @@ export function MessengerSupportButtons({
                     </Box>
                 </Button>
             </Box>
+            )}
         </Stack>
     );
 }
