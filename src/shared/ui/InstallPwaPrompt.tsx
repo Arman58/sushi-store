@@ -1,29 +1,10 @@
 "use client";
 
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
-import CloseIcon from "@mui/icons-material/Close";
-import GetAppOutlinedIcon from "@mui/icons-material/GetAppOutlined";
-import IosShareIcon from "@mui/icons-material/IosShare";
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import Collapse from "@mui/material/Collapse";
-import IconButton from "@mui/material/IconButton";
-import Paper from "@mui/material/Paper";
-import Stack from "@mui/material/Stack";
-import SwipeableDrawer from "@mui/material/SwipeableDrawer";
-import Typography from "@mui/material/Typography";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useTranslations } from "next-intl";
-import {
-    type ReactNode,
-    useCallback,
-    useEffect,
-    useRef,
-    useState,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useCartStore } from "@/features/cart";
+import { triggerHaptic } from "@/shared/lib/haptic";
 import {
     clearJustOrdered,
     hasSeenWelcomePromo,
@@ -33,15 +14,16 @@ import {
     todayKey,
 } from "@/shared/lib/pwa-install";
 
+import { IosInstallGuide } from "./pwa-install/IosInstallGuide";
+import { PwaInstallBanner } from "./pwa-install/PwaInstallBanner";
+
 /** Soft dismiss → snooze; after this many soft dismisses → long cooldown. */
 const SOFT_DISMISS_BEFORE_LONG_SNOOZE = 2;
-const SHORT_SNOOZE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-const LONG_SNOOZE_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
-/** Min time on site before first soft prompt (marketplace-style). */
-const MIN_ENGAGEMENT_MS = 45_000;
-/** Extra settle delay after eligibility so we never flash over first paint. */
-const SHOW_SETTLE_MS = 2_500;
-const STORAGE_KEY = "east-west-pwa-install-v2";
+const SHORT_SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
+const LONG_SNOOZE_MS = 90 * 24 * 60 * 60 * 1000;
+const MIN_ENGAGEMENT_MS = 5_000;
+const SHOW_SETTLE_MS = 1_500;
+const STORAGE_KEY = "east-west-pwa-install-v3";
 const LEGACY_ANDROID_KEY = "east-west-pwa-install-dismissed";
 const LEGACY_IOS_KEY = "ios-pwa-prompt-dismissed";
 const SESSION_SHOWN_KEY = "east-west-pwa-install-shown";
@@ -59,12 +41,6 @@ type InstallStorage = {
     permanentlyDismissed: boolean;
     lastVisitDay: string;
     visitDayCount: number;
-};
-
-type IosInstructionStepProps = {
-    icon: ReactNode;
-    text: string;
-    step: number;
 };
 
 function detectIOS(): boolean {
@@ -109,8 +85,6 @@ function readStorage(): InstallStorage {
             };
         }
 
-        // Migrate legacy one-shot dismiss keys into a long snooze (not forever —
-        // users who dismissed the old aggressive drawer get a break, then a soft banner).
         if (
             localStorage.getItem(LEGACY_ANDROID_KEY) === "1" ||
             localStorage.getItem(LEGACY_IOS_KEY) === "1"
@@ -141,196 +115,44 @@ function writeStorage(next: InstallStorage) {
     }
 }
 
+/** Safari/Chrome keep localStorage after the home-screen app is deleted. */
+function recoverAfterUninstall(storage: InstallStorage): InstallStorage {
+    if (!storage.permanentlyDismissed) return storage;
+    const next: InstallStorage = {
+        ...storage,
+        permanentlyDismissed: false,
+        snoozeUntil: 0,
+    };
+    writeStorage(next);
+    return next;
+}
+
+function hidePromptForSession() {
+    try {
+        sessionStorage.setItem(SESSION_SHOWN_KEY, "1");
+    } catch {
+        /* ignore */
+    }
+}
+
 function isBlockedPath(pathname: string, justOrdered: boolean): boolean {
     if (pathname.includes("/checkout") || pathname.includes("/admin")) {
         return true;
     }
-    // Order tracker is reserved for status — except right after placing an order.
     if (pathname.includes("/order/")) {
         return !justOrdered;
     }
     return false;
 }
 
-function IosShareGlyph({ size = 18 }: { size?: number }) {
-    return (
-        <Box
-            component="svg"
-            width={size}
-            height={size}
-            viewBox="0 0 24 24"
-            aria-hidden
-            sx={{ display: "inline", verticalAlign: "middle", color: "#007AFF" }}
-        >
-            <path
-                fill="currentColor"
-                d="M12 2.2c.34 0 .62.28.62.62v11.36a.62.62 0 1 1-1.24 0V2.82c0-.34.28-.62.62-.62Z"
-            />
-            <path
-                fill="currentColor"
-                d="M8.22 6.28a.62.62 0 0 1 .88-.04l2.9 2.62 2.9-2.62a.62.62 0 1 1 .83.92l-3.32 3a.62.62 0 0 1-.83 0l-3.32-3a.62.62 0 0 1-.04-.88Z"
-            />
-            <path
-                fill="currentColor"
-                d="M6.4 10.5c.34 0 .62.28.62.62v6.48c0 .55.45 1 1 1h7.96c.55 0 1-.45 1-1v-6.48a.62.62 0 1 1 1.24 0v6.48A2.24 2.24 0 0 1 15.98 20H8.02A2.24 2.24 0 0 1 5.78 17.6v-6.48c0-.34.28-.62.62-.62Z"
-            />
-        </Box>
-    );
-}
-
-function IosPlusAppGlyph({ size = 18 }: { size?: number }) {
-    return (
-        <Box
-            component="svg"
-            width={size}
-            height={size}
-            viewBox="0 0 24 24"
-            aria-hidden
-            sx={{ display: "inline", verticalAlign: "middle", color: "#007AFF" }}
-        >
-            <path
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                d="M7.2 4.6h9.6A2.6 2.6 0 0 1 19.4 7.2v9.6a2.6 2.6 0 0 1-2.6 2.6H7.2a2.6 2.6 0 0 1-2.6-2.6V7.2A2.6 2.6 0 0 1 7.2 4.6Z"
-            />
-            <path
-                fill="currentColor"
-                d="M12 8.1c.34 0 .62.28.62.62v2.66h2.66a.62.62 0 1 1 0 1.24h-2.66v2.66a.62.62 0 1 1-1.24 0v-2.66H8.72a.62.62 0 1 1 0-1.24h2.66V8.72c0-.34.28-.62.62-.62Z"
-            />
-        </Box>
-    );
-}
-
-function IosShareSheetPreview({ itemLabel }: { itemLabel: string }) {
-    return (
-        <Box sx={{ display: "flex", justifyContent: "center", px: 1 }}>
-            <Box
-                sx={{
-                    width: "100%",
-                    maxWidth: 292,
-                    borderRadius: "22px",
-                    bgcolor: "#E8E8ED",
-                    p: 1.1,
-                    boxShadow: "0 18px 40px rgba(15, 23, 42, 0.12)",
-                }}
-            >
-                <Box
-                    sx={{
-                        opacity: 0.32,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1.25,
-                        px: 1.4,
-                        py: 1.05,
-                    }}
-                >
-                    <Box
-                        sx={{
-                            width: 26,
-                            height: 26,
-                            borderRadius: "6px",
-                            border: "2px solid #8E8E93",
-                            flexShrink: 0,
-                        }}
-                    />
-                    <Box sx={{ height: 8, width: 96, bgcolor: "#C7C7CC", borderRadius: 1 }} />
-                </Box>
-                <Box
-                    sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1.25,
-                        px: 1.4,
-                        py: 1.2,
-                        bgcolor: "#fff",
-                        borderRadius: "14px",
-                    }}
-                >
-                    <IosPlusAppGlyph size={26} />
-                    <Typography
-                        sx={{
-                            fontSize: "0.98rem",
-                            fontWeight: 500,
-                            letterSpacing: -0.2,
-                            color: "#111",
-                            lineHeight: 1.2,
-                        }}
-                    >
-                        {itemLabel}
-                    </Typography>
-                </Box>
-                <Box
-                    sx={{
-                        opacity: 0.24,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1.25,
-                        px: 1.4,
-                        py: 1.05,
-                    }}
-                >
-                    <Box
-                        sx={{
-                            width: 26,
-                            height: 26,
-                            borderRadius: "6px",
-                            border: "2px solid #8E8E93",
-                            flexShrink: 0,
-                        }}
-                    />
-                    <Box sx={{ height: 8, width: 72, bgcolor: "#C7C7CC", borderRadius: 1 }} />
-                </Box>
-            </Box>
-        </Box>
-    );
-}
-
-function IosInstructionStep({ icon, text, step }: IosInstructionStepProps) {
-    return (
-        <Stack direction="row" spacing={1.5} alignItems="flex-start">
-            <Box
-                sx={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 2,
-                    bgcolor: "action.hover",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    color: "primary.main",
-                }}
-            >
-                {icon}
-            </Box>
-            <Box sx={{ flex: 1, minWidth: 0, pt: 0.25 }}>
-                <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    fontWeight={700}
-                    sx={{ letterSpacing: 0.4, textTransform: "uppercase" }}
-                >
-                    {step}
-                </Typography>
-                <Typography variant="body2" sx={{ mt: 0.25, lineHeight: 1.5 }}>
-                    {text}
-                </Typography>
-            </Box>
-        </Stack>
-    );
-}
-
 export function InstallPwaPrompt() {
-    const tInstall = useTranslations("pwa.install");
-    const tIos = useTranslations("pwa");
     const pathname = usePathname() ?? "";
     const cartCount = useCartStore((s) => s.items.length);
 
     const [platform, setPlatform] = useState<PromptPlatform | null>(null);
     const [bannerOpen, setBannerOpen] = useState(false);
     const [iosGuideOpen, setIosGuideOpen] = useState(false);
-    const [iosDetailsOpen, setIosDetailsOpen] = useState(false);
+    const [afterOrder, setAfterOrder] = useState(false);
     const [deferredPrompt, setDeferredPrompt] =
         useState<BeforeInstallPromptEvent | null>(null);
     const [installing, setInstalling] = useState(false);
@@ -361,22 +183,17 @@ export function InstallPwaPrompt() {
 
         setBannerOpen(false);
         setIosGuideOpen(false);
-        setIosDetailsOpen(false);
-        try {
-            sessionStorage.setItem(SESSION_SHOWN_KEY, "1");
-        } catch {
-            /* ignore */
-        }
+        hidePromptForSession();
     }, []);
 
     const dismissSoft = useCallback(() => {
         if (document.activeElement instanceof HTMLElement) {
             document.activeElement.blur();
         }
+        triggerHaptic("light");
         snooze(false);
     }, [snooze]);
 
-    // Capture beforeinstallprompt without showing UI (Chrome best practice).
     useEffect(() => {
         if (typeof window === "undefined" || detectStandalone()) return;
 
@@ -410,7 +227,6 @@ export function InstallPwaPrompt() {
         };
     }, []);
 
-    // Don't compete with the welcome promo sheet.
     useEffect(() => {
         if (typeof window === "undefined") return;
 
@@ -427,13 +243,12 @@ export function InstallPwaPrompt() {
         return () => window.removeEventListener(PWA_UI_BLOCK_EVENT, onBlock);
     }, [pathname]);
 
-    // Engagement: dwell time, return calendar day, cart, or a just-placed order.
     useEffect(() => {
         if (typeof window === "undefined" || detectStandalone()) return;
         if (engagementStartedRef.current) return;
         engagementStartedRef.current = true;
 
-        const storage = readStorage();
+        const storage = recoverAfterUninstall(readStorage());
         if (storage.permanentlyDismissed) return;
 
         const today = todayKey();
@@ -459,17 +274,14 @@ export function InstallPwaPrompt() {
         return () => window.clearTimeout(timer);
     }, [markEngaged]);
 
-    // Cart activity counts as engagement (marketplace pattern: prompt after intent).
     useEffect(() => {
         if (cartCount > 0) markEngaged();
     }, [cartCount, markEngaged]);
 
-    // Fresh order is the strongest food-delivery install moment.
     useEffect(() => {
         if (peekJustOrdered()) markEngaged();
     }, [pathname, markEngaged]);
 
-    // Soft banner only when eligible + platform ready + not on a blocked path.
     useEffect(() => {
         if (!eligible || !platform) return;
         if (detectStandalone()) return;
@@ -481,7 +293,7 @@ export function InstallPwaPrompt() {
             return;
         }
 
-        const storage = readStorage();
+        const storage = recoverAfterUninstall(readStorage());
         if (storage.permanentlyDismissed) return;
         if (!justOrdered && storage.snoozeUntil > Date.now()) return;
 
@@ -493,7 +305,6 @@ export function InstallPwaPrompt() {
             /* ignore */
         }
 
-        // Android: wait until we can actually install (have deferred prompt).
         if (platform === "android" && !deferredPrompt) return;
 
         if (showTimerRef.current != null) {
@@ -501,13 +312,10 @@ export function InstallPwaPrompt() {
         }
 
         showTimerRef.current = window.setTimeout(() => {
+            setAfterOrder(justOrdered);
             setBannerOpen(true);
             clearJustOrdered();
-            try {
-                sessionStorage.setItem(SESSION_SHOWN_KEY, "1");
-            } catch {
-                /* ignore */
-            }
+            hidePromptForSession();
         }, SHOW_SETTLE_MS);
 
         return () => {
@@ -519,6 +327,7 @@ export function InstallPwaPrompt() {
     }, [eligible, platform, deferredPrompt, pathname, promoBlocking]);
 
     const handleInstall = useCallback(async () => {
+        triggerHaptic("medium");
         if (platform === "ios") {
             setIosGuideOpen(true);
             return;
@@ -539,7 +348,6 @@ export function InstallPwaPrompt() {
                 });
                 setBannerOpen(false);
             } else {
-                // Native sheet dismissed — snooze so we don't nag on every navigation.
                 snooze(false);
             }
         } finally {
@@ -552,236 +360,25 @@ export function InstallPwaPrompt() {
         if (document.activeElement instanceof HTMLElement) {
             document.activeElement.blur();
         }
+        triggerHaptic("light");
         setIosGuideOpen(false);
-        setIosDetailsOpen(false);
-        snooze(false);
-    }, [snooze]);
+        setBannerOpen(false);
+        hidePromptForSession();
+    }, []);
 
     if (!platform) return null;
 
     return (
         <>
-            <Collapse in={bannerOpen && !iosGuideOpen} unmountOnExit>
-                <Box
-                    sx={{
-                        position: "fixed",
-                        left: 0,
-                        right: 0,
-                        bottom: {
-                            xs: "calc(72px + env(safe-area-inset-bottom))",
-                            sm: "calc(16px + env(safe-area-inset-bottom))",
-                        },
-                        zIndex: 1150,
-                        px: { xs: 1.5, sm: 2 },
-                        pointerEvents: "none",
-                        display: "flex",
-                        justifyContent: "center",
-                    }}
-                >
-                    <Paper
-                        elevation={8}
-                        sx={{
-                            pointerEvents: "auto",
-                            width: "100%",
-                            maxWidth: 480,
-                            borderRadius: 3,
-                            px: 1.5,
-                            py: 1.25,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 1.25,
-                            border: "1px solid",
-                            borderColor: "divider",
-                            bgcolor: "background.paper",
-                        }}
-                    >
-                        <Box
-                            sx={{
-                                width: 40,
-                                height: 40,
-                                borderRadius: 2,
-                                overflow: "hidden",
-                                flexShrink: 0,
-                            }}
-                        >
-                            <Image
-                                src="/pwa/icon-192x192.png"
-                                alt={tInstall("logoAlt")}
-                                width={40}
-                                height={40}
-                            />
-                        </Box>
-
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography variant="body2" fontWeight={800} noWrap>
-                                {tInstall("title")}
-                            </Typography>
-                            <Typography
-                                variant="caption"
-                                color="text.secondary"
-                                sx={{
-                                    display: "-webkit-box",
-                                    WebkitLineClamp: 2,
-                                    WebkitBoxOrient: "vertical",
-                                    overflow: "hidden",
-                                }}
-                            >
-                                {tInstall("body")}
-                            </Typography>
-                        </Box>
-
-                        <Button
-                            size="small"
-                            variant="contained"
-                            onClick={() => void handleInstall()}
-                            disabled={installing}
-                            startIcon={
-                                platform === "android" ? (
-                                    <GetAppOutlinedIcon sx={{ fontSize: 16 }} />
-                                ) : undefined
-                            }
-                            sx={{
-                                flexShrink: 0,
-                                borderRadius: 999,
-                                textTransform: "none",
-                                fontWeight: 700,
-                                px: 1.5,
-                                minWidth: 0,
-                            }}
-                        >
-                            {tInstall("installCta")}
-                        </Button>
-
-                        <IconButton
-                            size="small"
-                            aria-label={tInstall("dismissAria")}
-                            onClick={dismissSoft}
-                            sx={{ flexShrink: 0, ml: -0.5 }}
-                        >
-                            <CloseIcon fontSize="small" />
-                        </IconButton>
-                    </Paper>
-                </Box>
-            </Collapse>
-
-            <SwipeableDrawer
-                anchor="bottom"
-                open={iosGuideOpen}
-                onClose={closeIosGuide}
-                onOpen={() => setIosGuideOpen(true)}
-                disableSwipeToOpen
-                disableRestoreFocus
-                disableScrollLock
-                sx={{ zIndex: 1400 }}
-                PaperProps={{
-                    sx: {
-                        position: "relative",
-                        borderTopLeftRadius: 28,
-                        borderTopRightRadius: 28,
-                        px: 2.75,
-                        pt: 2.25,
-                        pb: "calc(20px + env(safe-area-inset-bottom))",
-                        bgcolor: "#fff",
-                    },
-                }}
-            >
-                <IconButton
-                    aria-label={tInstall("dismissAria")}
-                    onClick={closeIosGuide}
-                    sx={{
-                        position: "absolute",
-                        top: 10,
-                        right: 10,
-                        color: "#8E8E93",
-                        bgcolor: "#F2F2F7",
-                        width: 32,
-                        height: 32,
-                        "&:hover": { bgcolor: "#E5E5EA" },
-                    }}
-                >
-                    <CloseIcon sx={{ fontSize: 18 }} />
-                </IconButton>
-
-                <Box sx={{ mt: 1.25, mb: 2.75 }}>
-                    <IosShareSheetPreview itemLabel={tIos("ios_share_menu_item")} />
-                </Box>
-
-                <Typography
-                    sx={{
-                        textAlign: "center",
-                        fontWeight: 800,
-                        fontSize: "1.2rem",
-                        lineHeight: 1.25,
-                        letterSpacing: -0.3,
-                        color: "#111",
-                        px: 1,
-                    }}
-                >
-                    {tIos("ios_title")}
-                </Typography>
-
-                <Typography
-                    component="p"
-                    sx={{
-                        mt: 1.25,
-                        textAlign: "center",
-                        color: "#6C6C70",
-                        fontSize: "0.92rem",
-                        lineHeight: 1.55,
-                        px: 0.5,
-                    }}
-                >
-                    {tIos.rich("ios_howto", {
-                        share: () => <IosShareGlyph size={17} />,
-                        add: () => <IosPlusAppGlyph size={17} />,
-                    })}
-                </Typography>
-
-                <Collapse in={iosDetailsOpen} unmountOnExit>
-                    <Stack spacing={2} sx={{ mt: 2.5 }}>
-                        <IosInstructionStep
-                            step={1}
-                            icon={<IosShareIcon fontSize="small" />}
-                            text={tIos("ios_step1")}
-                        />
-                        <IosInstructionStep
-                            step={2}
-                            icon={<AddCircleOutlineIcon fontSize="small" />}
-                            text={tIos("ios_step2")}
-                        />
-                    </Stack>
-                </Collapse>
-
-                <Button
-                    fullWidth
-                    variant="contained"
-                    size="large"
-                    onClick={() => {
-                        if (iosDetailsOpen) {
-                            closeIosGuide();
-                            return;
-                        }
-                        setIosDetailsOpen(true);
-                    }}
-                    sx={{
-                        mt: 2.75,
-                        borderRadius: 3,
-                        textTransform: "none",
-                        fontWeight: 700,
-                        fontSize: "1rem",
-                        py: 1.45,
-                        bgcolor: "#EDEDED",
-                        color: "#111",
-                        boxShadow: "none",
-                        "&:hover": {
-                            bgcolor: "#E2E2E2",
-                            boxShadow: "none",
-                        },
-                    }}
-                >
-                    {iosDetailsOpen ? tIos("ios_close") : tIos("ios_more")}
-                </Button>
-            </SwipeableDrawer>
+            <PwaInstallBanner
+                open={bannerOpen && !iosGuideOpen}
+                platform={platform}
+                afterOrder={afterOrder}
+                installing={installing}
+                onInstall={() => void handleInstall()}
+                onDismiss={dismissSoft}
+            />
+            <IosInstallGuide open={iosGuideOpen} onClose={closeIosGuide} />
         </>
     );
 }

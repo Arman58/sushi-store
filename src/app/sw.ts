@@ -216,8 +216,8 @@ self.addEventListener("push", (event: PushEvent) => {
         (async () => {
             await self.registration.showNotification(payload.title, {
                 body: payload.body,
-                icon: "/pwa/icon-192x192.png",
-                badge: "/pwa/icon-192x192.png",
+                icon: "/pwa/icon-192x192-v2.png",
+                badge: "/pwa/icon-192x192-v2.png",
                 data: { url: payload.url },
             });
 
@@ -288,8 +288,8 @@ self.addEventListener("message", (event: ExtendableMessageEvent) => {
                         body:
                             data.body ||
                             "Вы оставили вкусные блюда в корзине! Оформите заказ, пока кухня свободна.",
-                        icon: "/pwa/icon-192x192.png",
-                        badge: "/pwa/icon-192x192.png",
+                        icon: "/pwa/icon-192x192-v2.png",
+                        badge: "/pwa/icon-192x192-v2.png",
                         data: { url: data.url || "/cart" },
                     },
                 );
