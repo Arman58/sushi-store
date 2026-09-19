@@ -83,7 +83,15 @@ async function fetchMenuData(locale: string) {
             hasModifiers: p.modifierGroups.length > 0,
         })),
         locale,
-    ).sort((a, b) => (a.name || "").localeCompare(b.name || "", locale));
+    ).sort((a, b) => {
+        const catPosA = a.category?.position ?? 999;
+        const catPosB = b.category?.position ?? 999;
+        if (catPosA !== catPosB) return catPosA - catPosB;
+        const scoreA = (a.ratingAvg ?? 0) * (a.ratingCount ?? 0) + (a.originalPrice ? 10 : 0);
+        const scoreB = (b.ratingAvg ?? 0) * (b.ratingCount ?? 0) + (b.originalPrice ? 10 : 0);
+        if (scoreB !== scoreA) return scoreB - scoreA;
+        return a.id - b.id;
+    });
 
     const minPrice = priceStats._min.price ?? 0;
     const maxPrice = priceStats._max.price ?? minPrice;

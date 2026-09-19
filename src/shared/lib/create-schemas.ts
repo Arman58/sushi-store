@@ -87,15 +87,15 @@ export function createCheckoutSchema(messages: SchemaMessages) {
             }
 
             const phoneDigits = checkoutPhoneDigits(data.phone);
+            if (phoneDigits.length !== 8) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ["phone"],
+                    message: messages.phoneRequired,
+                });
+            }
 
             if (data.delivery === "delivery") {
-                if (phoneDigits.length !== 8) {
-                    ctx.addIssue({
-                        code: z.ZodIssueCode.custom,
-                        path: ["phone"],
-                        message: messages.phoneRequiredForDelivery,
-                    });
-                }
                 if (!data.address || data.address.trim().length < 5) {
                     ctx.addIssue({
                         code: z.ZodIssueCode.too_small,
@@ -113,12 +113,6 @@ export function createCheckoutSchema(messages: SchemaMessages) {
                         message: messages.zoneRequired,
                     });
                 }
-            } else if (data.phone.trim().length > 0 && phoneDigits.length !== 8) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    path: ["phone"],
-                    message: messages.phoneInvalid,
-                });
             }
         });
 }

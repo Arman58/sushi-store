@@ -1,3 +1,4 @@
+/** Kitchen / status mutations (Telegram, admin status, client cancel). Not createOrder. */
 import type { OrderStatus } from "@prisma/client";
 
 import {
@@ -24,13 +25,28 @@ export function isKitchenButtonStatus(value: string): value is KitchenButtonStat
 }
 
 const TELEGRAM_BUTTON_EMOJI: Record<KitchenButtonStatus, string> = {
-    COOKING: "🔥",
-    DELIVERING: "🚗",
+    COOKING: "👨‍🍳",
+    DELIVERING: "🛵",
     DONE: "✅",
     CANCELLED: "❌",
 };
 
-export function orderStatusTelegramButtonLabel(status: KitchenButtonStatus): string {
+export function orderStatusTelegramButtonLabel(
+    status: KitchenButtonStatus,
+    deliveryType: "delivery" | "pickup" = "delivery",
+): string {
+    if (status === "COOKING") {
+        return "👨‍🍳 Готовится";
+    }
+    if (status === "DELIVERING") {
+        return deliveryType === "pickup" ? "🛍 К выдаче" : "🛵 Курьеру";
+    }
+    if (status === "DONE") {
+        return deliveryType === "pickup" ? "✅ Заказ выдан" : "✅ Заказ доставлен";
+    }
+    if (status === "CANCELLED") {
+        return "❌ Отменить заказ";
+    }
     return `${TELEGRAM_BUTTON_EMOJI[status]} ${orderStatusLabel(status)}`;
 }
 
@@ -49,7 +65,7 @@ export type UpdateOrderStatusErrorCode =
  * - соседние правки NEW/COOKING/DELIVERING разрешены (реальность кухни).
  */
 const ALLOWED_STATUS_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
-    PENDING_APPROVAL: ["NEW", "CANCELLED"],
+    PENDING_APPROVAL: ["NEW", "COOKING", "CANCELLED"],
     NEW: ["COOKING", "DELIVERING", "DONE", "CANCELLED"],
     COOKING: ["NEW", "DELIVERING", "DONE", "CANCELLED"],
     DELIVERING: ["COOKING", "DONE", "CANCELLED"],

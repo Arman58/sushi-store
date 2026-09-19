@@ -30,12 +30,29 @@ import {
 export type { ProductBadge, ProductCardProps } from "./product-card-shared";
 export { ProductCardSkeleton } from "./product-card-skeleton";
 
+function extractPieceCount(
+    name: string,
+    description?: string | null,
+    composition?: string | null,
+): number | null {
+    const text = `${name} ${composition ?? ""} ${description ?? ""}`;
+    const match = text.match(/(\d+)\s*(?:шт|հատ|pcs|штук|штуки|штука|հատիկ|ռոլ|ролл)/i);
+    if (match && match[1]) {
+        const count = parseInt(match[1], 10);
+        if (count > 0 && count <= 200) {
+            return count;
+        }
+    }
+    return null;
+}
+
 export const ProductCard = memo(function ProductCard({
     name,
     description,
     composition,
     price,
     originalPrice,
+    weight,
     images,
     mainImage,
     badges,
@@ -57,6 +74,11 @@ export const ProductCard = memo(function ProductCard({
     const imageUrl = getProductCoverUrl({ images, mainImage });
     const imageAlt = buildProductImageAlt(name, locale);
     const previewText = (description ?? composition)?.trim() ?? "";
+
+    const pieceCount = extractPieceCount(name, description, composition);
+    const piecesLabel = pieceCount ? t("pieces", { count: pieceCount }) : null;
+    const weightLabel = weight && weight > 0 ? t("weight", { weight }) : null;
+    const metaLabel = [piecesLabel, weightLabel].filter(Boolean).join(" · ");
 
     const productLink = productHref?.trim() || null;
     const hasProductLink = Boolean(productLink);
@@ -278,6 +300,24 @@ export const ProductCard = memo(function ProductCard({
                                 {name}
                             </Typography>
                         )}
+
+                        {metaLabel ? (
+                            <Typography
+                                variant="caption"
+                                sx={{
+                                    mt: 0.35,
+                                    fontWeight: 600,
+                                    fontSize: "0.75rem",
+                                    color: tokens.textSecondary,
+                                    lineHeight: 1.2,
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                }}
+                            >
+                                {metaLabel}
+                            </Typography>
+                        ) : null}
 
                         {previewText ? (
                             <Typography

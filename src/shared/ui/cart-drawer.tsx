@@ -13,6 +13,7 @@ import { useShallow } from "zustand/react/shallow";
 
 import {
     CartLineItem,
+    CutlerySelector,
     useCartLineValidation,
     useCartStore,
 } from "@/features/cart";
@@ -395,7 +396,11 @@ function CartDrawerOpen() {
                                                 </AnimatePresence>
                                             </Stack>
 
-                                            <Box sx={{ mt: 2.5 }}>
+                                            <Box sx={{ mt: 2 }}>
+                                                <CutlerySelector />
+                                            </Box>
+
+                                            <Box sx={{ mt: 2 }}>
                                                 <SauceStrip cartItems={items} />
                                             </Box>
 

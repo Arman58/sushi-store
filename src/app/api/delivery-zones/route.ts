@@ -25,14 +25,95 @@ export async function GET(request: Request) {
             },
         });
 
-        const zones = zonesRaw.map((zone) => ({
-            id: zone.id,
-            name: getLocalizedField(zone.translations, locale, "name"),
-            deliveryPrice: zone.deliveryPrice,
-            minOrderAmount: zone.minOrderAmount,
-            description: getLocalizedField(zone.translations, locale, "description"),
-            requiresManagerApproval: zone.requiresManagerApproval,
-        }));
+        const zones = zonesRaw.map((zone) => {
+            const rawNames = zone.translations
+                .map((t) => t.name.trim())
+                .filter(Boolean);
+            const joined = rawNames.join(" ").toLowerCase();
+            const synonyms: string[] = [];
+            if (
+                joined.includes("нор ачин") ||
+                joined.includes("նոր հաճն") ||
+                joined.includes("nor hachn")
+            ) {
+                synonyms.push(
+                    "Нор Ачин",
+                    "Нор Ачн",
+                    "Норачин",
+                    "Nor Hachn",
+                    "Nor Hajn",
+                    "Nor Hachin",
+                    "Նոր Հաճն",
+                    "Հաճն",
+                    "Hachn",
+                );
+            }
+            if (
+                joined.includes("нор гехи") ||
+                joined.includes("նոր գեղի") ||
+                joined.includes("nor geghi")
+            ) {
+                synonyms.push(
+                    "Нор Гехи",
+                    "Нор Геги",
+                    "Норгехи",
+                    "Նոր Գեղի",
+                    "Նոր Գեխի",
+                    "Nor Geghi",
+                    "Nor Gegi",
+                );
+            }
+            if (
+                joined.includes("артамет") ||
+                joined.includes("արտամետ") ||
+                joined.includes("artamet")
+            ) {
+                synonyms.push("Артамет", "Արտամետ", "Artamet");
+            }
+            if (
+                joined.includes("мргашен") ||
+                joined.includes("մրգաշեն") ||
+                joined.includes("mrgashen")
+            ) {
+                synonyms.push("Мргашен", "Մրգաշեն", "Mrgashen");
+            }
+            if (
+                joined.includes("лусакерт") ||
+                joined.includes("լուսակերտ") ||
+                joined.includes("lusakert")
+            ) {
+                synonyms.push("Лусакерт", "Լուսակերտ", "Lusakert");
+            }
+            if (
+                joined.includes("бюрекаван") ||
+                joined.includes("բյուրեղավան") ||
+                joined.includes("byureghavan")
+            ) {
+                synonyms.push(
+                    "Бюрекаван",
+                    "Бюрегаван",
+                    "Բյուրեղավան",
+                    "Byureghavan",
+                    "Byuregavan",
+                );
+            }
+
+            const aliases = Array.from(new Set([...rawNames, ...synonyms]));
+
+            return {
+                id: zone.id,
+                name: getLocalizedField(zone.translations, locale, "name"),
+                deliveryPrice: zone.deliveryPrice,
+                minOrderAmount: zone.minOrderAmount,
+                description: getLocalizedField(
+                    zone.translations,
+                    locale,
+                    "description",
+                ),
+                requiresManagerApproval: zone.requiresManagerApproval,
+                aliases,
+            };
+        });
 
         return NextResponse.json(zones, {
             headers: {

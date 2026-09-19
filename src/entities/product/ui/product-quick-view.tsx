@@ -37,6 +37,7 @@ type Props = {
 export function ProductQuickView({ open, onClose, product, onAdd }: Props) {
     const tCommon = useTranslations("common");
     const tPage = useTranslations("productPage");
+    const tProduct = useTranslations("product");
     const locale = useLocale();
 
     const coverUrl = getProductCoverUrl(product);
@@ -45,6 +46,16 @@ export function ProductQuickView({ open, onClose, product, onAdd }: Props) {
     const isAvailable = product.isAvailable !== false;
     const previewText =
         product.description?.trim() || product.composition?.trim() || "";
+
+    const pieceCount = (() => {
+        const text = `${product.name} ${product.composition ?? ""} ${product.description ?? ""}`;
+        const match = text.match(/(\d+)\s*(?:шт|հատ|pcs|штук|штуки|штука|հատիկ|ռոլ|ролл)/i);
+        if (match && match[1]) {
+            const count = parseInt(match[1], 10);
+            if (count > 0 && count <= 200) return count;
+        }
+        return null;
+    })();
 
     return (
         <Drawer
@@ -196,6 +207,37 @@ export function ProductQuickView({ open, onClose, product, onAdd }: Props) {
                         >
                             ({product.ratingCount})
                         </Typography>
+                    </Stack>
+                )}
+
+                {(pieceCount != null || (product.weight != null && product.weight > 0)) && (
+                    <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                        {pieceCount != null && (
+                            <Chip
+                                label={tProduct("pieces", { count: pieceCount })}
+                                size="small"
+                                variant="outlined"
+                                sx={{
+                                    fontWeight: 600,
+                                    fontSize: "0.75rem",
+                                    borderRadius: 1.5,
+                                    height: 24,
+                                }}
+                            />
+                        )}
+                        {product.weight != null && product.weight > 0 && (
+                            <Chip
+                                label={tProduct("weight", { weight: product.weight })}
+                                size="small"
+                                variant="outlined"
+                                sx={{
+                                    fontWeight: 600,
+                                    fontSize: "0.75rem",
+                                    borderRadius: 1.5,
+                                    height: 24,
+                                }}
+                            />
+                        )}
                     </Stack>
                 )}
 

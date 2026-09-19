@@ -14,6 +14,7 @@ export async function MenuHeroSection() {
     return (
         <Box
             sx={{
+                display: { xs: "none", md: "block" },
                 mb: 4,
                 borderRadius: 4,
                 overflow: "hidden",

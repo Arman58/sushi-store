@@ -8,7 +8,12 @@ export function MenuHeroSkeleton() {
             variant="rounded"
             animation="wave"
             height={160}
-            sx={{ borderRadius: 4, mb: 4, ...skeletonSurfaceSx }}
+            sx={{
+                display: { xs: "none", md: "block" },
+                borderRadius: 4,
+                mb: 4,
+                ...skeletonSurfaceSx,
+            }}
         />
     );
 }

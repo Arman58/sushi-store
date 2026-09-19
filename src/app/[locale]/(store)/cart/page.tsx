@@ -18,6 +18,7 @@ import { useShallow } from "zustand/react/shallow";
 
 import {
     CartLineItem,
+    CutlerySelector,
     useCartLineValidation,
     useCartStore,
 } from "@/features/cart";
@@ -256,6 +257,10 @@ export default function CartPage() {
                                     {clearArmed ? t("clearConfirm") : t("clear")}
                                 </AppButton>
                             </Stack>
+
+                            <Box sx={{ mt: 2.5 }}>
+                                <CutlerySelector />
+                            </Box>
 
                         </Box>
 

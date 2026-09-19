@@ -93,6 +93,21 @@ export const telegramWebhookBodySchema = z.object({
                 .optional(),
         })
         .optional(),
+    message: z
+        .object({
+            message_id: z.number(),
+            chat: z.object({ id: z.union([z.number(), z.string()]) }),
+            from: z
+                .object({
+                    id: z.union([z.number(), z.string()]),
+                    first_name: z.string().optional(),
+                    username: z.string().optional(),
+                })
+                .optional(),
+            text: z.string().optional(),
+            date: z.number().optional(),
+        })
+        .optional(),
 });
 
 // ─── Localized JSON fields ───────────────────────────────────────────────────

@@ -10,7 +10,11 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useTranslations } from "next-intl";
 
-import { useCartLineValidation, useCartStore } from "@/features/cart";
+import {
+    CutlerySelector,
+    useCartLineValidation,
+    useCartStore,
+} from "@/features/cart";
 import { AppInput } from "@/shared/ui";
 import { skeletonSurfaceSx } from "@/shared/ui/skeleton-styles";
 import { tokens } from "@/shared/ui/theme";
@@ -98,6 +102,10 @@ export function SummarySection({
                     />
                 ))}
             </Stack>
+
+            <Box sx={{ my: 1.5 }}>
+                <CutlerySelector compact />
+            </Box>
 
             <Divider sx={{ my: 2 }} />
 

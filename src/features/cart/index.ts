@@ -14,4 +14,4 @@ export {
     useCartLineValidation,
 } from "./model/use-cart-line-validation";
 export { CartSyncProvider } from "./model/use-cart-sync";
-export { CartButton, CartLineItem, ModifiersList } from "./ui";
+export { CartButton, CartLineItem, CutlerySelector, ModifiersList } from "./ui";

@@ -9,6 +9,7 @@ export type DeliveryZoneOption = {
     minOrderAmount: number;
     description?: string | null;
     requiresManagerApproval?: boolean;
+    aliases?: string[];
 };
 
 export type CheckoutSubmitContext = {

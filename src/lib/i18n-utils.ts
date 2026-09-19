@@ -194,11 +194,53 @@ export function toStorefrontCategory(
     };
 }
 
+export function getStorefrontCategoryOrderWeight(c: { slug?: string; name?: string; position?: number }): number {
+    const slug = (c.slug || "").toLowerCase();
+    const name = (c.name || "").toLowerCase();
+
+    // 1. Sets & Combos first (highest AOV, #1 purchase intent for sushi delivery)
+    if (slug.includes("set") || slug.includes("combo") || name.includes("սեթ") || name.includes("сет") || name.includes("կոմբո") || name.includes("комбо")) {
+        return 0;
+    }
+    // 2. Sushi & Rolls second
+    if (slug.includes("sushi") || slug.includes("roll") || name.includes("սուշի") || name.includes("суши") || name.includes("ռոլ") || name.includes("ролл")) {
+        return 1;
+    }
+    // 3. Pizza third
+    if (slug.includes("pizza") || name.includes("պիցցա") || name.includes("пицц")) {
+        return 2;
+    }
+    // 4. Shawarma
+    if (slug.includes("shawarma") || name.includes("շաուրմա") || name.includes("шаурм")) {
+        return 3;
+    }
+    // 5. Lahmajo
+    if (slug.includes("lahmajo") || name.includes("լահմաջո") || name.includes("лахмаджо")) {
+        return 4;
+    }
+    // 6. Strips & snacks
+    if (slug.includes("strips") || name.includes("սթրիփս") || name.includes("стрипс")) {
+        return 5;
+    }
+    // 7. Drinks near the end
+    if (slug.includes("drink") || name.includes("ըմպելիք") || name.includes("напит")) {
+        return 80;
+    }
+    // 8. Sauces last (upsell item)
+    if (slug.includes("sauc") || slug.includes("cat-1783467020200") || name.includes("սոուս") || name.includes("соус")) {
+        return 99;
+    }
+
+    return c.position ?? 50;
+}
+
 export function toStorefrontCategories(
     categories: readonly Record<string, unknown>[],
     locale: string,
 ): StorefrontCategory[] {
-    return categories.map((c) => toStorefrontCategory(c, locale));
+    return categories
+        .map((c) => toStorefrontCategory(c, locale))
+        .sort((a, b) => getStorefrontCategoryOrderWeight(a) - getStorefrontCategoryOrderWeight(b));
 }
 
 /** Локализует группы и опции модификаторов для витрины. */

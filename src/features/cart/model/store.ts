@@ -92,6 +92,8 @@ type CartState = {
     cartTotalPrice: number;
     appliedPromoCode: string | null;
     hasPriceMismatch: boolean;
+    personsCount: number;
+    setPersonsCount: (count: number) => void;
     lastAddedTitle: string | null;
     lastAddedAt: number | null;
     isCartOpen: boolean;
@@ -145,6 +147,9 @@ export const useCartStore = create<CartState>()(
             cartTotalPrice: 0,
             appliedPromoCode: null,
             hasPriceMismatch: false,
+            personsCount: 2,
+            setPersonsCount: (count) =>
+                set({ personsCount: Math.max(1, Math.min(10, count)) }),
             lastAddedTitle: null,
             lastAddedAt: null,
             isCartOpen: false,
@@ -473,13 +478,21 @@ export const useCartStore = create<CartState>()(
                 items: state.items,
                 hasPriceMismatch: state.hasPriceMismatch,
                 appliedPromoCode: state.appliedPromoCode,
+                personsCount: state.personsCount,
             }),
             merge: (persisted, current) => {
                 const p = (persisted ?? {}) as Partial<CartState>;
                 const items = p.items ?? current.items;
+                const personsCount =
+                    typeof p.personsCount === "number" &&
+                    p.personsCount >= 1 &&
+                    p.personsCount <= 10
+                        ? p.personsCount
+                        : (current.personsCount ?? 2);
                 return {
                     ...current,
                     ...p,
+                    personsCount,
                     ...withQty(items),
                 };
             },

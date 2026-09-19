@@ -1,3 +1,4 @@
+/** Checkout createOrder pipeline (pricing, promo, zones). Status updates live in @/lib/order-service. */
 import { DeliveryType, PaymentMethod, Prisma } from "@prisma/client";
 
 import type { OrderPayload } from "@/app/api/order/_schema";

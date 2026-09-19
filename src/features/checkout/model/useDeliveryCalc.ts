@@ -13,6 +13,7 @@ import { useCartStore } from "@/features/cart";
 import { ApiError, validatePromo } from "@/shared/api";
 import type { CheckoutFormValues } from "@/shared/lib/schemas";
 
+import { LAST_DELIVERY_ZONE_KEY } from "./constants";
 import { isAbortError } from "./helpers";
 import type { DeliveryZoneOption } from "./types";
 
@@ -85,10 +86,31 @@ export function useDeliveryCalc({
                     throw new Error(msg);
                 }
                 if (zonesFetchGenRef.current !== gen) return;
-                setDeliveryZones(
-                    Array.isArray(raw) ? (raw as DeliveryZoneOption[]) : [],
-                );
+                const zonesList = Array.isArray(raw) ? (raw as DeliveryZoneOption[]) : [];
+                setDeliveryZones(zonesList);
                 setZonesError(null);
+
+                // Автоматический выбор зоны при первоначальной загрузке
+                if (zonesList.length > 0) {
+                    const currentZoneId = watch("deliveryZoneId");
+                    if (!currentZoneId) {
+                        if (zonesList.length === 1) {
+                            setValue("deliveryZoneId", zonesList[0].id, { shouldValidate: true });
+                        } else if (typeof window !== "undefined") {
+                            try {
+                                const storedId = localStorage.getItem(LAST_DELIVERY_ZONE_KEY);
+                                if (storedId) {
+                                    const parsedId = Number(storedId);
+                                    if (zonesList.some((z) => z.id === parsedId)) {
+                                        setValue("deliveryZoneId", parsedId, { shouldValidate: true });
+                                    }
+                                }
+                            } catch {
+                                // ignore storage error
+                            }
+                        }
+                    }
+                }
             } catch (e) {
                 if (isAbortError(e)) {
                     if (teardown || zonesFetchGenRef.current !== gen) return;
@@ -114,7 +136,17 @@ export function useDeliveryCalc({
             clearTimeout(hangGuard);
             ac.abort();
         };
-    }, [locale, t]);
+    }, [locale, t, setValue, watch]);
+
+    useEffect(() => {
+        if (deliveryZoneId && typeof window !== "undefined") {
+            try {
+                localStorage.setItem(LAST_DELIVERY_ZONE_KEY, String(deliveryZoneId));
+            } catch {
+                // ignore
+            }
+        }
+    }, [deliveryZoneId]);
 
     useEffect(() => {
         if (delivery !== "delivery") {

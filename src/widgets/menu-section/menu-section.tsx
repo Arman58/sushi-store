@@ -10,7 +10,7 @@ import { alpha, useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import {
     startTransition,
     Suspense,
@@ -133,7 +133,6 @@ function MenuSectionInner({
     maxPrice,
 }: MenuSectionProps) {
     const t = useTranslations("menu");
-    const locale = useLocale();
     const theme = useTheme();
     const allSlugs = useMemo(
         () => ["all", ...categories.map((c) => c.slug)],
@@ -220,14 +219,11 @@ function MenuSectionInner({
                           (p.description ?? "").toLowerCase().includes(query),
                   );
 
-        return [...withSearch].sort((a, b) =>
-            a.name.localeCompare(b.name, locale, { sensitivity: "base" }),
-        );
+        return withSearch;
     }, [
         categorySlug,
         filterByCategory,
         filterByPriceRange,
-        locale,
         priceRange,
         products,
         deferredSearch,

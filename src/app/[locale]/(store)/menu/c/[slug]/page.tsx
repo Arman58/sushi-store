@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -12,14 +13,33 @@ import { PromoBannersSection } from "@/widgets/home/promo-banners-section";
 
 import { MenuCatalogSection } from "../../menu-catalog-section";
 import { MenuCatalogSkeleton } from "../../menu-catalog-skeleton";
-import { MenuHeroSection } from "../../menu-hero-section";
-import { MenuHeroSkeleton } from "../../menu-hero-skeleton";
 
 export const revalidate = 60;
 
 type CategoryMenuPageProps = {
     params: Promise<{ slug: string; locale: string }>;
 };
+
+function buildCategorySlugOrFilter(categorySlug: string): Prisma.CategoryWhereInput[] {
+    const filters: Prisma.CategoryWhereInput[] = [{ slug: categorySlug }];
+
+    if (categorySlug === "sets" || categorySlug === "sushi-sets") {
+        filters.push({ slug: "fries" });
+        filters.push({ translations: { some: { name: { contains: "սեթ", mode: "insensitive" } } } });
+    } else if (categorySlug === "fries") {
+        filters.push({ slug: "sets" }, { slug: "sushi-sets" });
+    } else if (categorySlug === "sauces") {
+        filters.push({ slug: "cat-1783467020200" });
+    } else if (categorySlug === "cat-1783467020200") {
+        filters.push({ slug: "sauces" });
+    } else if (categorySlug === "combo" || categorySlug === "combos") {
+        filters.push({ slug: "cat-1788440398934" });
+    } else if (categorySlug === "cat-1788440398934") {
+        filters.push({ slug: "combo" }, { slug: "combos" }, { slug: "sets" });
+    }
+
+    return filters;
+}
 
 export async function generateMetadata({
     params,
@@ -41,7 +61,10 @@ export async function generateMetadata({
 
     try {
         const category = await prisma.category.findFirst({
-            where: { slug: categorySlug, isActive: true },
+            where: {
+                isActive: true,
+                OR: buildCategorySlugOrFilter(categorySlug),
+            },
             select: { translations: true, slug: true },
         });
 
@@ -83,7 +106,10 @@ export default async function CategoryMenuPage({
     }
 
     const category = await prisma.category.findFirst({
-        where: { slug: categorySlug, isActive: true },
+        where: {
+            isActive: true,
+            OR: buildCategorySlugOrFilter(categorySlug),
+        },
         select: { id: true },
     });
     if (!category) {
@@ -92,10 +118,6 @@ export default async function CategoryMenuPage({
 
     return (
         <PageContainer>
-            <Suspense fallback={<MenuHeroSkeleton />}>
-                <MenuHeroSection />
-            </Suspense>
-
             <Suspense fallback={null}>
                 <PromoBannersSection nested />
             </Suspense>
