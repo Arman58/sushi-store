@@ -764,25 +764,25 @@ export async function DELETE(
     if (!idResult.ok) return idResult.response;
 
     try {
-        await prisma.product.delete({ where: { id: idResult.id } });
-        invalidateCatalogCache();
-        return NextResponse.json({ ok: true });
-    } catch (error) {
-        // P2003 (FK Restrict): товар лежит в серверных корзинах покупателей.
-        // Вместо жёсткого удаления - soft delete: validate-cart пометит строки
-        // как "inactive", клиент покажет штатное состояние «товар недоступен».
-        if (
-            error instanceof Prisma.PrismaClientKnownRequestError &&
-            error.code === "P2003"
-        ) {
-            await prisma.product.update({
-                where: { id: idResult.id },
-                data: { isActive: false, isAvailable: false },
-            });
-            invalidateCatalogCache();
+        // Всегда soft delete: жёсткое удаление ломает историю заказов/корзины
+        // и гоняется с FK Restrict на CartLine. Витрина фильтрует isActive.
+        const existing = await prisma.product.findUnique({
+            where: { id: idResult.id },
+            select: { id: true, isActive: true },
+        });
+        if (!existing) {
+            return NextResponse.json({ error: "Product not found" }, { status: 404 });
+        }
+        if (!existing.isActive) {
             return NextResponse.json({ ok: true, softDeleted: true });
         }
-        // Error logged in production monitoring
+        await prisma.product.update({
+            where: { id: idResult.id },
+            data: { isActive: false, isAvailable: false },
+        });
+        invalidateCatalogCache();
+        return NextResponse.json({ ok: true, softDeleted: true });
+    } catch {
         return NextResponse.json({ error: "Failed to delete product" }, { status: 500 });
     }
 }

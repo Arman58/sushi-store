@@ -16,6 +16,7 @@ function normalizeSiteUrl(raw: string): string {
 function resolveSiteUrlRaw(): string {
     return (
         process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
+        process.env.SITE_URL?.trim() ||
         process.env.NEXTAUTH_URL?.trim() ||
         (process.env.VERCEL_URL
             ? `https://${process.env.VERCEL_URL}`

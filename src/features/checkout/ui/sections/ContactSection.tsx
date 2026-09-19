@@ -153,7 +153,7 @@ export function ContactSection({
                         }}
                         onBlur={field.onBlur}
                         inputRef={field.ref}
-                        required={isDelivery}
+                        required
                         placeholder={tCheckout("phoneTemplate")}
                         autoComplete="tel"
                         inputProps={{

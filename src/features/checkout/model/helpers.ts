@@ -41,15 +41,7 @@ export function checkoutBasicsIncomplete(v: {
 }): boolean {
     if (!v.name?.trim() || v.name.trim().length < 2) return true;
     const phoneDigits = armenianPhoneNationalDigits(v.phone);
-    if (v.delivery === "delivery" && phoneDigits.length !== 8) return true;
-    if (
-        v.delivery === "pickup" &&
-        v.phone.trim().length > 0 &&
-        phoneDigits.length !== 8 &&
-        digitsOnly(v.phone) !== "374"
-    ) {
-        return true;
-    }
+    if (phoneDigits.length !== 8) return true;
     if (v.delivery === "delivery") {
         if (v.deliveryZoneId == null || v.deliveryZoneId <= 0) return true;
         if (!v.address?.trim() || v.address.trim().length < 5) return true;

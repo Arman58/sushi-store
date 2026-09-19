@@ -31,7 +31,19 @@ async function findUpsellCategoryIds(
     const bySlug = await prisma.category.findMany({
         where: {
             isActive: true,
-            slug: { in: slugs },
+            OR: [
+                { slug: { in: [...slugs, "cat-1783467020200"] } },
+                {
+                    translations: {
+                        some: {
+                            name: {
+                                in: ["Напитки", "Ըմպելիքներ", "Drinks", "Соусы", "Սոուս", "Sauces"],
+                                mode: "insensitive",
+                            },
+                        },
+                    },
+                },
+            ],
         },
         select: { id: true },
     });
@@ -57,7 +69,22 @@ async function loadSauces(
     locale: string,
 ) {
     const category = await prisma.category.findFirst({
-        where: { isActive: true, slug: "sauces" },
+        where: {
+            isActive: true,
+            OR: [
+                { slug: { in: ["sauces", "cat-1783467020200", "sousy"] } },
+                {
+                    translations: {
+                        some: {
+                            name: {
+                                in: ["Соусы", "Соус", "Սոուսներ", "Սոուս", "Sauces", "Sauce"],
+                                mode: "insensitive",
+                            },
+                        },
+                    },
+                },
+            ],
+        },
         select: { id: true },
     });
     if (!category) return NextResponse.json([]);

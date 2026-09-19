@@ -84,17 +84,17 @@ function getCategoryIcon(slug: string, name: string): string {
         if (key !== "all" && nameLower.includes(key)) return icon;
     }
 
-    // Armenian transliteration fallbacks
-    if (nameLower.includes("ռոլ") || nameLower.includes("սուշի")) return "🍣";
-    if (nameLower.includes("պիցցա")) return "🍕";
-    if (nameLower.includes("շաուրմա")) return "🌯";
-    if (nameLower.includes("աղամջո")) return "🫓";
-    if (nameLower.includes("սալատ") || nameLower.includes("ճաշած")) return "🥗";
-    if (nameLower.includes(" десерт") || nameLower.includes("քաղց")) return "🍰";
-    if (nameLower.includes("խմբ") || nameLower.includes("նախադաս")) return "🍱";
-    if (nameLower.includes("ըմպ") || nameLower.includes("խմբար")) return "🍲";
-    if (nameLower.includes("սոուս")) return "🫙";
-    if (nameLower.includes("խմբարկ")) return "🧆";
+    // Multilingual keywords fallbacks
+    if (nameLower.includes("սեթ") || nameLower.includes("сет") || nameLower.includes("set") || nameLower.includes("կոմբո") || nameLower.includes("комбо") || nameLower.includes("combo")) return "🍱";
+    if (nameLower.includes("ռոլ") || nameLower.includes("սուշի") || nameLower.includes("ролл") || nameLower.includes("суши") || nameLower.includes("sushi") || nameLower.includes("maki")) return "🍣";
+    if (nameLower.includes("պիցցա") || nameLower.includes("пицц") || nameLower.includes("pizza")) return "🍕";
+    if (nameLower.includes("շաուրմա") || nameLower.includes("шаурм") || nameLower.includes("shawarma")) return "🌯";
+    if (nameLower.includes("լահմաջո") || nameLower.includes("лахмаджо") || nameLower.includes("lahmajo")) return "🫓";
+    if (nameLower.includes("սթրիփս") || nameLower.includes("стрипс") || nameLower.includes("strips")) return "🍗";
+    if (nameLower.includes("սալատ") || nameLower.includes("салат") || nameLower.includes("salad")) return "🥗";
+    if (nameLower.includes("десерт") || nameLower.includes("քաղց") || nameLower.includes("dessert")) return "🍰";
+    if (nameLower.includes("ըմպելիք") || nameLower.includes("напит") || nameLower.includes("drink")) return "🥤";
+    if (nameLower.includes("սոուս") || nameLower.includes("соус") || nameLower.includes("sauce")) return "🫙";
 
     return "🍽️";
 }

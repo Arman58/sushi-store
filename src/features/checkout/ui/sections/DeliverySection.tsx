@@ -26,6 +26,7 @@ import { Controller, useFormContext } from "react-hook-form";
 import { deliveryZoneSelectMenuProps } from "@/features/checkout/model/constants";
 import { showCheckoutFieldError } from "@/features/checkout/model/helpers";
 import type { DeliveryZoneOption } from "@/features/checkout/model/types";
+import { matchAddressToDeliveryZone } from "@/features/checkout/model/zone-matcher";
 import {
     formatSavedAddressLine,
     type SavedAddressDto,
@@ -87,6 +88,7 @@ export function DeliverySection({
     const [savedAddresses, setSavedAddresses] = useState<SavedAddressDto[]>([]);
     const [addressesLoading, setAddressesLoading] = useState(false);
     const [selectedAddressId, setSelectedAddressId] = useState<string>("");
+    const [userSelectedZoneManually, setUserSelectedZoneManually] = useState(false);
 
     useEffect(() => {
         if (!isAuthenticated || !isDelivery) {
@@ -129,6 +131,12 @@ export function DeliverySection({
                                 shouldValidate: false,
                             });
                         }
+                        if (deliveryZones.length > 0) {
+                            const matched = matchAddressToDeliveryZone(newest.street, deliveryZones);
+                            if (matched) {
+                                setValue("deliveryZoneId", matched.id, { shouldValidate: true });
+                            }
+                        }
                     }
                 }
             } catch {
@@ -141,7 +149,20 @@ export function DeliverySection({
         return () => {
             cancelled = true;
         };
-    }, [isAuthenticated, isDelivery, setValue, watch]);
+    }, [isAuthenticated, isDelivery, setValue, watch, deliveryZones]);
+
+    // Умное автоопределение зоны при вводе адреса
+    const currentAddressInput = watch("address");
+    useEffect(() => {
+        if (!isDelivery || userSelectedZoneManually || deliveryZones.length === 0) return;
+        const matched = matchAddressToDeliveryZone(currentAddressInput, deliveryZones);
+        if (matched) {
+            const currentZoneId = watch("deliveryZoneId");
+            if (currentZoneId !== matched.id) {
+                setValue("deliveryZoneId", matched.id, { shouldValidate: true });
+            }
+        }
+    }, [currentAddressInput, isDelivery, userSelectedZoneManually, deliveryZones, setValue, watch]);
 
     const deliveryTypes: DeliveryType[] = ["delivery", "pickup"];
 
@@ -154,6 +175,7 @@ export function DeliverySection({
     };
 
     const applySavedAddress = (address: SavedAddressDto) => {
+        setUserSelectedZoneManually(false);
         setValue("address", address.street, { shouldValidate: true, shouldDirty: true });
         setValue("apartment", address.apartment ?? "", {
             shouldValidate: false,
@@ -164,6 +186,12 @@ export function DeliverySection({
                 shouldValidate: false,
                 shouldDirty: true,
             });
+        }
+        if (deliveryZones.length > 0) {
+            const matched = matchAddressToDeliveryZone(address.street, deliveryZones);
+            if (matched) {
+                setValue("deliveryZoneId", matched.id, { shouldValidate: true });
+            }
         }
     };
 
@@ -399,7 +427,10 @@ export function DeliverySection({
                                             ? undefined
                                             : field.value
                                     }
-                                    onChange={field.onChange}
+                                    onChange={(zoneId) => {
+                                        setUserSelectedZoneManually(true);
+                                        field.onChange(zoneId);
+                                    }}
                                     zones={deliveryZones}
                                     selectZonePlaceholder={t("selectZone")}
                                     dialogTitle={t("zoneLabel")}
@@ -529,23 +560,21 @@ export function DeliverySection({
                         InputLabelProps={{ shrink: true }}
                     />
 
-                    {isAuthenticated ? (
-                        <AppInput
-                            label={tCheckout("apartment")}
-                            {...checkoutFieldProps}
-                            sx={checkoutInputRadiusSx}
-                            {...register("apartment", {
-                                onChange: () => setSelectedAddressId(""),
-                            })}
-                            autoComplete="address-line2"
-                            name="apartment"
-                            inputProps={{
-                                enterKeyHint: "next",
-                                autoComplete: "address-line2",
-                            }}
-                            InputLabelProps={{ shrink: true }}
-                        />
-                    ) : null}
+                    <AppInput
+                        label={tCheckout("apartment")}
+                        {...checkoutFieldProps}
+                        sx={checkoutInputRadiusSx}
+                        {...register("apartment", {
+                            onChange: () => setSelectedAddressId(""),
+                        })}
+                        autoComplete="address-line2"
+                        name="apartment"
+                        inputProps={{
+                            enterKeyHint: "next",
+                            autoComplete: "address-line2",
+                        }}
+                        InputLabelProps={{ shrink: true }}
+                    />
 
                     {isAuthenticated ? (
                         <Stack spacing={1}>

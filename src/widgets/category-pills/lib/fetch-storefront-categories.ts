@@ -1,7 +1,11 @@
 import { unstable_cache } from "next/cache";
 
 import { CACHE_TAGS } from "@/lib/cache-tags";
-import { type StorefrontCategory,toStorefrontCategory } from "@/lib/i18n-utils";
+import {
+    getStorefrontCategoryOrderWeight,
+    type StorefrontCategory,
+    toStorefrontCategory,
+} from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 
@@ -26,14 +30,16 @@ export const fetchStorefrontCategories = unstable_cache(
             },
         });
 
-        return categoriesRaw.map((category) => ({
-            ...toStorefrontCategory(category, locale),
-            // Собственное фото категории приоритетнее обложки первого товара
-            image:
-                (typeof category.image === "string" && category.image.trim()
-                    ? category.image
-                    : null) ?? getProductCoverUrl(category.products[0] ?? {}),
-        }));
+        return categoriesRaw
+            .map((category) => ({
+                ...toStorefrontCategory(category, locale),
+                // Собственное фото категории приоритетнее обложки первого товара
+                image:
+                    (typeof category.image === "string" && category.image.trim()
+                        ? category.image
+                        : null) ?? getProductCoverUrl(category.products[0] ?? {}),
+            }))
+            .sort((a, b) => getStorefrontCategoryOrderWeight(a) - getStorefrontCategoryOrderWeight(b));
     } catch {
         return [];
     }

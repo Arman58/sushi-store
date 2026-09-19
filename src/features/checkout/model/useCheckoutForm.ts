@@ -228,6 +228,22 @@ export function useCheckoutForm({ sessionUser }: UseCheckoutFormParams) {
                 : t("validationFallback");
         setErrorMessage(msg);
         showAppToast(msg, "error");
+
+        // Автоскролл и фокус на первое невалидное поле для комфорта на мобильных
+        const firstKey = Object.keys(formErrors)[0];
+        if (firstKey && typeof window !== "undefined") {
+            const el =
+                document.querySelector(`[name="${firstKey}"]`) ??
+                document.querySelector(`[aria-label*="${firstKey}"]`);
+            if (el instanceof HTMLElement) {
+                el.scrollIntoView({ behavior: "smooth", block: "center" });
+                try {
+                    el.focus({ preventScroll: true });
+                } catch {
+                    // ignore focus issues on custom widgets
+                }
+            }
+        }
     };
 
     const submitOrder = async (
@@ -295,7 +311,18 @@ export function useCheckoutForm({ sessionUser }: UseCheckoutFormParams) {
                               data.apartment,
                           )
                         : "",
-                comment: data.comment.trim(),
+                comment: (() => {
+                    const personsCount = useCartStore.getState().personsCount ?? 2;
+                    const cutleryTag =
+                        locale === "hy"
+                            ? `[🥢 Պարագաներ՝ ${personsCount} անձ]`
+                            : locale === "en"
+                              ? `[🥢 Cutlery for ${personsCount}]`
+                              : `[🥢 Приборы: ${personsCount} чел.]`;
+                    const userComment = data.comment.trim();
+                    if (userComment.startsWith("[🥢")) return userComment;
+                    return userComment ? `${cutleryTag} ${userComment}` : cutleryTag;
+                })(),
                 payment: data.payment,
                 changeFrom:
                     data.payment === "cash" && data.needsChange

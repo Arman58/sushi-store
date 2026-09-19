@@ -176,6 +176,8 @@
     },
     "product": {
         "perUnit": "֏/հատ",
+        "weight": "{weight} գ",
+        "pieces": "{count} հատ",
         "badge": {
             "hit": "Հիթ",
             "new": "Նոր",
@@ -228,6 +230,13 @@
         }
     },
     "cart": {
+        "cutlery": {
+            "title": "Անձերի / փայտիկների քանակ",
+            "subtitle": "Անվճար՝ փայտիկներ, սոյայի սոուս, վասաբի և կոճապղպեղ",
+            "decreaseAria": "Նվազեցնել անձերի քանակը",
+            "increaseAria": "Ավելացնել անձերի քանակը",
+            "unit": "անձ"
+        },
         "pageTitle": "Զամբյուղ",
         "items": "Ապրանքներ",
         "delivery": "Առաքում",
@@ -344,8 +353,8 @@
             "name": "Ձեր անունը",
             "email": "Email",
             "phone": "Հեռախոս",
-            "phoneRequiredDelivery": "Պարտադիր առաքման համար",
-            "phoneOptionalPickup": "Ընտրովի՝ վերցնելու դեպքում"
+            "phoneRequiredDelivery": "Պարտադիր է պատվերի հաստատման համար",
+            "phoneOptionalPickup": "Պարտադիր է պատվերի պատրաստ լինելու մասին տեղեկացնելու համար"
         },
         "delivery": {
             "title": "Առաքում",
@@ -665,9 +674,9 @@
     },
     "errors": {
         "phone": {
-            "required": "Պարտադիր դաշտ",
+            "required": "Նշեք հեռախոսահամարը (8 նիշ)",
             "invalid": "Մուտքագրեք ճիշտ համար (օր. XX XX XX XX)",
-            "requiredForDelivery": "Նշեք հեռախոս առաքիչի հետ կապի համար"
+            "requiredForDelivery": "Նշեք հեռախոսահամարը կապի համար"
         },
         "name": {
             "required": "Պարտադիր դաշտ",
@@ -680,7 +689,7 @@
             "required": "Պարտադիր դաշտ"
         },
         "zone": {
-            "required": "Պարտադիր դաշտ"
+            "required": "Խնդրում ենք ընտրել առաքման գոտին"
         },
         "orderId": {
             "required": "Մուտքագրեք պատվերի համարը",

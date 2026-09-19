@@ -176,6 +176,8 @@
     },
     "product": {
         "perUnit": "֏/pc",
+        "weight": "{weight} g",
+        "pieces": "{count} pcs",
         "badge": {
             "hit": "Bestseller",
             "new": "New",
@@ -228,6 +230,13 @@
         }
     },
     "cart": {
+        "cutlery": {
+            "title": "Number of persons / cutlery",
+            "subtitle": "Free: chopsticks, soy sauce, wasabi & ginger",
+            "decreaseAria": "Decrease persons count",
+            "increaseAria": "Increase persons count",
+            "unit": "pers."
+        },
         "pageTitle": "Cart",
         "items": "Items",
         "delivery": "Delivery",
@@ -347,8 +356,8 @@
             "name": "Your name",
             "email": "Email",
             "phone": "Phone",
-            "phoneRequiredDelivery": "Required for delivery",
-            "phoneOptionalPickup": "Optional for pickup"
+            "phoneRequiredDelivery": "Required for order confirmation",
+            "phoneOptionalPickup": "Required for order readiness updates"
         },
         "delivery": {
             "title": "Delivery",

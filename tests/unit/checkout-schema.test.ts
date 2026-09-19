@@ -106,4 +106,18 @@ describe("createCheckoutSchema - сдача (регрессия)", () => {
         const r = schema.safeParse(pickup);
         assert.ok(r.success);
     });
+
+    it("самовывоз без валидного номера телефона отклоняется", () => {
+        const pickupWithoutPhone = {
+            ...validBase,
+            delivery: "pickup" as const,
+            deliveryZoneId: undefined,
+            address: "",
+            phone: "",
+        };
+        const r = schema.safeParse(pickupWithoutPhone);
+        assert.ok(!r.success);
+        const issue = r.error.issues.find((i) => i.path.join(".") === "phone");
+        assert.equal(issue?.message, "phoneRequired");
+    });
 });
