@@ -1,5 +1,7 @@
 "use client";
 
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import {
@@ -26,6 +28,10 @@ type CategoryRowCardProps = {
     onPatch: (id: number, body: Record<string, unknown>) => Promise<void>;
     onRename: (category: CategoryRow) => void;
     onDelete: (category: CategoryRow) => void;
+    isFirst: boolean;
+    isLast: boolean;
+    reordering: boolean;
+    onMove: (dir: -1 | 1) => void;
 };
 
 export function CategoryRowCard({
@@ -35,6 +41,10 @@ export function CategoryRowCard({
     onPatch,
     onRename,
     onDelete,
+    isFirst,
+    isLast,
+    reordering,
+    onMove,
 }: CategoryRowCardProps) {
     const t = useTranslations("admin.categories");
     const tCommon = useTranslations("admin.common");
@@ -97,6 +107,30 @@ export function CategoryRowCard({
                 </Stack>
 
                 <Stack direction="row" justifyContent="flex-end" spacing={0.25}>
+                    <Tooltip title={t("moveUp")}>
+                        <span>
+                            <IconButton
+                                size="small"
+                                disabled={isFirst || reordering}
+                                onClick={() => onMove(-1)}
+                                aria-label={t("moveUp")}
+                            >
+                                <ArrowUpwardIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
+                    <Tooltip title={t("moveDown")}>
+                        <span>
+                            <IconButton
+                                size="small"
+                                disabled={isLast || reordering}
+                                onClick={() => onMove(1)}
+                                aria-label={t("moveDown")}
+                            >
+                                <ArrowDownwardIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
                     <Tooltip title={tCommon("rename")}>
                         <IconButton
                             size="small"

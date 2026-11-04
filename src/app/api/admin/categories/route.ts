@@ -4,23 +4,15 @@ import {
     translationsToLocalized,
 } from "@/lib/admin-localized";
 import { adminCategoryCreateSchema } from "@/lib/api-schemas";
+import { slugifyCategoryName } from "@/lib/category-slug";
 import { localizedSlugSource } from "@/lib/i18n-utils";
 import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
 import { invalidateCatalogCache } from "@/lib/revalidate-storefront";
 import { verifyAdmin } from "@/lib/verify-admin";
 
-function slugifyName(name: string): string {
-    const cleaned = name
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, "-")
-        .replace(/[^a-z0-9-]/g, "");
-    return cleaned;
-}
-
 async function makeUniqueCategorySlug(name: string): Promise<string> {
-    const base = slugifyName(name) || `cat-${Date.now()}`;
+    const base = slugifyCategoryName(name) || `cat-${Date.now()}`;
     for (let n = 0; n < 10_000; n++) {
         const slug = n === 0 ? base : `${base}-${n}`;
         const existing = await prisma.category.findUnique({ where: { slug } });
@@ -77,9 +69,13 @@ export async function POST(request: Request) {
     }));
 
     try {
+        // Новая категория встаёт в конец: у колонки position default 0, и без этого
+        // она оказывалась бы первой на сайте.
+        const { _max } = await prisma.category.aggregate({ _max: { position: true } });
         const category = await prisma.category.create({
             data: {
                 slug,
+                position: (_max.position ?? -1) + 1,
                 translations: {
                     create: translationsData,
                 },

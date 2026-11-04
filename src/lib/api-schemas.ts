@@ -137,6 +137,17 @@ export const adminCategoryCreateSchema = z.object({
     name: localizedRequiredSchema,
 });
 
+/** Полный порядок категорий: id в том порядке, в котором они должны идти на сайте. */
+export const adminCategoryReorderSchema = z.object({
+    ids: z
+        .array(z.number().int().positive())
+        .min(1)
+        .max(500)
+        .refine((ids) => new Set(ids).size === ids.length, {
+            message: "ids must be unique",
+        }),
+});
+
 export const adminCategoryPatchSchema = z
     .object({
         name: localizedRequiredSchema.optional(),

@@ -22,7 +22,7 @@ async function fetchMenuData(locale: string) {
                 isActive: true,
                 products: { some: { isActive: true } },
             },
-            orderBy: { position: "asc" },
+            orderBy: [{ position: "asc" }, { id: "asc" }],
             include: {
                 translations: true,
                 products: {
@@ -56,9 +56,8 @@ async function fetchMenuData(locale: string) {
         }),
     ]);
 
-    // toStorefrontCategories сортирует по "весу" (сеты → суши → пицца ...), поэтому
-    // порядок отличается от categoriesRaw (position). Сопоставляем строго по id,
-    // иначе фото одной категории попадает на другую.
+    // Сопоставляем строку БД с категорией строго по id, а не по индексу: независимо от
+    // порядка в результате фото одной категории не может попасть на другую.
     const rawById = new Map(categoriesRaw.map((c) => [c.id, c]));
     const categories = toStorefrontCategories(categoriesRaw, locale).map(
         (category) => {

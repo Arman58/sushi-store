@@ -2,7 +2,6 @@ import { unstable_cache } from "next/cache";
 
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import {
-    getStorefrontCategoryOrderWeight,
     type StorefrontCategory,
     toStorefrontCategory,
 } from "@/lib/i18n-utils";
@@ -18,7 +17,7 @@ export const fetchStorefrontCategories = unstable_cache(
                 isActive: true,
                 products: { some: { isActive: true } },
             },
-            orderBy: { position: "asc" },
+            orderBy: [{ position: "asc" }, { id: "asc" }],
             include: {
                 translations: true,
                 products: {
@@ -38,8 +37,7 @@ export const fetchStorefrontCategories = unstable_cache(
                     (typeof category.image === "string" && category.image.trim()
                         ? category.image
                         : null) ?? getProductCoverUrl(category.products[0] ?? {}),
-            }))
-            .sort((a, b) => getStorefrontCategoryOrderWeight(a) - getStorefrontCategoryOrderWeight(b));
+            }));
     } catch {
         return [];
     }
