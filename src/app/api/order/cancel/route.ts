@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { runAfterResponse } from "@/lib/after-response";
 import { cancelOrderSchema } from "@/lib/api-schemas";
-import { updateOrderStatus } from "@/lib/order-service";
+import { updateOrderStatus, UpdateOrderStatusError } from "@/lib/order-service";
 import { canAccessOrderStatus } from "@/lib/order-status-access";
 import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
@@ -85,12 +86,18 @@ export async function POST(request: Request) {
     }
 
     try {
-        const updated = await updateOrderStatus(order.id, "CANCELLED");
+        // onlyFrom проверяется под блокировкой строки: если кухня между проверкой выше
+        // и этим вызовом успела взять заказ в работу, отмена не пройдёт.
+        const updated = await updateOrderStatus(order.id, "CANCELLED", {
+            onlyFrom: ["NEW", "PENDING_APPROVAL"],
+        });
 
-        // Оповещаем кухню в Telegram
-        void notifyKitchenOrderCancelled(order.id, reason).catch((err) =>
-            console.error("[telegram] cancel notify error:", err),
-        );
+        // Оповещаем кухню только если отмена реально произошла сейчас (не повтор).
+        // after(): голый `void` терялся при заморозке serverless-функции -
+        // кухня могла не узнать об отмене и продолжить готовить заказ.
+        if (updated.changed) {
+            runAfterResponse(() => notifyKitchenOrderCancelled(order.id, reason));
+        }
 
         return NextResponse.json({
             success: true,
@@ -98,6 +105,22 @@ export async function POST(request: Request) {
             status: updated.status,
         });
     } catch (error) {
+        if (error instanceof UpdateOrderStatusError) {
+            if (error.code === "NOT_FOUND") {
+                return NextResponse.json(
+                    { error: "Order not found", code: API_ERROR_CODES.ORDER_NOT_FOUND },
+                    { status: 404 },
+                );
+            }
+            // Заказ успели взять в работу / изменить параллельным запросом.
+            return NextResponse.json(
+                {
+                    error: "Order is already in progress and cannot be cancelled online",
+                    code: "ORDER_ALREADY_IN_PROGRESS",
+                },
+                { status: 409 },
+            );
+        }
         console.error("[cancel-order] Error cancelling order:", error);
         return NextResponse.json(
             {

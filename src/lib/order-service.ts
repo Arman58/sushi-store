@@ -1,6 +1,7 @@
 /** Kitchen / status mutations (Telegram, admin status, client cancel). Not createOrder. */
-import type { OrderStatus } from "@prisma/client";
+import { type OrderStatus, Prisma } from "@prisma/client";
 
+import { runAfterResponse } from "@/lib/after-response";
 import {
     isOrderStatus,
     ORDER_STATUSES,
@@ -98,10 +99,35 @@ export class UpdateOrderEtaError extends Error {
     }
 }
 
+export type UpdateOrderStatusResult = {
+    id: number;
+    status: OrderStatus;
+    /** false - заказ уже был в этом статусе (идемпотентный повтор), побочные эффекты не нужны. */
+    changed: boolean;
+};
+
+type UpdateOrderStatusOptions = {
+    /**
+     * Разрешённые исходные статусы. Проверка идёт под блокировкой строки, поэтому
+     * закрывает гонку "проверили NEW в роуте -> кухня успела взять в COOKING -> отменили".
+     */
+    onlyFrom?: readonly OrderStatus[];
+};
+
+/**
+ * Смена статуса заказа. Проверка перехода, обновление и возврат промокода при отмене
+ * выполняются в ОДНОЙ транзакции под `SELECT ... FOR UPDATE` строки заказа.
+ *
+ * Раньше статус читался и обновлялся отдельными запросами: два одновременных запроса
+ * (двойной тап клиента, клиент + кнопка в Telegram) оба видели NEW и оба делали
+ * `timesUsed - 1`, из-за чего счётчик уходил в минус и лимитный промокод
+ * можно было применить больше раз, чем задумано.
+ */
 export async function updateOrderStatus(
     orderId: number,
     newStatus: OrderStatus,
-): Promise<{ id: number; status: OrderStatus }> {
+    options: UpdateOrderStatusOptions = {},
+): Promise<UpdateOrderStatusResult> {
     if (!Number.isFinite(orderId) || orderId <= 0) {
         throw new UpdateOrderStatusError("Invalid order id", "INVALID_ORDER_ID");
     }
@@ -110,54 +136,72 @@ export async function updateOrderStatus(
         throw new UpdateOrderStatusError("Invalid status", "INVALID_STATUS");
     }
 
-    const existing = await prisma.order.findUnique({
-        where: { id: orderId },
-        select: { id: true, status: true, promoCodeId: true },
-    });
+    const result = await prisma.$transaction(
+        async (tx): Promise<UpdateOrderStatusResult> => {
+            const rows = await tx.$queryRaw<
+                Array<{ id: number; status: OrderStatus; promoCodeId: number | null }>
+            >(Prisma.sql`
+                SELECT "id", "status", "promoCodeId"
+                FROM "Order"
+                WHERE "id" = ${orderId}
+                FOR UPDATE
+            `);
+            const existing = rows[0];
 
-    if (!existing) {
-        throw new UpdateOrderStatusError("Order not found", "NOT_FOUND");
-    }
+            if (!existing) {
+                throw new UpdateOrderStatusError("Order not found", "NOT_FOUND");
+            }
 
-    // Идемпотентность: повторная установка того же статуса - no-op.
-    if (existing.status === newStatus) {
-        return existing;
-    }
+            // Идемпотентность: повторная установка того же статуса - no-op.
+            if (existing.status === newStatus) {
+                return { id: existing.id, status: existing.status, changed: false };
+            }
 
-    if (existing.status === "CANCELLED") {
-        throw new UpdateOrderStatusError("Order is cancelled", "CANCELLED_LOCKED");
-    }
+            if (existing.status === "CANCELLED") {
+                throw new UpdateOrderStatusError("Order is cancelled", "CANCELLED_LOCKED");
+            }
 
-    if (!ALLOWED_STATUS_TRANSITIONS[existing.status].includes(newStatus)) {
-        throw new UpdateOrderStatusError(
-            `Transition ${existing.status} → ${newStatus} is not allowed`,
-            "INVALID_TRANSITION",
-        );
-    }
+            if (options.onlyFrom && !options.onlyFrom.includes(existing.status)) {
+                throw new UpdateOrderStatusError(
+                    `Transition ${existing.status} → ${newStatus} is not allowed here`,
+                    "INVALID_TRANSITION",
+                );
+            }
 
-    const updated = await prisma.order.update({
-        where: { id: orderId },
-        data: { status: newStatus },
-        select: { id: true, status: true },
-    });
+            if (!ALLOWED_STATUS_TRANSITIONS[existing.status].includes(newStatus)) {
+                throw new UpdateOrderStatusError(
+                    `Transition ${existing.status} → ${newStatus} is not allowed`,
+                    "INVALID_TRANSITION",
+                );
+            }
 
-    // existing.status !== "CANCELLED" гарантирован guard-ом выше (CANCELLED_LOCKED),
-    // TS уже сузил тип — повторная проверка была бы ошибкой компиляции.
-    if (newStatus === "CANCELLED" && existing.promoCodeId != null) {
-        await prisma.promoCode.update({
-            where: { id: existing.promoCodeId },
-            data: { timesUsed: { decrement: 1 } },
+            await tx.order.update({
+                where: { id: orderId },
+                data: { status: newStatus },
+            });
+
+            // Возврат использования промокода - в той же транзакции, что и отмена.
+            // `gt: 0` - страховка: счётчик никогда не уходит в минус.
+            if (newStatus === "CANCELLED" && existing.promoCodeId != null) {
+                await tx.promoCode.updateMany({
+                    where: { id: existing.promoCodeId, timesUsed: { gt: 0 } },
+                    data: { timesUsed: { decrement: 1 } },
+                });
+            }
+
+            return { id: existing.id, status: newStatus, changed: true };
+        },
+    );
+
+    if (result.changed) {
+        // after(): голый `void` на Vercel теряется при заморозке функции после ответа.
+        runAfterResponse(async () => {
+            const { notifyOrderStatusPush } = await import("@/lib/push-notifications");
+            await notifyOrderStatusPush(result.id, result.status);
         });
     }
 
-    if (updated.status !== existing.status) {
-        const { notifyOrderStatusPush } = await import("@/lib/push-notifications");
-        void notifyOrderStatusPush(updated.id, updated.status).catch((error) => {
-            console.error("[PUSH ERROR]", error);
-        });
-    }
-
-    return updated;
+    return result;
 }
 
 export async function updateOrderEstimatedDeliveryAt(
