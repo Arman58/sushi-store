@@ -56,12 +56,16 @@ async function fetchMenuData(locale: string) {
             where: { isActive: true },
             _min: { price: true },
             _max: { price: true },
+    // toStorefrontCategories сортирует по "весу" (сеты → суши → пицца ...), поэтому
+    // порядок отличается от categoriesRaw (position). Сопоставляем строго по id,
+    // иначе фото одной категории попадает на другую.
+    const rawById = new Map(categoriesRaw.map((c) => [c.id, c]));
         }),
     ]);
 
     const categories = toStorefrontCategories(categoriesRaw, locale).map(
-        (category, i) => {
-            const raw = categoriesRaw[i];
+        (category) => {
+            const raw = rawById.get(category.id);
             const ownImage =
                 typeof raw?.image === "string" && raw.image.trim()
                     ? raw.image
