@@ -94,14 +94,14 @@ export const orderPayloadSchema = z
             .transform((v) => (typeof v === "string" ? v.trim() : ""))
             .pipe(z.string().max(1000)),
         payment: z.enum(["cash", "card"], {
-            errorMap: () => ({ message: "form.payment.invalid" }),
+            error: "form.payment.invalid",
         }),
         /** Наличные: сумма, с которой готовить сдачу (֏). null - не нужна. */
         changeFrom: PositiveInt.nullable().optional(),
         /** Предзаказ: ISO-время доставки. null/отсутствует - как можно скорее. */
         scheduledFor: z.string().datetime({ offset: true }).nullable().optional(),
         delivery: z.enum(["delivery", "pickup"], {
-            errorMap: () => ({ message: "form.delivery.invalidType" }),
+            error: "form.delivery.invalidType",
         }),
         items: z
             .array(orderItemSchema)

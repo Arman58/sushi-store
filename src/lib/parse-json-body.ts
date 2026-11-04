@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import type { ZodType, ZodTypeDef } from "zod";
+import type { ZodType } from "zod";
 
 type ParseJsonBodyResult<T> =
     | { ok: true; data: T }
@@ -7,7 +7,7 @@ type ParseJsonBodyResult<T> =
 
 export async function parseJsonBody<T>(
     request: Request,
-    schema: ZodType<T, ZodTypeDef, unknown>,
+    schema: ZodType<T>,
 ): Promise<ParseJsonBodyResult<T>> {
     let json: unknown;
     try {

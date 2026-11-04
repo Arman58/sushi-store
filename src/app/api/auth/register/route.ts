@@ -57,7 +57,7 @@ export async function POST(request: Request) {
             request,
             typeof rawLocale === "string" ? rawLocale : null,
         );
-        const key = parsed.error.errors[0]?.message ?? "form.generic";
+        const key = parsed.error.issues[0]?.message ?? "form.generic";
         return NextResponse.json(
             { error: getFormValidationMessage(key, locale) },
             { status: 400 },

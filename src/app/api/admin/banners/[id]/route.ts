@@ -11,8 +11,8 @@ import { verifyAdmin } from "@/lib/verify-admin";
 const bannerPatchSchema = z
     .object({
         image: z.string().url().max(2048).optional(),
-        title: z.record(z.string()).optional(),
-        ctaText: z.record(z.string()).optional(),
+        title: z.record(z.string(), z.string()).optional(),
+        ctaText: z.record(z.string(), z.string()).optional(),
         href: z.string().max(2048).nullable().optional(),
         isActive: z.boolean().optional(),
         position: z.number().int().min(0).optional(),

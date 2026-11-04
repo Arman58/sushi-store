@@ -60,7 +60,7 @@ export async function POST(request: Request) {
 
     const parsed = bodySchema.safeParse(json);
     if (!parsed.success) {
-        const key = parsed.error.errors[0]?.message ?? "form.generic";
+        const key = parsed.error.issues[0]?.message ?? "form.generic";
         return NextResponse.json(
             { error: getFormValidationMessage(key, locale) },
             { status: 400 },
