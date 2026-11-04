@@ -10,6 +10,21 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 const ONE_YEAR_CACHE = "public, max-age=31536000, immutable";
 
 /**
+ * Разрешаем оптимизатору (/_next/image) тянуть с Cloudinary только НАШ аккаунт.
+ * Без pathname подходил любой `res.cloudinary.com/<чужой-аккаунт>/...`: злоумышленник
+ * заводит свой аккаунт и заставляет сервер скачивать и обрабатывать его файлы
+ * (именно этот вектор использовали RCE/SSRF-уязвимости Image Optimization).
+ * Без имени аккаунта Cloudinary не разрешаем вообще (fail closed): загрузки админки
+ * и так не работают без NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME.
+ */
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim();
+if (!CLOUDINARY_CLOUD_NAME) {
+    console.warn(
+        "[next.config] NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME is not set: Cloudinary images are not allowed in next/image",
+    );
+}
+
+/**
  * Базовые security-заголовки для всех ответов.
  * CSP выставляется динамически в proxy.ts (per-request nonce) — здесь его нет.
  */
@@ -38,10 +53,15 @@ const nextConfig: NextConfig = {
     skipTrailingSlashRedirect: true,
     images: {
         remotePatterns: [
-            {
-                protocol: "https",
-                hostname: "res.cloudinary.com",
-            },
+            ...(CLOUDINARY_CLOUD_NAME
+                ? [
+                      {
+                          protocol: "https" as const,
+                          hostname: "res.cloudinary.com",
+                          pathname: `/${CLOUDINARY_CLOUD_NAME}/**`,
+                      },
+                  ]
+                : []),
             {
                 protocol: "https",
                 hostname: "images.unsplash.com",
