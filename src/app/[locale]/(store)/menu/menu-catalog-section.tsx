@@ -9,6 +9,7 @@ import {
     toStorefrontProducts,
 } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
+import { storefrontProductVisible } from "@/lib/storefront-visibility";
 import { buildLcpImageUrl } from "@/shared/lib/lcp-image-url";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { MenuSection } from "@/widgets/menu-section";
@@ -34,7 +35,7 @@ async function fetchMenuData(locale: string) {
             },
         }),
         prisma.product.findMany({
-            where: { isActive: true },
+            where: storefrontProductVisible,
             include: {
                 translations: true,
                 category: {
@@ -50,7 +51,7 @@ async function fetchMenuData(locale: string) {
             orderBy: { id: "asc" },
         }),
         prisma.product.aggregate({
-            where: { isActive: true },
+            where: storefrontProductVisible,
             _min: { price: true },
             _max: { price: true },
         }),

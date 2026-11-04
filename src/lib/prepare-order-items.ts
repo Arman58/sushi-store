@@ -8,6 +8,7 @@ import {
     type ProductForOrderPricing,
     resolveOrderLinePrice,
 } from "@/lib/resolve-order-line-price";
+import { isProductVisibleToCustomers } from "@/lib/storefront-visibility";
 import { type ApiErrorCode } from "@/shared/lib/api-error";
 
 const PRODUCT_BASE_SELECT = {
@@ -19,6 +20,8 @@ const PRODUCT_BASE_SELECT = {
     minQty: true,
     maxQty: true,
     categoryId: true,
+    // Скрытая категория скрывает и свои товары: заказать их нельзя.
+    category: { select: { isActive: true } },
 } as const;
 
 const MODIFIER_GROUP_SELECT = Prisma.validator<Prisma.ModifierGroupSelect>()({
@@ -46,6 +49,7 @@ type ProductBaseRow = {
     minQty: number;
     maxQty: number | null;
     categoryId: number | null;
+    category?: { isActive: boolean } | null;
 };
 
 type CheckoutProductRow = ProductBaseRow & {
@@ -180,7 +184,7 @@ export async function prepareOrderItems(
 
         const productName = getLocalizedField(product.translations, locale, "name");
 
-        if (!product.isActive || product.isAvailable === false) {
+        if (!isProductVisibleToCustomers(product) || product.isAvailable === false) {
             return {
                 ok: false,
                 httpStatus: 409,
@@ -285,7 +289,7 @@ export async function validateCartLinesForCheckout(
             return { cartItemId: line.cartItemId, ok: false, reason: "not_found" };
         }
 
-        if (!product.isActive || product.isAvailable === false) {
+        if (!isProductVisibleToCustomers(product) || product.isAvailable === false) {
             return { cartItemId: line.cartItemId, ok: false, reason: "inactive" };
         }
 

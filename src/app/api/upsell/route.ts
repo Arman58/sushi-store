@@ -7,6 +7,7 @@ import {
 } from "@/lib/home-product-include";
 import { resolveRequestLocale, toStorefrontProducts } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
+import { storefrontProductVisible } from "@/lib/storefront-visibility";
 
 const UPSELL_CATEGORY_SLUGS = ["drinks", "sauces"] as const;
 const UPSELL_LIMIT = 12;
@@ -91,7 +92,7 @@ async function loadSauces(
 
     const productsRaw = await prisma.product.findMany({
         where: {
-            isActive: true,
+            ...storefrontProductVisible,
             isAvailable: true,
             categoryId: category.id,
             ...(excludeIds.length > 0 ? { id: { notIn: excludeIds } } : {}),
@@ -147,7 +148,7 @@ export async function GET(request: Request) {
                 const found = await prisma.product.findMany({
                     where: {
                         id: { in: suggestedIds },
-                        isActive: true,
+                        ...storefrontProductVisible,
                         isAvailable: true,
                     },
                     include: homeProductInclude,
@@ -176,7 +177,7 @@ export async function GET(request: Request) {
                 : new Set<number>();
 
         const baseWhere = {
-            isActive: true,
+            ...storefrontProductVisible,
             // Стоп-лист не предлагаем: добавить его в корзину всё равно нельзя.
             isAvailable: true,
             ...(excludeIds.length > 0 ? { id: { notIn: excludeIds } } : {}),

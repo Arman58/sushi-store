@@ -19,6 +19,7 @@ type MockProduct = {
     isAvailable: boolean | null;
     minQty: number | null;
     maxQty: number | null;
+    category?: { isActive: boolean } | null;
     modifierGroups: Array<{
         id: number;
         name: unknown;
@@ -130,6 +131,23 @@ describe("prepareOrderItems", () => {
         assert.equal(r.httpStatus, 409);
     });
 
+    it("товар скрытой категории нельзя заказать → 409", async () => {
+        mockProducts = [makeProduct({ category: { isActive: false } })];
+        const r = await prepareOrderItems([makeItem()]);
+        assert.ok(!r.ok);
+        assert.equal(r.httpStatus, 409);
+        assert.equal(r.code, "ITEM_UNAVAILABLE");
+    });
+
+    it("товар активной категории и товар без категории заказать можно", async () => {
+        mockProducts = [
+            makeProduct({ id: 1, category: { isActive: true } }),
+            makeProduct({ id: 2, category: null }),
+        ];
+        const r = await prepareOrderItems([makeItem({ productId: 1 }), makeItem({ productId: 2 })]);
+        assert.ok(r.ok);
+    });
+
     it("quantity ниже minQty → 409", async () => {
         mockProducts = [makeProduct({ minQty: 3 })];
         const r = await prepareOrderItems([makeItem({ quantity: 2 })]);
@@ -230,6 +248,15 @@ describe("validateCartLinesForCheckout", () => {
         ]);
         assert.equal(notFound.reason, "not_found");
         assert.equal(inactive.reason, "inactive");
+    });
+
+    it("товар скрытой категории в корзине помечается inactive", async () => {
+        mockProducts = [makeProduct({ category: { isActive: false } })];
+        const res = await validateCartLinesForCheckout([
+            { cartItemId: "a", productId: 1, price: 4500, quantity: 1, selectedModifierIds: [] },
+        ]);
+        assert.equal(res[0]?.ok, false);
+        assert.equal(res[0]?.reason, "inactive");
     });
 
     it("пустой список → пустой результат без запроса в БД", async () => {
