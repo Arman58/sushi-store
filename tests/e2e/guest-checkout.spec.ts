@@ -56,7 +56,9 @@ test.describe("Гостевой заказ", () => {
         await promoInput.fill("TEST500");
         await cartDialog.getByRole("button", { name: /применить/i }).click();
 
-        await expect(cartDialog.getByText(/TEST500/i)).toBeVisible({
+        // Код есть в двух местах («Применён: TEST500» и строка «Скидка (TEST500)»),
+        // поэтому общий /TEST500/i даёт strict mode violation. Проверяем подтверждение.
+        await expect(cartDialog.getByText("Применён: TEST500")).toBeVisible({
             timeout: 15_000,
         });
     });

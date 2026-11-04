@@ -27,7 +27,9 @@ test.describe("Фильтры меню", () => {
     }) => {
         await openMenu(page);
 
-        const pizzaPill = page.getByRole("button", { name: /пицца/i });
+        // exact: иначе под /пицца/i попадают и кнопки товаров (например, «Комбо Дуэт Пицца»)
+        // и locator падает на strict mode violation.
+        const pizzaPill = page.getByRole("button", { name: "Пицца", exact: true });
         await expect(pizzaPill).toBeVisible({ timeout: 15_000 });
 
         await pizzaPill.click();
@@ -36,7 +38,7 @@ test.describe("Фильтры меню", () => {
         await expect(pizzaPill).toHaveAttribute("aria-pressed", "true");
 
         const pillsRow = page.locator(".MuiStack-root").filter({
-            has: page.getByRole("button", { name: /пицца/i }),
+            has: pizzaPill,
         });
         const allPill = pillsRow.getByRole("button", { name: /все/i });
         await allPill.click();
