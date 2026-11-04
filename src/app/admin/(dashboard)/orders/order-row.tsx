@@ -36,6 +36,7 @@ import {
     computeEstimatedDeliveryAt,
     ETA_PRESET_MINUTES,
 } from "@/lib/order-status";
+import { formatStorePrice } from "@/shared/lib/format-price";
 import { useTabletDown } from "@/shared/lib/use-mobile-viewport";
 import { AppSelect } from "@/shared/ui";
 
@@ -100,8 +101,9 @@ export function OrderRow({ order, searchQuery, variant = "table" }: OrderRowProp
         [order.statusLabel, tOrder],
     );
 
-    const formatMoney = (value: number) =>
-        `${value.toLocaleString(locale)} ֏`;
+    // Фиксированная локаль: Node (SSR) и браузер по-разному форматируют числа в `hy`
+    // ("5,500" vs "5 500"), что ломало гидратацию строки заказа.
+    const formatMoney = (value: number) => `${formatStorePrice(value)} ֏`;
 
     const formatDateTime = (iso: string) =>
         new Intl.DateTimeFormat(locale, {
