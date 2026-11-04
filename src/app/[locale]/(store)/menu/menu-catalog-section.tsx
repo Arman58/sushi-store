@@ -4,7 +4,6 @@ import { getLocale } from "next-intl/server";
 import { preload } from "react-dom";
 
 import { CACHE_TAGS } from "@/lib/cache-tags";
-import { ensureBundleSchema } from "@/lib/ensure-bundle-schema";
 import {
     toStorefrontCategories,
     toStorefrontProducts,
@@ -17,8 +16,6 @@ import { MenuSection } from "@/widgets/menu-section";
 import { MenuLoadError } from "./menu-load-error";
 
 async function fetchMenuData(locale: string) {
-    await ensureBundleSchema();
-
     const [categoriesRaw, productsRaw, priceStats] = await Promise.all([
         prisma.category.findMany({
             where: {
@@ -56,13 +53,13 @@ async function fetchMenuData(locale: string) {
             where: { isActive: true },
             _min: { price: true },
             _max: { price: true },
+        }),
+    ]);
+
     // toStorefrontCategories сортирует по "весу" (сеты → суши → пицца ...), поэтому
     // порядок отличается от categoriesRaw (position). Сопоставляем строго по id,
     // иначе фото одной категории попадает на другую.
     const rawById = new Map(categoriesRaw.map((c) => [c.id, c]));
-        }),
-    ]);
-
     const categories = toStorefrontCategories(categoriesRaw, locale).map(
         (category) => {
             const raw = rawById.get(category.id);
