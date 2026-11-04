@@ -1073,7 +1073,10 @@
             "addModifierGroup": "Add modifier group",
             "modifiersTitle": "Modifiers",
             "maxChoicesHint": "0 = no limit",
-            "photos": "Photos"
+            "photos": "Photos",
+            "uncategorized": "No category",
+            "uncategorizedAlert": "{count, plural, one {# product has no category} other {# products have no category}}. They show in the full menu but belong to no category. Assign a category in the product form.",
+            "uncategorizedShow": "Show"
         },
         "categories": {
             "title": "Categories",
