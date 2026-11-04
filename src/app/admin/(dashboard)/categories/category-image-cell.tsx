@@ -26,6 +26,8 @@ export type CategoryRow = {
     position: number;
     isActive: boolean;
     image: string | null;
+    /** Сколько товаров привязано (удалить категорию с товарами нельзя). */
+    productCount?: number;
 };
 
 export function CategoryImageCell({

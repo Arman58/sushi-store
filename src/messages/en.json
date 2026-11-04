@@ -903,7 +903,8 @@
             "photo": "Photo",
             "retry": "Retry",
             "paginationRange": "{from}-{to} of {total}",
-            "id": "ID"
+            "id": "ID",
+            "noOptions": "No options"
         },
         "login": {
             "badge": "Admin Area",
@@ -1040,8 +1041,6 @@
             "upsellHint": "“Add to order” suggestions in cart for this dish",
             "newCategory": "New category",
             "addCategory": "Add category",
-            "categoryDeleteBlocked": "Cannot delete this category because products are linked to it!",
-            "categoryDeleteNetworkError": "Network error while deleting category.",
             "categoryCreateNetworkError": "Network error while creating category",
             "invalidWeight": "Enter a valid weight",
             "nameRequired": "Enter a name in at least one language",
@@ -1074,7 +1073,6 @@
             "addModifierGroup": "Add modifier group",
             "modifiersTitle": "Modifiers",
             "maxChoicesHint": "0 = no limit",
-            "deleteCategoryAria": "Delete category {name}",
             "photos": "Photos"
         },
         "categories": {
@@ -1091,7 +1089,9 @@
             "emptyHint": "Categories are created in the product form.",
             "deleteTitle": "Delete category?",
             "deleteBody": "Category “{name}” will be deleted. If products are linked, deletion will be rejected.",
-            "categoryActiveAria": "Category {name} is active"
+            "categoryActiveAria": "Category {name} is active",
+            "productsCount": "{count, plural, one {# product} other {# products}}",
+            "deleteBlockedProducts": "The category “{name}” has {count} products. Move them to another category first. To hide the category from the site, turn off the “Active” switch."
         },
         "dashboard": {
             "title": "Analytics",

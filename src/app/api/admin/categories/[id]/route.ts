@@ -112,13 +112,26 @@ export async function DELETE(
         return NextResponse.json({ error: "Category not found" }, { status: 404 });
     }
 
+    // Явная проверка нужна ради понятного ответа с числом товаров; от гонки (товар
+    // привязали между проверкой и удалением) защищает FK ON DELETE RESTRICT ниже.
+    const productCount = await prisma.product.count({ where: { categoryId: id } });
+    if (productCount > 0) {
+        return NextResponse.json(
+            { error: FK_MESSAGE, code: "CATEGORY_HAS_PRODUCTS", productCount },
+            { status: 409 },
+        );
+    }
+
     try {
         await prisma.category.delete({ where: { id } });
         invalidateCatalogCache();
         return NextResponse.json({ ok: true });
     } catch (e) {
         if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003") {
-            return NextResponse.json({ error: FK_MESSAGE }, { status: 409 });
+            return NextResponse.json(
+                { error: FK_MESSAGE, code: "CATEGORY_HAS_PRODUCTS" },
+                { status: 409 },
+            );
         }
         return NextResponse.json({ error: "Failed to delete category" }, { status: 500 });
     }

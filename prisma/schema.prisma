@@ -37,7 +37,7 @@ model Product {
   upsellOf       ProductUpsell[] @relation("UpsellSuggested")
   bundleItems       BundleItem[] @relation("BundleParent")
   includedInBundles BundleItem[] @relation("BundleChild")
-  category       Category?       @relation(fields: [categoryId], references: [id])
+  category       Category?       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   categoryId     Int?
   createdAt      DateTime        @default(now())
   modifierGroups ModifierGroup[]

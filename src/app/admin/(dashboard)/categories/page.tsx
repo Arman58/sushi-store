@@ -167,7 +167,17 @@ export default function AdminCategoriesPage() {
             if (!res.ok) {
                 const json = (await res.json().catch(() => null)) as {
                     error?: string;
+                    code?: string;
+                    productCount?: number;
                 } | null;
+                if (json?.code === "CATEGORY_HAS_PRODUCTS") {
+                    throw new Error(
+                        t("deleteBlockedProducts", {
+                            name: lf(deleting.name),
+                            count: json.productCount ?? deleting.productCount ?? 0,
+                        }),
+                    );
+                }
                 throw new Error(json?.error || tCommon("deleteFailed"));
             }
             setCategories((prev) => prev.filter((c) => c.id !== deleting.id));
@@ -283,6 +293,14 @@ export default function AdminCategoriesPage() {
                                                 <LocalizedStatusChips
                                                     value={category.name}
                                                 />
+                                                <Typography
+                                                    variant="caption"
+                                                    sx={{ color: tokens.textMuted }}
+                                                >
+                                                    {t("productsCount", {
+                                                        count: category.productCount ?? 0,
+                                                    })}
+                                                </Typography>
                                             </Box>
                                         </TableCell>
                                         <TableCell>
@@ -409,9 +427,14 @@ export default function AdminCategoriesPage() {
                 <DialogTitle>{t("deleteTitle")}</DialogTitle>
                 <DialogContent>
                     <Typography variant="body2" sx={{ color: tokens.textSecondary }}>
-                        {t("deleteBody", {
-                            name: deleting ? lf(deleting.name) : "",
-                        })}
+                        {deleting && (deleting.productCount ?? 0) > 0
+                            ? t("deleteBlockedProducts", {
+                                  name: lf(deleting.name),
+                                  count: deleting.productCount ?? 0,
+                              })
+                            : t("deleteBody", {
+                                  name: deleting ? lf(deleting.name) : "",
+                              })}
                     </Typography>
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -422,15 +445,17 @@ export default function AdminCategoriesPage() {
                     >
                         {tCommon("cancel")}
                     </Button>
-                    <Button
-                        onClick={() => void handleDelete()}
-                        color="error"
-                        variant="contained"
-                        disabled={deleteBusy}
-                        sx={{ fontWeight: 700 }}
-                    >
-                        {tCommon("delete")}
-                    </Button>
+                    {(deleting?.productCount ?? 0) > 0 ? null : (
+                        <Button
+                            onClick={() => void handleDelete()}
+                            color="error"
+                            variant="contained"
+                            disabled={deleteBusy}
+                            sx={{ fontWeight: 700 }}
+                        >
+                            {tCommon("delete")}
+                        </Button>
+                    )}
                 </DialogActions>
             </Dialog>
         </PageContainer>

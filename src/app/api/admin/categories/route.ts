@@ -29,11 +29,15 @@ async function makeUniqueCategorySlug(name: string): Promise<string> {
     return `cat-${Date.now()}`;
 }
 
-function mapCategoryRow<T extends { translations?: unknown }>(category: T) {
-    const { translations, ...rest } = category;
+function mapCategoryRow<T extends { translations?: unknown; _count?: { products: number } }>(
+    category: T,
+) {
+    const { translations, _count, ...rest } = category;
     return {
         ...rest,
         name: translationsToLocalized(translations, "name"),
+        // Сколько товаров привязано: админка показывает это и блокирует удаление.
+        productCount: _count?.products ?? 0,
     };
 }
 
@@ -45,8 +49,8 @@ export async function GET(request: Request) {
 
     try {
         const categories = await prisma.category.findMany({
-            orderBy: { position: "asc" },
-            include: { translations: true },
+            orderBy: [{ position: "asc" }, { id: "asc" }],
+            include: { translations: true, _count: { select: { products: true } } },
         });
         return NextResponse.json(categories.map(mapCategoryRow));
     } catch {

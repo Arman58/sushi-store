@@ -66,7 +66,7 @@ export function CategoryRowCard({
                             variant="caption"
                             sx={{ color: tokens.textMuted, display: "block", mt: 0.5 }}
                         >
-                            {category.slug}
+                            {category.slug} · {t("productsCount", { count: category.productCount ?? 0 })}
                         </Typography>
                     </Box>
                 </Stack>

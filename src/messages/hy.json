@@ -903,7 +903,8 @@
             "photo": "Լուսանկար",
             "retry": "Կրկին",
             "paginationRange": "{from}-{to} / {total}",
-            "id": "ID"
+            "id": "ID",
+            "noOptions": "Տարբերակներ չկան"
         },
         "login": {
             "badge": "Կարավարման գոտի",
@@ -1040,8 +1041,6 @@
             "upsellHint": "«Ավելացնել պատվերին» առաջարկներ զամբյուղում",
             "newCategory": "Նոր կատեգորիա",
             "addCategory": "Ավելացնել կատեգորիա",
-            "categoryDeleteBlocked": "Չի կարելի ջնջել՝ ապրանքներ կապված են!",
-            "categoryDeleteNetworkError": "Ցանցի սխալ կատեգորիան ջնջելիս։",
             "categoryCreateNetworkError": "Ցանցի սխալ կատեգորիա ստեղծելիս",
             "invalidWeight": "Նշեք ճիշտ քաշ",
             "nameRequired": "Նշեք անվանում առնվազն մեկ լեզվով",
@@ -1074,7 +1073,6 @@
             "addModifierGroup": "Ավելացնել լրացուցիչների խումբ",
             "modifiersTitle": "Լրացուցիչներ",
             "maxChoicesHint": "0 - առանց սահմանայի",
-            "deleteCategoryAria": "Ջնջել կատեգորիան {name}",
             "photos": "Լուսանկարներ"
         },
         "categories": {
@@ -1091,7 +1089,9 @@
             "emptyHint": "Կատեգորիաները ստեղծվում են ապրանքի ձևում։",
             "deleteTitle": "Ջնջե՞լ կատեգորիան",
             "deleteBody": "«{name}» կատեգորիան կջնջվի։ Եթե ապրանքներ կապված են, ջնջումը կմերժվի։",
-            "categoryActiveAria": "Կատեգորիա {name} ակտիվ է"
+            "categoryActiveAria": "Կատեգորիա {name} ակտիվ է",
+            "productsCount": "{count} ապրանք",
+            "deleteBlockedProducts": "«{name}» կատեգորիային կապված են ապրանքներ՝ {count}։ Նախ տեղափոխեք դրանք այլ կատեգորիա։ Կայքից թաքցնելու համար անջատեք «Ակտիվ» փոխարկիչը։"
         },
         "dashboard": {
             "title": "Անալիտիկա",

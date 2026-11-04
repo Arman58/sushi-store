@@ -903,7 +903,8 @@
             "photo": "Фото",
             "retry": "Повторить",
             "paginationRange": "{from}-{to} из {total}",
-            "id": "ID"
+            "id": "ID",
+            "noOptions": "Нет вариантов"
         },
         "login": {
             "badge": "Admin Area",
@@ -1040,8 +1041,6 @@
             "upsellHint": "Предложения «Добавить к заказу» в корзине для этого блюда",
             "newCategory": "Новая категория",
             "addCategory": "Добавить категорию",
-            "categoryDeleteBlocked": "Нельзя удалить эту категорию, так как к ней привязаны товары!",
-            "categoryDeleteNetworkError": "Ошибка сети при удалении категории.",
             "categoryCreateNetworkError": "Ошибка сети при создании категории",
             "invalidWeight": "Укажите корректный вес",
             "nameRequired": "Укажите название хотя бы на одном языке",
@@ -1074,7 +1073,6 @@
             "addModifierGroup": "Добавить группу модификаторов",
             "modifiersTitle": "Модификаторы",
             "maxChoicesHint": "0 - без лимита",
-            "deleteCategoryAria": "Удалить категорию {name}",
             "photos": "Фото"
         },
         "categories": {
@@ -1091,7 +1089,9 @@
             "emptyHint": "Категории создаются в форме товара.",
             "deleteTitle": "Удалить категорию?",
             "deleteBody": "Категория «{name}» будет удалена. Если к ней привязаны товары, удаление будет отклонено.",
-            "categoryActiveAria": "Категория {name} активна"
+            "categoryActiveAria": "Категория {name} активна",
+            "productsCount": "{count, plural, one {# товар} few {# товара} many {# товаров} other {# товара}}",
+            "deleteBlockedProducts": "К категории «{name}» привязано товаров: {count}. Сначала перенесите их в другую категорию. Чтобы скрыть категорию с сайта, выключите переключатель «Активна»."
         },
         "dashboard": {
             "title": "Аналитика",
