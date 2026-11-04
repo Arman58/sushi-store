@@ -174,6 +174,13 @@ export function LoginDialog({ open, onClose }: LoginDialogProps) {
                 return;
             }
 
+            if (result?.status === 429 || result?.error === "TooManyRequests") {
+                const msg = t("errors.tooManyAttempts");
+                setError(msg);
+                showAppToast(msg, "error");
+                return;
+            }
+
             if (result?.error) {
                 const msg = t("errors.invalidCredentials");
                 setError(msg);

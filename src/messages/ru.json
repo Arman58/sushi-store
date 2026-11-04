@@ -615,6 +615,7 @@
         "errors": {
             "credentialsRequired": "Введите email и пароль",
             "invalidCredentials": "Неверный email или пароль",
+            "tooManyAttempts": "Слишком много попыток входа. Попробуйте снова через 15 минут.",
             "nameTooShort": "Имя должно быть не короче 2 символов",
             "invalidEmail": "Введите корректный email",
             "passwordTooShort": "Пароль должен быть не короче 8 символов",

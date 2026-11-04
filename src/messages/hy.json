@@ -615,6 +615,7 @@
         "errors": {
             "credentialsRequired": "Մուտքագրեք email և գաղտնաբառ",
             "invalidCredentials": "Սխալ email կամ գաղտնաբառ",
+            "tooManyAttempts": "Մուտքի չափազանց շատ փորձեր։ Խնդրում ենք փորձել կրկին 15 րոպեից։",
             "nameTooShort": "Անունը պետք է լինի առնվազն 2 նիշ",
             "invalidEmail": "Մուտքագրեք ճիշտ email",
             "passwordTooShort": "Գաղտնաբառը պետք է լինի առնվազն 8 նիշ",
