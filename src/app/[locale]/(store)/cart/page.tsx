@@ -104,6 +104,7 @@ export default function CartPage() {
                 const res = await validatePromo({
                     code: appliedPromoCode,
                     cartAmount: subtotal,
+                    deliveryKnown: false,
                     items: items.map(i => ({ productId: i.productId, quantity: i.quantity, price: i.calculatedItemPrice }))
                 });
                 if (!cancelled) {
@@ -140,10 +141,18 @@ export default function CartPage() {
 
         setPromoApplying(true);
         try {
+            // Товары нужны для условий "в корзине есть товар категории": без них такой промокод
+            // отклонялся бы при применении, хотя корзина ему подходит.
             await validatePromo({
                 code,
                 cartAmount: subtotal,
                 deliveryAmount: 0,
+                deliveryKnown: false,
+                items: items.map((i) => ({
+                    productId: i.productId,
+                    quantity: i.quantity,
+                    price: i.calculatedItemPrice,
+                })),
             });
             setAppliedPromoCode(code);
         } catch (e) {

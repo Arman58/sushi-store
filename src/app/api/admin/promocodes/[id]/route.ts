@@ -1,10 +1,16 @@
-import { DiscountType } from "@prisma/client";
+import { DiscountType, Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { adminPromoPatchSchema } from "@/lib/api-schemas";
 import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
 import { normalizePromoCode } from "@/lib/promo";
+import {
+    parsePromoActions,
+    promoCategoryIds,
+    validatePromoActionValues,
+    validatePromoDiscount,
+} from "@/lib/promo-rules";
 import { verifyAdmin } from "@/lib/verify-admin";
 
 function parseId(param: string): number | null {
@@ -71,10 +77,61 @@ export async function PATCH(
         data.isActive = parsed.data.isActive;
     }
 
+    // Частичное изменение: проверяем ИТОГОВУЮ запись (тип/значение/акции из БД + присланное),
+    // иначе, например, смена типа на "процент" оставила бы старое значение 5000 (> 100).
+    const existing = await prisma.promoCode.findUnique({ where: { id } });
+    if (!existing) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    const nextActions =
+        parsed.data.actions !== undefined
+            ? parsed.data.actions ?? []
+            : parsePromoActions(existing.actions);
+    const problem =
+        validatePromoDiscount(
+            data.discountType ?? existing.discountType,
+            data.discountValue ?? existing.discountValue,
+            { hasActions: nextActions.length > 0 },
+        ) ?? validatePromoActionValues(nextActions);
+    if (problem) {
+        return NextResponse.json(
+            {
+                error:
+                    problem === "percentOutOfRange"
+                        ? "Percent must be between 0 and 100"
+                        : "Discount value must be at least 1",
+            },
+            { status: 400 },
+        );
+    }
+
+    if (parsed.data.actions !== undefined || parsed.data.conditions !== undefined) {
+        const referenced = promoCategoryIds({
+            actions: parsed.data.actions ?? undefined,
+            conditions: parsed.data.conditions ?? undefined,
+        });
+        if (referenced.length > 0) {
+            const found = await prisma.category.count({ where: { id: { in: referenced } } });
+            if (found !== referenced.length) {
+                return NextResponse.json({ error: "Category not found" }, { status: 400 });
+            }
+        }
+    }
+
+    // null / [] - убрать; undefined - не трогать.
+    const rules: Prisma.PromoCodeUpdateInput = {};
+    if (parsed.data.actions !== undefined) {
+        rules.actions = parsed.data.actions?.length ? parsed.data.actions : Prisma.JsonNull;
+    }
+    if (parsed.data.conditions !== undefined) {
+        rules.conditions = parsed.data.conditions?.length ? parsed.data.conditions : Prisma.JsonNull;
+    }
+
     try {
         const updated = await prisma.promoCode.update({
             where: { id },
-            data,
+            data: { ...data, ...rules },
         });
         return NextResponse.json(updated);
     } catch {

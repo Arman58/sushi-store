@@ -1,10 +1,11 @@
-import { DiscountType } from "@prisma/client";
+import { DiscountType, Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { adminPromoCreateSchema } from "@/lib/api-schemas";
 import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
 import { normalizePromoCode } from "@/lib/promo";
+import { promoCategoryIds } from "@/lib/promo-rules";
 import { verifyAdmin } from "@/lib/verify-admin";
 
 export async function GET(request: Request) {
@@ -39,7 +40,18 @@ export async function POST(request: Request) {
         maxUsages = null,
         expiresAt = null,
         isActive = true,
+        conditions,
+        actions,
     } = parsed.data;
+
+    // Акции и условия ссылаются на категории: несуществующая сделала бы промокод вечно "не применимым".
+    const referenced = promoCategoryIds({ actions, conditions });
+    if (referenced.length > 0) {
+        const found = await prisma.category.count({ where: { id: { in: referenced } } });
+        if (found !== referenced.length) {
+            return NextResponse.json({ error: "Category not found" }, { status: 400 });
+        }
+    }
 
     try {
         const created = await prisma.promoCode.create({
@@ -54,6 +66,8 @@ export async function POST(request: Request) {
                 maxUsages,
                 expiresAt,
                 isActive,
+                conditions: conditions?.length ? conditions : Prisma.JsonNull,
+                actions: actions?.length ? actions : Prisma.JsonNull,
             },
         });
         return NextResponse.json(created, { status: 201 });

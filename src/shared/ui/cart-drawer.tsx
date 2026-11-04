@@ -126,6 +126,7 @@ function CartDrawerOpen() {
                 const res = await validatePromo({
                     code: appliedPromoCode,
                     cartAmount: subtotal,
+                    deliveryKnown: false,
                     items: items.map((i) => ({
                         productId: i.productId,
                         quantity: i.quantity,
@@ -168,6 +169,12 @@ function CartDrawerOpen() {
                 code,
                 cartAmount: subtotal,
                 deliveryAmount: 0,
+                deliveryKnown: false,
+                items: items.map((i) => ({
+                    productId: i.productId,
+                    quantity: i.quantity,
+                    price: i.calculatedItemPrice,
+                })),
             });
             setAppliedPromoCode(code);
             setPromoInput(code);

@@ -1212,7 +1212,23 @@
             "discountFixedShort": "{value} off",
             "usedCount": "Used: {used} / {max}",
             "usedCountUnlimited": "Used: {used} / ∞",
-            "zonesShort": "Zones"
+            "zonesShort": "Zones",
+            "kind": "Promotion type",
+            "kindStandard": "Discount on the whole order",
+            "kindFreeDelivery": "Free delivery",
+            "kindCategory": "Category discount",
+            "kindFreeDeliveryHint": "The customer does not pay for delivery. Works for delivery only; it is not applied to pickup or a free zone.",
+            "kindCategoryHint": "The discount applies only to items of the chosen category; the cart must contain at least one of them.",
+            "category": "Category",
+            "noCategories": "Categories failed to load",
+            "complexRules": "This promotion was set up by hand (several actions or conditions) and is not edited here. You can change the code, limits, expiry and active state.",
+            "freeDeliveryShort": "Free delivery",
+            "categoryDiscountShort": "{value} on “{category}”",
+            "validationCode": "Enter the promo code",
+            "validationValue": "Enter the discount as a whole number above 0",
+            "validationPercent": "Percent must be between 1 and 100",
+            "validationCategory": "Choose a category",
+            "validationNumbers": "Check the minimum amount, usage limit and expiry date"
         }
     },
     "notFound": {

@@ -5,6 +5,10 @@
 import { z } from "zod";
 
 import { isOrderStatus } from "@/lib/order-status";
+import {
+    validatePromoActionValues,
+    validatePromoDiscount,
+} from "@/lib/promo-rules";
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -45,6 +49,8 @@ export const validatePromoBodySchema = z.object({
         .finite()
         .optional()
         .transform((v) => (v == null ? 0 : Math.max(0, Math.round(v)))),
+    /** false - корзина: стоимость доставки ещё неизвестна (см. shouldDeferNoDiscountRejection). */
+    deliveryKnown: z.boolean().optional().default(true),
     items: z
         .array(
             z.object({
@@ -185,25 +191,62 @@ export const adminDeliveryZonePatchSchema = z
 
 // ─── Admin: promocodes ────────────────────────────────────────────────────────
 
-export const adminPromoCreateSchema = z.object({
-    code: z.string().trim().min(1, "code is required"),
-    discountType: z.enum(["PERCENTAGE", "FIXED"]),
-    discountValue: positiveIntSchema,
-    minOrderAmount: nonNegativeIntSchema.nullable().optional(),
-    maxUsages: positiveIntSchema.nullable().optional(),
-    expiresAt: expiresAtFieldSchema,
-    isActive: z.boolean().optional().default(true),
+const promoActionSchema = z.discriminatedUnion("type", [
+    z.object({ type: z.literal("FREE_DELIVERY") }),
+    z.object({
+        type: z.literal("DISCOUNT_ON_CATEGORY"),
+        categoryId: positiveIntSchema,
+        discountType: z.enum(["PERCENTAGE", "FIXED"]),
+        value: positiveIntSchema,
+    }),
+]);
+
+const promoConditionSchema = z.object({
+    type: z.literal("CATEGORY_INCLUDES"),
+    categoryId: positiveIntSchema,
 });
+
+const PROMO_RULES_MAX = 5;
+
+export const adminPromoCreateSchema = z
+    .object({
+        code: z.string().trim().min(1, "code is required"),
+        discountType: z.enum(["PERCENTAGE", "FIXED"]),
+        /** 0 допустим только вместе с actions (размер скидки задают они). */
+        discountValue: nonNegativeIntSchema,
+        minOrderAmount: nonNegativeIntSchema.nullable().optional(),
+        maxUsages: positiveIntSchema.nullable().optional(),
+        expiresAt: expiresAtFieldSchema,
+        isActive: z.boolean().optional().default(true),
+        conditions: z.array(promoConditionSchema).max(PROMO_RULES_MAX).optional(),
+        actions: z.array(promoActionSchema).max(PROMO_RULES_MAX).optional(),
+    })
+    .superRefine((data, ctx) => {
+        const hasActions = (data.actions?.length ?? 0) > 0;
+        const problem =
+            validatePromoDiscount(data.discountType, data.discountValue, { hasActions }) ??
+            validatePromoActionValues(data.actions ?? []);
+        if (problem) {
+            ctx.addIssue({
+                code: "custom",
+                path: ["discountValue"],
+                message: problem === "percentOutOfRange" ? "percent must be 0-100" : "discountValue must be >= 1",
+            });
+        }
+    });
 
 export const adminPromoPatchSchema = z
     .object({
         code: z.string().trim().min(1).optional(),
         discountType: z.enum(["PERCENTAGE", "FIXED"]).optional(),
-        discountValue: positiveIntSchema.optional(),
+        discountValue: nonNegativeIntSchema.optional(),
         minOrderAmount: nonNegativeIntSchema.nullable().optional(),
         maxUsages: positiveIntSchema.nullable().optional(),
         expiresAt: expiresAtFieldSchema,
         isActive: z.boolean().optional(),
+        /** null или [] - убрать условия/акции. Итоговую согласованность проверяет роут (нужна запись из БД). */
+        conditions: z.array(promoConditionSchema).max(PROMO_RULES_MAX).nullable().optional(),
+        actions: z.array(promoActionSchema).max(PROMO_RULES_MAX).nullable().optional(),
     })
     .refine((data) => Object.keys(data).length > 0, "Nothing to update");
 

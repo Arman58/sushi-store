@@ -322,6 +322,11 @@ const PROMO_REJECTION_MESSAGES: Record<string, BackendMessageTemplate> = {
         ru: "Промокод не даёт скидку для этой суммы",
         en: "Promo code gives no discount for this amount",
     },
+    conditionsNotMet: {
+        hy: "Պրոմոկոդի պայմանները չեն կատարվել․ ավելացրեք համապատասխան ապրանք զամբյուղում",
+        ru: "Условия промокода не выполнены: добавьте в корзину подходящие товары",
+        en: "Promo code conditions are not met: add the eligible items to your cart",
+    },
     codeRequired: {
         hy: "Նշեք պրոմոկոդը",
         ru: "Укажите промокод",

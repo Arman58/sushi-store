@@ -12,6 +12,7 @@ import {
     getPromoRejectionCode,
     normalizePromoCode,
 } from "@/lib/promo";
+import { shouldDeferNoDiscountRejection } from "@/lib/promo-rules";
 import {
     checkRateLimit,
     rateLimitExceededJsonResponse,
@@ -78,7 +79,17 @@ export async function POST(request: Request) {
             items: enrichedItems,
         });
 
-        if (rejection) {
+        // Корзина не знает стоимость доставки: у "бесплатной доставки" скидка там 0 и она была бы
+        // отклонена. Пропускаем только это отклонение; чекаут и создание заказа проверят строго.
+        const deferred =
+            rejection != null &&
+            shouldDeferNoDiscountRejection({
+                deliveryKnown: parsed.data.deliveryKnown,
+                rejectionCode: rejection.code,
+                promo,
+            });
+
+        if (rejection && !deferred) {
             return NextResponse.json(
                 {
                     error: getPromoRejectionMessage(
