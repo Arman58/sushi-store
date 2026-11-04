@@ -307,7 +307,9 @@ export async function notifyKitchenTelegram(payload: KitchenTelegramPayload): Pr
         // Автоматическое закрепление только в группах (id начинается с минуса: -100...)
         // В личных чатах (ЛС) с ботом пин не разрешен Telegram API
         if (chatId.startsWith("-") && json?.ok && json.result?.message_id) {
-            void pinKitchenMessage(chatId, json.result.message_id);
+            // await: это уже выполняется внутри after(); без него функцию могут
+            // заморозить до завершения pin (telegramApi не бросает исключений).
+            await pinKitchenMessage(chatId, json.result.message_id);
         }
     }
 }
