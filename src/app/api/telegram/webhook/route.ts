@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { runAfterResponse } from "@/lib/after-response";
 import { telegramWebhookBodySchema } from "@/lib/api-schemas";
 import { debugLog } from "@/lib/debug-log";
 import { escapeHtml } from "@/lib/escape-html";
@@ -474,7 +475,9 @@ export async function POST(request: Request) {
                     await replyToCallback(callbackId, `Заказ №${orderId}: Отменён`);
 
                     if (message?.message_id != null) {
-                        void unpinKitchenMessage(message.chat.id, message.message_id);
+                        runAfterResponse(() =>
+                            unpinKitchenMessage(message.chat.id, message.message_id),
+                        );
 
                         if (message.text) {
                             const order = await prisma.order.findUnique({
@@ -525,9 +528,11 @@ export async function POST(request: Request) {
                     if (message?.message_id != null) {
                         // Автоматически открепляем выполненный или отмененный заказ
                         if (status === "DONE" || status === "CANCELLED") {
-                            void unpinKitchenMessage(
-                                message.chat.id,
-                                message.message_id,
+                            runAfterResponse(() =>
+                                unpinKitchenMessage(
+                                    message.chat.id,
+                                    message.message_id,
+                                ),
                             );
                         }
 

@@ -95,8 +95,12 @@ const productionRuntimeCaching: RuntimeCaching[] = [
             request.method === "GET" &&
             request.destination === "document" &&
             isMenuPath(pathname),
-        handler: new StaleWhileRevalidate({
+        // NetworkFirst, не StaleWhileRevalidate: SWR показывал предыдущую версию
+        // меню при каждом заходе (обновление - только со следующего). Сеть первична;
+        // кэш - фолбэк при офлайне или медленной сети (>3 с).
+        handler: new NetworkFirst({
             cacheName: "menu-pages",
+            networkTimeoutSeconds: 3,
             plugins: [
                 new ExpirationPlugin({
                     maxEntries: 8,

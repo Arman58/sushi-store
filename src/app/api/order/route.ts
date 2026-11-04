@@ -1,5 +1,6 @@
 import { after, NextResponse } from "next/server";
 
+import { runAfterResponse } from "@/lib/after-response";
 import { auth } from "@/lib/auth";
 import {
     getFormValidationMessage,
@@ -153,16 +154,18 @@ export async function POST(request: Request) {
         const result = await createOrder(payload, sessionUserId, locale);
 
         if (idemKey && redis) {
-            void redis
-                .set(
+            // after(): иначе запись результата может потеряться при заморозке функции,
+            // и ретрай с тем же ключом получит 409 "Duplicate request" вместо заказа.
+            runAfterResponse(() =>
+                redis.set(
                     idemKey,
                     JSON.stringify({
                         id: result.createdOrderId,
                         accessToken: result.createdAccessToken,
                     }),
                     { ex: IDEM_RESULT_TTL_SEC },
-                )
-                .catch(() => {});
+                ),
+            );
         }
 
         if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
@@ -214,7 +217,7 @@ export async function POST(request: Request) {
         // Заказ не создан - освобождаем pending, чтобы ретрай с тем же
         // ключом не упирался в 409 до истечения TTL.
         if (idemKey && redis) {
-            void redis.del(idemKey).catch(() => {});
+            runAfterResponse(() => redis.del(idemKey));
         }
         if (error instanceof OrderServiceError) {
             if (error.code === "INVALID_CART_PAYLOAD") {

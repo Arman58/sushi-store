@@ -6,6 +6,8 @@ import { NextResponse } from "next/server";
 export type RateLimitBucket =
     | "order"
     | "adminLogin"
+    | "login"
+    | "loginEmail"
     | "adminApi"
     | "register"
     | "verifyOtp"
@@ -32,6 +34,10 @@ type BucketConfig = {
 export const RATE_LIMIT_BUCKETS: Record<RateLimitBucket, BucketConfig> = {
     order: { requests: 5, window: "60 s", prefix: "rl:order" },
     adminLogin: { requests: 5, window: "15 m", prefix: "rl:admin-login", failClosed: true },
+    /** Клиентский вход (NextAuth credentials): перебор паролей с одного IP. */
+    login: { requests: 20, window: "15 m", prefix: "rl:login", failClosed: true },
+    /** Тот же вход, но по аккаунту: перебор с распределённых IP. */
+    loginEmail: { requests: 10, window: "15 m", prefix: "rl:login-email", failClosed: true },
     adminApi: { requests: 100, window: "60 s", prefix: "rl:admin-api" },
     register: { requests: 5, window: "15 m", prefix: "rl:register", failClosed: true },
     verifyOtp: { requests: 10, window: "15 m", prefix: "rl:verify-otp", failClosed: true },
@@ -68,6 +74,8 @@ function createLimiter(bucket: RateLimitBucket): Ratelimit | null {
 const limiters: Record<RateLimitBucket, Ratelimit | null> = {
     order: createLimiter("order"),
     adminLogin: createLimiter("adminLogin"),
+    login: createLimiter("login"),
+    loginEmail: createLimiter("loginEmail"),
     adminApi: createLimiter("adminApi"),
     register: createLimiter("register"),
     verifyOtp: createLimiter("verifyOtp"),
@@ -150,13 +158,16 @@ export type RateLimitOutcome =
 export async function checkRateLimit(
     request: Request,
     bucket: RateLimitBucket,
+    /** Ключ лимита вместо IP (например, email аккаунта). */
+    identifier?: string,
 ): Promise<RateLimitOutcome> {
     const limiter = limiters[bucket];
     const failClosed = RATE_LIMIT_BUCKETS[bucket].failClosed === true;
+    const key = identifier ?? getClientIp(request);
 
     if (!limiter) {
         if (failClosed) {
-            const ok = checkMemoryLimit(bucket, getClientIp(request));
+            const ok = checkMemoryLimit(bucket, key);
             return ok
                 ? { allowed: true }
                 : { allowed: false, reason: "limited" };
@@ -170,8 +181,7 @@ export async function checkRateLimit(
     }
 
     try {
-        const ip = getClientIp(request);
-        const { success } = await limiter.limit(ip);
+        const { success } = await limiter.limit(key);
         if (!success) {
             return { allowed: false, reason: "limited" };
         }
@@ -182,7 +192,7 @@ export async function checkRateLimit(
                 `[rate-limit] Upstash request failed; using in-memory fallback for auth bucket (bucket=${bucket})`,
                 error,
             );
-            const ok = checkMemoryLimit(bucket, getClientIp(request));
+            const ok = checkMemoryLimit(bucket, key);
             return ok
                 ? { allowed: true }
                 : { allowed: false, reason: "unavailable" };

@@ -615,6 +615,7 @@
         "errors": {
             "credentialsRequired": "Enter email and password",
             "invalidCredentials": "Invalid email or password",
+            "tooManyAttempts": "Too many sign-in attempts. Please try again in 15 minutes.",
             "nameTooShort": "Name must be at least 2 characters",
             "invalidEmail": "Enter a valid email",
             "passwordTooShort": "Password must be at least 8 characters",

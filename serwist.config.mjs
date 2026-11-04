@@ -12,12 +12,11 @@ const revision =
 const serwistOptions = {
     swSrc: "src/app/sw.ts",
     swDest: "public/sw.js",
-    additionalPrecacheEntries: [
-        { url: "/offline", revision },
-        { url: "/menu", revision },
-        { url: "/en/menu", revision },
-        { url: "/ru/menu", revision },
-    ],
+    // Только /offline. Страницы меню НЕ прекэшируем: Serwist отдаёт precache
+    // cache-first раньше runtimeCaching, и меню (категории, фото, цены, "нет в
+    // наличии") застывало на момент деплоя. Офлайн-меню даёт NetworkFirst
+    // "menu-pages" в sw.ts (кэш наполняется после первого посещения).
+    additionalPrecacheEntries: [{ url: "/offline", revision }],
 };
 
 export default serwist(serwistOptions);

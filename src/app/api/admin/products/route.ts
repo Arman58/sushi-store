@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 
 import { parseAdminModifierGroupsPayload } from "@/lib/admin-product-modifiers";
 import { adminProductCreateSchema } from "@/lib/api-schemas";
-import { ensureBundleSchema } from "@/lib/ensure-bundle-schema";
 import { asLocalizedRecord, localizedSlugSource } from "@/lib/i18n-utils";
 import { parseJsonBody } from "@/lib/parse-json-body";
 import { prisma } from "@/lib/prisma";
@@ -93,8 +92,6 @@ export async function GET(request: Request) {
     if (!auth.ok) {
         return auth.response;
     }
-
-    await ensureBundleSchema();
 
     try {
         // List payload stays light: modifiers load on GET /api/admin/products/[id] when editing.
