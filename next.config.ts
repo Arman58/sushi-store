@@ -1,7 +1,7 @@
 // Serwist PWA: configurator mode via serwist.config.mjs + `serwist build` after `next build`.
 // Avoids wrapping this file again and keeps Sentry + next-intl + Turbopack compatible.
 
-import { withSentryConfig } from "@sentry/nextjs";
+import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
