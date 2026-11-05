@@ -32,14 +32,21 @@ async function confirmModifiersIfOpen(page: Page) {
     await expect(addToCart).toBeHidden({ timeout: 10_000 });
 }
 
+/**
+ * Раньше здесь ждали `networkidle` без ограничения: достаточно одного висящего запроса
+ * (например, внешняя картинка), и тест ждал весь таймаут в 2 минуты (так падал CI на main).
+ * Теперь ожидание ограничено, а дальше тест ждёт конкретный элемент - кнопку добавления.
+ */
 export async function addFirstProductToCart(page: Page) {
     await page.goto("/ru");
-    await page.waitForLoadState("networkidle");
+    // Ждём затишья сети (признак гидратации), но не дольше 15 с и без падения: одна висящая
+    // внешняя картинка не должна занимать весь таймаут теста.
+    await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {});
 
     let addButton = page.getByRole("button", { name: /^Добавить (?!в избранное)/ }).first();
-    if (!(await addButton.isVisible({ timeout: 8_000 }).catch(() => false))) {
+    if (!(await addButton.isVisible({ timeout: 20_000 }).catch(() => false))) {
         await page.goto("/ru/menu");
-        await page.waitForLoadState("networkidle");
+        await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {});
         addButton = page.getByRole("button", { name: /^Добавить (?!в избранное)/ }).first();
     }
 
