@@ -8,6 +8,11 @@ export type ValidatePromoRequest = {
     code: string;
     cartAmount: number;
     deliveryAmount?: number;
+    /**
+     * false - стоимость доставки ещё неизвестна (корзина). Тогда промокод "бесплатная доставка"
+     * не отклоняется за нулевую скидку; чекаут проверяет строго (по умолчанию true).
+     */
+    deliveryKnown?: boolean;
     items?: Array<{ productId: number; quantity: number; price: number }>;
 };
 

@@ -16,6 +16,7 @@ import {
 } from "@/lib/order-service";
 import { computeEstimatedDeliveryAt, STORE_TIMEZONE } from "@/lib/order-status";
 import { prisma } from "@/lib/prisma";
+import { getStartOfDayInTimezone } from "@/lib/store-timezone";
 import {
     answerKitchenCallbackQuery,
     buildKitchenCancelConfirmKeyboard,
@@ -39,31 +40,9 @@ async function replyToCallback(callbackId: string, text: string): Promise<void> 
     await answerKitchenCallbackQuery(callbackId, text);
 }
 
-/** Динамическое вычисление начала текущих суток (00:00:00) в часовом поясе заведения без хардкода */
-function getStartOfTodayInTimezone(timeZone: string): Date {
-    const now = new Date();
-    const formatter = new Intl.DateTimeFormat("en-US", {
-        timeZone,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-    });
-    const parts = formatter.formatToParts(now);
-    const year = Number(parts.find((p) => p.type === "year")?.value);
-    const month = Number(parts.find((p) => p.type === "month")?.value);
-    const day = Number(parts.find((p) => p.type === "day")?.value);
-
-    const tempDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
-    const tzDate = new Date(tempDate.toLocaleString("en-US", { timeZone }));
-    const utcDate = new Date(tempDate.toLocaleString("en-US", { timeZone: "UTC" }));
-    const offsetMs = tzDate.getTime() - utcDate.getTime();
-
-    return new Date(tempDate.getTime() - offsetMs);
-}
-
 /** Сводка выручки и заказов за сегодняшний день (по часовому поясу STORE_TIMEZONE) */
 async function handleTodayCommand(chatId: number | string): Promise<void> {
-    const startOfTodayUtc = getStartOfTodayInTimezone(STORE_TIMEZONE);
+    const startOfTodayUtc = getStartOfDayInTimezone(STORE_TIMEZONE);
 
     const orders = await prisma.order.findMany({
         where: {

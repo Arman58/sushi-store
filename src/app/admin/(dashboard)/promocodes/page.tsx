@@ -34,6 +34,14 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { useLocalizedFieldFn } from "@/features/admin/hooks/use-admin-content-locale";
+import {
+    getPromoKind,
+    parsePromoActions,
+    parsePromoConditions,
+    type PromoKind,
+} from "@/lib/promo-rules";
+import { formatStorePrice } from "@/shared/lib/format-price";
 import { showAppToast } from "@/shared/lib/show-app-toast";
 import { useTabletDown } from "@/shared/lib/use-mobile-viewport";
 import { mergeAppSelectMenuProps, PageContainer, SectionTitle } from "@/shared/ui";
@@ -50,7 +58,36 @@ type PromoRow = {
     timesUsed: number;
     expiresAt: string | null;
     isActive: boolean;
+    /** JSON из БД: виды акций и условия (см. lib/promo-rules.ts). */
+    conditions?: unknown;
+    actions?: unknown;
 };
+
+type CategoryOption = { id: number; name: unknown };
+
+/**
+ * Правила, которые редактор выразить не может (несколько действий, нестандартные условия,
+ * нераспознанные записи), - при сохранении НЕ перезаписываем, иначе правка срока действия
+ * молча стирала бы акцию, настроенную вручную в БД.
+ */
+function hasManualRules(row: { actions?: unknown; conditions?: unknown }): boolean {
+    const rawActions = Array.isArray(row.actions) ? row.actions.length : 0;
+    const rawConditions = Array.isArray(row.conditions) ? row.conditions.length : 0;
+    const actions = parsePromoActions(row.actions);
+    const conditions = parsePromoConditions(row.conditions);
+    if (rawActions !== actions.length || rawConditions !== conditions.length) return true;
+
+    const kind = getPromoKind(row);
+    if (kind === "standard") return actions.length > 0 || conditions.length > 0;
+    if (kind === "free_delivery") return actions.length !== 1 || conditions.length > 0;
+
+    const action = actions[0];
+    if (actions.length !== 1 || action?.type !== "DISCOUNT_ON_CATEGORY") return true;
+    return (
+        conditions.length > 1 ||
+        (conditions.length === 1 && conditions[0]?.categoryId !== action.categoryId)
+    );
+}
 
 function toLocalInput(iso: string | null): string {
     if (!iso) return "";
@@ -68,6 +105,10 @@ const emptyCreate = () => ({
     maxUsages: "",
     expiresLocal: "",
     isActive: true,
+    kind: "standard" as PromoKind,
+    categoryId: "",
+    categoryDiscountType: "PERCENTAGE" as DiscountTypeLite,
+    categoryValue: "",
 });
 
 export default function AdminPromoCodesPage() {
@@ -80,6 +121,9 @@ export default function AdminPromoCodesPage() {
     const [error, setError] = useState<string | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editId, setEditId] = useState<number | null>(null);
+    const [editRow, setEditRow] = useState<PromoRow | null>(null);
+    const [categories, setCategories] = useState<CategoryOption[]>([]);
+    const lf = useLocalizedFieldFn();
     const [form, setForm] = useState(emptyCreate());
     const [saving, setSaving] = useState(false);
     const [deleteLoadingId, setDeleteLoadingId] = useState<number | null>(null);
@@ -117,15 +161,80 @@ export default function AdminPromoCodesPage() {
         void load();
     }, [load]);
 
+    // Категории нужны для акции "скидка на категорию" и для подписей в таблице.
+    useEffect(() => {
+        let cancelled = false;
+        void (async () => {
+            try {
+                const res = await fetch("/api/admin/categories", { credentials: "same-origin" });
+                if (!res.ok) return;
+                const data = (await res.json()) as CategoryOption[];
+                if (!cancelled && Array.isArray(data)) setCategories(data);
+            } catch {
+                /* без категорий доступны остальные виды акций */
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const manualRules = editRow ? hasManualRules(editRow) : false;
+
+    const describePromo = (r: PromoRow): { type: string; value: string } => {
+        const kind = getPromoKind(r);
+        if (kind === "free_delivery") {
+            return { type: t("kindFreeDelivery"), value: t("freeDeliveryShort") };
+        }
+        if (kind === "category") {
+            const action = parsePromoActions(r.actions).find((a) => a.type === "DISCOUNT_ON_CATEGORY");
+            if (action?.type === "DISCOUNT_ON_CATEGORY") {
+                const category = categories.find((c) => c.id === action.categoryId);
+                const amount =
+                    action.discountType === "PERCENTAGE"
+                        ? `${action.value}%`
+                        : `${formatStorePrice(action.value)} ֏`;
+                return {
+                    type: t("kindCategory"),
+                    value: t("categoryDiscountShort", {
+                        value: amount,
+                        category: category ? lf(category.name) : `#${action.categoryId}`,
+                    }),
+                };
+            }
+        }
+        return {
+            type: r.discountType === "PERCENTAGE" ? tCommon("percent") : tCommon("fixed"),
+            value:
+                r.discountType === "PERCENTAGE"
+                    ? `${r.discountValue}%`
+                    : `${formatStorePrice(r.discountValue)} ֏`,
+        };
+    };
+
     function openCreate() {
         setEditId(null);
+        setEditRow(null);
         setForm(emptyCreate());
         setDialogOpen(true);
     }
 
     function openEdit(row: PromoRow) {
         setEditId(row.id);
+        setEditRow(row);
+        const kind = getPromoKind(row);
+        const categoryAction = parsePromoActions(row.actions).find(
+            (a) => a.type === "DISCOUNT_ON_CATEGORY",
+        );
         setForm({
+            kind,
+            categoryId: categoryAction ? String(categoryAction.categoryId) : "",
+            categoryDiscountType:
+                categoryAction?.type === "DISCOUNT_ON_CATEGORY"
+                    ? categoryAction.discountType
+                    : "PERCENTAGE",
+            categoryValue:
+                categoryAction?.type === "DISCOUNT_ON_CATEGORY" ? String(categoryAction.value) : "",
             code: row.code,
             discountType: row.discountType,
             discountValue: String(row.discountValue),
@@ -139,41 +248,95 @@ export default function AdminPromoCodesPage() {
     }
 
     async function submitForm() {
+        const fail = (message: string) => showAppToast(message, "error");
+
         const code = form.code.trim();
-        const dv = Number(form.discountValue);
-        if (!code || !Number.isInteger(dv)) {
-            return;
+        if (!code) return fail(t("validationCode"));
+
+        // Правила, заданные вручную, не трогаем (см. hasManualRules).
+        const manual = editRow ? hasManualRules(editRow) : false;
+
+        let discountType = form.discountType;
+        let dv = Number(form.discountValue);
+        let actions: unknown;
+        let conditions: unknown;
+        // При создании "нет правил" = поле не передаётся; при правке null стирает прежние.
+        const none = editId ? null : undefined;
+
+        const checkAmount = (type: DiscountTypeLite, value: number): string | null => {
+            if (!Number.isInteger(value) || value < 1) return t("validationValue");
+            if (type === "PERCENTAGE" && value > 100) return t("validationPercent");
+            return null;
+        };
+
+        if (!manual) {
+            if (form.kind === "standard") {
+                const problem = checkAmount(discountType, dv);
+                if (problem) return fail(problem);
+                actions = none;
+                conditions = none;
+            } else if (form.kind === "free_delivery") {
+                discountType = "PERCENTAGE";
+                dv = 0;
+                actions = [{ type: "FREE_DELIVERY" }];
+                conditions = none;
+            } else {
+                const categoryId = Number(form.categoryId);
+                if (!Number.isInteger(categoryId) || categoryId < 1) {
+                    return fail(t("validationCategory"));
+                }
+                const value = Number(form.categoryValue);
+                const problem = checkAmount(form.categoryDiscountType, value);
+                if (problem) return fail(problem);
+                discountType = "PERCENTAGE";
+                dv = 0;
+                actions = [
+                    {
+                        type: "DISCOUNT_ON_CATEGORY",
+                        categoryId,
+                        discountType: form.categoryDiscountType,
+                        value,
+                    },
+                ];
+                conditions = [{ type: "CATEGORY_INCLUDES", categoryId }];
+            }
         }
 
         let minOA: number | null = null;
         if (form.minOrderAmount.trim() !== "") {
             const n = Number(form.minOrderAmount);
-            if (!Number.isInteger(n) || n < 0) return;
+            if (!Number.isInteger(n) || n < 0) return fail(t("validationNumbers"));
             minOA = n;
         }
 
         let maxU: number | null = null;
         if (form.maxUsages.trim() !== "") {
             const n = Number(form.maxUsages);
-            if (!Number.isInteger(n) || n < 1) return;
+            if (!Number.isInteger(n) || n < 1) return fail(t("validationNumbers"));
             maxU = n;
         }
 
         let expiresAt: string | null = null;
         if (form.expiresLocal) {
             const d = new Date(form.expiresLocal);
-            if (Number.isNaN(d.getTime())) return;
+            if (Number.isNaN(d.getTime())) return fail(t("validationNumbers"));
             expiresAt = d.toISOString();
         }
 
         const body: Record<string, unknown> = {
             code,
-            discountType: form.discountType,
-            discountValue: dv,
             minOrderAmount: minOA,
             maxUsages: maxU,
             expiresAt,
             isActive: form.isActive,
+            ...(manual
+                ? {}
+                : {
+                      discountType,
+                      discountValue: dv,
+                      ...(actions !== undefined ? { actions } : {}),
+                      ...(conditions !== undefined ? { conditions } : {}),
+                  }),
         };
 
         setSaving(true);
@@ -316,14 +479,8 @@ export default function AdminPromoCodesPage() {
                                         <TableCell>
                                             <Typography fontWeight={600}>{r.code}</Typography>
                                         </TableCell>
-                                        <TableCell>
-                                            {r.discountType === "PERCENTAGE" ? tCommon("percent") : tCommon("fixed")}
-                                        </TableCell>
-                                        <TableCell>
-                                            {r.discountType === "PERCENTAGE"
-                                                ? `${r.discountValue}%`
-                                                : `${r.discountValue.toLocaleString("ru-RU")} ֏`}
-                                        </TableCell>
+                                        <TableCell>{describePromo(r).type}</TableCell>
+                                        <TableCell>{describePromo(r).value}</TableCell>
                                         <TableCell>
                                             {r.minOrderAmount != null
                                                 ? `${r.minOrderAmount.toLocaleString("ru-RU")} ֏`
@@ -392,11 +549,13 @@ export default function AdminPromoCodesPage() {
                                                 />
                                             </Stack>
                                             <Typography variant="body2" color="text.secondary">
-                                                {r.discountType === "PERCENTAGE"
-                                                    ? t("discountPercentShort", { value: r.discountValue })
-                                                    : t("discountFixedShort", {
-                                                          value: `${r.discountValue.toLocaleString("ru-RU")} ֏`,
-                                                      })}
+                                                {getPromoKind(r) === "standard"
+                                                    ? r.discountType === "PERCENTAGE"
+                                                        ? t("discountPercentShort", { value: r.discountValue })
+                                                        : t("discountFixedShort", {
+                                                              value: `${formatStorePrice(r.discountValue)} ֏`,
+                                                          })
+                                                    : `${describePromo(r).type}: ${describePromo(r).value}`}
                                             </Typography>
                                             <Typography variant="body2">
                                                 {r.maxUsages != null
@@ -455,6 +614,31 @@ export default function AdminPromoCodesPage() {
                             helperText={t("codeHelper")}
                             fullWidth
                         />
+                        {manualRules ? (
+                            <Alert severity="info">{t("complexRules")}</Alert>
+                        ) : (
+                            <>
+                                <TextField
+                                    select
+                                    label={t("kind")}
+                                    value={form.kind}
+                                    onChange={(e) =>
+                                        setForm((f) => ({ ...f, kind: e.target.value as PromoKind }))
+                                    }
+                                    slotProps={{
+                                        select: { MenuProps: mergeAppSelectMenuProps() },
+                                    }}
+                                    fullWidth
+                                >
+                                    <MenuItem value="standard">{t("kindStandard")}</MenuItem>
+                                    <MenuItem value="free_delivery">{t("kindFreeDelivery")}</MenuItem>
+                                    <MenuItem value="category" disabled={categories.length === 0}>
+                                        {t("kindCategory")}
+                                    </MenuItem>
+                                </TextField>
+
+                                {form.kind === "standard" ? (
+                                    <>
                         <TextField
                             select
                             label={t("discountType")}
@@ -490,10 +674,85 @@ export default function AdminPromoCodesPage() {
                             fullWidth
                             inputProps={{
                                 step: 1,
-                                min: 0,
+                                min: 1,
                                 max: form.discountType === "PERCENTAGE" ? 100 : undefined,
                             }}
                         />
+                                    </>
+                                ) : null}
+
+                                {form.kind === "free_delivery" ? (
+                                    <Typography variant="body2" color="text.secondary">
+                                        {t("kindFreeDeliveryHint")}
+                                    </Typography>
+                                ) : null}
+
+                                {form.kind === "category" ? (
+                                    <>
+                                        <TextField
+                                            select
+                                            required
+                                            label={t("category")}
+                                            value={form.categoryId}
+                                            onChange={(e) =>
+                                                setForm((f) => ({ ...f, categoryId: e.target.value }))
+                                            }
+                                            slotProps={{
+                                                select: { MenuProps: mergeAppSelectMenuProps() },
+                                            }}
+                                            helperText={categories.length === 0 ? t("noCategories") : undefined}
+                                            fullWidth
+                                        >
+                                            {categories.map((c) => (
+                                                <MenuItem key={c.id} value={String(c.id)}>
+                                                    {lf(c.name)}
+                                                </MenuItem>
+                                            ))}
+                                        </TextField>
+                                        <TextField
+                                            select
+                                            label={t("discountType")}
+                                            value={form.categoryDiscountType}
+                                            onChange={(e) =>
+                                                setForm((f) => ({
+                                                    ...f,
+                                                    categoryDiscountType: e.target.value as DiscountTypeLite,
+                                                }))
+                                            }
+                                            slotProps={{
+                                                select: { MenuProps: mergeAppSelectMenuProps() },
+                                            }}
+                                            fullWidth
+                                        >
+                                            <MenuItem value="PERCENTAGE">{t("discountPercent")}</MenuItem>
+                                            <MenuItem value="FIXED">{t("discountFixed")}</MenuItem>
+                                        </TextField>
+                                        <TextField
+                                            label={
+                                                form.categoryDiscountType === "PERCENTAGE"
+                                                    ? t("percentValue")
+                                                    : t("amountValue")
+                                            }
+                                            type="number"
+                                            required
+                                            value={form.categoryValue}
+                                            onChange={(e) =>
+                                                setForm((f) => ({ ...f, categoryValue: e.target.value }))
+                                            }
+                                            fullWidth
+                                            inputProps={{
+                                                step: 1,
+                                                min: 1,
+                                                max: form.categoryDiscountType === "PERCENTAGE" ? 100 : undefined,
+                                            }}
+                                        />
+                                        <Typography variant="body2" color="text.secondary">
+                                            {t("kindCategoryHint")}
+                                        </Typography>
+                                    </>
+                                ) : null}
+                            </>
+                        )}
                         <TextField
                             label={t("minOrderOptional")}
                             type="number"
@@ -555,7 +814,9 @@ export default function AdminPromoCodesPage() {
                         disabled={
                             saving ||
                             !form.code.trim() ||
-                            !Number.isInteger(Number(form.discountValue))
+                            (form.kind === "standard" &&
+                                !manualRules &&
+                                !Number.isInteger(Number(form.discountValue)))
                         }
                         size={isMobile ? "large" : "medium"}
                     >

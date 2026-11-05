@@ -9,6 +9,7 @@ import {
     mapProductToPopular,
 } from "@/lib/home-product-include";
 import { prisma } from "@/lib/prisma";
+import { storefrontProductVisible } from "@/lib/storefront-visibility";
 
 const PopularSection = dynamic(
     () =>
@@ -25,7 +26,7 @@ const getNewArrivalsCached = unstable_cache(
     async (locale: string) => {
         const newProductsRaw = await prisma.product
             .findMany({
-                where: { isActive: true },
+                where: storefrontProductVisible,
                 include: homeProductCardInclude,
                 take: 6,
                 orderBy: { id: "desc" },

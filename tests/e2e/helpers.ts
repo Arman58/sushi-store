@@ -87,8 +87,15 @@ export async function fillCheckoutForm(page: Page) {
         { timeout: 30_000 },
     ).catch(() => {});
 
-    const zoneSelect = page.getByRole("combobox").first();
-    await zoneSelect.click();
+    // DeliveryZoneSelect: на >= sm (600px) - MUI Select (combobox), на мобильном -
+    // кнопка, которая открывает полноэкранную шторку с радио-списком зон.
+    const isMobileViewport = (page.viewportSize()?.width ?? 1280) < 600;
+    if (isMobileViewport) {
+        await page.getByRole("button", { name: "Район / зона доставки" }).click();
+    } else {
+        await page.getByRole("combobox").first().click();
+    }
+    // Опция с этим текстом есть и в выпадающем списке, и в шторке; клик закрывает оба.
     await page.getByText("Нор Ачин - доставка бесплатно").click();
 
     await page.getByLabel("Адрес доставки").fill("ул. Тестовая, 1");

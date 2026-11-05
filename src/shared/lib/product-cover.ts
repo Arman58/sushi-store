@@ -2,10 +2,25 @@ import { SITE_URL } from "@/lib/site-config";
 
 /** Хосты, разрешённые в next.config.ts → images.remotePatterns */
 const ALLOWED_REMOTE_HOSTS = new Set([
-    "res.cloudinary.com",
     "images.unsplash.com",
     "placehold.co",
 ]);
+
+const CLOUDINARY_HOST = "res.cloudinary.com";
+
+/**
+ * Cloudinary разрешён только для нашего аккаунта (как в next.config.ts → remotePatterns).
+ * Иначе URL чужого аккаунта проходил бы проверку здесь, а /_next/image отвечал бы 400
+ * и вместо плейсхолдера пользователь видел бы битую картинку.
+ */
+function isOwnCloudinaryUrl(url: URL): boolean {
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim();
+    return (
+        url.hostname === CLOUDINARY_HOST &&
+        !!cloudName &&
+        url.pathname.startsWith(`/${cloudName}/`)
+    );
+}
 
 function siteHostname(): string | null {
     if (!SITE_URL) return null;
@@ -29,6 +44,7 @@ export function isAllowedProductImageSrc(src: string | null | undefined): boolea
             const url = new URL(trimmed);
             const ownHost = siteHostname();
             if (ownHost && url.hostname === ownHost) return true;
+            if (url.hostname === CLOUDINARY_HOST) return isOwnCloudinaryUrl(url);
             return ALLOWED_REMOTE_HOSTS.has(url.hostname);
         } catch {
             return false;

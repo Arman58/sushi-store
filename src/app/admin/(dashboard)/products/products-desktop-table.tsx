@@ -5,6 +5,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import {
     Box,
     Button,
+    Chip,
     IconButton,
     Switch,
     Table,
@@ -154,7 +155,11 @@ export function ProductsDesktopTable(props: {
                                     {trimComposition(lf(product.composition) || null)}
                                 </TableCell>
                                 <TableCell>
-                                    {product.category ? lf(product.category.name) : "-"}
+                                    {product.category ? (
+                                        lf(product.category.name)
+                                    ) : (
+                                        <Chip size="small" color="warning" variant="outlined" label={t("uncategorized")} />
+                                    )}
                                 </TableCell>
                                 <TableCell align="right">
                                     {product.price.toLocaleString("ru-RU")} ֏

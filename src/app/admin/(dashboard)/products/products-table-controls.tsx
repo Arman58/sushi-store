@@ -27,7 +27,8 @@ export type ProductSortBy =
 
 export type ProductTableView = {
     search: string;
-    categoryId: number | "all";
+    /** "none" - товары без категории (остались со старых времён). */
+    categoryId: number | "all" | "none";
     status: "all" | "active" | "hidden";
     priceMin: string;
     priceMax: string;
@@ -93,8 +94,11 @@ export function filterAndSortProducts<T extends FilterableProduct>(
 
     const filtered = products.filter((product) => {
         if (query && !searchableText(product).includes(query)) return false;
-        if (view.categoryId !== "all" && product.categoryId !== view.categoryId)
+        if (view.categoryId === "none") {
+            if (product.categoryId !== null) return false;
+        } else if (view.categoryId !== "all" && product.categoryId !== view.categoryId) {
             return false;
+        }
         if (view.status === "active" && !product.isActive) return false;
         if (view.status === "hidden" && product.isActive) return false;
         if (priceMin !== null && product.price < priceMin) return false;
@@ -154,6 +158,8 @@ type CategoryOption = { id: number; label: string };
 type ProductsToolbarProps = {
     view: ProductTableView;
     categories: CategoryOption[];
+    /** Сколько товаров без категории: пункт фильтра "Без категории" показываем только если они есть. */
+    uncategorizedCount: number;
     totalCount: number;
     filteredCount: number;
     onChange: (patch: Partial<ProductTableView>) => void;
@@ -162,6 +168,7 @@ type ProductsToolbarProps = {
 export function ProductsToolbar({
     view,
     categories,
+    uncategorizedCount,
     totalCount,
     filteredCount,
     onChange,
@@ -220,8 +227,8 @@ export function ProductsToolbar({
                     onChange={(e) =>
                         onChange({
                             categoryId:
-                                e.target.value === "all"
-                                    ? "all"
+                                e.target.value === "all" || e.target.value === "none"
+                                    ? e.target.value
                                     : Number(e.target.value),
                             page: 0,
                         })
@@ -235,6 +242,9 @@ export function ProductsToolbar({
                     sx={{ minWidth: 160 }}
                 >
                     <MenuItem value="all">{t("allCategories")}</MenuItem>
+                    {uncategorizedCount > 0 || view.categoryId === "none" ? (
+                        <MenuItem value="none">{t("uncategorized")}</MenuItem>
+                    ) : null}
                     {categories.map((c) => (
                         <MenuItem key={c.id} value={c.id}>
                             {c.label}

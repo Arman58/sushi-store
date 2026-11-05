@@ -1,16 +1,18 @@
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { debugLog } from "@/lib/debug-log";
 import { prisma } from "@/lib/prisma";
+import { isValidPushEndpoint } from "@/lib/push-endpoint";
 import {
     checkRateLimit,
     rateLimitExceededJsonResponse,
 } from "@/lib/rate-limit";
 
 const pushSubscribeSchema = z.object({
-    endpoint: z.string().url(),
+    endpoint: z.string().refine(isValidPushEndpoint),
     keys: z.object({
         p256dh: z.string().min(1),
         auth: z.string().min(1),
@@ -52,18 +54,33 @@ export async function POST(request: Request) {
     debugLog("[PUSH] Saving subscription for user:", session.user.id);
 
     try {
-        await prisma.pushSubscription.upsert({
-            where: { endpoint },
-            create: {
-                endpoint,
-                keys,
-                userId,
-            },
-            update: {
-                keys,
-                userId,
-            },
-        });
+        // The ownership predicate is part of the write, including concurrent claims.
+        const where = { endpoint, OR: [{ userId }, { userId: null }] };
+        const data = { keys, userId };
+        try {
+            await prisma.pushSubscription.upsert({
+                where,
+                create: { endpoint, ...data },
+                update: data,
+            });
+        } catch (error) {
+            if (
+                !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+                (error.code !== "P2002" && error.code !== "P2025")
+            ) {
+                throw error;
+            }
+
+            // P2002: concurrent insert / foreign owner; P2025: an unowned row was claimed.
+            // Retry only an owned/unclaimed row so same-user races still succeed.
+            const updated = await prisma.pushSubscription.updateMany({
+                where,
+                data,
+            });
+            if (updated.count === 0) {
+                return NextResponse.json({ error: "Subscription unavailable" }, { status: 409 });
+            }
+        }
     } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown database error";
         console.error("[PUSH SUBSCRIBE ERROR]", error);

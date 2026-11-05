@@ -4,6 +4,7 @@ import { getFormValidationMessage } from "@/lib/backend-i18n";
 import { homeProductCardInclude } from "@/lib/home-product-include";
 import { resolveRequestLocale, toStorefrontProducts } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
+import { storefrontProductVisible } from "@/lib/storefront-visibility";
 
 const MAX_IDS = 100;
 
@@ -28,7 +29,7 @@ export async function GET(request: Request) {
 
     try {
         const productsRaw = await prisma.product.findMany({
-            where: { isActive: true, id: { in: ids } },
+            where: { ...storefrontProductVisible, id: { in: ids } },
             include: homeProductCardInclude,
             orderBy: { id: "asc" },
         });

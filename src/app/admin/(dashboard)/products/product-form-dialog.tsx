@@ -295,45 +295,6 @@ export function ProductFormDialog(props: {
         }
     };
 
-    const handleDeleteCategory = async (categoryId: number) => {
-        try {
-            const res = await fetch(`/api/admin/categories/${categoryId}`, {
-                method: "DELETE",
-                credentials: "same-origin",
-            });
-            if (res.ok) {
-                setCategories((prev) => prev.filter((c) => c.id !== categoryId));
-                if (categoryIdWatch === String(categoryId)) {
-                    setValue("categoryId", "");
-                }
-                return;
-            }
-            if (res.status === 409) {
-                try {
-                    const body = (await res.json()) as { error?: string };
-                    if (body.error) {
-                        showAppToast(body.error, "error");
-                    } else {
-                        showAppToast(t("categoryDeleteBlocked"), "error");
-                    }
-                } catch {
-                    showAppToast(t("categoryDeleteBlocked"), "error");
-                }
-                return;
-            }
-            let msg = `${tCommon("errorPrefix")} ${res.status}`;
-            try {
-                const err = (await res.json()) as { error?: string };
-                if (err.error) msg = err.error;
-            } catch {
-                /* keep */
-            }
-            showAppToast(msg, "error");
-        } catch {
-            showAppToast(t("categoryDeleteNetworkError"), "error");
-        }
-    };
-
     const handleAddCategory = async () => {
         const name = newCategoryName;
         const hasName =
@@ -723,42 +684,7 @@ export function ProductFormDialog(props: {
                                         sx={TEXT_FIELD_FOCUS_SX}
                                     />
                                 )}
-                                renderOption={(props, option) => {
-                                    const { key, ...other } = props;
-                                    return (
-                                        <Box
-                                            key={key}
-                                            component="li"
-                                            {...other}
-                                            sx={{
-                                                display: "flex",
-                                                justifyContent: "space-between",
-                                                alignItems: "center",
-                                                width: "100%",
-                                            }}
-                                        >
-                                            <span>
-                                                {lf(option.name)}
-                                            </span>
-                                            <IconButton
-                                                type="button"
-                                                size="small"
-                                                tabIndex={-1}
-                                                disabled={submitLoading}
-                                                aria-label={t("deleteCategoryAria", {
-                                                    name: lf(option.name),
-                                                })}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    e.preventDefault();
-                                                    void handleDeleteCategory(option.id);
-                                                }}
-                                            >
-                                                <CloseIcon fontSize="small" />
-                                            </IconButton>
-                                        </Box>
-                                    );
-                                }}
+                                noOptionsText={tCommon("noOptions")}
                             />
                             <AdminLocalizationSection
                                 fieldValues={[newCategoryName]}

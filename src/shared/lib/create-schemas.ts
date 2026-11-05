@@ -98,10 +98,7 @@ export function createCheckoutSchema(messages: SchemaMessages) {
             if (data.delivery === "delivery") {
                 if (!data.address || data.address.trim().length < 5) {
                     ctx.addIssue({
-                        code: z.ZodIssueCode.too_small,
-                        minimum: 5,
-                        type: "string",
-                        inclusive: true,
+                        code: z.ZodIssueCode.custom,
                         path: ["address"],
                         message: messages.addressRequired,
                     });

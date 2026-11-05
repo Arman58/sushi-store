@@ -12,6 +12,7 @@ import {
 import { getTranslations } from "next-intl/server";
 
 import { resolveAdminLocale } from "@/lib/admin-locale";
+import { formatStorePrice } from "@/shared/lib/format-price";
 
 import {
     buildExportHref,
@@ -28,7 +29,7 @@ import {
 import {
     type DateRangeFilter,
     type DeliveryFilter,
-    getOrders,
+    getOrdersPage,
     type PaymentFilter,
     type SortDirection,
     type SortField,
@@ -79,7 +80,7 @@ export default async function AdminOrdersPage({
     };
 
     const formatAmount = (value: number) =>
-        `${value.toLocaleString(locale)} ֏`;
+        `${formatStorePrice(value)} ֏`;
 
     const columnLabels = {
         id: tCommon("id"),
@@ -158,78 +159,33 @@ export default async function AdminOrdersPage({
         status: statusFilter !== "all" ? statusFilter : undefined,
     };
 
-    const orders = await getOrders(
+    const requestedPage = parseInt(sp.page ?? "1", 10);
+    const pageSize = 25;
+
+    // Фильтры, итоги и страница считаются в БД: загружаем только 25 заказов, а не всю историю.
+    const {
+        orders: paginatedOrders,
+        totalCount,
+        filteredCount,
+        totalRevenue,
+        deliveryCount,
+        pickupCount,
+        page: safePage,
+        totalPages,
+    } = await getOrdersPage({
+        filters: {
+            delivery: deliveryFilter,
+            payment: paymentFilter,
+            status: statusFilter,
+            dateRange: dateRangeFilter,
+            q: searchQuery,
+        },
         sortField,
         sortDir,
-        deliveryFilter,
-        paymentFilter,
-        statusFilter,
-    );
-
-    const now = new Date();
-
-    const filteredByDate = orders.filter((order) => {
-        if (dateRangeFilter === "all") return true;
-
-        const createdAt = order.createdAt;
-        const msInDay = 24 * 60 * 60 * 1000;
-
-        if (dateRangeFilter === "today") {
-            const startOfToday = new Date(
-                now.getFullYear(),
-                now.getMonth(),
-                now.getDate(),
-            );
-            return createdAt >= startOfToday;
-        }
-
-        if (dateRangeFilter === "7d") {
-            const from = new Date(now.getTime() - 7 * msInDay);
-            return createdAt >= from;
-        }
-
-        if (dateRangeFilter === "30d") {
-            const from = new Date(now.getTime() - 30 * msInDay);
-            return createdAt >= from;
-        }
-
-        return true;
+        page: Number.isNaN(requestedPage) ? 1 : requestedPage,
+        pageSize,
     });
-
-    const filteredOrders = filteredByDate.filter((order) => {
-        if (!searchQuery) return true;
-
-        const q = searchQuery.toLowerCase();
-
-        return (
-            order.name.toLowerCase().includes(q) ||
-            order.phone.toLowerCase().includes(q) ||
-            String(order.id).includes(q)
-        );
-    });
-
-    const totalCount = orders.length;
-    const filteredCount = filteredOrders.length;
-    const totalRevenue = filteredOrders.reduce(
-        (sum, order) => sum + order.totalPrice,
-        0,
-    );
-    const pageSize = 25;
-    const requestedPage = parseInt(sp.page ?? "1", 10);
-    const currentPage = Number.isNaN(requestedPage) || requestedPage < 1 ? 1 : requestedPage;
-    const totalPages = Math.max(1, Math.ceil(filteredCount / pageSize));
-    const safePage = Math.min(currentPage, totalPages);
-    const paginatedOrders = filteredOrders.slice(
-        (safePage - 1) * pageSize,
-        safePage * pageSize,
-    );
     const exportHref = buildExportHref(baseSearchParams);
-    const deliveryCount = filteredOrders.filter(
-        (order) => order.delivery === "DELIVERY",
-    ).length;
-    const pickupCount = filteredOrders.filter(
-        (order) => order.delivery === "PICKUP",
-    ).length;
     const tableOrders = paginatedOrders.map((order) => ({
         id: order.id,
         createdAtFormatted: formatDate(order.createdAt, locale),
@@ -706,7 +662,7 @@ export default async function AdminOrdersPage({
                             searchQuery={searchQuery}
                             sortField={sortField}
                             sortDir={sortDir}
-                            empty={filteredOrders.length === 0}
+                            empty={filteredCount === 0}
                             columnLabels={columnLabels}
                             buildSortHref={(column) =>
                                 buildSortHref(

@@ -7,6 +7,7 @@ import {
     Avatar,
     Box,
     Button,
+    Chip,
     IconButton,
     Paper,
     Stack,
@@ -89,7 +90,11 @@ export function ProductsMobileList(props: {
                                 }}
                                 noWrap
                             >
-                                {product.category ? lf(product.category.name) : "-"}
+                                {product.category ? (
+                                    lf(product.category.name)
+                                ) : (
+                                    <Chip component="span" size="small" color="warning" variant="outlined" label={t("uncategorized")} />
+                                )}
                             </Typography>
                         </Box>
                         <Box sx={{ textAlign: "right", flexShrink: 0 }}>

@@ -10,8 +10,8 @@ import { verifyAdmin } from "@/lib/verify-admin";
 
 const bannerBodySchema = z.object({
     image: z.string().url().max(2048),
-    title: z.record(z.string()).optional().default({}),
-    ctaText: z.record(z.string()).optional().default({}),
+    title: z.record(z.string(), z.string()).optional().default({}),
+    ctaText: z.record(z.string(), z.string()).optional().default({}),
     href: z.string().max(2048).nullable().optional(),
     isActive: z.boolean().optional().default(true),
     position: z.number().int().min(0).optional().default(0),

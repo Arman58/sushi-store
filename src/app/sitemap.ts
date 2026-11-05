@@ -4,6 +4,7 @@ import { routing } from "@/i18n/routing";
 import { menuCategoryPath } from "@/lib/menu-paths";
 import { prisma } from "@/lib/prisma";
 import { SITE_URL } from "@/lib/site-config";
+import { storefrontProductVisible } from "@/lib/storefront-visibility";
 
 // /profile намеренно отсутствует: приватная страница (robots.ts её запрещает).
 const STATIC_PATHS = [
@@ -39,7 +40,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
                 orderBy: { position: "asc" },
             }),
             prisma.product.findMany({
-                where: { isActive: true },
+                where: storefrontProductVisible,
                 select: { slug: true, createdAt: true },
                 orderBy: { id: "asc" },
             }),

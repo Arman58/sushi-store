@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { resolveRequestLocale, toStorefrontModifierGroups } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
+import { storefrontProductVisible } from "@/lib/storefront-visibility";
 
 /**
  * Модификаторы товара по требованию.
@@ -21,7 +22,7 @@ export async function GET(request: Request) {
 
     try {
         const product = await prisma.product.findFirst({
-            where: { id: productId, isActive: true },
+            where: { id: productId, ...storefrontProductVisible },
             select: {
                 modifierGroups: {
                     orderBy: [{ position: "asc" }, { id: "asc" }],

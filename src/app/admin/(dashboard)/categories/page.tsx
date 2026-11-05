@@ -1,5 +1,8 @@
 "use client";
 
+import AddIcon from "@mui/icons-material/Add";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
@@ -36,6 +39,7 @@ import {
     mergeLocalizedTranslations,
     parseLocalizedJson,
 } from "@/lib/i18n-utils";
+import { showAppToast } from "@/shared/lib/show-app-toast";
 import { useTabletDown } from "@/shared/lib/use-mobile-viewport";
 import { PageContainer, SectionTitle } from "@/shared/ui";
 import { LocalizedTextFields } from "@/shared/ui/localized-text-fields";
@@ -58,8 +62,11 @@ export default function AdminCategoriesPage() {
     const [savingId, setSavingId] = useState<number | null>(null);
 
     const [editing, setEditing] = useState<CategoryRow | null>(null);
+    /** Диалог имени работает в двух режимах: переименование (editing) и создание (creating). */
+    const [creating, setCreating] = useState(false);
     const [editName, setEditName] = useState<LocalizedJson>(emptyLocalizedJson());
     const [saveBusy, setSaveBusy] = useState(false);
+    const [reordering, setReordering] = useState(false);
 
     const { translate, isTranslating } = useAITranslation();
 
@@ -155,6 +162,77 @@ export default function AdminCategoriesPage() {
         }
     };
 
+    const openCreate = () => {
+        setEditName(emptyLocalizedJson());
+        setCreating(true);
+    };
+
+    const closeNameDialog = () => {
+        setEditing(null);
+        setCreating(false);
+    };
+
+    const handleCreateSave = async () => {
+        setSaveBusy(true);
+        setPageError(null);
+        try {
+            const res = await fetch("/api/admin/categories", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "same-origin",
+                body: JSON.stringify({ name: editName }),
+            });
+            if (!res.ok) {
+                const json = (await res.json().catch(() => null)) as {
+                    error?: string;
+                } | null;
+                throw new Error(json?.error || tCommon("saveFailed"));
+            }
+            const created = (await res.json()) as CategoryRow;
+            setCategories((prev) => [...prev, created]);
+            setCreating(false);
+        } catch (e) {
+            // Диалог остаётся открытым: иначе введённые названия и переводы пропали бы.
+            showAppToast(e instanceof Error ? e.message : tCommon("saveFailed"), "error");
+        } finally {
+            setSaveBusy(false);
+        }
+    };
+
+    /** Меняет порядок оптимистично и сохраняет полным списком; при ошибке откатывает. */
+    const moveCategory = async (index: number, dir: -1 | 1) => {
+        const target = index + dir;
+        if (reordering || target < 0 || target >= categories.length) return;
+
+        const previous = categories;
+        const next = [...categories];
+        [next[index], next[target]] = [next[target], next[index]];
+        setCategories(next);
+        setReordering(true);
+        setPageError(null);
+
+        try {
+            const res = await fetch("/api/admin/categories/reorder", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                credentials: "same-origin",
+                body: JSON.stringify({ ids: next.map((c) => c.id) }),
+            });
+            if (res.status === 409) {
+                await load();
+                // load() сбрасывает ошибку, поэтому сообщение ставим ПОСЛЕ перезагрузки списка.
+                setPageError(tRef.current("listChanged"));
+                return;
+            }
+            if (!res.ok) throw new Error();
+        } catch {
+            setCategories(previous);
+            setPageError(tRef.current("reorderFailed"));
+        } finally {
+            setReordering(false);
+        }
+    };
+
     const handleDelete = async () => {
         if (!deleting) return;
         setDeleteBusy(true);
@@ -167,7 +245,17 @@ export default function AdminCategoriesPage() {
             if (!res.ok) {
                 const json = (await res.json().catch(() => null)) as {
                     error?: string;
+                    code?: string;
+                    productCount?: number;
                 } | null;
+                if (json?.code === "CATEGORY_HAS_PRODUCTS") {
+                    throw new Error(
+                        t("deleteBlockedProducts", {
+                            name: lf(deleting.name),
+                            count: json.productCount ?? deleting.productCount ?? 0,
+                        }),
+                    );
+                }
                 throw new Error(json?.error || tCommon("deleteFailed"));
             }
             setCategories((prev) => prev.filter((c) => c.id !== deleting.id));
@@ -187,15 +275,34 @@ export default function AdminCategoriesPage() {
             <Stack
                 direction="row"
                 alignItems="center"
-                spacing={1.25}
+                flexWrap="wrap"
+                columnGap={1.25}
+                rowGap={1}
                 sx={{ mb: 0.5 }}
             >
                 <CategoryOutlinedIcon sx={{ color: tokens.brand }} />
                 <SectionTitle pageTitle>{t("title")}</SectionTitle>
+                <Box sx={{ flex: 1, display: { xs: "none", sm: "block" } }} />
+                {/* На телефоне кнопка уходит на свою строку, иначе заголовок ломается по буквам. */}
+                <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<AddIcon />}
+                    onClick={openCreate}
+                    sx={{
+                        fontWeight: 700,
+                        whiteSpace: "nowrap",
+                        flexBasis: { xs: "100%", sm: "auto" },
+                    }}
+                >
+                    {t("addCategory")}
+                </Button>
             </Stack>
             <Typography
                 variant="body2"
-                sx={{ color: tokens.textMuted, mb: 3, mt: -2 }}
+                // -2 только на десктопе: там заголовок и кнопка в одной строке; на телефоне
+                // кнопка занимает отдельную строку, и отрицательный отступ наезжал бы на неё.
+                sx={{ color: tokens.textMuted, mb: 3, mt: { xs: 1.5, sm: -2 } }}
             >
                 {t("subtitle")}
             </Typography>
@@ -257,7 +364,7 @@ export default function AdminCategoriesPage() {
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {categories.map((category) => (
+                                {categories.map((category, index) => (
                                     <TableRow key={category.id} hover>
                                         <TableCell sx={{ minWidth: 180 }}>
                                             <CategoryImageCell
@@ -283,6 +390,14 @@ export default function AdminCategoriesPage() {
                                                 <LocalizedStatusChips
                                                     value={category.name}
                                                 />
+                                                <Typography
+                                                    variant="caption"
+                                                    sx={{ color: tokens.textMuted }}
+                                                >
+                                                    {t("productsCount", {
+                                                        count: category.productCount ?? 0,
+                                                    })}
+                                                </Typography>
                                             </Box>
                                         </TableCell>
                                         <TableCell>
@@ -311,6 +426,33 @@ export default function AdminCategoriesPage() {
                                             />
                                         </TableCell>
                                         <TableCell align="right">
+                                            <Tooltip title={t("moveUp")}>
+                                                <span>
+                                                    <IconButton
+                                                        size="small"
+                                                        disabled={index === 0 || reordering}
+                                                        onClick={() => void moveCategory(index, -1)}
+                                                        aria-label={t("moveUp")}
+                                                    >
+                                                        <ArrowUpwardIcon sx={{ fontSize: 18 }} />
+                                                    </IconButton>
+                                                </span>
+                                            </Tooltip>
+                                            <Tooltip title={t("moveDown")}>
+                                                <span>
+                                                    <IconButton
+                                                        size="small"
+                                                        disabled={
+                                                            index === categories.length - 1 ||
+                                                            reordering
+                                                        }
+                                                        onClick={() => void moveCategory(index, 1)}
+                                                        aria-label={t("moveDown")}
+                                                    >
+                                                        <ArrowDownwardIcon sx={{ fontSize: 18 }} />
+                                                    </IconButton>
+                                                </span>
+                                            </Tooltip>
                                             <Tooltip title={tCommon("rename")}>
                                                 <IconButton
                                                     size="small"
@@ -341,10 +483,14 @@ export default function AdminCategoriesPage() {
                         spacing={1.5}
                         sx={{ display: { xs: "flex", md: "none" }, pb: 2 }}
                     >
-                        {categories.map((category) => (
+                        {categories.map((category, index) => (
                             <CategoryRowCard
                                 key={category.id}
                                 category={category}
+                                isFirst={index === 0}
+                                isLast={index === categories.length - 1}
+                                reordering={reordering}
+                                onMove={(dir) => void moveCategory(index, dir)}
                                 savingId={savingId}
                                 onImageChange={handleImageChange}
                                 onPatch={patchCategory}
@@ -357,13 +503,15 @@ export default function AdminCategoriesPage() {
             )}
 
             <Dialog
-                open={editing !== null}
-                onClose={saveBusy ? undefined : () => setEditing(null)}
+                open={editing !== null || creating}
+                onClose={saveBusy ? undefined : closeNameDialog}
                 fullWidth
                 maxWidth="sm"
                 fullScreen={isMobile}
             >
-                <DialogTitle>{t("renameCategory")}</DialogTitle>
+                <DialogTitle>
+                    {creating ? t("addCategory") : t("renameCategory")}
+                </DialogTitle>
                 <DialogContent>
                     <Box sx={{ pt: 1 }}>
                         <AdminLocalizationSection
@@ -383,14 +531,16 @@ export default function AdminCategoriesPage() {
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2 }}>
                     <Button
-                        onClick={() => setEditing(null)}
+                        onClick={closeNameDialog}
                         disabled={saveBusy}
                         color="inherit"
                     >
                         {tCommon("cancel")}
                     </Button>
                     <Button
-                        onClick={() => void handleRenameSave()}
+                        onClick={() =>
+                            void (creating ? handleCreateSave() : handleRenameSave())
+                        }
                         variant="contained"
                         disabled={saveBusy}
                         sx={{ fontWeight: 700 }}
@@ -409,9 +559,14 @@ export default function AdminCategoriesPage() {
                 <DialogTitle>{t("deleteTitle")}</DialogTitle>
                 <DialogContent>
                     <Typography variant="body2" sx={{ color: tokens.textSecondary }}>
-                        {t("deleteBody", {
-                            name: deleting ? lf(deleting.name) : "",
-                        })}
+                        {deleting && (deleting.productCount ?? 0) > 0
+                            ? t("deleteBlockedProducts", {
+                                  name: lf(deleting.name),
+                                  count: deleting.productCount ?? 0,
+                              })
+                            : t("deleteBody", {
+                                  name: deleting ? lf(deleting.name) : "",
+                              })}
                     </Typography>
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -422,15 +577,17 @@ export default function AdminCategoriesPage() {
                     >
                         {tCommon("cancel")}
                     </Button>
-                    <Button
-                        onClick={() => void handleDelete()}
-                        color="error"
-                        variant="contained"
-                        disabled={deleteBusy}
-                        sx={{ fontWeight: 700 }}
-                    >
-                        {tCommon("delete")}
-                    </Button>
+                    {(deleting?.productCount ?? 0) > 0 ? null : (
+                        <Button
+                            onClick={() => void handleDelete()}
+                            color="error"
+                            variant="contained"
+                            disabled={deleteBusy}
+                            sx={{ fontWeight: 700 }}
+                        >
+                            {tCommon("delete")}
+                        </Button>
+                    )}
                 </DialogActions>
             </Dialog>
         </PageContainer>

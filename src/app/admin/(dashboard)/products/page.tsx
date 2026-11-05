@@ -108,6 +108,11 @@ export default function AdminProductsPage() {
             .sort((a, b) => a.label.localeCompare(b.label, contentLocale));
     }, [products, contentLocale]);
 
+    const uncategorizedCount = useMemo(
+        () => products.filter((p) => p.categoryId === null).length,
+        [products],
+    );
+
     const filteredProducts = useMemo(
         () => filterAndSortProducts(products, view, contentLocale),
         [products, view, contentLocale],
@@ -588,10 +593,30 @@ export default function AdminProductsPage() {
                     <AddIcon />
                 </Fab>
 
+                {!loading && !error && uncategorizedCount > 0 && view.categoryId !== "none" ? (
+                    <Alert
+                        severity="warning"
+                        sx={{ mb: 2 }}
+                        action={
+                            <Button
+                                color="inherit"
+                                size="small"
+                                sx={{ whiteSpace: "nowrap" }}
+                                onClick={() => patchView({ categoryId: "none", page: 0 })}
+                            >
+                                {t("uncategorizedShow")}
+                            </Button>
+                        }
+                    >
+                        {t("uncategorizedAlert", { count: uncategorizedCount })}
+                    </Alert>
+                ) : null}
+
                 {!loading && !error && products.length > 0 ? (
                     <ProductsToolbar
                         view={view}
                         categories={categoryOptions}
+                        uncategorizedCount={uncategorizedCount}
                         totalCount={products.length}
                         filteredCount={filteredProducts.length}
                         onChange={patchView}

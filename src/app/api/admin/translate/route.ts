@@ -5,7 +5,7 @@ import { parseJsonBody } from "@/lib/parse-json-body";
 import { verifyAdmin } from "@/lib/verify-admin";
 
 const translateRequestSchema = z.object({
-    fields: z.record(z.string().min(1)),
+    fields: z.record(z.string(), z.string().min(1)),
 });
 
 export async function POST(request: Request) {

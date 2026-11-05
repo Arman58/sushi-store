@@ -903,7 +903,8 @@
             "photo": "Photo",
             "retry": "Retry",
             "paginationRange": "{from}-{to} of {total}",
-            "id": "ID"
+            "id": "ID",
+            "noOptions": "No options"
         },
         "login": {
             "badge": "Admin Area",
@@ -1040,8 +1041,6 @@
             "upsellHint": "“Add to order” suggestions in cart for this dish",
             "newCategory": "New category",
             "addCategory": "Add category",
-            "categoryDeleteBlocked": "Cannot delete this category because products are linked to it!",
-            "categoryDeleteNetworkError": "Network error while deleting category.",
             "categoryCreateNetworkError": "Network error while creating category",
             "invalidWeight": "Enter a valid weight",
             "nameRequired": "Enter a name in at least one language",
@@ -1074,12 +1073,14 @@
             "addModifierGroup": "Add modifier group",
             "modifiersTitle": "Modifiers",
             "maxChoicesHint": "0 = no limit",
-            "deleteCategoryAria": "Delete category {name}",
-            "photos": "Photos"
+            "photos": "Photos",
+            "uncategorized": "No category",
+            "uncategorizedAlert": "{count, plural, one {# product has no category} other {# products have no category}}. They show in the full menu but belong to no category. Assign a category in the product form.",
+            "uncategorizedShow": "Show"
         },
         "categories": {
             "title": "Categories",
-            "subtitle": "Photos, names, and visibility on the storefront. Without a photo, the card uses the first product cover.",
+            "subtitle": "Order, photos, names, and visibility on the storefront. The order here is the same as on the site. Without a photo, the card uses the first product cover.",
             "loadFailed": "Failed to load categories. Refresh the page.",
             "fileTooBig": "File is larger than 5 MB",
             "pickImage": "Select an image",
@@ -1091,7 +1092,14 @@
             "emptyHint": "Categories are created in the product form.",
             "deleteTitle": "Delete category?",
             "deleteBody": "Category “{name}” will be deleted. If products are linked, deletion will be rejected.",
-            "categoryActiveAria": "Category {name} is active"
+            "categoryActiveAria": "Category {name} is active",
+            "productsCount": "{count, plural, one {# product} other {# products}}",
+            "deleteBlockedProducts": "The category “{name}” has {count} products. Move them to another category first. To hide the category from the site, turn off the “Active” switch.",
+            "addCategory": "Add category",
+            "moveUp": "Up",
+            "moveDown": "Down",
+            "reorderFailed": "Could not save the category order. Please try again.",
+            "listChanged": "The category list changed (it was edited elsewhere). It has been reloaded - please repeat the action."
         },
         "dashboard": {
             "title": "Analytics",
@@ -1204,7 +1212,23 @@
             "discountFixedShort": "{value} off",
             "usedCount": "Used: {used} / {max}",
             "usedCountUnlimited": "Used: {used} / ∞",
-            "zonesShort": "Zones"
+            "zonesShort": "Zones",
+            "kind": "Promotion type",
+            "kindStandard": "Discount on the whole order",
+            "kindFreeDelivery": "Free delivery",
+            "kindCategory": "Category discount",
+            "kindFreeDeliveryHint": "The customer does not pay for delivery. Works for delivery only; it is not applied to pickup or a free zone.",
+            "kindCategoryHint": "The discount applies only to items of the chosen category; the cart must contain at least one of them.",
+            "category": "Category",
+            "noCategories": "Categories failed to load",
+            "complexRules": "This promotion was set up by hand (several actions or conditions) and is not edited here. You can change the code, limits, expiry and active state.",
+            "freeDeliveryShort": "Free delivery",
+            "categoryDiscountShort": "{value} on “{category}”",
+            "validationCode": "Enter the promo code",
+            "validationValue": "Enter the discount as a whole number above 0",
+            "validationPercent": "Percent must be between 1 and 100",
+            "validationCategory": "Choose a category",
+            "validationNumbers": "Check the minimum amount, usage limit and expiry date"
         }
     },
     "notFound": {

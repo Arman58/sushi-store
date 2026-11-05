@@ -12,6 +12,7 @@ import {
     type ReviewDto,
     serializeReview,
 } from "@/lib/reviews";
+import { storefrontProductVisible } from "@/lib/storefront-visibility";
 
 const PAGE_SIZE_DEFAULT = 10;
 const PAGE_SIZE_MAX = 50;
@@ -77,8 +78,8 @@ export async function GET(
                 : [{ createdAt: "desc" as const }];
 
     try {
-        const product = await prisma.product.findUnique({
-            where: { id: productId },
+        const product = await prisma.product.findFirst({
+            where: { id: productId, ...storefrontProductVisible },
             select: { id: true, isActive: true },
         });
         if (!product || !product.isActive) {
@@ -175,8 +176,8 @@ export async function POST(
     }
 
     try {
-        const product = await prisma.product.findUnique({
-            where: { id: productId },
+        const product = await prisma.product.findFirst({
+            where: { id: productId, ...storefrontProductVisible },
             select: { id: true, isActive: true },
         });
         if (!product || !product.isActive) {

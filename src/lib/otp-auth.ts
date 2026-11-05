@@ -2,21 +2,24 @@ import type { AppLocale } from "@/i18n/routing";
 import { sendOtpEmail } from "@/lib/email";
 import { normalizeEmail } from "@/lib/normalize-email";
 import {
-    deleteOtpCode,
+    claimOtpResendCooldown,
+    consumeOtpCode,
     generateOtpCode,
-    getOtpCode,
     isValidOtpCodeFormat,
+    type OtpVerifyResult,
     saveOtpCode,
 } from "@/lib/otp-store";
-import { timingSafeStringEqual } from "@/lib/timing-safe-equal";
 
 export const EMAIL_NOT_VERIFIED_ERROR = "EMAIL_NOT_VERIFIED";
 
 export async function issueOtpForEmail(
     email: string,
     locale?: AppLocale | string,
-): Promise<{ code: string; sent: boolean }> {
+): Promise<{ code: string | null; sent: boolean; cooldown?: boolean }> {
     const normalizedEmail = normalizeEmail(email);
+    if (!(await claimOtpResendCooldown(normalizedEmail))) {
+        return { code: null, sent: false, cooldown: true };
+    }
     const code = generateOtpCode();
     await saveOtpCode(normalizedEmail, code);
 
@@ -24,7 +27,7 @@ export async function issueOtpForEmail(
     return { code, sent };
 }
 
-export type OtpVerifyResult = "valid" | "expired" | "invalid";
+export type { OtpVerifyResult } from "@/lib/otp-store";
 
 export async function verifyOtpCode(
     email: string,
@@ -37,15 +40,5 @@ export async function verifyOtpCode(
         return "invalid";
     }
 
-    const redisCode = await getOtpCode(normalizedEmail);
-    if (!redisCode) {
-        return "expired";
-    }
-
-    if (timingSafeStringEqual(String(redisCode), cleanCode)) {
-        await deleteOtpCode(normalizedEmail);
-        return "valid";
-    }
-
-    return "invalid";
+    return consumeOtpCode(normalizedEmail, cleanCode);
 }

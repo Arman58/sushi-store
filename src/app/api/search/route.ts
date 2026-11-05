@@ -6,6 +6,7 @@ import {
     checkRateLimit,
     rateLimitExceededJsonResponse,
 } from "@/lib/rate-limit";
+import { storefrontProductVisible } from "@/lib/storefront-visibility";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 
 export const dynamic = "force-dynamic";
@@ -60,6 +61,7 @@ async function findProductIdsByFts(q: string): Promise<number[]> {
         LEFT JOIN "Category" c ON c.id = p."categoryId"
         LEFT JOIN "CategoryTranslation" ct ON ct."categoryId" = c.id
         WHERE p."isActive" = true
+          AND (p."categoryId" IS NULL OR c."isActive" = true)
           AND (
             to_tsvector('simple', coalesce(pt.name, ''))
                 @@ plainto_tsquery('simple', ${q})
@@ -110,7 +112,7 @@ export async function GET(request: Request) {
         const [products, categories] = await Promise.all([
             productIds.length
                 ? prisma.product.findMany({
-                      where: { id: { in: productIds }, isActive: true },
+                      where: { id: { in: productIds }, ...storefrontProductVisible },
                       include: {
                           category: { include: { translations: true } },
                           translations: true,

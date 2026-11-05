@@ -9,6 +9,7 @@ import {
     toStorefrontProducts,
 } from "@/lib/i18n-utils";
 import { prisma } from "@/lib/prisma";
+import { storefrontProductVisible } from "@/lib/storefront-visibility";
 import { buildLcpImageUrl } from "@/shared/lib/lcp-image-url";
 import { getProductCoverUrl } from "@/shared/lib/product-cover";
 import { MenuSection } from "@/widgets/menu-section";
@@ -22,7 +23,7 @@ async function fetchMenuData(locale: string) {
                 isActive: true,
                 products: { some: { isActive: true } },
             },
-            orderBy: { position: "asc" },
+            orderBy: [{ position: "asc" }, { id: "asc" }],
             include: {
                 translations: true,
                 products: {
@@ -34,7 +35,7 @@ async function fetchMenuData(locale: string) {
             },
         }),
         prisma.product.findMany({
-            where: { isActive: true },
+            where: storefrontProductVisible,
             include: {
                 translations: true,
                 category: {
@@ -50,15 +51,14 @@ async function fetchMenuData(locale: string) {
             orderBy: { id: "asc" },
         }),
         prisma.product.aggregate({
-            where: { isActive: true },
+            where: storefrontProductVisible,
             _min: { price: true },
             _max: { price: true },
         }),
     ]);
 
-    // toStorefrontCategories сортирует по "весу" (сеты → суши → пицца ...), поэтому
-    // порядок отличается от categoriesRaw (position). Сопоставляем строго по id,
-    // иначе фото одной категории попадает на другую.
+    // Сопоставляем строку БД с категорией строго по id, а не по индексу: независимо от
+    // порядка в результате фото одной категории не может попасть на другую.
     const rawById = new Map(categoriesRaw.map((c) => [c.id, c]));
     const categories = toStorefrontCategories(categoriesRaw, locale).map(
         (category) => {
@@ -88,6 +88,10 @@ async function fetchMenuData(locale: string) {
         const catPosA = a.category?.position ?? 999;
         const catPosB = b.category?.position ?? 999;
         if (catPosA !== catPosB) return catPosA - catPosB;
+        // Равные position (две параллельно созданные категории): без этого их товары перемешиваются.
+        const catIdA = a.category?.id ?? 0;
+        const catIdB = b.category?.id ?? 0;
+        if (catIdA !== catIdB) return catIdA - catIdB;
         const scoreA = (a.ratingAvg ?? 0) * (a.ratingCount ?? 0) + (a.originalPrice ? 10 : 0);
         const scoreB = (b.ratingAvg ?? 0) * (b.ratingCount ?? 0) + (b.originalPrice ? 10 : 0);
         if (scoreB !== scoreA) return scoreB - scoreA;
