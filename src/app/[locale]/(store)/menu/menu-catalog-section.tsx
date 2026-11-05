@@ -88,6 +88,10 @@ async function fetchMenuData(locale: string) {
         const catPosA = a.category?.position ?? 999;
         const catPosB = b.category?.position ?? 999;
         if (catPosA !== catPosB) return catPosA - catPosB;
+        // Равные position (две параллельно созданные категории): без этого их товары перемешиваются.
+        const catIdA = a.category?.id ?? 0;
+        const catIdB = b.category?.id ?? 0;
+        if (catIdA !== catIdB) return catIdA - catIdB;
         const scoreA = (a.ratingAvg ?? 0) * (a.ratingCount ?? 0) + (a.originalPrice ? 10 : 0);
         const scoreB = (b.ratingAvg ?? 0) * (b.ratingCount ?? 0) + (b.originalPrice ? 10 : 0);
         if (scoreB !== scoreA) return scoreB - scoreA;

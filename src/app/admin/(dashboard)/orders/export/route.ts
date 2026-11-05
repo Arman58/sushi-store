@@ -168,6 +168,8 @@ export async function GET(request: Request) {
                 });
                 controller.enqueue(encoder.encode(`${rows.join("\n")}\n`));
             } catch (error) {
+                // Заголовки уже отправлены: клиент получит обрезанный файл, поэтому след оставляем в логах.
+                console.error("[orders-export] stream failed:", error);
                 controller.error(error);
             }
         },

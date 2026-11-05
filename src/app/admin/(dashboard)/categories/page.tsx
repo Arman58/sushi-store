@@ -39,6 +39,7 @@ import {
     mergeLocalizedTranslations,
     parseLocalizedJson,
 } from "@/lib/i18n-utils";
+import { showAppToast } from "@/shared/lib/show-app-toast";
 import { useTabletDown } from "@/shared/lib/use-mobile-viewport";
 import { PageContainer, SectionTitle } from "@/shared/ui";
 import { LocalizedTextFields } from "@/shared/ui/localized-text-fields";
@@ -191,8 +192,8 @@ export default function AdminCategoriesPage() {
             setCategories((prev) => [...prev, created]);
             setCreating(false);
         } catch (e) {
-            setPageError(e instanceof Error ? e.message : tCommon("saveFailed"));
-            setCreating(false);
+            // Диалог остаётся открытым: иначе введённые названия и переводы пропали бы.
+            showAppToast(e instanceof Error ? e.message : tCommon("saveFailed"), "error");
         } finally {
             setSaveBusy(false);
         }
@@ -218,8 +219,9 @@ export default function AdminCategoriesPage() {
                 body: JSON.stringify({ ids: next.map((c) => c.id) }),
             });
             if (res.status === 409) {
-                setPageError(tRef.current("listChanged"));
                 await load();
+                // load() сбрасывает ошибку, поэтому сообщение ставим ПОСЛЕ перезагрузки списка.
+                setPageError(tRef.current("listChanged"));
                 return;
             }
             if (!res.ok) throw new Error();

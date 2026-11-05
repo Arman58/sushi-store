@@ -84,26 +84,42 @@ export async function PATCH(
         return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const nextActions =
-        parsed.data.actions !== undefined
-            ? parsed.data.actions ?? []
-            : parsePromoActions(existing.actions);
-    const problem =
-        validatePromoDiscount(
-            data.discountType ?? existing.discountType,
-            data.discountValue ?? existing.discountValue,
-            { hasActions: nextActions.length > 0 },
-        ) ?? validatePromoActionValues(nextActions);
-    if (problem) {
-        return NextResponse.json(
-            {
-                error:
-                    problem === "percentOutOfRange"
-                        ? "Percent must be between 0 and 100"
-                        : "Discount value must be at least 1",
-            },
-            { status: 400 },
-        );
+    // Проверяем, только если запрос трогает скидку: иначе нельзя было бы даже выключить или
+    // продлить старый промокод с некорректным значением (500% и т.п.).
+    const touchesDiscount =
+        parsed.data.discountType !== undefined ||
+        parsed.data.discountValue !== undefined ||
+        parsed.data.actions !== undefined;
+
+    if (touchesDiscount) {
+        // "Есть ли акции" считаем по сырому JSON: нераспознанные записи тоже акции.
+        const hasActions =
+            (parsed.data.actions !== undefined
+                ? (parsed.data.actions?.length ?? 0)
+                : Array.isArray(existing.actions)
+                  ? existing.actions.length
+                  : 0) > 0;
+        const nextActions =
+            parsed.data.actions !== undefined
+                ? parsed.data.actions ?? []
+                : parsePromoActions(existing.actions);
+        const problem =
+            validatePromoDiscount(
+                data.discountType ?? existing.discountType,
+                data.discountValue ?? existing.discountValue,
+                { hasActions },
+            ) ?? validatePromoActionValues(nextActions);
+        if (problem) {
+            return NextResponse.json(
+                {
+                    error:
+                        problem === "percentOutOfRange"
+                            ? "Percent must be between 0 and 100"
+                            : "Discount value must be at least 1",
+                },
+                { status: 400 },
+            );
+        }
     }
 
     if (parsed.data.actions !== undefined || parsed.data.conditions !== undefined) {

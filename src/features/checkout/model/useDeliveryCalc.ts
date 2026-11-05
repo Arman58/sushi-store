@@ -201,6 +201,9 @@ export function useDeliveryCalc({
 
     const showDeliveryBreakdown = isDelivery && selectedZone != null;
     const showDeliveryPendingHint = isDelivery && !selectedZone;
+    // Пока зона не выбрана, стоимость доставки неизвестна: промокод "бесплатная доставка" в этот
+    // момент нельзя отклонять за нулевую скидку (иначе он тихо стирался бы при заходе на чекаут).
+    const promoDeliveryKnown = !(isDelivery && !selectedZone);
     const grossBeforeDiscount = cartSubtotal + deliveryFee;
     const grandTotal = Math.max(0, grossBeforeDiscount - promoDiscount);
     const belowMin = Boolean(
@@ -226,6 +229,7 @@ export function useDeliveryCalc({
                         code: appliedPromoCode,
                         cartAmount: cartSubtotal,
                         deliveryAmount: deliveryFee,
+                        deliveryKnown: promoDeliveryKnown,
                         items: cartItems.map((i) => ({
                             productId: i.productId,
                             quantity: i.quantity,
@@ -252,7 +256,7 @@ export function useDeliveryCalc({
         return () => {
             window.clearTimeout(timer);
         };
-    }, [appliedPromoCode, cartSubtotal, deliveryFee, setAppliedPromoCode, t, cartItems]);
+    }, [appliedPromoCode, cartSubtotal, deliveryFee, promoDeliveryKnown, setAppliedPromoCode, t, cartItems]);
 
     const handleApplyPromoClick = async () => {
         setPromoError(null);
@@ -278,6 +282,7 @@ export function useDeliveryCalc({
                 code: raw,
                 cartAmount: cartSubtotal,
                 deliveryAmount: deliveryFee,
+                deliveryKnown: promoDeliveryKnown,
                 items: cartItems.map(i => ({ productId: i.productId, quantity: i.quantity, price: i.calculatedItemPrice }))
             });
             setAppliedPromoCode(raw);

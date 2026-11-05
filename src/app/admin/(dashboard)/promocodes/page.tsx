@@ -814,7 +814,9 @@ export default function AdminPromoCodesPage() {
                         disabled={
                             saving ||
                             !form.code.trim() ||
-                            !Number.isInteger(Number(form.discountValue))
+                            (form.kind === "standard" &&
+                                !manualRules &&
+                                !Number.isInteger(Number(form.discountValue)))
                         }
                         size={isMobile ? "large" : "medium"}
                     >
