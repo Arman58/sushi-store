@@ -1,7 +1,7 @@
 "use client";
 
 import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import HideImageOutlinedIcon from "@mui/icons-material/HideImageOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import {
     Box,
@@ -176,9 +176,9 @@ export function CategoryImageCell({
                                 onClick={() => void handleRemove()}
                                 disabled={disabled || busy}
                                 aria-label={tCommon("removePhoto")}
-                                sx={{ color: "#E74C3C" }}
+                                sx={{ color: tokens.textMuted }}
                             >
-                                <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+                                <HideImageOutlinedIcon sx={{ fontSize: 18 }} />
                             </IconButton>
                         </span>
                     </Tooltip>
