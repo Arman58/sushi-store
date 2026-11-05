@@ -7,6 +7,7 @@ import {
 } from "@/lib/backend-i18n";
 import { debugLog } from "@/lib/debug-log";
 import { prisma } from "@/lib/prisma";
+import { isValidPushEndpoint } from "@/lib/push-endpoint";
 import { getVapidSubject } from "@/lib/push-vapid";
 
 export type PushNotificationPayload = {
@@ -64,10 +65,23 @@ export async function sendPushNotification(
         return;
     }
 
-    const subscriptions = await prisma.pushSubscription.findMany({
+    const storedSubscriptions = await prisma.pushSubscription.findMany({
         where: { userId },
         select: { id: true, endpoint: true, keys: true },
     });
+
+    const subscriptions = storedSubscriptions.filter((subscription) =>
+        isValidPushEndpoint(subscription.endpoint),
+    );
+    const invalidIds = storedSubscriptions
+        .filter((subscription) => !isValidPushEndpoint(subscription.endpoint))
+        .map((subscription) => subscription.id);
+    if (invalidIds.length > 0) {
+        console.warn("[PUSH] Removing subscriptions with invalid endpoints:", invalidIds.length);
+        await prisma.pushSubscription
+            .deleteMany({ where: { id: { in: invalidIds } } })
+            .catch(() => undefined);
+    }
 
     if (subscriptions.length === 0) {
         debugLog("[PUSH] No subscriptions for user:", userId);
