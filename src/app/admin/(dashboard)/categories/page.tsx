@@ -272,18 +272,28 @@ export default function AdminCategoriesPage() {
 
     return (
         <PageContainer>
+            {/* Заголовок с подзаголовком и кнопка - соседи по строке: подзаголовок переносится в
+                своей колонке и не может оказаться под кнопкой (на узких экранах кнопка уходит вниз). */}
             <Stack
-                direction="row"
-                alignItems="center"
-                flexWrap="wrap"
-                columnGap={1.25}
-                rowGap={1}
-                sx={{ mb: 0.5 }}
+                direction={{ xs: "column", sm: "row" }}
+                alignItems={{ xs: "stretch", sm: "flex-start" }}
+                justifyContent="space-between"
+                columnGap={3}
+                rowGap={1.5}
+                sx={{ mb: 3 }}
             >
-                <CategoryOutlinedIcon sx={{ color: tokens.brand }} />
-                <SectionTitle pageTitle>{t("title")}</SectionTitle>
-                <Box sx={{ flex: 1, display: { xs: "none", sm: "block" } }} />
-                {/* На телефоне кнопка уходит на свою строку, иначе заголовок ломается по буквам. */}
+                <Box sx={{ minWidth: 0 }}>
+                    <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mb: 0.5 }}>
+                        <CategoryOutlinedIcon sx={{ color: tokens.brand }} />
+                        <SectionTitle pageTitle>{t("title")}</SectionTitle>
+                    </Stack>
+                    <Typography
+                        variant="body2"
+                        sx={{ color: tokens.textMuted, mt: -2, maxWidth: 760 }}
+                    >
+                        {t("subtitle")}
+                    </Typography>
+                </Box>
                 <Button
                     variant="contained"
                     size="small"
@@ -292,20 +302,13 @@ export default function AdminCategoriesPage() {
                     sx={{
                         fontWeight: 700,
                         whiteSpace: "nowrap",
-                        flexBasis: { xs: "100%", sm: "auto" },
+                        flexShrink: 0,
+                        mt: { sm: 0.5 },
                     }}
                 >
                     {t("addCategory")}
                 </Button>
             </Stack>
-            <Typography
-                variant="body2"
-                // -2 только на десктопе: там заголовок и кнопка в одной строке; на телефоне
-                // кнопка занимает отдельную строку, и отрицательный отступ наезжал бы на неё.
-                sx={{ color: tokens.textMuted, mb: 3, mt: { xs: 1.5, sm: -2 } }}
-            >
-                {t("subtitle")}
-            </Typography>
 
             {pageError ? (
                 <Alert severity="error" sx={{ mb: 2 }} onClose={() => setPageError(null)}>
