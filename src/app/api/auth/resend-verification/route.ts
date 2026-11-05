@@ -95,8 +95,8 @@ export async function POST(request: Request) {
         );
     }
 
-    const { sent } = await issueOtpForEmail(email, parsed.data.locale);
-    if (!sent) {
+    const { sent, cooldown } = await issueOtpForEmail(email, parsed.data.locale);
+    if (!sent && !cooldown) {
         return NextResponse.json(
             { error: getFormValidationMessage("form.auth.emailSendFailed", locale) },
             { status: 502 },
